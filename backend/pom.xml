@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.eastwind</groupId>
-	<artifactId>OrderManager</artifactId>
+	<artifactId>ElevatorACAfterSaleManager</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>OrderManager</name>
-	<description>Order Manager</description>
+	<name>ElevatorACAfterSaleManager</name>
+	<description>Elevator AC After-Sale Manager</description>
 	<url/>
 	<licenses>
 		<license/>

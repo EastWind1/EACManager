@@ -1,6 +1,6 @@
 spring:
   application:
-    name: OrderManager
+    name: Elevator AC After-Sale Manager
   threads:
     virtual:
       enabled: true

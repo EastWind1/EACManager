@@ -1,5 +1,5 @@
 {
-  "name": "order-manager",
+  "name": "elevator-ac-after-sale-manager",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,6 @@
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --fix",
     "format": "prettier --write src/",
-    "build-docker": "docker build -t order-manager-front ."
   },
   "dependencies": {
     "pinia": "^2.2.6",
