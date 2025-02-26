@@ -13,11 +13,10 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Security配置类
  *
- * <p>启用方法级安全
  * <p>自定义UserDetailService由 {@link UserService}实现
  */
 @Configuration
-@EnableMethodSecurity
+// @EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean

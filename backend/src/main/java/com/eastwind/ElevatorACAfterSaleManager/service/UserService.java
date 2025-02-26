@@ -18,6 +18,10 @@ public class UserService implements UserDetailsService {
     }
 
     public User create(User user) {
+        if (userRepository.existsUserByUsername(user.getUsername())) {
+            throw new RuntimeException("用户名已存在");
+        }
+
         return userRepository.save(user);
     }
 

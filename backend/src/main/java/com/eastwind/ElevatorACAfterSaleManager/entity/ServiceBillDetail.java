@@ -1,0 +1,41 @@
+package com.eastwind.ElevatorACAfterSaleManager.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.math.BigDecimal;
+
+/**
+ * 服务项目明细
+ */
+@Entity
+@Data
+@EqualsAndHashCode(callSuper=true)
+public class ServiceBillDetail extends AuditEntity {
+    @Id
+    @GeneratedValue
+    private int id;
+    /**
+     * 设备类型
+     */
+    private String device;
+    /**
+     * 数量
+     */
+    private int quantity;
+    /**
+     * 单价
+     */
+    private BigDecimal unitPrice;
+    /**
+     * 小计
+     */
+    private BigDecimal subtotal;
+    /**
+     * 备注
+     */
+    private String remark;
+}

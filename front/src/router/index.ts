@@ -10,6 +10,10 @@ const router = createRouter({
       component: HomeView
     },
     {
+      path: '/basic',
+      component: OrderList
+    },
+    {
       path: '/list',
       component: OrderList
     }

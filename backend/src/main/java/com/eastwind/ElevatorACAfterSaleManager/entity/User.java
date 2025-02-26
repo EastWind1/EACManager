@@ -15,6 +15,7 @@ import java.util.Collection;
  * 用户实体
  */
 @Entity
+@Table(name = "\"user\"") // 由于user是postgresql关键字，需用""括起来
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class User extends AuditEntity implements UserDetails {
@@ -27,6 +28,7 @@ public class User extends AuditEntity implements UserDetails {
      * 用户名
      */
     @NotBlank(message = "用户名不能为空或空格")
+    @Column(unique = true)
     private String username;
 
     /**

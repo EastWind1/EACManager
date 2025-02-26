@@ -1,22 +1,17 @@
-package com.eastwind.ElevatorACAfterSaleManager.entity;
+package com.eastwind.ElevatorACAfterSaleManager.dto;
 
-import jakarta.persistence.*;
+import com.eastwind.ElevatorACAfterSaleManager.entity.*;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * 服务单据实体类
+ * 服务单DTO
  */
-@Entity
 @Data
-@EqualsAndHashCode(callSuper=true)
-public class ServiceBillEntity extends AuditEntity {
-    @Id
-    @GeneratedValue
+public class ServiceBillDTO {
     private int id;
     /**
      * 单号
@@ -25,13 +20,11 @@ public class ServiceBillEntity extends AuditEntity {
     /**
      * 单据类型
      */
-    @Enumerated
     private ServiceBillType type;
     /**
      * 单据状态
      */
-    @Enumerated
-    private String state;
+    private ServiceBillState state;
     /**
      * 项目名称
      */
@@ -43,11 +36,27 @@ public class ServiceBillEntity extends AuditEntity {
     /**
      * 项目联系人
      */
-    private String projectContactor;
+    private String projectContact;
     /**
      * 项目联系人电话
      */
     private String projectContactPhone;
+    /**
+     * 现场联系人
+     */
+    private String onSiteContact;
+    /**
+     * 现场联系人电话
+     */
+    private String onSitePhone;
+    /**
+     * 货物是否在现场
+     */
+    private boolean isCargoOnSite;
+    /**
+     * 送货联系电话
+     */
+    private String cargoSenderPhone;
     /**
      * 电梯信息
      */
@@ -55,18 +64,26 @@ public class ServiceBillEntity extends AuditEntity {
     /**
      * 处理人明细列表
      */
-    @OneToMany
-    private List<ServiceBillProcessorDetail> processDetails;
-
+    private List<ServiceBillProcessorDetailDTO> processDetails;
+    /**
+     * 服务明细
+     */
+    private List<ServiceBillDetailDTO> details;
     /**
      * 总金额
      */
-    @Column(scale = 3)
     private BigDecimal totalAmount;
     /**
      * 完工时间
      */
     private OffsetDateTime processedDate;
+    /**
+     * 备注
+     */
+    private String remark;
+    /**
+     * 创建时间
+     */
+    private OffsetDateTime createDate;
 
 }
-

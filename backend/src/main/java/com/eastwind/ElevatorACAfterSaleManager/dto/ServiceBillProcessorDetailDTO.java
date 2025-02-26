@@ -1,41 +1,31 @@
-package com.eastwind.ElevatorACAfterSaleManager.entity;
+package com.eastwind.ElevatorACAfterSaleManager.dto;
 
 
-import jakarta.persistence.*;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 /**
- * 服务单处理人明细
+ * 服务单处理人明细DTO
  */
-@Entity
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class ServiceBillProcessorDetail extends AuditEntity {
+public class ServiceBillProcessorDetailDTO {
 
-    @Id
-    @GeneratedValue
     private int id;
     /**
      * 处理人
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private User processUser;
+    private UserDTO processUser;
 
     /*
      * 处理数量
      */
-    @Column(scale = 2)
     private BigDecimal processCount;
 
     /**
      * 处理金额
      */
-    @Column(scale = 3)
     private BigDecimal processedAmount;
     /**
      * 接受时间
