@@ -11,6 +11,11 @@ export default defineConfig({
     vueDevTools(),
     vuetify()
   ],
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8080/api',
+    }
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

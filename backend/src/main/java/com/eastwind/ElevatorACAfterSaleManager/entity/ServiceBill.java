@@ -57,14 +57,6 @@ public class ServiceBill extends AuditEntity {
      */
     private String onSitePhone;
     /**
-     * 货物是否在现场
-     */
-    private boolean isCargoOnSite;
-    /**
-     * 送货联系电话
-     */
-    private String cargoSenderPhone;
-    /**
      * 电梯信息
      */
     private String elevatorInfo;

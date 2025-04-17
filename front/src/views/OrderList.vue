@@ -1,6 +1,12 @@
 <template>
-  <v-data-table-server v-model:items-per-page="itemsPerPage" :headers="headers" :items="orderItems"
-    :items-length="totalItems" :loading="loading" item-value="name" @update:options="loadItems">
+  <v-data-table-server
+    v-model:items-per-page="itemsPerPage"
+    :headers="headers"
+    :items="orderItems"
+    :items-length="totalItems"
+    :loading="loading"
+    item-value="name"
+    @update:options="loadItems">
   </v-data-table-server>
 </template>
 
@@ -28,4 +34,3 @@ function loadItems() {
 }
 </script>
 
-<style scoped></style>

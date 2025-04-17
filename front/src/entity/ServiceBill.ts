@@ -1,9 +1,10 @@
-import {type User } from './User';
+import type { User } from '@/entity/User';
+import type { AuditEntity } from '@/entity/Audit.ts'
 
 /**
  * 服务单类型
  */
-enum ServiceBillType {
+export const enum ServiceBillType {
   /**
    * 安装单
    */
@@ -17,7 +18,7 @@ enum ServiceBillType {
 /**
  * 服务单据状态
  */
-enum ServiceBillState {
+export const enum ServiceBillState {
   /**
    * 新建
    */
@@ -43,12 +44,12 @@ enum ServiceBillState {
 /**
  * 服务单实体
  */
-export interface ServiceBill  {
-  id: number
+export interface ServiceBill extends AuditEntity {
+  id?: number
   /**
    * 单号
    */
-  number: number;
+  number?: number;
   /**
    * 单据类型
    */
@@ -56,7 +57,7 @@ export interface ServiceBill  {
   /**
    * 单据状态
    */
-  state: ServiceBillType;
+  state: ServiceBillState;
   /**
    * 项目名称
    */
@@ -82,10 +83,6 @@ export interface ServiceBill  {
    */
   onSitePhone: string;
   /**
-   * 货物是否在现场
-   */
-  isCargoOnSite: boolean;
-  /**
    * 送货联系电话
    */
   cargoSenderPhone: string;
@@ -100,7 +97,7 @@ export interface ServiceBill  {
   /**
    * 服务明细
    */
-  private List<ServiceBillDetailDTO> details;
+  details: ServiceBillDetail[];
   /**
    * 总金额
    */
@@ -119,11 +116,38 @@ export interface ServiceBill  {
   createDate: string;
 
 }
+/**
+ * 服务项目明细
+ */
+export interface ServiceBillDetail extends AuditEntity {
+  id?: number;
+  /**
+   * 设备类型
+   */
+  device: string;
+  /**
+   * 数量
+   */
+  quantity: number;
+  /**
+   * 单价
+   */
+  unitPrice: number;
+  /**
+   * 小计
+   */
+  subtotal: number;
+  /**
+   * 备注
+   */
+  remark: string;
+}
+
 
 /**
  * 处理人明细
  */
-interface ServiceBillProcessorDetail {
+interface ServiceBillProcessorDetail extends AuditEntity {
   id: number;
   /**
    * 处理人
@@ -149,3 +173,4 @@ interface ServiceBillProcessorDetail {
    */
   processedDate: string;
 }
+

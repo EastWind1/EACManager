@@ -5,21 +5,38 @@ import App from './App.vue'
 import router from './router'
 
 import 'vuetify/styles'
-import '@mdi/font/css/materialdesignicons.css'
 import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import { zhHans } from 'vuetify/locale'
+import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 
 const app = createApp(App)
 const vuetify = createVuetify({
-    components,
-    directives,
-    locale: {
-      locale: 'zhHans',
-      messages: {zhHans}
+  locale: {
+    locale: 'zhHans',
+    messages: { zhHans }
+  },
+  icons: {
+    aliases,
+    sets: {
+      mdi
     }
-  })
+  },
+  defaults:{
+    VTextField: {
+      variant: "outlined",
+      density: "compact"
+    },
+    VSelect: {
+      variant: "outlined",
+      density: "compact"
+    },
+    VTextarea: {
+      variant: "outlined",
+      density: "compact"
+    }
+
+  }
+})
 app.use(createPinia())
 app.use(router)
 app.use(vuetify)
