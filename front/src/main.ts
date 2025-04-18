@@ -33,6 +33,11 @@ const vuetify = createVuetify({
     VTextarea: {
       variant: "outlined",
       density: "compact"
+    },
+    VNumberInput: {
+      variant: "outlined",
+      density: "compact",
+      controlVariant: "stacked"
     }
 
   }

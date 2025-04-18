@@ -4,7 +4,7 @@
       <h1 class="ml-3 mr-3">服务单管理</h1>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>
-      <v-btn class="text-none ms-4 text-white" color="blue-darken-4" to="/form">
+      <v-btn v-if="route.path !== '/form'" color="primary" to="/form">
         <template v-slot:prepend>
           <v-icon :icon="mdiPlus"></v-icon>
         </template>
@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { RouterView } from "vue-router";
+import { RouterView, useRoute } from "vue-router";
 import { ref } from "vue";
 import {
   mdiHome,
@@ -61,6 +61,8 @@ import {
 } from "@mdi/js";
 
 const drawer = ref(true);
+const route = useRoute()
+
 </script>
 
 <style scoped></style>
