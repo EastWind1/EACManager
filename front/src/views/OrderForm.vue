@@ -1,3 +1,4 @@
+<!-- 订单表单 -->
 <template>
   <v-container>
     <v-form ref="form" v-model="valid" lazy-validation>
@@ -5,9 +6,11 @@
       <v-card>
         <template #text>
           <v-row justify="space-between">
+            <!-- 单号 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <h3>单号: {{ serviceBill.number }}</h3>
             </v-col>
+            <!-- 单据状态 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <h3>
                 状态:
@@ -26,15 +29,7 @@
         <template #title>基本信息</template>
         <template #text>
           <v-row>
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <v-text-field
-                v-model="serviceBill.number"
-                label="单号"
-                placeholder="保存后自动生成"
-                persistent-placeholder
-                readonly
-              ></v-text-field>
-            </v-col>
+            <!-- 单据类型 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-select
                 v-model="serviceBill.type"
@@ -44,6 +39,7 @@
                 label="单据类型"
               ></v-select>
             </v-col>
+            <!-- 项目名称 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-text-field
                 v-model="serviceBill.projectName"
@@ -51,6 +47,7 @@
                 :rules="[requiredRule]"
               ></v-text-field>
             </v-col>
+            <!-- 项目地址 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-text-field
                 v-model="serviceBill.projectAddress"
@@ -58,6 +55,7 @@
                 :rules="[requiredRule]"
               ></v-text-field>
             </v-col>
+            <!-- 项目联系人 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-text-field
                 v-model="serviceBill.projectContact"
@@ -65,6 +63,7 @@
                 :rules="[requiredRule]"
               ></v-text-field>
             </v-col>
+            <!-- 项目联系人电话 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-text-field
                 v-model="serviceBill.projectContactPhone"
@@ -80,20 +79,15 @@
         <template #title>现场信息</template>
         <template #text>
           <v-row>
+            <!-- 现场联系人 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <v-text-field
-                v-model="serviceBill.onSiteContact"
-                label="现场联系人"
-                :rules="[requiredRule]"
-              ></v-text-field>
+              <v-text-field v-model="serviceBill.onSiteContact" label="现场联系人"></v-text-field>
             </v-col>
+            <!-- 现场联系人电话 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <v-text-field
-                v-model="serviceBill.onSitePhone"
-                label="现场联系人电话"
-                :rules="[phoneRule]"
-              ></v-text-field>
+              <v-text-field v-model="serviceBill.onSitePhone" label="现场联系人电话"></v-text-field>
             </v-col>
+            <!-- 电梯信息 -->
             <v-col cols="12">
               <v-textarea
                 v-model="serviceBill.elevatorInfo"
@@ -109,11 +103,13 @@
         <template #title>
           <v-tabs v-model="tab">
             <v-tab value="details" class="v-card-title">明细</v-tab>
+            <!-- 处理明细非新建状态显示 -->
             <v-tab
               value="processors"
               class="v-card-title"
               v-if="serviceBill.state != ServiceBillState.CREATED"
-              >处理人
+            >
+              处理人
             </v-tab>
           </v-tabs>
         </template>
@@ -121,17 +117,14 @@
           <v-tabs-window v-model="tab">
             <!-- 服务单明细 -->
             <v-tabs-window-item value="details">
-              <OrderFormDetail v-model="serviceBill.details"></OrderFormDetail>
+              <OrderFormDetail v-model="serviceBill"></OrderFormDetail>
             </v-tabs-window-item>
-            <!-- 处理人明细 -->
+            <!-- 处理人明细 TODO: 独立为单个组件 -->
             <v-tabs-window-item
               value="processors"
               v-if="serviceBill.state != ServiceBillState.CREATED"
             >
-              <div
-                v-for="(detail, index) in serviceBill.processDetails"
-                :key="index"
-              >
+              <div v-for="(detail, index) in serviceBill.processDetails" :key="index">
                 <v-divider></v-divider>
                 <v-row>
                   <v-col cols="12" sm="12" md="6" lg="4" xl="3">
@@ -179,29 +172,32 @@
       </v-card>
       <!-- 其他字段 -->
       <v-card class="mt-5">
-        <template #title> 其它信息</template>
+        <template #title>其它信息</template>
         <template #text>
           <v-row>
+            <!-- 完成时间 -->
+            <!-- 处理完之后的状态显示 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-text-field
-                v-model="serviceBill.totalAmount"
-                label="总金额"
-                :rules="[requiredRule]"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <v-text-field
+                v-if="
+                  serviceBill.state === ServiceBillState.PROCESSED ||
+                  serviceBill.state === ServiceBillState.FINISHED
+                "
                 v-model="serviceBill.processedDate"
                 label="完工时间"
                 type="date"
-                :rules="[requiredRule]"
               ></v-text-field>
             </v-col>
             <v-col cols="12">
-              <v-textarea
-                v-model="serviceBill.remark"
-                label="备注"
-              ></v-textarea>
+              <v-textarea v-model="serviceBill.remark" label="备注"></v-textarea>
+            </v-col>
+            <!-- 创建时间 -->
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <label class="text-subtitle-1">创建时间 {{serviceBill.createDate ? date.format(serviceBill.createDate, 'yyyy-MM-dd') : ''}}</label>
+            </v-col>
+            <!-- 最后修改时间 -->
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <label class="text-subtitle-1">最后修改时间 {{serviceBill.lastModifiedDate ? date.format(serviceBill.lastModifiedDate, 'yyyy-MM-dd') : ''}}</label>
             </v-col>
           </v-row>
         </template>
@@ -213,84 +209,80 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import {
-  type ServiceBill,
-  ServiceBillState,
-  ServiceBillType,
-} from "@/entity/ServiceBill.ts";
-import OrderFormDetail from "@/views/OrderFormDetail.vue";
-
-// 表单验证状态
-const valid = ref(false);
-
+import { ref } from 'vue'
+import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/entity/ServiceBill.ts'
+import OrderFormDetail from '@/views/OrderFormDetail.vue'
+import * as date from 'date-fns'
 // 初始化表单数据
 const serviceBill = ref<ServiceBill>({
   id: undefined,
   number: undefined,
   type: ServiceBillType.INSTALL,
   state: ServiceBillState.CREATED,
-  projectName: "",
-  projectAddress: "",
-  projectContact: "",
-  projectContactPhone: "",
-  onSiteContact: "",
-  onSitePhone: "",
-  cargoSenderPhone: "",
-  elevatorInfo: "",
+  projectName: '',
+  projectAddress: '',
+  projectContact: '',
+  projectContactPhone: '',
+  onSiteContact: '',
+  onSitePhone: '',
+  cargoSenderPhone: '',
+  elevatorInfo: '',
   processDetails: [],
   details: [],
-  totalAmount: "",
-  processedDate: "",
-  remark: "",
-  createDate: "",
-});
+  totalAmount: '',
+  processedDate: '',
+  remark: '',
+  createDate: new Date().toString(),
+})
 
 // 枚举值映射
 const serviceBillTypes = [
   {
     value: ServiceBillType.INSTALL,
-    label: "安装单",
+    label: '安装单',
   },
   {
     value: ServiceBillType.FIX,
-    label: "维修单",
+    label: '维修单',
   },
-];
+]
 
-// 状态映射
+// 状态显示映射
 const serviceBillStates = [
   {
-    label: "新建",
-    color: "light-blue",
+    label: '新建',
+    color: 'light-blue',
   },
   {
-    label: "处理中",
-    color: "amber",
+    label: '处理中',
+    color: 'amber',
   },
   {
-    label: "处理完成",
-    color: "light-green",
+    label: '处理完成',
+    color: 'light-green',
   },
   {
-    label: "回款完成",
-    color: "green",
+    label: '回款完成',
+    color: 'green',
   },
-];
+]
 
-// 验证规则
-const requiredRule = (v: unknown) => !!v || "此项为必填项";
-const phoneRule = (v: string) =>
-  /^\d{10,11}$/.test(v) || "请输入有效的电话号码";
+
+// 表单验证状态
+const valid = ref(false)
+// 必填验证
+const requiredRule = (v: unknown) => !!v || '此项为必填项'
+// 电话号码验证
+const phoneRule = (v: string) => /^\d{10,11}$/.test(v) || '请输入有效的电话号码'
 
 // 提交表单
 const submitForm = () => {
   if (valid.value) {
-    console.log("提交的服务单数据:", serviceBill.value);
+    console.log('提交的服务单数据:', serviceBill.value)
   }
-};
-
-const tab = ref("details");
+}
+// 当前 Tab 页
+const tab = ref('details')
 </script>
 
 <style scoped>

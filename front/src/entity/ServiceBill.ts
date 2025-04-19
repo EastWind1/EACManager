@@ -1,4 +1,4 @@
-import type { User } from '@/entity/User';
+import type { User } from '@/entity/User'
 import type { AuditEntity } from '@/entity/Audit.ts'
 
 /**
@@ -12,7 +12,7 @@ export const enum ServiceBillType {
   /**
    * 维护单
    */
-  FIX
+  FIX,
 }
 
 /**
@@ -32,13 +32,9 @@ export const enum ServiceBillState {
    */
   PROCESSED,
   /**
-   * 待回款
-   */
-  REFUNDING,
-  /**
    * 完成
    */
-  FINISHED
+  FINISHED,
 }
 
 /**
@@ -49,128 +45,125 @@ export interface ServiceBill extends AuditEntity {
   /**
    * 单号
    */
-  number?: number;
+  number?: number
   /**
    * 单据类型
    */
-  type: ServiceBillType;
+  type: ServiceBillType
   /**
    * 单据状态
    */
-  state: ServiceBillState;
+  state: ServiceBillState
   /**
    * 项目名称
    */
-  projectName: string;
+  projectName: string
   /**
    * 项目地址
    */
-  projectAddress: string;
+  projectAddress: string
   /**
    * 项目联系人
    */
-  projectContact: string;
+  projectContact: string
   /**
    * 项目联系人电话
    */
-  projectContactPhone: string;
+  projectContactPhone: string
   /**
    * 现场联系人
    */
-  onSiteContact: string;
+  onSiteContact: string
   /**
    * 现场联系人电话
    */
-  onSitePhone: string;
+  onSitePhone: string
   /**
    * 送货联系电话
    */
-  cargoSenderPhone: string;
+  cargoSenderPhone: string
   /**
    * 电梯信息
    */
-  elevatorInfo: string;
+  elevatorInfo: string
   /**
    * 处理人明细列表
    */
-  processDetails: ServiceBillProcessorDetail[];
+  processDetails: ServiceBillProcessorDetail[]
   /**
    * 服务明细
    */
-  details: ServiceBillDetail[];
+  details: ServiceBillDetail[]
   /**
    * 总金额
    */
-  totalAmount: string;
+  totalAmount: string
   /**
    * 完工时间
    */
-  processedDate: string;
+  processedDate: string
   /**
    * 备注
    */
-  remark: string;
+  remark: string
   /**
    * 创建时间
    */
-  createDate: string;
-
+  createDate: string
 }
 /**
  * 服务项目明细
  */
 export interface ServiceBillDetail extends AuditEntity {
-  id?: number;
+  id?: number
   /**
    * 设备类型
    */
-  device: string;
+  device: string
   /**
    * 数量
    */
-  quantity: number;
+  quantity: number
   /**
    * 单价
    */
-  unitPrice: number;
+  unitPrice: number
   /**
    * 小计
    */
-  subtotal: number;
+  subtotal: number
   /**
    * 备注
    */
-  remark: string;
+  remark: string
 }
-
 
 /**
  * 处理人明细
  */
 interface ServiceBillProcessorDetail extends AuditEntity {
-  id: number;
+  id: number
   /**
    * 处理人
    */
-  processUser: User;
+  processUser: User
 
   /*
    * 处理数量
    */
-  processCount: string;
+  processCount: string
 
   /**
    * 处理金额
    */
-  processedAmount: string;
+  processedAmount: string
   /**
    * 接受时间
    */
-  acceptDate: string;
+  acceptDate: string
 
   /**
    * 处理完成时间
    */
-  processedDate: string;
+  processedDate: string
 }
-

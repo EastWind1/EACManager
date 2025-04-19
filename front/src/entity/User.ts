@@ -2,36 +2,36 @@
  * 用户
  */
 export interface User {
-  id: number;
+  id: number
   /**
    * 用户名
    */
-  username: string;
+  username: string
   /**
    * 名称
    */
-  name: string;
+  name: string
   /**
    * 电话
    */
-  phone: string;
+  phone: string
   /**
    * 邮箱
    */
-  email: string;
+  email: string
   /**
    * 权限
    */
-  authorities: Authority[];
+  authorities: Authority[]
 }
 
 /**
  * 权限
  */
 interface Authority {
-  id: number;
+  id: number
   /**
    * 权限类型
    */
-  name: string;
+  name: string
 }

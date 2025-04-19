@@ -15,13 +15,9 @@
   </div>
 </template>
 
-<script setup lang="ts">
-
-
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
-
 .container {
   display: flex;
   flex-wrap: wrap;
@@ -33,5 +29,4 @@
   border: 1px solid black;
   margin: 1em;
 }
-
 </style>

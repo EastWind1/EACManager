@@ -1,127 +1,145 @@
+<!-- 订单明细 -->
 <template>
+  <!-- 条数大于 10 时才显示分页 -->
   <v-data-table
     :headers="detailHeaders"
-    :items="details"
+    :items="serviceBill?.details"
     item-key="id"
-    :hide-default-footer="details!.length <= 10"
+    :hide-default-footer="(serviceBill ? serviceBill.details.length : 0) <= 10"
   >
-
-    <template #[`item.actions`]="{ item }">
-      <div class="d-flex ga-2 justify-end">
-        <v-icon :icon="mdiPencil" size="small"></v-icon>
+    <!-- 最后一列显示操作按钮 -->
+    <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
+    <template #[`item.actions`]="{ item }" v-if="serviceBill?.state === ServiceBillState.CREATED">
+      <div class="d-flex ga-3">
+        <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
         <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
       </div>
     </template>
 
-    <!-- 添加加号按钮 -->
-    <template #[`body.append`]>
+    <!-- 最后一行添加加号按钮 -->
+    <template #[`body.append`] v-if="serviceBill?.state === ServiceBillState.CREATED">
       <tr>
-        <td :colspan="detailHeaders.length" style="text-align: center;">
+        <td :colspan="detailHeaders.length" class="align-center">
           <v-btn block @click="addDetail" variant="plain">
             <v-icon :icon="mdiPlus"></v-icon>
           </v-btn>
         </td>
       </tr>
     </template>
-
-
   </v-data-table>
-  <v-dialog
-    v-model="dialog"
-  >
+  <!-- 模态框，用于新增或编辑时更改数据 -->
+  <v-dialog v-model="showDialog" width="50rem">
     <v-card title="Dialog">
       <template #text>
         <v-row>
           <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-text-field
-              v-model="dialogData.device"
-              label="设备类型"
-            ></v-text-field>
+            <v-text-field v-model="dialogData.device" label="设备类型"></v-text-field>
           </v-col>
           <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-number-input
-              v-model="dialogData.unitPrice"
-              label="单价"
-            ></v-number-input>
+            <v-number-input v-model="dialogData.unitPrice" label="单价"></v-number-input>
           </v-col>
           <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-number-input
-              v-model="dialogData.quantity"
-              label="数量"
-            ></v-number-input>
+            <v-number-input v-model="dialogData.quantity" label="数量"></v-number-input>
           </v-col>
 
           <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-text-field
-              v-model="dialogData.remark"
-              label="备注"
-            ></v-text-field>
+            <v-text-field v-model="dialogData.remark" label="备注"></v-text-field>
           </v-col>
         </v-row>
       </template>
       <template #actions>
-        <span>小计: <span class="text-red">{{dialogData.subtotal}}</span></span>
-        <v-btn
-          text="保存"
-          @click="dialog = false"
-        ></v-btn>
+        <span
+          >小计: <span class="text-red">{{ dialogData.subtotal }}</span></span
+        >
+        <v-btn text="保存" @click="save"></v-btn>
       </template>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup lang="ts">
-
-import { mdiDelete, mdiPencil, mdiPlus } from "@mdi/js";
-import type { ServiceBillDetail } from "@/entity/ServiceBill.ts";
-import { ref, watchEffect } from "vue";
-
-const dialog = ref(false)
+import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
+import { type ServiceBill, type ServiceBillDetail, ServiceBillState } from '@/entity/ServiceBill.ts'
+import { ref, watchEffect } from 'vue'
 
 // 表单标题
 const detailHeaders = [
-  { title: "设备类型", key: "device" },
-  { title: "数量", key: "quantity" },
-  { title: "单价", key: "unitPrice" },
-  { title: "小计", key: "subtotal" },
-  { title: "备注", key: "remark" },
-  {title: "操作", key: "actions", sortable: false }
-];
+  { title: '设备类型', key: 'device' },
+  { title: '数量', key: 'quantity' },
+  { title: '单价', key: 'unitPrice' },
+  { title: '小计', key: 'subtotal' },
+  { title: '备注', key: 'remark' },
+  { title: '操作', key: 'actions', sortable: false },
+]
 
-const details = defineModel<ServiceBillDetail[]>();
+const serviceBill = defineModel<ServiceBill>()
 
-const dialogData = ref<ServiceBillDetail>({
-  device: "",
+// 是否显示模态框
+const showDialog = ref(false)
+// 当前正在编辑的行，若为新增则为空
+const curEditData = ref<ServiceBillDetail>()
+// 模态框默认值
+const DEFAULT_VALUE = {
+  device: '',
   quantity: 1,
   unitPrice: 0,
   subtotal: 0,
-  remark: ""
-});
+  remark: '',
+}
+// 模态框当前数据
+const dialogData = ref<ServiceBillDetail>(DEFAULT_VALUE)
 
+// 监听模态框单价数量变化，计算小计
 watchEffect(() => {
   dialogData.value.subtotal = dialogData.value.quantity * dialogData.value.unitPrice
 })
 
+// 添加明细
 function addDetail() {
-  details.value!.push({
-    device: "",
-    quantity: 0,
-    unitPrice: 0,
-    subtotal: 0,
-    remark: ""
-  })
+  curEditData.value = undefined
 
-  dialog.value = true
+  dialogData.value = DEFAULT_VALUE
+
+  showDialog.value = true
+}
+
+function editDetail(item: ServiceBillDetail) {
+  curEditData.value = item
+
+  dialogData.value.device = item.device
+  dialogData.value.quantity = item.quantity
+  dialogData.value.unitPrice = item.unitPrice
+  dialogData.value.subtotal = item.subtotal
+  dialogData.value.remark = item.remark
+
+  showDialog.value = true
 }
 
 function deleteDetail(item: ServiceBillDetail) {
-  details.value!.splice(details.value!.findIndex(i => i === item), 1);
+  serviceBill.value?.details.splice(
+    serviceBill.value.details.findIndex((i) => i === item),
+    1,
+  )
 }
 
-
+function save() {
+  if (!curEditData.value) {
+    serviceBill.value?.details.push({
+      device: dialogData.value.device,
+      quantity: dialogData.value.quantity,
+      unitPrice: dialogData.value.unitPrice,
+      subtotal: dialogData.value.subtotal,
+      remark: dialogData.value.remark,
+    })
+  } else {
+    curEditData.value.device = dialogData.value.device
+    curEditData.value.quantity = dialogData.value.quantity
+    curEditData.value.unitPrice = dialogData.value.unitPrice
+    curEditData.value.subtotal = dialogData.value.subtotal
+    curEditData.value.remark = dialogData.value.remark
+  }
+  showDialog.value = false
+}
 </script>
 
-
-<style scoped>
-
-</style>
+<style scoped></style>

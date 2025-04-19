@@ -7,20 +7,20 @@ export interface AuditEntity {
   /**
    * 创建时间
    */
-  createdDate?: Date;
+  createdDate?: Date
 
   /**
    * 创建人
    */
-  createdBy?: User;
+  createdBy?: User
 
   /**
    * 修改时间
    */
-  lastModifiedDate?: Date;
+  lastModifiedDate?: Date
 
   /**
    * 修改人
    */
-  lastModifiedBy?: User;
+  lastModifiedBy?: User
 }

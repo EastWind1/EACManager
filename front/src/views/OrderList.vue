@@ -6,12 +6,13 @@
     :items-length="totalItems"
     :loading="loading"
     item-value="name"
-    @update:options="loadItems">
+    @update:options="loadItems"
+  >
   </v-data-table-server>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref } from 'vue'
 
 const itemsPerPage = ref(5)
 const totalItems = ref(0)
@@ -25,12 +26,9 @@ const headers = [
   { title: '地址', key: 'address', sortable: false },
   { title: '联系电话', key: 'contactPhoneNumber', sortable: false },
   { title: '联系人', key: 'contact', sortable: false },
-  { title: '电梯品牌', key: 'elevator', sortable: false }
+  { title: '电梯品牌', key: 'elevator', sortable: false },
 ]
 
 const orderItems = ref([])
-function loadItems() {
-
-}
+function loadItems() {}
 </script>
-
