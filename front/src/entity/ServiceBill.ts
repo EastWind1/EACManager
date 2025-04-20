@@ -97,7 +97,7 @@ export interface ServiceBill extends AuditEntity {
   /**
    * 总金额
    */
-  totalAmount: string
+  totalAmount: number
   /**
    * 完工时间
    */
@@ -151,12 +151,12 @@ interface ServiceBillProcessorDetail extends AuditEntity {
   /*
    * 处理数量
    */
-  processCount: string
+  processCount: number
 
   /**
    * 处理金额
    */
-  processedAmount: string
+  processedAmount: number
   /**
    * 接受时间
    */

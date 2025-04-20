@@ -51,3 +51,6 @@ coverage
 HELP.md
 .mvn
 target/
+
+# env
+.env

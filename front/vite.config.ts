@@ -6,19 +6,10 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import vuetify from 'vite-plugin-vuetify'
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-    vuetify()
-  ],
-  server: {
-    proxy: {
-      '/api': 'http://localhost:8080/api',
-    }
-  },
+  plugins: [vue(), vueDevTools(), vuetify()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
-  }
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
 })

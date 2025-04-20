@@ -193,26 +193,45 @@
             </v-col>
             <!-- 创建时间 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <label class="text-subtitle-1">创建时间 {{serviceBill.createDate ? date.format(serviceBill.createDate, 'yyyy-MM-dd') : ''}}</label>
+              <label class="text-subtitle-1"
+                >创建时间
+                {{
+                  serviceBill.createDate ? date.format(serviceBill.createDate, 'yyyy-MM-dd') : ''
+                }}</label
+              >
             </v-col>
             <!-- 最后修改时间 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <label class="text-subtitle-1">最后修改时间 {{serviceBill.lastModifiedDate ? date.format(serviceBill.lastModifiedDate, 'yyyy-MM-dd') : ''}}</label>
+              <label class="text-subtitle-1"
+                >最后修改时间
+                {{
+                  serviceBill.lastModifiedDate
+                    ? date.format(serviceBill.lastModifiedDate, 'yyyy-MM-dd')
+                    : ''
+                }}</label
+              >
             </v-col>
           </v-row>
         </template>
       </v-card>
+    </v-form>
+    <div class="bottom-empty"></div>
+    <v-container class="position-fixed bottom-0 bg-white d-flex justify-end ga-2">
+      <span
+        >总额: <span class="text-red">￥ {{ serviceBill.totalAmount }}</span></span
+      >
       <!-- 提交按钮 -->
       <v-btn color="primary" @click="submitForm">提交</v-btn>
-    </v-form>
+    </v-container>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/entity/ServiceBill.ts'
 import OrderFormDetail from '@/views/OrderFormDetail.vue'
 import * as date from 'date-fns'
+import { ServiceBillApi } from '@/api/ServiceBillApi.ts'
 // 初始化表单数据
 const serviceBill = ref<ServiceBill>({
   id: undefined,
@@ -229,7 +248,7 @@ const serviceBill = ref<ServiceBill>({
   elevatorInfo: '',
   processDetails: [],
   details: [],
-  totalAmount: '',
+  totalAmount: 0,
   processedDate: '',
   remark: '',
   createDate: new Date().toString(),
@@ -267,7 +286,6 @@ const serviceBillStates = [
   },
 ]
 
-
 // 表单验证状态
 const valid = ref(false)
 // 必填验证
@@ -283,10 +301,16 @@ const submitForm = () => {
 }
 // 当前 Tab 页
 const tab = ref('details')
+
+onMounted(() => {
+  ServiceBillApi.getAll().then(response => {
+    console.log(response.data)
+  })
+})
 </script>
 
 <style scoped>
-h2 {
-  margin-top: 20px;
+.bottom-empty {
+  height: 68px;
 }
 </style>

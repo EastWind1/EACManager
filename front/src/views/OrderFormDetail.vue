@@ -3,13 +3,13 @@
   <!-- 条数大于 10 时才显示分页 -->
   <v-data-table
     :headers="detailHeaders"
-    :items="serviceBill?.details"
+    :items="serviceBill!.details"
     item-key="id"
-    :hide-default-footer="(serviceBill ? serviceBill.details.length : 0) <= 10"
+    :hide-default-footer="serviceBill!.details.length <= 10"
   >
     <!-- 最后一列显示操作按钮 -->
     <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
-    <template #[`item.actions`]="{ item }" v-if="serviceBill?.state === ServiceBillState.CREATED">
+    <template #[`item.actions`]="{ item }" v-if="serviceBill!.state === ServiceBillState.CREATED">
       <div class="d-flex ga-3">
         <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
         <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
@@ -49,7 +49,7 @@
       </template>
       <template #actions>
         <span
-          >小计: <span class="text-red">{{ dialogData.subtotal }}</span></span
+          >小计: <span class="text-red">￥ {{ dialogData.subtotal }}</span></span
         >
         <v-btn text="保存" @click="save"></v-btn>
       </template>
@@ -76,8 +76,8 @@ const serviceBill = defineModel<ServiceBill>()
 
 // 是否显示模态框
 const showDialog = ref(false)
-// 当前正在编辑的行，若为新增则为空
-const curEditData = ref<ServiceBillDetail>()
+// 是否是新增动作
+const isAddAction = ref(true)
 // 模态框默认值
 const DEFAULT_VALUE = {
   device: '',
@@ -89,29 +89,21 @@ const DEFAULT_VALUE = {
 // 模态框当前数据
 const dialogData = ref<ServiceBillDetail>(DEFAULT_VALUE)
 
-// 监听模态框单价数量变化，计算小计
+// 监听模态框单价数量变化，计算小计以及总金额
 watchEffect(() => {
   dialogData.value.subtotal = dialogData.value.quantity * dialogData.value.unitPrice
 })
 
 // 添加明细
 function addDetail() {
-  curEditData.value = undefined
-
+  isAddAction.value = true
   dialogData.value = DEFAULT_VALUE
-
   showDialog.value = true
 }
 
 function editDetail(item: ServiceBillDetail) {
-  curEditData.value = item
-
-  dialogData.value.device = item.device
-  dialogData.value.quantity = item.quantity
-  dialogData.value.unitPrice = item.unitPrice
-  dialogData.value.subtotal = item.subtotal
-  dialogData.value.remark = item.remark
-
+  isAddAction.value = false
+  dialogData.value = item
   showDialog.value = true
 }
 
@@ -123,7 +115,8 @@ function deleteDetail(item: ServiceBillDetail) {
 }
 
 function save() {
-  if (!curEditData.value) {
+  // 处理新增
+  if (isAddAction.value) {
     serviceBill.value?.details.push({
       device: dialogData.value.device,
       quantity: dialogData.value.quantity,
@@ -131,14 +124,13 @@ function save() {
       subtotal: dialogData.value.subtotal,
       remark: dialogData.value.remark,
     })
-  } else {
-    curEditData.value.device = dialogData.value.device
-    curEditData.value.quantity = dialogData.value.quantity
-    curEditData.value.unitPrice = dialogData.value.unitPrice
-    curEditData.value.subtotal = dialogData.value.subtotal
-    curEditData.value.remark = dialogData.value.remark
   }
+
   showDialog.value = false
+  // 重新计算总金额
+  let totalAmount = 0
+  serviceBill.value!.details.forEach(detail => totalAmount += detail.subtotal)
+  serviceBill.value!.totalAmount = totalAmount
 }
 </script>
 
