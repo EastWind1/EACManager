@@ -8,7 +8,7 @@
           <v-row justify="space-between">
             <!-- 单号 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <h3>单号: {{ serviceBill.number }}</h3>
+              <h3>单号: {{ serviceBill.number ? serviceBill.number : ' (保存后自动生成)' }}</h3>
             </v-col>
             <!-- 单据状态 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
@@ -303,8 +303,8 @@ const submitForm = () => {
 const tab = ref('details')
 
 onMounted(() => {
-  ServiceBillApi.getAll().then(response => {
-    console.log(response.data)
+  ServiceBillApi.getAll().then(data => {
+    console.log(data)
   })
 })
 </script>

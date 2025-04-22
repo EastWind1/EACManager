@@ -1,9 +1,29 @@
-import { useAxios } from '@/api/AxiosConfig.ts'
+import { useAxios } from "@/api/AxiosConfig.ts";
+import type { ServiceBill } from "@/entity/ServiceBill.ts";
 
 const axios = useAxios()
 
 export const ServiceBillApi = {
-  getAll: () => {
-    return axios.get('serviceBill')
-  }
+  /**
+   * 获取所有订单
+   * @returns { Promise<ServiceBill[]> } 订单列表
+   */
+  getAll: () => axios.get("serviceBill")
+    .then(res =>
+      res.data as ServiceBill[]
+    ),
+  /**
+   * 保存
+   * @param serviceBill 订单
+   * @returns { Promise<ServiceBill> } 保存后的订单
+   */
+  save: (serviceBill: ServiceBill) => axios.post("serviceBill", serviceBill)
+    .then(res =>
+      res.data as ServiceBill
+    ),
+  /**
+   * 删除
+   * @param id 订单 ID
+   */
+  delete: (id: number) => axios.delete(`serviceBill/${id}}`)
 }

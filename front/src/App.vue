@@ -55,6 +55,16 @@
       <!-- 右侧内容区域 -->
       <RouterView />
     </v-main>
+    <!-- 全局通知 -->
+    <v-snackbar
+      :color="state.color"
+      :text="state.text"
+      :timeout="state.timeout"
+      v-model="state.show"
+      location="top right"
+    >
+
+    </v-snackbar>
   </v-app>
 </template>
 
@@ -62,11 +72,14 @@
 import { RouterView, useRoute } from 'vue-router'
 import { ref } from 'vue'
 import { mdiHome, mdiPlus, mdiListBox, mdiMenu, mdiFormatFloatLeft, mdiAccount } from '@mdi/js'
+import { useNotify } from "@/utils/notify.ts";
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
 // 当前路由
 const route = useRoute()
+// 全局通知
+const { state } = useNotify()
 </script>
 
 <style scoped></style>
