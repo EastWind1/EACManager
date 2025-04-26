@@ -12,7 +12,7 @@ import org.springframework.security.core.GrantedAuthority;
 public class Authority implements GrantedAuthority {
     @Id
     @GeneratedValue
-    private int id;
+    private Integer id;
 
     /**
      * 授权

@@ -6,7 +6,6 @@ const axios = useAxios()
 export const ServiceBillApi = {
   /**
    * 获取所有订单
-   * @returns { Promise<ServiceBill[]> } 订单列表
    */
   getAll: () => axios.get("serviceBill")
     .then(res =>
@@ -15,7 +14,6 @@ export const ServiceBillApi = {
   /**
    * 保存
    * @param serviceBill 订单
-   * @returns { Promise<ServiceBill> } 保存后的订单
    */
   save: (serviceBill: ServiceBill) => axios.post("serviceBill", serviceBill)
     .then(res =>

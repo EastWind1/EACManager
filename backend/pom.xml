@@ -5,8 +5,8 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.3</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<version>3.4.4</version>
+		<relativePath/>
 	</parent>
 	<groupId>com.eastwind</groupId>
 	<artifactId>ElevatorACAfterSaleManager</artifactId>
@@ -108,7 +108,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.13.0</version>
+				<version>3.14.0</version>
 				<configuration>
 					<source>${java.version}</source>
 					<target>${java.version}</target>

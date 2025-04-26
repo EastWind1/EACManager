@@ -9,7 +9,7 @@ import java.math.BigDecimal;
  */
 @Data
 public class ServiceBillDetailDTO {
-    private int id;
+    private Integer id;
     /**
      * 设备类型
      */

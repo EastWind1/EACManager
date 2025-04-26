@@ -1,53 +1,71 @@
 package com.eastwind.EACAfterSaleMgr.service;
 
+import com.eastwind.EACAfterSaleMgr.dto.ServiceBillDTO;
+import com.eastwind.EACAfterSaleMgr.dto.mapper.ServiceBillMapper;
 import com.eastwind.EACAfterSaleMgr.entity.ServiceBill;
 import com.eastwind.EACAfterSaleMgr.entity.ServiceBillProcessorDetail;
 import com.eastwind.EACAfterSaleMgr.entity.ServiceBillState;
 import com.eastwind.EACAfterSaleMgr.entity.User;
 import com.eastwind.EACAfterSaleMgr.repository.ServiceBillRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.security.SecureRandom;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class ServiceBillService {
-    private final TransactionTemplate transactionTemplate;
     private final ServiceBillRepository serviceBillRepository;
 
-    public ServiceBillService(TransactionTemplate transactionTemplate, ServiceBillRepository serviceBillRepository) {
-        this.transactionTemplate = transactionTemplate;
+    public ServiceBillService(ServiceBillRepository serviceBillRepository) {
         this.serviceBillRepository = serviceBillRepository;
     }
 
-    public ServiceBill create(ServiceBill serviceBill) {
-        return serviceBillRepository.save(serviceBill);
+    @Transactional
+    public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
+        if (serviceBillRepository.existsById(serviceBillDTO.getId())) {
+            throw new RuntimeException("单据已存在");
+        }
+        if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {
+            serviceBillDTO.setNumber(ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + new SecureRandom().nextInt(1000));
+        } else {
+            if (serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())) {
+                throw new RuntimeException("单据编号已存在");
+            }
+        }
+        return ServiceBillMapper.INSTANCE.toServiceBillDTO(serviceBillRepository.save(ServiceBillMapper.INSTANCE.toServiceBill(serviceBillDTO)));
+    }
+    @Transactional
+    public ServiceBillDTO update(ServiceBillDTO serviceBillDTO) {
+        return ServiceBillMapper.INSTANCE.toServiceBillDTO(serviceBillRepository.save(ServiceBillMapper.INSTANCE.toServiceBill(serviceBillDTO)));
+    }
+    @Transactional
+    public void deleteById(Integer id) {
+        if (id == null) {
+            throw new RuntimeException("id不能为空");
+        }
+        serviceBillRepository.deleteById(id);
+    }
+    public ServiceBillDTO findById(int id) {
+        return ServiceBillMapper.INSTANCE.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
     }
 
-    public ServiceBill update(ServiceBill serviceBill) {
-        return serviceBillRepository.save(serviceBill);
+    public List<ServiceBillDTO> findAll() {
+        return ServiceBillMapper.INSTANCE.toServiceBillDTOs(serviceBillRepository.findAll());
     }
 
-    public void delete(ServiceBill serviceBill) {
-        serviceBillRepository.delete(serviceBill);
+    public List<ServiceBillDTO> findAllByStateAndProcessor(ServiceBillState state, User user) {
+        return ServiceBillMapper.INSTANCE.toServiceBillDTOs(serviceBillRepository.findAllByStateAndProcessor(state, user));
     }
-
-    public ServiceBill findById(int id) {
-        return serviceBillRepository.findById(id).orElse(null);
-    }
-
-    public List<ServiceBill> findAll() {
-        return serviceBillRepository.findAll();
-    }
-
-    public List<ServiceBill> findAllByStateAndProcessor(ServiceBillState state, User user) {
-        return serviceBillRepository.findAllByStateAndProcessor(state, user);
-    }
-
-    public void allocateProcessor(int id, List<User> users) {
-        ServiceBill bill = findById(id);
+    @Transactional
+    public void allocateProcessor(Integer id, List<User> users) {
+        if (id == null) {
+            throw new RuntimeException("id不能为空");
+        }
+        ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
         if (bill == null) {
             throw new RuntimeException("未找到该单据");
         }
@@ -70,12 +88,12 @@ public class ServiceBillService {
         for (User user : users) {
             ServiceBillProcessorDetail processorDetail = new ServiceBillProcessorDetail();
             processorDetail.setProcessUser(user);
-            processorDetail.setAcceptDate(OffsetDateTime.now());
+            processorDetail.setAcceptDate(ZonedDateTime.now());
             bill.getProcessDetails().add(processorDetail);
         }
         if (bill.getState() == ServiceBillState.CREATED) {
             bill.setState(ServiceBillState.PROCESSING);
         }
-        transactionTemplate.execute(action -> serviceBillRepository.save(bill));
+        serviceBillRepository.save(bill);
     }
 }

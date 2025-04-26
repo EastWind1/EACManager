@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 public class ServiceBillDetail extends AuditEntity {
     @Id
     @GeneratedValue
-    private int id;
+    private Integer id;
     /**
      * 设备类型
      */

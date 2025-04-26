@@ -13,7 +13,7 @@ public class UserDTO {
     /**
      * 用户ID
      */
-    private int id;
+    private Integer id;
     /**
      * 用户名
      */

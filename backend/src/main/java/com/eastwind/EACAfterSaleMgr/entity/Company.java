@@ -15,7 +15,7 @@ import lombok.EqualsAndHashCode;
 public class Company extends AuditEntity {
     @Id
     @GeneratedValue
-    private int id;
+    private Integer id;
 
     /**
      * 名称

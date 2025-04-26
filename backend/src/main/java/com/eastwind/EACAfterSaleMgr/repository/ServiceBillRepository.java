@@ -16,4 +16,7 @@ public interface ServiceBillRepository extends JpaRepository<ServiceBill, Intege
     @Query("from ServiceBill bill join ServiceBillProcessorDetail processorDetail " +
             "where bill.state = ?1 and processorDetail.processUser = ?2")
     List<ServiceBill> findAllByStateAndProcessor(ServiceBillState state, User processor);
+
+    boolean existsById(int id);
+    boolean existsByNumber(String number);
 }

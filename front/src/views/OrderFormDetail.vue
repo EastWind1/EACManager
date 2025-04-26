@@ -9,7 +9,7 @@
   >
     <!-- 最后一列显示操作按钮 -->
     <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
-    <template #[`item.actions`]="{ item }" v-if="serviceBill!.state === ServiceBillState.CREATED">
+    <template #[`item.actions`]="{ item }" v-if="editable">
       <div class="d-flex ga-3">
         <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
         <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
@@ -17,7 +17,7 @@
     </template>
 
     <!-- 最后一行添加加号按钮 -->
-    <template #[`body.append`] v-if="serviceBill?.state === ServiceBillState.CREATED">
+    <template #[`body.append`] v-if="editable">
       <tr>
         <td :colspan="detailHeaders.length" class="align-center">
           <v-btn block @click="addDetail" variant="plain">
@@ -33,7 +33,7 @@
       <template #text>
         <v-row>
           <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-text-field v-model="dialogData.device" label="设备类型"></v-text-field>
+            <v-text-field v-model="dialogData.device" label="设备类型" :rules="[requiredRule]"></v-text-field>
           </v-col>
           <v-col cols="12" sm="12" md="6" lg="4" xl="3">
             <v-number-input v-model="dialogData.unitPrice" label="单价"></v-number-input>
@@ -71,9 +71,12 @@ const detailHeaders = [
   { title: '备注', key: 'remark' },
   { title: '操作', key: 'actions', sortable: false },
 ]
-
+// 当前订单数据
 const serviceBill = defineModel<ServiceBill>()
-
+// 是否可编辑
+const {editable = false} = defineProps<{
+  editable: boolean
+}>()
 // 是否显示模态框
 const showDialog = ref(false)
 // 是否是新增动作
@@ -88,6 +91,8 @@ const DEFAULT_VALUE = {
 }
 // 模态框当前数据
 const dialogData = ref<ServiceBillDetail>(DEFAULT_VALUE)
+// 必填验证
+const requiredRule = (v: unknown) => !!v || '此项为必填项'
 
 // 监听模态框单价数量变化，计算小计以及总金额
 watchEffect(() => {
@@ -100,22 +105,22 @@ function addDetail() {
   dialogData.value = DEFAULT_VALUE
   showDialog.value = true
 }
-
+// 编辑明细
 function editDetail(item: ServiceBillDetail) {
   isAddAction.value = false
   dialogData.value = item
   showDialog.value = true
 }
-
+// 删除明细
 function deleteDetail(item: ServiceBillDetail) {
   serviceBill.value?.details.splice(
     serviceBill.value.details.findIndex((i) => i === item),
     1,
   )
 }
-
+// 保存
 function save() {
-  // 处理新增
+  // 单独处理新增
   if (isAddAction.value) {
     serviceBill.value?.details.push({
       device: dialogData.value.device,

@@ -23,7 +23,7 @@ public class User extends AuditEntity implements UserDetails {
 
     @Id
     @GeneratedValue
-    private int id;
+    private Integer id;
 
     /**
      * 用户名

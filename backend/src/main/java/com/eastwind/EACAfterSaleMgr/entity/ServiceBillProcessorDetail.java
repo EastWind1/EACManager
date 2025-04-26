@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 
 /**
  * 服务单处理人明细
@@ -18,7 +18,7 @@ public class ServiceBillProcessorDetail extends AuditEntity {
 
     @Id
     @GeneratedValue
-    private int id;
+    private Integer id;
     /**
      * 处理人
      */
@@ -40,12 +40,12 @@ public class ServiceBillProcessorDetail extends AuditEntity {
     /**
      * 接受时间
      */
-    private OffsetDateTime acceptDate;
+    private ZonedDateTime acceptDate;
 
     /**
      * 处理完成时间
      */
-    private OffsetDateTime processedDate;
+    private ZonedDateTime processedDate;
 
     // TODO: 报销单列表
 

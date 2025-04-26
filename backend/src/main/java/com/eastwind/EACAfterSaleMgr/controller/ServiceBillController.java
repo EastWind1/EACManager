@@ -1,12 +1,9 @@
 package com.eastwind.EACAfterSaleMgr.controller;
 
 import com.eastwind.EACAfterSaleMgr.dto.ServiceBillDTO;
-import com.eastwind.EACAfterSaleMgr.dto.mapper.ServiceBillMapper;
-import com.eastwind.EACAfterSaleMgr.entity.ServiceBill;
 import com.eastwind.EACAfterSaleMgr.service.ServiceBillService;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -20,13 +17,12 @@ public class ServiceBillController {
 
     @GetMapping("/serviceBill")
     public List<ServiceBillDTO> getAll() {
-        List<ServiceBill> serviceBills = serviceBillService.findAll();
-        List<ServiceBillDTO> res = new ArrayList<ServiceBillDTO>();
-        for (ServiceBill serviceBill : serviceBills) {
-            ServiceBillDTO serviceBillDTO = ServiceBillMapper.INSTANCE.toServiceBillDTO(serviceBill);
-            res.add(serviceBillDTO);
-        }
-        return res;
+        return serviceBillService.findAll();
 
+    }
+
+    @PostMapping("/serviceBill")
+    public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
+        return serviceBillService.create(serviceBillDTO);
     }
 }

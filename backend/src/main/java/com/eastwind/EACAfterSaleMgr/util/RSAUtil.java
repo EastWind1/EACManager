@@ -1,6 +1,7 @@
 package com.eastwind.EACAfterSaleMgr.util;
 
 import javax.crypto.Cipher;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -39,7 +40,7 @@ public class RSAUtil {
             RSAPublicKey pubKey = (RSAPublicKey) getPublicKey(publicKeyString);
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.ENCRYPT_MODE, pubKey);
-            return Base64.getEncoder().encodeToString(cipher.doFinal(source.getBytes("UTF-8")));
+            return Base64.getEncoder().encodeToString(cipher.doFinal(source.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             throw new RuntimeException("加密失败", e);
         }
@@ -49,7 +50,7 @@ public class RSAUtil {
             RSAPrivateKey pubKey = (RSAPrivateKey) getPrivateKey(privateKeyString);
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.ENCRYPT_MODE, pubKey);
-            return Base64.getEncoder().encodeToString(cipher.doFinal(source.getBytes("UTF-8")));
+            return Base64.getEncoder().encodeToString(cipher.doFinal(source.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             throw new RuntimeException("加密失败", e);
         }
@@ -60,7 +61,7 @@ public class RSAUtil {
             RSAPublicKey pubKey = (RSAPublicKey) getPublicKey(publicKeyString);
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, pubKey);
-            return Base64.getEncoder().encodeToString(cipher.doFinal(source.getBytes("UTF-8")));
+            return Base64.getEncoder().encodeToString(cipher.doFinal(source.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             throw new RuntimeException("解密失败", e);
         }
@@ -70,7 +71,7 @@ public class RSAUtil {
             RSAPrivateKey pubKey = (RSAPrivateKey) getPrivateKey(privateKeyString);
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, pubKey);
-            return Base64.getEncoder().encodeToString(cipher.doFinal(source.getBytes("UTF-8")));
+            return Base64.getEncoder().encodeToString(cipher.doFinal(source.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             throw new RuntimeException("解密失败", e);
         }

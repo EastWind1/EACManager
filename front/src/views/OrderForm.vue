@@ -1,25 +1,44 @@
 <!-- 订单表单 -->
 <template>
   <v-container>
-    <v-form ref="form" v-model="valid" lazy-validation>
+    <v-form ref="form" v-model="valid" :readonly="!editable" @submit.prevent="save">
       <!-- 单据头部 -->
       <v-card>
         <template #text>
           <v-row justify="space-between">
-            <!-- 单号 -->
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <h3>单号: {{ serviceBill.number ? serviceBill.number : ' (保存后自动生成)' }}</h3>
+            <!-- 左侧单据头 -->
+            <v-col cols="6">
+              <v-row justify="start">
+                <!-- 单号 -->
+                <v-col>
+                  <h3>单号: {{ serviceBill.number ? serviceBill.number : ' (保存后自动生成)' }}</h3>
+                </v-col>
+                <!-- 单据状态 -->
+                <v-col>
+                  <h3>
+                    状态:
+                    <v-badge
+                      :color="serviceBillStates[serviceBill.state].color"
+                      :content="serviceBillStates[serviceBill.state].label"
+                      inline
+                    ></v-badge>
+                  </h3>
+                </v-col>
+              </v-row>
             </v-col>
-            <!-- 单据状态 -->
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <h3>
-                状态:
-                <v-badge
-                  :color="serviceBillStates[serviceBill.state].color"
-                  :content="serviceBillStates[serviceBill.state].label"
-                  inline
-                ></v-badge>
-              </h3>
+            <!-- 右侧按钮区域 -->
+            <v-col justify-end>
+              <v-row justify="end" class="ga-2">
+                <!-- 编辑按钮 -->
+                <v-btn
+                  color="primary"
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED"
+                  @click="isEditState = true"
+                  >编辑
+                </v-btn>
+                <!-- 提交按钮 -->
+                <v-btn color="primary" v-if="editable" type="submit">提交</v-btn>
+              </v-row>
             </v-col>
           </v-row>
         </template>
@@ -117,7 +136,7 @@
           <v-tabs-window v-model="tab">
             <!-- 服务单明细 -->
             <v-tabs-window-item value="details">
-              <OrderFormDetail v-model="serviceBill"></OrderFormDetail>
+              <OrderFormDetail v-model="serviceBill" :editable="editable"></OrderFormDetail>
             </v-tabs-window-item>
             <!-- 处理人明细 TODO: 独立为单个组件 -->
             <v-tabs-window-item
@@ -220,18 +239,28 @@
       <span
         >总额: <span class="text-red">￥ {{ serviceBill.totalAmount }}</span></span
       >
-      <!-- 提交按钮 -->
-      <v-btn color="primary" @click="submitForm">提交</v-btn>
     </v-container>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/entity/ServiceBill.ts'
 import OrderFormDetail from '@/views/OrderFormDetail.vue'
 import * as date from 'date-fns'
 import { ServiceBillApi } from '@/api/ServiceBillApi.ts'
+
+// 表单是否编辑状态
+const isEditState = ref(false)
+// 是否后端处理中
+const isProcessing = ref(false)
+// 是否可编辑
+const editable = computed(
+  () =>
+    isEditState.value &&
+    !isProcessing.value &&
+    serviceBill.value.state === ServiceBillState.CREATED,
+)
 // 初始化表单数据
 const serviceBill = ref<ServiceBill>({
   id: undefined,
@@ -281,7 +310,7 @@ const serviceBillStates = [
     color: 'light-green',
   },
   {
-    label: '回款完成',
+    label: '完成',
     color: 'green',
   },
 ]
@@ -293,20 +322,21 @@ const requiredRule = (v: unknown) => !!v || '此项为必填项'
 // 电话号码验证
 const phoneRule = (v: string) => /^\d{10,11}$/.test(v) || '请输入有效的电话号码'
 
-// 提交表单
-const submitForm = () => {
-  if (valid.value) {
-    console.log('提交的服务单数据:', serviceBill.value)
-  }
-}
 // 当前 Tab 页
 const tab = ref('details')
 
-onMounted(() => {
-  ServiceBillApi.getAll().then(data => {
-    console.log(data)
-  })
-})
+// 提交表单
+const save = () => {
+  if (valid.value) {
+    isProcessing.value = true
+    ServiceBillApi.save(serviceBill.value).then((bill) => {
+      isEditState.value = false
+      Object.assign(serviceBill.value, bill)
+    }).finally(() => {
+      isProcessing.value = false
+    })
+  }
+}
 </script>
 
 <style scoped>
