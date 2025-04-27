@@ -1,11 +1,11 @@
 package com.eastwind.EACAfterSaleMgr.service;
 
-import com.eastwind.EACAfterSaleMgr.dto.ServiceBillDTO;
-import com.eastwind.EACAfterSaleMgr.dto.mapper.ServiceBillMapper;
-import com.eastwind.EACAfterSaleMgr.entity.ServiceBill;
-import com.eastwind.EACAfterSaleMgr.entity.ServiceBillProcessorDetail;
-import com.eastwind.EACAfterSaleMgr.entity.ServiceBillState;
-import com.eastwind.EACAfterSaleMgr.entity.User;
+import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
+import com.eastwind.EACAfterSaleMgr.model.mapper.ServiceBillMapper;
+import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBill;
+import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillProcessorDetail;
+import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillState;
+import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import com.eastwind.EACAfterSaleMgr.repository.ServiceBillRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,4 +1,4 @@
-package com.eastwind.EACAfterSaleMgr.entity;
+package com.eastwind.EACAfterSaleMgr.model.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

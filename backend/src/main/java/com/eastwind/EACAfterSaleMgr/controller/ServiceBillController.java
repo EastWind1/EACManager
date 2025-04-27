@@ -1,13 +1,13 @@
 package com.eastwind.EACAfterSaleMgr.controller;
 
-import com.eastwind.EACAfterSaleMgr.dto.ServiceBillDTO;
+import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
 import com.eastwind.EACAfterSaleMgr.service.ServiceBillService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/serviceBill")
 public class ServiceBillController {
     private final ServiceBillService serviceBillService;
 
@@ -15,13 +15,13 @@ public class ServiceBillController {
         this.serviceBillService = serviceBillService;
     }
 
-    @GetMapping("/serviceBill")
+    @GetMapping
     public List<ServiceBillDTO> getAll() {
         return serviceBillService.findAll();
 
     }
 
-    @PostMapping("/serviceBill")
+    @PostMapping
     public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
         return serviceBillService.create(serviceBillDTO);
     }

@@ -1,4 +1,4 @@
-package com.eastwind.EACAfterSaleMgr.dto;
+package com.eastwind.EACAfterSaleMgr.model.dto;
 
 /**
  * Controller 响应结果

@@ -1,6 +1,6 @@
 package com.eastwind.EACAfterSaleMgr.service;
 
-import com.eastwind.EACAfterSaleMgr.entity.Company;
+import com.eastwind.EACAfterSaleMgr.model.entity.Company;
 import com.eastwind.EACAfterSaleMgr.repository.CompanyRepository;
 import org.springframework.stereotype.Service;
 

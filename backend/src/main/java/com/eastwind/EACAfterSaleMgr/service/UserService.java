@@ -1,7 +1,8 @@
 package com.eastwind.EACAfterSaleMgr.service;
 
-import com.eastwind.EACAfterSaleMgr.entity.User;
+import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import com.eastwind.EACAfterSaleMgr.repository.UserRepository;
+import com.eastwind.EACAfterSaleMgr.util.JWTUtil;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -12,8 +13,10 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class UserService implements UserDetailsService {
+    private final JWTUtil jwtUtil;
     private final UserRepository userRepository;
-    public UserService(UserRepository userRepository) {
+    public UserService(JWTUtil jwtUtil, UserRepository userRepository) {
+        this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
     }
 
@@ -30,11 +33,19 @@ public class UserService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserDetails user = userRepository.findByUsername(username);
+    public User loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUsername(username);
         if (user == null) {
             throw new UsernameNotFoundException("未找到用户名为 " + username + " 的用户");
         }
         return user;
+    }
+
+    public String login(String username, String password) {
+        User user = userRepository.findByUsername(username);
+        if (user == null || !user.isEnabled() || !password.equals(user.getPassword())) {
+            throw new RuntimeException("用户名或密码错误");
+        }
+        return jwtUtil.generateToken(username);
     }
 }

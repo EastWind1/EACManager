@@ -1,6 +1,6 @@
 package com.eastwind.EACAfterSaleMgr.repository;
 
-import com.eastwind.EACAfterSaleMgr.entity.Company;
+import com.eastwind.EACAfterSaleMgr.model.entity.Company;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

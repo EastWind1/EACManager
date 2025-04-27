@@ -1,7 +1,7 @@
-package com.eastwind.EACAfterSaleMgr.dto.mapper;
+package com.eastwind.EACAfterSaleMgr.model.mapper;
 
-import com.eastwind.EACAfterSaleMgr.dto.CompanyDTO;
-import com.eastwind.EACAfterSaleMgr.entity.Company;
+import com.eastwind.EACAfterSaleMgr.model.dto.CompanyDTO;
+import com.eastwind.EACAfterSaleMgr.model.entity.Company;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;

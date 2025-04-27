@@ -1,4 +1,4 @@
-package com.eastwind.EACAfterSaleMgr.dto;
+package com.eastwind.EACAfterSaleMgr.model.dto;
 
 import lombok.Data;
 

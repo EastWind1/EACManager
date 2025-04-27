@@ -1,4 +1,4 @@
-package com.eastwind.EACAfterSaleMgr.entity;
+package com.eastwind.EACAfterSaleMgr.model.entity;
 
 /**
  * 授权角色

@@ -1,6 +1,7 @@
 package com.eastwind.EACAfterSaleMgr.config;
 
-import com.eastwind.EACAfterSaleMgr.dto.Result;
+import com.eastwind.EACAfterSaleMgr.model.dto.Result;
+import com.eastwind.EACAfterSaleMgr.filter.JWTTokenFilter;
 import com.eastwind.EACAfterSaleMgr.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
@@ -10,14 +11,15 @@ import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -26,13 +28,15 @@ import java.util.List;
  * <p>自定义UserDetailService由 {@link UserService} 实现
  */
 @Configuration
-// @EnableMethodSecurity
 public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
-    public SecurityConfig(ObjectMapper objectMapper) {
+    private final JWTTokenFilter jwtTokenFilter;
+    public SecurityConfig(ObjectMapper objectMapper, JWTTokenFilter jwtTokenFilter) {
         this.objectMapper = objectMapper;
+        this.jwtTokenFilter = jwtTokenFilter;
     }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -51,14 +55,20 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/api/**", configuration);
         return source;
     }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/user/login", "/api/user/logout").permitAll()
                         .anyRequest().authenticated()
                 )
+                // 禁用 Session
+                .sessionManagement(configurer -> configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // 添加JWT验证过滤器
+                .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 // 自定义认证失败处理器
                 .exceptionHandling(configurer -> {
                     // 未认证
@@ -78,4 +88,5 @@ public class SecurityConfig {
                 });
         return http.build();
     }
+
 }

@@ -1,6 +1,7 @@
-package com.eastwind.EACAfterSaleMgr.dto;
+package com.eastwind.EACAfterSaleMgr.model.dto;
 
-import com.eastwind.EACAfterSaleMgr.entity.*;
+import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillState;
+import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillType;
 import lombok.Data;
 
 import java.math.BigDecimal;

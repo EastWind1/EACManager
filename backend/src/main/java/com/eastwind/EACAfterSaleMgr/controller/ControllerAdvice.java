@@ -1,6 +1,6 @@
 package com.eastwind.EACAfterSaleMgr.controller;
 
-import com.eastwind.EACAfterSaleMgr.dto.Result;
+import com.eastwind.EACAfterSaleMgr.model.dto.Result;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;

@@ -1,20 +1,15 @@
 package com.eastwind.EACAfterSaleMgr.config;
 
-import com.eastwind.EACAfterSaleMgr.entity.User;
+import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 
-import java.time.ZonedDateTime;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 

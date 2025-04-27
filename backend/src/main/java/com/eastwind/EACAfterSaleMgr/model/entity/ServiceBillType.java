@@ -1,4 +1,4 @@
-package com.eastwind.EACAfterSaleMgr.entity;
+package com.eastwind.EACAfterSaleMgr.model.entity;
 
 /**
  * 服务单类型

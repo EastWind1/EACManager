@@ -1,8 +1,8 @@
 package com.eastwind.EACAfterSaleMgr.repository;
 
-import com.eastwind.EACAfterSaleMgr.entity.ServiceBill;
-import com.eastwind.EACAfterSaleMgr.entity.ServiceBillState;
-import com.eastwind.EACAfterSaleMgr.entity.User;
+import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBill;
+import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillState;
+import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
