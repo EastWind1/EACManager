@@ -13,17 +13,23 @@ function useAxios(): AxiosInstance {
   if (existInstance) {
     return existInstance
   }
-  // 全局状态
-  const { showLoading, hideLoading, warning } = useGlobalStore(pinia)
+  // 全局加载框、通知框
+  const { showLoading, hideLoading, warning, getToken } = useGlobalStore(pinia)
 
   const instance = axios.create({
     // 从 .env 文件读取后端地址
-    baseURL: `${import.meta.env.VITE_BACKGROUND_URL}`,
+    baseURL: `${import.meta.env.VITE_BACKGROUND_URL}`
   })
   // 请求前拦截器
   instance.interceptors.request.use(
     // 显示进度条
     config => {
+      // 设置 token
+      const token = getToken()
+      if (token) {
+        config.headers.Authorization = `Bearer ${getToken()}`
+      }
+      // 设置加载条
       showLoading()
       return config
     }
@@ -44,8 +50,6 @@ function useAxios(): AxiosInstance {
           warning('网络异常');
           break
         case 'ERR_BAD_REQUEST':
-          warning(err.response.data.message)
-          break
         case 'ERR_BAD_RESPONSE':
           warning(err.response.data.message)
           break

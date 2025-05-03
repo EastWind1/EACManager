@@ -9,9 +9,9 @@
 		<relativePath/>
 	</parent>
 	<groupId>com.eastwind</groupId>
-	<artifactId>ElevatorACAfterSaleManager</artifactId>
+	<artifactId>EACAfterSaleMgr</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>ElevatorACAfterSaleManager</name>
+	<name>EACAfterSaleMgr</name>
 	<description>Elevator AC After-Sale Manager</description>
 	<url/>
 	<licenses>
@@ -93,6 +93,18 @@
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.mymonstercat</groupId>
+			<artifactId>rapidocr</artifactId>
+			<version>0.0.7</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.mymonstercat</groupId>
+			<artifactId>rapidocr-onnx-platform</artifactId>
+			<version>0.0.7</version>
 		</dependency>
 	</dependencies>
 

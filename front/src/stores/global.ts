@@ -2,6 +2,8 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useGlobalStore = defineStore('global', () => {
+  // 用户 token
+  const token = ref('')
   // 加载条是否显示
   const loading = ref(false)
   // 通知状态
@@ -11,6 +13,22 @@ export const useGlobalStore = defineStore('global', () => {
     color: 'info',
     timeout: 2000,
   })
+
+  /**
+   * 设置用户 token
+   * @param value token
+   */
+  function setToken(value: string) {
+    token.value = value
+  }
+
+  /**
+   * 获取 token
+   */
+  function getToken() {
+    return token.value
+  }
+
   /**
    * 显示加载条
    */
@@ -66,5 +84,15 @@ export const useGlobalStore = defineStore('global', () => {
     showNotify('red', message, timeout)
   }
 
-  return { loading, showLoading, hideLoading, notify, showNotify, success, info, warning }
+  return {
+    loading,
+    showLoading,
+    hideLoading,
+    notify,
+    success,
+    info,
+    warning,
+    setToken,
+    getToken,
+  }
 })

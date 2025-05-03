@@ -37,11 +37,6 @@ public class SecurityConfig {
         this.jwtTokenFilter = jwtTokenFilter;
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
     /**
      * 跨域配置
      */
@@ -62,7 +57,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/user/login", "/api/user/logout").permitAll()
+                        .requestMatchers("/api/user/token").permitAll()
                         .anyRequest().authenticated()
                 )
                 // 禁用 Session

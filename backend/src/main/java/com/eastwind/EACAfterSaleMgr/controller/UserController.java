@@ -18,7 +18,7 @@ public class UserController {
     public record LoginParam(String username, String password) {
     }
 
-    @PostMapping("login")
+    @PostMapping("token")
     public String login(@RequestBody LoginParam param) {
         return userService.login(param.username(), param.password());
     }

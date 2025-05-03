@@ -6,6 +6,8 @@ import com.eastwind.EACAfterSaleMgr.util.JWTUtil;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -43,9 +45,13 @@ public class UserService implements UserDetailsService {
 
     public String login(String username, String password) {
         User user = userRepository.findByUsername(username);
-        if (user == null || !user.isEnabled() || !password.equals(user.getPassword())) {
+        if (user == null || !user.isEnabled()) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (!BCrypt.checkpw(password, user.getPassword())) {
             throw new RuntimeException("用户名或密码错误");
         }
         return jwtUtil.generateToken(username);
     }
+
 }

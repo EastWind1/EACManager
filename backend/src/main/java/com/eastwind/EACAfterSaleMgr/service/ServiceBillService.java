@@ -26,7 +26,7 @@ public class ServiceBillService {
 
     @Transactional
     public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
-        if (serviceBillRepository.existsById(serviceBillDTO.getId())) {
+        if (serviceBillDTO.getId() != null && serviceBillRepository.existsById(serviceBillDTO.getId())) {
             throw new RuntimeException("单据已存在");
         }
         if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {

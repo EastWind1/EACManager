@@ -26,12 +26,12 @@ public class ServiceBill extends AuditEntity {
      * 单据类型
      */
     @Enumerated
-    private ServiceBillType type;
+    private ServiceBillType type = ServiceBillType.INSTALL;
     /**
      * 单据状态
      */
     @Enumerated
-    private ServiceBillState state;
+    private ServiceBillState state = ServiceBillState.CREATED;
     /**
      * 项目名称
      */
