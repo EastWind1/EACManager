@@ -3,11 +3,9 @@ package com.eastwind.EACAfterSaleMgr.service;
 import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import com.eastwind.EACAfterSaleMgr.repository.UserRepository;
 import com.eastwind.EACAfterSaleMgr.util.JWTUtil;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -26,7 +24,7 @@ public class UserService implements UserDetailsService {
         if (userRepository.existsUserByUsername(user.getUsername())) {
             throw new RuntimeException("用户名已存在");
         }
-
+        user.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
         return userRepository.save(user);
     }
 

@@ -9,6 +9,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * 服务单 DAO
+ */
 @Repository
 public interface ServiceBillRepository extends JpaRepository<ServiceBill, Integer> {
     List<ServiceBill> findAllByState(ServiceBillState state);

@@ -9,7 +9,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
- * 服务单DTO
+ * 服务单 DTO
  */
 @Data
 public class ServiceBillDTO {
@@ -62,6 +62,10 @@ public class ServiceBillDTO {
      * 服务明细
      */
     private List<ServiceBillDetailDTO> details;
+    /**
+     * 附件列表
+     */
+    private List<AttachmentDTO> attachments;
     /**
      * 总金额
      */

@@ -45,16 +45,25 @@ function useAxios(): AxiosInstance {
     // 全局异常处理
     err => {
       hideLoading()
-      switch (err.code) {
-        case 'ERR_NETWORK':
-          warning('网络异常');
-          break
-        case 'ERR_BAD_REQUEST':
-        case 'ERR_BAD_RESPONSE':
-          warning(err.response.data.message)
-          break
-        default:
-          warning('未处理异常' + err.code)
+      if (err.code === 'ERR_NETWORK') {
+        warning('网络异常');
+      } else {
+        switch (err.status) {
+          case 401:
+            warning('请重新登录')
+            break
+          case 403:
+            warning('权限不足')
+            break
+          case 404:
+            warning('请求地址错误')
+            break
+          case 500:
+            warning(err.response.data.message)
+            break
+          default:
+            warning('未处理异常')
+        }
       }
       return Promise.reject(err.response?.data)
     }

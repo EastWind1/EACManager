@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
+import Home from '@/views/Home.vue'
 import OrderList from '@/views/OrderList.vue'
 import OrderForm from '@/views/OrderForm.vue'
 import LoginForm from '@/views/LoginForm.vue'
 import { useGlobalStore } from '@/stores/global.ts'
+import FileTest from '@/views/FileTest.vue'
 
 
 
@@ -13,7 +14,7 @@ const router = createRouter({
     // 首页
     {
       path: '/',
-      component: HomeView,
+      component: Home,
       children: [
         // 基本信息
         {
@@ -29,6 +30,11 @@ const router = createRouter({
         {
           path: '/form',
           component: OrderForm,
+        },
+        // 文件 TODO：调试用
+        {
+          path: '/file',
+          component: FileTest,
         },
       ],
     },

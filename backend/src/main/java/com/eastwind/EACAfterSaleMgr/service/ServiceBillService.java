@@ -16,12 +16,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 服务单服务
+ */
 @Service
 public class ServiceBillService {
     private final ServiceBillRepository serviceBillRepository;
+    private final ServiceBillMapper serviceBillMapper;
 
-    public ServiceBillService(ServiceBillRepository serviceBillRepository) {
+    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper) {
         this.serviceBillRepository = serviceBillRepository;
+        this.serviceBillMapper = serviceBillMapper;
     }
 
     @Transactional
@@ -36,11 +41,19 @@ public class ServiceBillService {
                 throw new RuntimeException("单据编号已存在");
             }
         }
-        return ServiceBillMapper.INSTANCE.toServiceBillDTO(serviceBillRepository.save(ServiceBillMapper.INSTANCE.toServiceBill(serviceBillDTO)));
+        return serviceBillMapper.toServiceBillDTO(serviceBillRepository.save(serviceBillMapper.toServiceBill(serviceBillDTO)));
     }
     @Transactional
     public ServiceBillDTO update(ServiceBillDTO serviceBillDTO) {
-        return ServiceBillMapper.INSTANCE.toServiceBillDTO(serviceBillRepository.save(ServiceBillMapper.INSTANCE.toServiceBill(serviceBillDTO)));
+        if (serviceBillDTO.getId() == null) {
+            throw new RuntimeException("id不能为空");
+        }
+        ServiceBill bill = serviceBillRepository.findById(serviceBillDTO.getId()).orElse(null);
+        if (bill == null) {
+            throw new RuntimeException("单据不存在");
+        }
+        serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
+        return serviceBillMapper.toServiceBillDTO(serviceBillRepository.save(bill));
     }
     @Transactional
     public void deleteById(Integer id) {
@@ -50,15 +63,15 @@ public class ServiceBillService {
         serviceBillRepository.deleteById(id);
     }
     public ServiceBillDTO findById(int id) {
-        return ServiceBillMapper.INSTANCE.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
+        return serviceBillMapper.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
     }
 
     public List<ServiceBillDTO> findAll() {
-        return ServiceBillMapper.INSTANCE.toServiceBillDTOs(serviceBillRepository.findAll());
+        return serviceBillMapper.toServiceBillDTOs(serviceBillRepository.findAll());
     }
 
     public List<ServiceBillDTO> findAllByStateAndProcessor(ServiceBillState state, User user) {
-        return ServiceBillMapper.INSTANCE.toServiceBillDTOs(serviceBillRepository.findAllByStateAndProcessor(state, user));
+        return serviceBillMapper.toServiceBillDTOs(serviceBillRepository.findAllByStateAndProcessor(state, user));
     }
     @Transactional
     public void allocateProcessor(Integer id, List<User> users) {

@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * 公司DAO
+ * 公司 DAO
  */
 @Repository
 public interface CompanyRepository extends JpaRepository<Company, Integer> {

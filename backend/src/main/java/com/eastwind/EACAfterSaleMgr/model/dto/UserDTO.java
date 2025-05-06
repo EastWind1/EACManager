@@ -6,7 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import java.util.Collection;
 
 /**
- * 用户DTO
+ * 用户 DTO
  */
 @Data
 public class UserDTO {

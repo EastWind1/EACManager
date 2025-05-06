@@ -19,6 +19,9 @@ import java.util.Optional;
 @Configuration
 @EnableJpaAuditing(dateTimeProviderRef = "zonedDateTimeProvider")
 public class AuditConfig {
+    /**
+     * 审计用户配置
+     */
     @Bean
     public AuditorAware<User> auditorProvider() {
         return () -> Optional.ofNullable(SecurityContextHolder.getContext())

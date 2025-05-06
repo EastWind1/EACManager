@@ -1,17 +1,37 @@
 package com.eastwind.EACAfterSaleMgr.controller;
 
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import com.eastwind.EACAfterSaleMgr.service.AttachmentService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+
+@Slf4j
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/file")
 public class Test2Controller {
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @GetMapping("/test2")
-    public String test(@RequestParam(defaultValue = "world") String name) {
-        return "good bye  " + name ;
+    private final AttachmentService attachmentService;
+
+    public Test2Controller(AttachmentService attachmentService) {
+        this.attachmentService = attachmentService;
+    }
+
+    @PostMapping
+    public String upload(@RequestParam MultipartFile file) {
+        return attachmentService.upload(file).toString();
+    }
+
+    @GetMapping("{fileName}")
+    public ResponseEntity<Resource> download(@PathVariable String fileName) throws IOException {
+        Resource resource = attachmentService.loadAsResource(fileName);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(resource.getFilename()).build().toString())
+                .body(resource);
     }
 }

@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
 /**
- * 服务单处理人明细DTO
+ * 服务单处理人明细 DTO
  */
 @Data
 public class ServiceBillProcessorDetailDTO {
@@ -36,7 +36,4 @@ public class ServiceBillProcessorDetailDTO {
      * 处理完成时间
      */
     private ZonedDateTime processedDate;
-
-    // TODO: 报销单列表
-
 }

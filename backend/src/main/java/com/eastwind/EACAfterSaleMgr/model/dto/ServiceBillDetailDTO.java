@@ -5,7 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 /**
- * 服务项目明细DTO
+ * 服务项目明细 DTO
  */
 @Data
 public class ServiceBillDetailDTO {

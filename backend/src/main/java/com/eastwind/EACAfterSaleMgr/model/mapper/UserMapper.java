@@ -4,12 +4,13 @@ import com.eastwind.EACAfterSaleMgr.model.dto.UserDTO;
 import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.factory.Mappers;
+import org.mapstruct.MappingConstants;
 
-@Mapper
+/**
+ * 用户 Mapper
+ */
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface UserMapper {
-    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
-
     @Mapping(target = "password", ignore = true)
     UserDTO toUserDTO(User user);
 

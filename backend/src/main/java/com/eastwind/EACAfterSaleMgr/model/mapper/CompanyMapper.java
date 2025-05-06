@@ -4,11 +4,10 @@ import com.eastwind.EACAfterSaleMgr.model.dto.CompanyDTO;
 import com.eastwind.EACAfterSaleMgr.model.entity.Company;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.factory.Mappers;
+import org.mapstruct.MappingConstants;
 
-@Mapper
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface CompanyMapper {
-    CompanyMapper INSTANCE = Mappers.getMapper(CompanyMapper.class);
 
     @Mapping(target = "lastModifiedDate", ignore = true)
     @Mapping(target = "lastModifiedBy", ignore = true)

@@ -51,6 +51,13 @@
             </template>
             表单
           </v-list-item>
+          <!-- 文件处理  TODO: 测试用 -->
+          <v-list-item to="/file">
+            <template v-slot:prepend>
+              <v-icon :icon="mdiFormatFloatLeft"></v-icon>
+            </template>
+            文件处理
+          </v-list-item>
         </v-list>
       </v-navigation-drawer>
       <!-- 右侧内容区域 -->

@@ -13,8 +13,7 @@ import java.time.ZonedDateTime;
  */
 @Entity
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class ServiceBillProcessorDetail extends AuditEntity {
+public class ServiceBillProcessorDetail {
 
     @Id
     @GeneratedValue
@@ -46,7 +45,5 @@ public class ServiceBillProcessorDetail extends AuditEntity {
      * 处理完成时间
      */
     private ZonedDateTime processedDate;
-
-    // TODO: 报销单列表
 
 }

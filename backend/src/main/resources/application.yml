@@ -13,6 +13,9 @@ spring:
       ddl-auto: update
     show-sql: true
     open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 50MB
 server:
   port: 8443
   ssl:
@@ -20,3 +23,8 @@ server:
     key-store-password: password
     key-store-type: pkcs12
     key-alias: test
+  http2:
+    enabled: true
+attachment:
+  path: ${user.dir}${file.separator}attachment
+  temp: ${attachment.path}${file.separator}temp

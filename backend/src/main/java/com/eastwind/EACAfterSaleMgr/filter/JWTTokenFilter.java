@@ -16,15 +16,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-
+/**
+ * JWT 过滤器
+ * 替代 Spring Security 默认的 Session 认证
+ */
 @Component
 public class JWTTokenFilter extends OncePerRequestFilter {
     private final JWTUtil jwtUtil;
-    private final UserService  userService;
+    private final UserService userService;
+
     public JWTTokenFilter(JWTUtil jwtUtil, UserService userService) {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String prefix = "Bearer ";

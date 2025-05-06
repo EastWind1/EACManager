@@ -13,8 +13,7 @@ import java.math.BigDecimal;
  */
 @Entity
 @Data
-@EqualsAndHashCode(callSuper=true)
-public class ServiceBillDetail extends AuditEntity {
+public class ServiceBillDetail {
     @Id
     @GeneratedValue
     private Integer id;

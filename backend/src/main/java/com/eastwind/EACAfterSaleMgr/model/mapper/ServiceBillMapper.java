@@ -3,14 +3,24 @@ package com.eastwind.EACAfterSaleMgr.model.mapper;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
 import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBill;
 import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper
+/**
+ * 服务单 Mapper
+ */
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface ServiceBillMapper {
-    ServiceBillMapper INSTANCE = Mappers.getMapper(ServiceBillMapper.class);
     ServiceBill toServiceBill(ServiceBillDTO serviceBillDTO);
+
     ServiceBillDTO toServiceBillDTO(ServiceBill serviceBill);
+
     List<ServiceBillDTO> toServiceBillDTOs(List<ServiceBill> serviceBills);
+
+    @Mapping(target = "createdDate", ignore = true)
+    @Mapping(target = "lastModifiedDate", ignore = true)
+    void updateEntityFromDTO(ServiceBillDTO serviceBillDTO, @MappingTarget ServiceBill serviceBill);
 }

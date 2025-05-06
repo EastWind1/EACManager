@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * 鉴权DAO
+ * 鉴权 DAO
  */
 @Repository
 public interface AuthorityRepository extends JpaRepository<Authority, Integer> {

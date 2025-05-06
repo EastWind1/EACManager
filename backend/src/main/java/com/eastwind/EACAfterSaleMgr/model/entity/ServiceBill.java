@@ -3,6 +3,7 @@ package com.eastwind.EACAfterSaleMgr.model.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -75,17 +76,22 @@ public class ServiceBill extends AuditEntity {
     @Column(length = 1000)
     private String remark;
     /**
+     * 服务明细
+     */
+    @OneToMany
+    @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private List<ServiceBillDetail> details;
+    /**
      * 处理人明细列表
      */
     @OneToMany
     @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private List<ServiceBillProcessorDetail> processDetails;
     /**
-     * 服务明细
+     * 附件列表
      */
     @OneToMany
     @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private List<ServiceBillDetail> details;
-
+    private List<Attachment> attachments;
 }
 
