@@ -9,6 +9,15 @@ export const ServiceBillApi = {
    */
   getAll: () => axios.get('serviceBill').then((res) => res.data as ServiceBill[]),
   /**
+   * 导入
+   */
+  import: (file: File) =>
+    axios
+      .postForm('serviceBill/import', {
+        file,
+      })
+      .then((res) => res.data as ServiceBill),
+  /**
    * 保存
    * @param serviceBill 订单
    */

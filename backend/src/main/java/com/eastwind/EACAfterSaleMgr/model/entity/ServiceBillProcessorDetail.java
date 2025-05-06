@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 
 /**
  * 服务单处理人明细
@@ -39,11 +39,11 @@ public class ServiceBillProcessorDetail {
     /**
      * 接受时间
      */
-    private ZonedDateTime acceptDate;
+    private LocalDateTime acceptDate;
 
     /**
      * 处理完成时间
      */
-    private ZonedDateTime processedDate;
+    private LocalDateTime processedDate;
 
 }

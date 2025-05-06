@@ -2,10 +2,12 @@ package com.eastwind.EACAfterSaleMgr.filter;
 
 import com.eastwind.EACAfterSaleMgr.service.UserService;
 import com.eastwind.EACAfterSaleMgr.util.JWTUtil;
+import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 /**
  * JWT 过滤器
@@ -32,6 +35,7 @@ public class JWTTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // 获取 token
         String prefix = "Bearer ";
         String auth = request.getHeader("Authorization");
         if (auth == null || !auth.startsWith("Bearer ")) {
@@ -41,13 +45,27 @@ public class JWTTokenFilter extends OncePerRequestFilter {
 
         String token = auth.substring(prefix.length());
         if (jwtUtil.verifyToken(token)) {
-            String userName = jwtUtil.getUserName(token);
-            UserDetails user = userService.loadUserByUsername(userName);
-            Authentication exist = SecurityContextHolder.getContext().getAuthentication();
-            if (exist == null) {
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            String userName = null;
+            try {
+                SignedJWT jwt = SignedJWT.parse(token);
+                // 验证请求来源，防止盗用
+                String origin = jwt.getJWTClaimsSet().getSubject();
+                if (request.getHeader(HttpHeaders.ORIGIN).equals(origin)) {
+                    userName = jwt.getJWTClaimsSet().getAudience().getFirst();
+                }
+            } catch (ParseException e) {
+                throw new RuntimeException("解析 token 失败", e);
+            }
+
+            if (userName != null) {
+                UserDetails user = userService.loadUserByUsername(userName);
+                Authentication exist = SecurityContextHolder.getContext().getAuthentication();
+                if (exist == null) {
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         }
         filterChain.doFilter(request, response);

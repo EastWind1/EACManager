@@ -21,7 +21,7 @@ public class Test2Controller {
 
     @PostMapping
     public String upload(@RequestParam MultipartFile file) {
-        return attachmentService.upload(file).toString();
+        return attachmentService.upload(file, attachmentService.TEMP_DIR).toString();
     }
 
     @GetMapping("{fileName}")

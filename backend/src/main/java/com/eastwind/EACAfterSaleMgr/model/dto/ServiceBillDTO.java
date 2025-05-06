@@ -5,7 +5,7 @@ import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillType;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -73,7 +73,7 @@ public class ServiceBillDTO {
     /**
      * 完工时间
      */
-    private ZonedDateTime processedDate;
+    private LocalDateTime processedDate;
     /**
      * 备注
      */
@@ -81,9 +81,9 @@ public class ServiceBillDTO {
     /**
      * 创建时间
      */
-    private ZonedDateTime createdDate;
+    private LocalDateTime createdDate;
     /**
      * 最后修改时间
      */
-    private ZonedDateTime lastModifiedDate;
+    private LocalDateTime lastModifiedDate;
 }

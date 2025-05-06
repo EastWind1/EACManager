@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 
 export const useGlobalStore = defineStore('global', () => {
   // 用户 token
-  const token = ref('')
+  const token = ref(localStorage.getItem('token'))
   // 加载条是否显示
   const loading = ref(false)
   // 通知状态
@@ -20,6 +20,7 @@ export const useGlobalStore = defineStore('global', () => {
    */
   function setToken(value: string) {
     token.value = value
+    localStorage.setItem('token', value)
   }
 
   /**

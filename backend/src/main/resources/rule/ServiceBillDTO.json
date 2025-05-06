@@ -1,0 +1,52 @@
+[
+  {
+    "keyword": "合同编号",
+    "regex": "合同编号[:：\\s]*(.*)",
+    "field": "number"
+  },
+  {
+    "keyword": "项目名称",
+    "regex": "项目名称[:：\\s]*(.*)",
+    "field": "projectName"
+  },
+  {
+    "keyword": "项目经理",
+    "regex": "项目经理[:：\\s]*([^/]+)",
+    "field": "projectContact"
+  },
+  {
+    "keyword": "项目经理",
+    "regex": "项目经理[:：\\s]*[^/]+/(\\d+)",
+    "field": "projectContactPhone"
+  },
+  {
+    "keyword": "现场联系人",
+    "regex": "现场联系人[:：\\s]*([^/]+)",
+    "field": "onSiteContact"
+  },
+  {
+    "keyword": "现场联系人",
+    "regex": "现场联系人[:：\\s]*[^/]+/(\\d+)",
+    "field": "onSitePhone"
+  },
+  {
+    "keyword": "项目地址",
+    "regex": "项目地址[:：\\s]*(.*)",
+    "field": "projectAddress"
+  },
+  {
+    "keyword": "电梯空调",
+    "regex": "电梯空调.*",
+    "field": "elevatorInfo"
+  },
+  {
+    "keyword": "备注",
+    "regex": "备注[:：\\s]*(.*)",
+    "field": "remark"
+  },
+  {
+    "keyword": "下单时间",
+    "regex": "下单时间[:：\\s]*(.*)",
+    "field": "processedDate"
+  }
+]

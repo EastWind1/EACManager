@@ -3,7 +3,8 @@
   <v-progress-linear
     indeterminate
     absolute
-    v-if="loading"
+    :active="loading"
+    style="z-index: 9999"
   ></v-progress-linear>
   <!-- 全局通知 -->
   <v-snackbar

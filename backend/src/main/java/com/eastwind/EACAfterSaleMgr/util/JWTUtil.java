@@ -34,11 +34,13 @@ public class JWTUtil {
      * @param userName 用户名
      * @return TOKEN
      */
-    public String generateToken(String userName) {
+    public String generateToken(String userName, String origin) {
         Date now = new Date();
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(userName)
+                .audience(userName)
+                .subject(origin)
                 .issueTime(now)
+                // 24 小时后过期
                 .expirationTime(new Date(now.getTime() + 24 * 60 * 60 * 1000))
                 .build();
         SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
@@ -65,23 +67,5 @@ public class JWTUtil {
         } catch (JOSEException e) {
             throw new RuntimeException("验证 JWT 异常");
         }
-    }
-    /**
-     * 获取用户名
-     */
-    public String getUserName(String token) {
-        SignedJWT jwt = null;
-        try {
-            jwt = SignedJWT.parse(token);
-        } catch (ParseException e) {
-            throw new RuntimeException("解析 JWT 失败");
-        }
-        JWTClaimsSet claimsSet = null;
-        try {
-            claimsSet = jwt.getJWTClaimsSet();
-        } catch (ParseException e) {
-            throw new RuntimeException("解析 JWT 失败");
-        }
-        return claimsSet.getSubject();
     }
 }

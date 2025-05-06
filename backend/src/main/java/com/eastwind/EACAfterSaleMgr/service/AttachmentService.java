@@ -22,9 +22,9 @@ import java.nio.file.StandardCopyOption;
 public class AttachmentService implements InitializingBean {
 
     @Value("${attachment.path}")
-    private String ROOT_DIR;
+    public String ROOT_DIR;
     @Value("${attachment.temp}")
-    private String TEMP_DIR;
+    public String TEMP_DIR;
 
     /**
      * 初始化附件目录
@@ -56,14 +56,21 @@ public class AttachmentService implements InitializingBean {
      * @param file 文件
      * @return 文件路径
      */
-    public Path upload(MultipartFile file) {
+    public Path upload(MultipartFile file, String path) {
+        if (path == null || path.isEmpty()) {
+            path = TEMP_DIR;
+        } else {
+            if (!path.startsWith(ROOT_DIR)) {
+                throw new RuntimeException("禁止上传到其他目录");
+            }
+        }
         if (file.isEmpty()) {
             throw new IllegalArgumentException("禁止上传空文件");
         }
         if (file.getOriginalFilename() == null) {
             throw new RuntimeException("文件名不能为空");
         }
-        Path targetPath = Path.of(ROOT_DIR, file.getOriginalFilename()).normalize().toAbsolutePath();
+        Path targetPath = Path.of(path, file.getOriginalFilename()).normalize().toAbsolutePath();
         if (!Files.exists(targetPath)) {
             try {
                 Files.createFile(targetPath);
@@ -77,6 +84,12 @@ public class AttachmentService implements InitializingBean {
             throw new RuntimeException("上传文件失败", e);
         }
         return targetPath;
+    }
+    /**
+     * 上传临时文件
+     */
+    public Path uploadTemp(MultipartFile file) {
+        return upload(file, TEMP_DIR);
     }
     /**
      * 读取文件
@@ -95,6 +108,27 @@ public class AttachmentService implements InitializingBean {
             return resource;
         } else {
             throw new RuntimeException("找不到文件");
+        }
+    }
+    /**
+     * 移动文件
+     */
+    public void move(String originPath, String targetPath) {
+        if (originPath == null || targetPath == null || originPath.isEmpty() || targetPath.isEmpty()) {
+            throw new RuntimeException("路径不能为空");
+        }
+        if (!originPath.startsWith(ROOT_DIR) || !targetPath.startsWith(ROOT_DIR)) {
+            throw new RuntimeException("禁止移动到其他目录");
+        }
+        Path origin = Path.of(originPath).normalize().toAbsolutePath();
+        Path target = Path.of(targetPath).normalize().toAbsolutePath();
+        if (!Files.exists(origin)) {
+            throw new RuntimeException("找不到文件");
+        }
+        try {
+            Files.move(origin, target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("移动文件失败", e);
         }
     }
 }

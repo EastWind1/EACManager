@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -69,7 +69,7 @@ public class ServiceBill extends AuditEntity {
     /**
      * 完工时间
      */
-    private ZonedDateTime processedDate;
+    private LocalDateTime processedDate;
     /**
      * 备注
      */
