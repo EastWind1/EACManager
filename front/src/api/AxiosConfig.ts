@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from 'axios'
 import { useGlobalStore } from '@/stores/global.ts'
 import pinia from '@/stores'
+import router from '@/router/router.ts'
 
 // 实例化缓存
 let existInstance: AxiosInstance | undefined = undefined
@@ -51,6 +52,7 @@ function useAxios(): AxiosInstance {
         switch (err.status) {
           case 401:
             warning('请重新登录')
+            router.push('/login').then()
             break
           case 403:
             warning('权限不足')

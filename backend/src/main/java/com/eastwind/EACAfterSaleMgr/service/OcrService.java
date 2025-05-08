@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,19 +29,22 @@ import java.util.regex.Pattern;
 public class OcrService {
     InferenceEngine engine;
     private final ObjectMapper objectMapper;
+    private final AttachmentService attachmentService;
 
-    public OcrService(ObjectMapper objectMapper) {
+    public OcrService(ObjectMapper objectMapper, AttachmentService attachmentService) {
         this.objectMapper = objectMapper;
+        this.attachmentService = attachmentService;
         engine = InferenceEngine.getInstance(Model.ONNX_PPOCR_V4);
     }
 
     /**
      * 执行 OCR 识别
      *
-     * @param imagePath 图片路径
+     * @param relativePath 相对附件目录路径
      */
-    public OcrResult runOcr(String imagePath) {
-        return engine.runOcr(imagePath);
+    public OcrResult runOcr(Path relativePath) {
+
+        return engine.runOcr(attachmentService.getAbsolutePath(relativePath).toString());
     }
 
     /**

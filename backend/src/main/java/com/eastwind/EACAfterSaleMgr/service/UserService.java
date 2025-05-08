@@ -2,7 +2,6 @@ package com.eastwind.EACAfterSaleMgr.service;
 
 import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import com.eastwind.EACAfterSaleMgr.repository.UserRepository;
-import com.eastwind.EACAfterSaleMgr.util.JWTUtil;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -10,7 +9,6 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.web.servlet.mvc.condition.RequestConditionHolder;
 
 import java.util.Objects;
 
@@ -19,9 +17,9 @@ import java.util.Objects;
  */
 @Service
 public class UserService implements UserDetailsService {
-    private final JWTUtil jwtUtil;
+    private final JWTService jwtUtil;
     private final UserRepository userRepository;
-    public UserService(JWTUtil jwtUtil, UserRepository userRepository) {
+    public UserService(JWTService jwtUtil, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
     }

@@ -1,9 +1,11 @@
 .idea
 .vscode
+.iml
 
 .mvn
 attachment
 target
+*.log
 
 dist
 node_modules

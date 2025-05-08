@@ -9,7 +9,7 @@
   >
     <!-- 最后一列显示操作按钮 -->
     <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
-    <template #[`item.actions`]="{ item }" v-if="editable">
+    <template #[`item.actions`]="{ item }" v-if="!readonly">
       <div class="d-flex ga-3">
         <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
         <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
@@ -17,7 +17,7 @@
     </template>
 
     <!-- 最后一行添加加号按钮 -->
-    <template #[`body.append`] v-if="editable">
+    <template #[`body.append`] v-if="!readonly">
       <tr>
         <td :colspan="detailHeaders.length" class="align-center">
           <v-btn block @click="addDetail" variant="plain">
@@ -33,7 +33,11 @@
       <template #text>
         <v-row>
           <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-text-field v-model="dialogData.device" label="设备类型" :rules="[requiredRule]"></v-text-field>
+            <v-text-field
+              v-model="dialogData.device"
+              label="设备类型"
+              :rules="[requiredRule]"
+            ></v-text-field>
           </v-col>
           <v-col cols="12" sm="12" md="6" lg="4" xl="3">
             <v-number-input v-model="dialogData.unitPrice" label="单价"></v-number-input>
@@ -51,7 +55,7 @@
         <span
           >小计: <span class="text-red">￥ {{ dialogData.subtotal }}</span></span
         >
-        <v-btn text="保存" @click="save"></v-btn>
+        <v-btn text="保存" @click="saveDialog"></v-btn>
       </template>
     </v-card>
   </v-dialog>
@@ -74,9 +78,10 @@ const detailHeaders = [
 // 当前订单数据
 const serviceBill = defineModel<ServiceBill>()
 // 是否可编辑
-const {editable = false} = defineProps<{
-  editable: boolean
+const { readonly = false } = defineProps<{
+  readonly: boolean
 }>()
+
 // 是否显示模态框
 const showDialog = ref(false)
 // 是否是新增动作
@@ -105,12 +110,14 @@ function addDetail() {
   dialogData.value = DEFAULT_VALUE
   showDialog.value = true
 }
+
 // 编辑明细
 function editDetail(item: ServiceBillDetail) {
   isAddAction.value = false
   dialogData.value = item
   showDialog.value = true
 }
+
 // 删除明细
 function deleteDetail(item: ServiceBillDetail) {
   serviceBill.value?.details.splice(
@@ -118,11 +125,12 @@ function deleteDetail(item: ServiceBillDetail) {
     1,
   )
 }
+
 // 保存
-function save() {
+function saveDialog() {
   // 单独处理新增
   if (isAddAction.value) {
-    serviceBill.value?.details.push({
+    serviceBill.value!.details.push({
       device: dialogData.value.device,
       quantity: dialogData.value.quantity,
       unitPrice: dialogData.value.unitPrice,
@@ -134,7 +142,8 @@ function save() {
   showDialog.value = false
   // 重新计算总金额
   let totalAmount = 0
-  serviceBill.value!.details.forEach(detail => totalAmount += detail.subtotal)
+
+  serviceBill.value!.details.forEach((detail) => (totalAmount += detail.subtotal))
   serviceBill.value!.totalAmount = totalAmount
 }
 </script>

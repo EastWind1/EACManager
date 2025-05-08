@@ -3,11 +3,14 @@ package com.eastwind.EACAfterSaleMgr.model.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+
+import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillType;
+import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
 
 /**
  * 服务单据实体类
@@ -78,20 +81,20 @@ public class ServiceBill extends AuditEntity {
     /**
      * 服务明细
      */
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private List<ServiceBillDetail> details;
+    private List<ServiceBillDetail> details = new ArrayList<>();
     /**
      * 处理人明细列表
      */
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private List<ServiceBillProcessorDetail> processDetails;
+    private List<ServiceBillProcessorDetail> processDetails = new ArrayList<>();
     /**
      * 附件列表
      */
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private List<Attachment> attachments;
+    private List<Attachment> attachments = new ArrayList<>();
 }
 

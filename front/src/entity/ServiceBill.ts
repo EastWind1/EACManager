@@ -8,11 +8,11 @@ export const enum ServiceBillType {
   /**
    * 安装单
    */
-  INSTALL,
+  INSTALL = 'INSTALL',
   /**
    * 维护单
    */
-  FIX,
+  FIX = 'FIX',
 }
 
 /**
@@ -22,20 +22,21 @@ export const enum ServiceBillState {
   /**
    * 新建
    */
-  CREATED,
+  CREATED = 'CREATED',
   /**
    * 进行中
    */
-  PROCESSING,
+  PROCESSING = 'PROCESSING',
   /**
    * 处理完成
    */
-  PROCESSED,
+  PROCESSED = 'PROCESSED',
   /**
    * 完成
    */
-  FINISHED,
+  FINISHED = 'FINISHED',
 }
+
 
 /**
  * 服务单实体
@@ -106,15 +107,11 @@ export interface ServiceBill extends AuditEntity {
    * 备注
    */
   remark: string
-  /**
-   * 创建时间
-   */
-  createDate: string
 }
 /**
  * 服务项目明细
  */
-export interface ServiceBillDetail extends AuditEntity {
+export interface ServiceBillDetail {
   id?: number
   /**
    * 设备类型
@@ -141,7 +138,7 @@ export interface ServiceBillDetail extends AuditEntity {
 /**
  * 处理人明细
  */
-interface ServiceBillProcessorDetail extends AuditEntity {
+interface ServiceBillProcessorDetail {
   id: number
   /**
    * 处理人

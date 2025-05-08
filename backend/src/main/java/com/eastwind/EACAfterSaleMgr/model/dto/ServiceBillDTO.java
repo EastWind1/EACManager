@@ -1,11 +1,12 @@
 package com.eastwind.EACAfterSaleMgr.model.dto;
 
-import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillState;
-import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillType;
+import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
+import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillType;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,11 +22,11 @@ public class ServiceBillDTO {
     /**
      * 单据类型
      */
-    private ServiceBillType type;
+    private ServiceBillType type = ServiceBillType.INSTALL;
     /**
      * 单据状态
      */
-    private ServiceBillState state;
+    private ServiceBillState state = ServiceBillState.CREATED;
     /**
      * 项目名称
      */
@@ -57,15 +58,15 @@ public class ServiceBillDTO {
     /**
      * 处理人明细列表
      */
-    private List<ServiceBillProcessorDetailDTO> processDetails;
+    private List<ServiceBillProcessorDetailDTO> processDetails = new ArrayList<>();
     /**
      * 服务明细
      */
-    private List<ServiceBillDetailDTO> details;
+    private List<ServiceBillDetailDTO> details = new ArrayList<>();
     /**
      * 附件列表
      */
-    private List<AttachmentDTO> attachments;
+    private List<AttachmentDTO> attachments = new ArrayList<>();
     /**
      * 总金额
      */

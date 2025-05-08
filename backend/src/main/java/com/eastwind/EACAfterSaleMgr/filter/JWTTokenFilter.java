@@ -1,7 +1,7 @@
 package com.eastwind.EACAfterSaleMgr.filter;
 
 import com.eastwind.EACAfterSaleMgr.service.UserService;
-import com.eastwind.EACAfterSaleMgr.util.JWTUtil;
+import com.eastwind.EACAfterSaleMgr.service.JWTService;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -25,10 +25,10 @@ import java.text.ParseException;
  */
 @Component
 public class JWTTokenFilter extends OncePerRequestFilter {
-    private final JWTUtil jwtUtil;
+    private final JWTService jwtUtil;
     private final UserService userService;
 
-    public JWTTokenFilter(JWTUtil jwtUtil, UserService userService) {
+    public JWTTokenFilter(JWTService jwtUtil, UserService userService) {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }

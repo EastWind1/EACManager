@@ -1,17 +1,19 @@
 package com.eastwind.EACAfterSaleMgr.service;
 
 import com.benjaminwan.ocrlibrary.OcrResult;
-import com.benjaminwan.ocrlibrary.TextBlock;
+import com.eastwind.EACAfterSaleMgr.model.dto.AttachmentDTO;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
 import com.eastwind.EACAfterSaleMgr.model.mapper.ServiceBillMapper;
 import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBill;
 import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillProcessorDetail;
-import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillState;
+import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
 import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import com.eastwind.EACAfterSaleMgr.repository.ServiceBillRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,15 +29,18 @@ public class ServiceBillService {
     private final ServiceBillRepository serviceBillRepository;
     private final ServiceBillMapper serviceBillMapper;
     private final OcrService ocrService;
+    private final AttachmentService attachmentService;
 
-    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, OcrService ocrService) {
+    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, OcrService ocrService, AttachmentService attachmentService) {
         this.serviceBillRepository = serviceBillRepository;
         this.serviceBillMapper = serviceBillMapper;
         this.ocrService = ocrService;
+        this.attachmentService = attachmentService;
     }
 
     /**
      * 创建单据
+     *
      * @param serviceBillDTO 单据
      * @return 保存后的单据
      */
@@ -51,22 +56,50 @@ public class ServiceBillService {
                 throw new RuntimeException("单据编号已存在");
             }
         }
-        return serviceBillMapper.toServiceBillDTO(serviceBillRepository.save(serviceBillMapper.toServiceBill(serviceBillDTO)));
+        // 若为导入单据，移动临时文件到单据附件目录
+        // 在保存之后另起线程执行
+        record Move(Path origin, Path target) {
+        }
+        List<Move> moveThread = new ArrayList<>();
+
+        for (AttachmentDTO attachment : serviceBillDTO.getAttachments()) {
+            Path origin = Path.of(attachment.getRelativePath());
+            Path target = Path.of(serviceBillDTO.getNumber()).resolve(origin.getFileName());
+            attachment.setRelativePath(target.toString());
+            moveThread.add(new Move(origin, target));
+        }
+
+        ServiceBill bill = serviceBillRepository.save(serviceBillMapper.toServiceBill(serviceBillDTO));
+        for (Move move : moveThread) {
+            Thread.startVirtualThread(() -> {
+                attachmentService.move(move.origin, move.target);
+            });
+        }
+        return serviceBillMapper.toServiceBillDTO(bill);
     }
 
     /**
-     * 根据 OCR 结果生成单据
+     * 根据文件生成单据
      */
-    public ServiceBillDTO generateByOcrResult(OcrResult ocrResult) {
+    public ServiceBillDTO generateByFile(MultipartFile file) {
+        Path path = attachmentService.upload(file, "", true);
+        OcrResult ocrResult = ocrService.runOcr(path);
         if (ocrResult == null) {
             throw new RuntimeException("OCR 结果为空");
         }
         ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
         ocrService.executeMapRule(ocrResult, serviceBillDTO);
+        AttachmentDTO attach = new AttachmentDTO();
+        attach.setName(path.getFileName().toString());
+        // 禁止向外部传递绝对路径
+        attach.setRelativePath(path.toString());
+        serviceBillDTO.setAttachments(List.of(attach));
         return serviceBillDTO;
     }
+
     /**
      * 更新单据
+     *
      * @param serviceBillDTO 单据
      * @return 更新后的单据
      */
@@ -85,6 +118,7 @@ public class ServiceBillService {
 
     /**
      * 删除单据
+     *
      * @param id 单据 ID
      */
     @Transactional
@@ -94,6 +128,7 @@ public class ServiceBillService {
         }
         serviceBillRepository.deleteById(id);
     }
+
     public ServiceBillDTO findById(int id) {
         return serviceBillMapper.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
     }
@@ -105,6 +140,7 @@ public class ServiceBillService {
     public List<ServiceBillDTO> findAllByStateAndProcessor(ServiceBillState state, User user) {
         return serviceBillMapper.toServiceBillDTOs(serviceBillRepository.findAllByStateAndProcessor(state, user));
     }
+
     @Transactional
     public void allocateProcessor(Integer id, List<User> users) {
         if (id == null) {
@@ -119,10 +155,6 @@ public class ServiceBillService {
             throw new RuntimeException("该单据非新建或处理中，无法分配");
         }
 
-
-        if (bill.getProcessDetails() == null) {
-            bill.setProcessDetails(new ArrayList<>());
-        }
         for (ServiceBillProcessorDetail processDetail : bill.getProcessDetails()) {
             for (User user : users) {
                 if (Objects.equals(processDetail.getProcessUser().getId(), user.getId())) {

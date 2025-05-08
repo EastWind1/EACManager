@@ -1,11 +1,13 @@
-package com.eastwind.EACAfterSaleMgr.util;
+package com.eastwind.EACAfterSaleMgr.service;
 
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.springframework.stereotype.Component;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.text.ParseException;
@@ -14,16 +16,16 @@ import java.util.Date;
 /**
  * JWT 工具类
  */
-@Component
-public class JWTUtil {
-    private final JWSSigner signer;
-    private final JWSVerifier verifier;
+@Service
+public class JWTService {
+    private JWSSigner signer;
+    private JWSVerifier verifier;
+    @Value("${jwt.key}")
+    private String key;
 
-    private JWTUtil() throws JOSEException {
-        byte[] shareSecurity = new byte[32];
-        SecureRandom random = new SecureRandom();
-        random.nextBytes(shareSecurity);
-
+    @PostConstruct
+    public void init() throws JOSEException {
+        byte[] shareSecurity = key.getBytes();
         signer = new MACSigner(shareSecurity);
         verifier = new MACVerifier(shareSecurity);
     }

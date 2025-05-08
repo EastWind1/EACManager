@@ -1,4 +1,4 @@
-package com.eastwind.EACAfterSaleMgr.model.entity;
+package com.eastwind.EACAfterSaleMgr.model.common;
 
 /**
  * 服务单据状态
@@ -16,10 +16,6 @@ public enum ServiceBillState {
      * 处理完成
      */
     PROCESSED,
-    /**
-     * 待回款
-     */
-    REFUNDING,
     /**
      * 完成
      */

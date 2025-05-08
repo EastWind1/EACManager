@@ -1,7 +1,7 @@
 <!-- 订单表单 -->
 <template>
   <v-container>
-    <v-form ref="form" v-model="valid" :readonly="!editable" @submit.prevent="save">
+    <v-form ref="form" v-model="valid" :readonly="loading || !canEdit" @submit.prevent="save">
       <!-- 单据头部 -->
       <v-card>
         <template #text>
@@ -30,18 +30,17 @@
             <v-col justify-end>
               <v-row justify="end" class="ga-2">
                 <!-- 导入按钮 -->
-                <v-btn color="primary">
-                  导入
-                </v-btn>
+                <v-btn color="primary" @click="importFile" :loading="loading" :disabled="isEditState"> 导入</v-btn>
                 <!-- 编辑按钮 -->
                 <v-btn
                   color="primary"
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED"
+                  v-if="serviceBill.state === ServiceBillState.CREATED"
+                  :disabled="isEditState"
                   @click="isEditState = true"
                   >编辑
                 </v-btn>
-                <!-- 提交按钮 -->
-                <v-btn color="primary" v-if="editable" type="submit">提交</v-btn>
+                <!-- 保存按钮 -->
+                <v-btn :disabled="!isEditState" type="submit" :loading="loading">提交</v-btn>
               </v-row>
             </v-col>
           </v-row>
@@ -140,7 +139,7 @@
           <v-tabs-window v-model="tab">
             <!-- 服务单明细 -->
             <v-tabs-window-item value="details">
-              <OrderFormDetail v-model="serviceBill" :editable="editable"></OrderFormDetail>
+              <OrderFormDetail v-model="serviceBill" :readonly="canEdit"></OrderFormDetail>
             </v-tabs-window-item>
             <!-- 处理人明细 TODO: 独立为单个组件 -->
             <v-tabs-window-item
@@ -219,7 +218,7 @@
               <label class="text-subtitle-1"
                 >创建时间
                 {{
-                  serviceBill.createDate ? date.format(serviceBill.createDate, 'yyyy-MM-dd') : ''
+                  serviceBill.createdDate ? date.format(serviceBill.createdDate, 'yyyy-MM-dd') : ''
                 }}</label
               >
             </v-col>
@@ -238,7 +237,9 @@
         </template>
       </v-card>
     </v-form>
+    <!-- 底部空间， 用于滚动到底部是不会遮挡 -->
     <div class="bottom-empty"></div>
+    <!-- 总金额显示 -->
     <v-container class="position-fixed bottom-0 bg-white d-flex justify-end ga-2">
       <span
         >总额: <span class="text-red">￥ {{ serviceBill.totalAmount }}</span></span
@@ -253,16 +254,18 @@ import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/entity/Se
 import OrderFormDetail from '@/views/OrderFormDetail.vue'
 import * as date from 'date-fns'
 import { ServiceBillApi } from '@/api/Api.ts'
+import { useGlobalStore } from '@/stores/global.ts'
+import { storeToRefs } from 'pinia'
 
-// 表单是否编辑状态
+const store = useGlobalStore()
+const {loading} = storeToRefs(store)
+const {warning} = store
+// 页面是否编辑状态
 const isEditState = ref(false)
-// 是否后端处理中
-const isProcessing = ref(false)
-// 是否可编辑
-const editable = computed(
+// 单据是否可编辑
+const canEdit = computed(
   () =>
     isEditState.value &&
-    !isProcessing.value &&
     serviceBill.value.state === ServiceBillState.CREATED,
 )
 // 初始化表单数据
@@ -284,7 +287,7 @@ const serviceBill = ref<ServiceBill>({
   totalAmount: 0,
   processedDate: '',
   remark: '',
-  createDate: new Date().toString(),
+  createdDate: new Date(),
 })
 
 // 枚举值映射
@@ -300,45 +303,56 @@ const serviceBillTypes = [
 ]
 
 // 状态显示映射
-const serviceBillStates = [
-  {
-    label: '新建',
-    color: 'light-blue',
-  },
-  {
-    label: '处理中',
-    color: 'amber',
-  },
-  {
-    label: '处理完成',
-    color: 'light-green',
-  },
-  {
-    label: '完成',
-    color: 'green',
-  },
-]
+const serviceBillStates = {
+  [ServiceBillState.CREATED]: { label: '新建', color: 'light-blue' },
+  [ServiceBillState.PROCESSING]: { label: '处理中', color: 'amber' },
+  [ServiceBillState.PROCESSED]: { label: '处理完成', color: 'light-green' },
+  [ServiceBillState.FINISHED]: { label: '完成', color: 'green' },
+}
 
 // 表单验证状态
 const valid = ref(false)
 // 必填验证
-const requiredRule = (v: unknown) => !!v || '此项为必填项'
+const requiredRule = (v: unknown) => !!v || '必填项'
 // 电话号码验证
 const phoneRule = (v: string) => /^\d{10,11}$/.test(v) || '请输入有效的电话号码'
 
 // 当前 Tab 页
 const tab = ref('details')
 
+// 导入
+function importFile() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.pdf,.jpg,.jpeg,.pdf'
+  input.onchange = () => {
+    const file = input.files?.[0]
+    if (file) {
+      if (file.size > 1024 * 1024 * 50) {
+        warning('文件大小不能超过50M')
+        return
+      }
+      ServiceBillApi.import(file)
+        .then((bill) => {
+          Object.assign(serviceBill.value, bill)
+          isEditState.value = true
+        })
+        .finally(() => {
+          input.remove()
+        })
+    }
+  }
+  input.click()
+}
+
 // 提交表单
-const save = () => {
+function save() {
   if (valid.value) {
-    isProcessing.value = true
-    ServiceBillApi.save(serviceBill.value).then((bill) => {
-      isEditState.value = false
-      Object.assign(serviceBill.value, bill)
-    }).finally(() => {
-      isProcessing.value = false
-    })
+    ServiceBillApi.save(serviceBill.value)
+      .then((bill) => {
+        isEditState.value = false
+        Object.assign(serviceBill.value, bill)
+      })
   }
 }
 </script>

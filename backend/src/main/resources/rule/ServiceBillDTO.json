@@ -47,6 +47,6 @@
   {
     "keyword": "下单时间",
     "regex": "下单时间[:：\\s]*(.*)",
-    "field": "processedDate"
+    "field": "createdDate"
   }
 ]

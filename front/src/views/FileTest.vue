@@ -26,9 +26,8 @@
   </v-dialog>
 </template>
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { FileApi, ServiceBillApi } from '@/api/Api.ts'
-import { useGlobalStore } from '@/stores/global.ts'
 
 const file = ref<File>()
 const fileName = ref<string>()
@@ -36,7 +35,6 @@ const previewDialog = ref(false)
 const previewUrl = ref('')
 const previewType = ref<'image' | 'pdf' | 'text' | null>(null)
 const previewText = ref('')
-const {showLoading} = useGlobalStore()
 
 function getPreviewType(fileName: string): 'image' | 'pdf' | 'text' | null {
   const ext = fileName.split('.').pop()?.toLowerCase()
