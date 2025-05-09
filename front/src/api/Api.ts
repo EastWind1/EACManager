@@ -9,6 +9,11 @@ export const ServiceBillApi = {
    */
   getAll: () => axios.get('serviceBill').then((res) => res.data as ServiceBill[]),
   /**
+   * 根据 id 获取定点
+   * @param id 订单 ID
+   */
+  getById: (id: number) => axios.get(`serviceBill/${id}`).then((res) => res.data as ServiceBill),
+  /**
    * 导入
    */
   import: (file: File) =>
@@ -63,5 +68,5 @@ export const FileApi = {
    * @param fileName 文件名
    */
   download: (fileName: string) =>
-    axios.get(`file/${fileName}`, { responseType: 'blob' }).then(res => res as never as Blob),
+    axios.get(`file/${fileName}`, { responseType: 'blob' }).then((res) => res as never as Blob),
 }

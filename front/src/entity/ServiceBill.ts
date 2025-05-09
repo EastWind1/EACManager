@@ -1,5 +1,6 @@
 import type { User } from '@/entity/User'
 import type { AuditEntity } from '@/entity/Audit.ts'
+import type { Attachment } from '@/entity/Attachment.ts'
 
 /**
  * 服务单类型
@@ -95,6 +96,10 @@ export interface ServiceBill extends AuditEntity {
    * 服务明细
    */
   details: ServiceBillDetail[]
+  /**
+   *
+   */
+  attachments: Attachment[]
   /**
    * 总金额
    */

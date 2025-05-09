@@ -45,7 +45,7 @@
             单据列表
           </v-list-item>
           <!-- 表单  TODO: 测试用 -->
-          <v-list-item to="/form">
+          <v-list-item to="/bill">
             <template v-slot:prepend>
               <v-icon :icon="mdiFormatFloatLeft"></v-icon>
             </template>

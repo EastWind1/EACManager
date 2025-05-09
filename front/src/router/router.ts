@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
-import OrderList from '@/views/OrderList.vue'
-import OrderForm from '@/views/OrderForm.vue'
+import BillList from '@/views/BillList.vue'
+import BillForm from '@/views/BillForm.vue'
 import LoginForm from '@/views/LoginForm.vue'
 import { useGlobalStore } from '@/stores/global.ts'
 import FileTest from '@/views/FileTest.vue'
@@ -24,12 +24,15 @@ const router = createRouter({
         // 订单列表
         {
           path: '/list',
-          component: OrderList,
+          component: BillList,
         },
-        // 表单 TODO：调试用
         {
-          path: '/form',
-          component: OrderForm,
+          path: '/bill',
+          component: BillForm,
+        },
+        {
+          path: '/bill/:id',
+          component: BillForm,
         },
         // 文件 TODO：调试用
         {

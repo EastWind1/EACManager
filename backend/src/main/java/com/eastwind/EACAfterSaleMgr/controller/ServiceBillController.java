@@ -31,6 +31,13 @@ public class ServiceBillController {
         return serviceBillService.findAll();
 
     }
+    /**
+     * 根据 ID 获取服务单
+     */
+    @GetMapping("/{id}")
+    public ServiceBillDTO getById(@PathVariable Integer id) {
+        return serviceBillService.findById(id);
+    }
 
     /**
      * 创建服务单

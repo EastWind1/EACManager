@@ -30,7 +30,14 @@
             <v-col justify-end>
               <v-row justify="end" class="ga-2">
                 <!-- 导入按钮 -->
-                <v-btn color="primary" @click="importFile" :loading="loading" :disabled="isEditState"> 导入</v-btn>
+                <v-btn
+                  color="primary"
+                  @click="importFile"
+                  :loading="loading"
+                  :disabled="isEditState"
+                >
+                  导入
+                </v-btn>
                 <!-- 编辑按钮 -->
                 <v-btn
                   color="primary"
@@ -133,13 +140,14 @@
             >
               处理人
             </v-tab>
+            <v-tab value="attachment" class="v-card-title">附件</v-tab>
           </v-tabs>
         </template>
         <template #text>
           <v-tabs-window v-model="tab">
             <!-- 服务单明细 -->
             <v-tabs-window-item value="details">
-              <OrderFormDetail v-model="serviceBill" :readonly="canEdit"></OrderFormDetail>
+              <BillFormDetail v-model="serviceBill" :readonly="canEdit"></BillFormDetail>
             </v-tabs-window-item>
             <!-- 处理人明细 TODO: 独立为单个组件 -->
             <v-tabs-window-item
@@ -188,6 +196,13 @@
                   </v-col>
                 </v-row>
               </div>
+            </v-tabs-window-item>
+            <!-- 附件 -->
+            <v-tabs-window-item value="attachment">
+              <BillFormAttachDetail
+                v-model="serviceBill.attachments"
+                :readonly="!isEditState"
+              ></BillFormAttachDetail>
             </v-tabs-window-item>
           </v-tabs-window>
         </template>
@@ -249,24 +264,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/entity/ServiceBill.ts'
-import OrderFormDetail from '@/views/OrderFormDetail.vue'
+import BillFormDetail from '@/views/BillFormDetail.vue'
 import * as date from 'date-fns'
 import { ServiceBillApi } from '@/api/Api.ts'
 import { useGlobalStore } from '@/stores/global.ts'
 import { storeToRefs } from 'pinia'
+import BillFormAttachDetail from '@/views/BillFormAttachDetail.vue'
+import { useRoute } from 'vue-router'
 
 const store = useGlobalStore()
-const {loading} = storeToRefs(store)
-const {warning} = store
+const { loading } = storeToRefs(store)
+const { warning } = store
+const route = useRoute()
 // 页面是否编辑状态
 const isEditState = ref(false)
 // 单据是否可编辑
 const canEdit = computed(
-  () =>
-    isEditState.value &&
-    serviceBill.value.state === ServiceBillState.CREATED,
+  () => isEditState.value && serviceBill.value.state === ServiceBillState.CREATED,
 )
 // 初始化表单数据
 const serviceBill = ref<ServiceBill>({
@@ -284,6 +300,7 @@ const serviceBill = ref<ServiceBill>({
   elevatorInfo: '',
   processDetails: [],
   details: [],
+  attachments: [],
   totalAmount: 0,
   processedDate: '',
   remark: '',
@@ -309,6 +326,18 @@ const serviceBillStates = {
   [ServiceBillState.PROCESSED]: { label: '处理完成', color: 'light-green' },
   [ServiceBillState.FINISHED]: { label: '完成', color: 'green' },
 }
+
+onMounted(() => {
+  if (route.params.id) {
+    ServiceBillApi.getById(parseInt(route.params.id as string)).then((bill) => {
+      if (bill) {
+        Object.assign(serviceBill.value, bill)
+      } else {
+        warning('未找到该单据')
+      }
+    })
+  }
+})
 
 // 表单验证状态
 const valid = ref(false)
@@ -348,11 +377,10 @@ function importFile() {
 // 提交表单
 function save() {
   if (valid.value) {
-    ServiceBillApi.save(serviceBill.value)
-      .then((bill) => {
-        isEditState.value = false
-        Object.assign(serviceBill.value, bill)
-      })
+    ServiceBillApi.save(serviceBill.value).then((bill) => {
+      isEditState.value = false
+      Object.assign(serviceBill.value, bill)
+    })
   }
 }
 </script>
