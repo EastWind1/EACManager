@@ -1,5 +1,6 @@
 package com.eastwind.EACAfterSaleMgr.model.entity;
 
+import com.eastwind.EACAfterSaleMgr.model.common.AttachmentType;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -16,6 +17,11 @@ public class Attachment {
      * 文件名
      */
     private String name;
+    /**
+     * 文件类型
+     */
+    @Enumerated
+    private AttachmentType type = AttachmentType.OTHER;
     /**
      * 文件相对路径
      */

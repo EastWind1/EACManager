@@ -12,7 +12,6 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-    open-in-view: true
   servlet:
     multipart:
       max-file-size: 50MB
@@ -30,5 +29,7 @@ jwt:
   key: c4b74f6241a88acb80ddd6115076b137a06c66b8252b8d2cbec03a87b4828ccf
 # 附件路径
 attachment:
+  # 必须为绝对路径，否则 OCR 会无法读取文件
   path: ${user.dir}${file.separator}attachment
-  temp: ${attachment.path}${file.separator}temp
+  # 相对于path的临时目录
+  temp: temp

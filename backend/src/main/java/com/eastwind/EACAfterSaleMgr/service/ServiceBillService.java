@@ -82,7 +82,7 @@ public class ServiceBillService {
      * 根据文件生成单据
      */
     public ServiceBillDTO generateByFile(MultipartFile file) {
-        Path path = attachmentService.upload(file, "", true);
+        AttachmentDTO path = attachmentService.uploadTemp(file);
         OcrResult ocrResult = ocrService.runOcr(path);
         if (ocrResult == null) {
             throw new RuntimeException("OCR 结果为空");

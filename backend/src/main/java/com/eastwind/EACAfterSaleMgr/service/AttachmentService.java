@@ -1,15 +1,21 @@
 package com.eastwind.EACAfterSaleMgr.service;
 
+import com.eastwind.EACAfterSaleMgr.model.common.AttachmentType;
+import com.eastwind.EACAfterSaleMgr.model.dto.AttachmentDTO;
+import com.eastwind.EACAfterSaleMgr.model.entity.Attachment;
+import com.eastwind.EACAfterSaleMgr.model.mapper.AttachmentMapper;
+import com.eastwind.EACAfterSaleMgr.repository.AttachmentRepository;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.Tika;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -29,7 +35,7 @@ public class AttachmentService implements InitializingBean {
     @Value("${attachment.path}")
     private String ROOT_DIR;
     @Value("${attachment.temp}")
-    private String TEMP_DIR;
+    public String TEMP_DIR;
     /**
      * 根目录
      */
@@ -38,6 +44,13 @@ public class AttachmentService implements InitializingBean {
      * 临时目录
      */
     private Path tempPath;
+    private final AttachmentRepository attachmentRepository;
+    private final AttachmentMapper attachmentMapper;
+
+    public AttachmentService(AttachmentRepository attachmentRepository, AttachmentMapper attachmentMapper) {
+        this.attachmentRepository = attachmentRepository;
+        this.attachmentMapper = attachmentMapper;
+    }
 
     /**
      * 初始化附件目录
@@ -45,13 +58,7 @@ public class AttachmentService implements InitializingBean {
     @Override
     public void afterPropertiesSet() {
         rootPath = Path.of(ROOT_DIR).normalize().toAbsolutePath();
-        tempPath = Path.of(TEMP_DIR).normalize().toAbsolutePath();
-        if (rootPath.equals(tempPath)) {
-            throw new RuntimeException("临时目录不能与附件目录相同");
-        }
-        if (!tempPath.startsWith(rootPath)) {
-            throw new RuntimeException("临时目录必须位于附件目录内");
-        }
+        tempPath = rootPath.resolve(TEMP_DIR).normalize().toAbsolutePath();
         if (!Files.exists(rootPath)) {
             try {
                 Files.createDirectories(rootPath);
@@ -70,63 +77,54 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
-     * 检查文件类型是否合法
+     * 获取文件类型
      *
-     * @param inputStream 文件
+     * @param inputStream 文件输入流
+     * @return 文件类型
      */
-    public void checkFileType(InputStream inputStream) {
-        // 使用 ImageIO 判断是否为图片类型
-        try (InputStream is = inputStream) {
-            // 图片
-            if (ImageIO.read(is) != null) {
-                return;
-            }
-
-            byte[] header = new byte[8];
-            int size = is.read(header);
-            if (size < 0) {
-                throw new RuntimeException("文件为空");
-            }
-            // pdf
-            if ((header[0] == (byte) 0x25 && header[1] == (byte) 0x50 &&
-                    header[2] == (byte) 0x44 && header[3] == (byte) 0x46)) {
-            } else if ((header[0] == (byte) 0x50 && header[1] == (byte) 0x4B &&
-                    header[2] == (byte) 0x03 && header[3] == (byte) 0x04)) {
-                // Excel 或 Word
-            } else {
-                throw new RuntimeException("文件类型不合法");
-            }
+    private AttachmentType getFileType(InputStream inputStream) {
+        Tika tika = new Tika();
+        try {
+            String mimeType = tika.detect(inputStream);
+            return switch (mimeType) {
+                case "application/pdf" -> AttachmentType.PDF;
+                case "image/jpeg", "image/png", "image/gif" -> AttachmentType.IMAGE;
+                case "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
+                        AttachmentType.WORD;
+                case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
+                        AttachmentType.EXCEL;
+                default -> throw new RuntimeException("不支持的文件类型: " + mimeType);
+            };
         } catch (IOException e) {
-            throw new RuntimeException("读取文件失败", e);
+            throw new RuntimeException("读取文件流失败", e);
         }
-
     }
 
     /**
-     * 上传文件
+     * 保存文件
      *
-     * @param file    文件
-     * @param pathStr 相对附件目录路径，默认值为空
-     * @param isTemp  是否临时目录
-     * @return 文件相对路径
+     * @param file 文件
+     * @param path 相对附件目录路径
+     * @return 附件实体
      */
-    public Path upload(MultipartFile file, String pathStr, boolean isTemp) {
+    private Attachment saveFile(MultipartFile file, Path path) {
+        if (path == null) {
+            throw new RuntimeException("路径不能为空");
+        }
         if (file.isEmpty()) {
             throw new IllegalArgumentException("禁止上传空文件");
         }
         if (file.getOriginalFilename() == null) {
             throw new RuntimeException("文件名不能为空");
         }
-        if (pathStr == null) {
-            pathStr = "";
-        }
-        Path targetPath = (isTemp ? tempPath : rootPath).resolve(pathStr).resolve(file.getOriginalFilename()).normalize().toAbsolutePath();
-        if (!targetPath.startsWith(isTemp ? tempPath : rootPath)) {
+        Path targetPath = rootPath.resolve(path).resolve(file.getOriginalFilename()).normalize().toAbsolutePath();
+        if (!targetPath.startsWith(rootPath)) {
             throw new RuntimeException("禁止使用外部路径");
         }
 
+        AttachmentType type;
         try {
-            checkFileType(file.getInputStream());
+            type = getFileType(file.getInputStream());
             if (!Files.exists(targetPath)) {
                 Files.createDirectories(targetPath);
             }
@@ -134,8 +132,35 @@ public class AttachmentService implements InitializingBean {
         } catch (IOException e) {
             throw new RuntimeException("保存文件失败", e);
         }
+        Path relativePath = rootPath.relativize(targetPath);
+        Attachment attachment = new Attachment();
+        attachment.setName(path.getFileName().toString());
+        attachment.setType(type);
+        attachment.setRelativePath(relativePath.toString());
 
-        return rootPath.relativize(targetPath);
+        return attachment;
+    }
+
+    /**
+     * 上传文件
+     *
+     * @param file 文件
+     * @param path 相对附件目录路径
+     * @return 附件实体
+     */
+    @Transactional
+    public AttachmentDTO upload(MultipartFile file, Path path) {
+        return attachmentMapper.toAttachmentDTO(attachmentRepository.save(saveFile(file, path)));
+    }
+
+    /**
+     * 上传临时文件
+     *
+     * @param file 文件
+     * @return 附件实体
+     */
+    public AttachmentDTO uploadTemp(MultipartFile file) {
+        return attachmentMapper.toAttachmentDTO(saveFile(file, Path.of(TEMP_DIR)));
     }
 
     /**
@@ -152,21 +177,27 @@ public class AttachmentService implements InitializingBean {
     /**
      * 读取文件
      *
-     * @param fileName 文件名
+     * @param path 文件路径
      * @return 文件资源
      */
-    public Resource loadAsResource(String fileName) {
-        Resource resource = null;
+    public Resource loadByPath(Path path) {
+        if (path == null) {
+            throw new RuntimeException("文件路径为空");
+        }
+        Path absolutePath = rootPath.resolve(path).normalize().toAbsolutePath();
+        if (!absolutePath.startsWith(rootPath)) {
+            throw new RuntimeException("禁止使用外部路径");
+        }
+        if (!Files.exists(absolutePath) || Files.isDirectory(absolutePath)) {
+            throw new RuntimeException("文件不存在");
+        }
+        Resource resource;
         try {
-            resource = new UrlResource(Path.of(ROOT_DIR, fileName).toUri());
+            resource = new UrlResource(absolutePath.toUri());
         } catch (MalformedURLException e) {
-            throw new RuntimeException("解析文件地址错误", e);
+            throw new RuntimeException("文件地址不合法", e);
         }
-        if (resource.exists() || resource.isReadable()) {
-            return resource;
-        } else {
-            throw new RuntimeException("找不到文件");
-        }
+        return resource;
     }
 
     /**
@@ -204,7 +235,7 @@ public class AttachmentService implements InitializingBean {
                         try {
                             Files.delete(path);
                         } catch (IOException e) {
-                            log.error("清理临时文件失败:{} {}", path.toString(), e.getMessage());
+                            log.error("清理临时文件失败:{} {}", path, e.getMessage());
                         }
                     });
         } catch (IOException e) {

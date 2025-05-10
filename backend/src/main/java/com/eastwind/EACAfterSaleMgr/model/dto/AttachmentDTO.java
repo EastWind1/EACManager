@@ -1,5 +1,6 @@
 package com.eastwind.EACAfterSaleMgr.model.dto;
 
+import com.eastwind.EACAfterSaleMgr.model.common.AttachmentType;
 import lombok.Data;
 
 /**
@@ -16,4 +17,8 @@ public class AttachmentDTO {
      * 相对路径
      */
     private String relativePath;
+    /**
+     * 文件类型
+     */
+    private AttachmentType type = AttachmentType.OTHER;
 }

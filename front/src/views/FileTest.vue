@@ -8,10 +8,11 @@
     <v-card>
       <v-toolbar color="primary" dark>文件预览</v-toolbar>
       <v-card-text class="pa-0">
-        <!-- 使用 iframe 或 img 根据文件类型动态渲染 -->
+        <!-- 预览图片 -->
         <div v-if="previewType === 'image'">
-          <img :src="previewUrl" style="width: 100%; display: block;" />
+          <img :src="previewUrl" style="width: 100%; display: block;"  :alt="previewUrl"/>
         </div>
+        <!-- 使用 iframe 预览 PDF 文件 -->
         <div v-else-if="previewType === 'pdf'">
           <iframe :src="previewUrl" style="width: 100%; height: 600px; border: none;"></iframe>
         </div>
