@@ -112,10 +112,19 @@
 			<artifactId>tika-core</artifactId>
 			<version>3.1.0</version>
 		</dependency>
+
+		<!-- PDF 解析 -->
 		<dependency>
-			<groupId>org.apache.tika</groupId>
-			<artifactId>tika-parsers-standard-package</artifactId>
-			<version>3.1.0</version>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.5</version>
+		</dependency>
+
+		<!-- Excel 和 Word 解析 -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml-lite</artifactId>
+			<version>5.4.1</version>
 		</dependency>
 	</dependencies>
 
@@ -133,6 +142,14 @@
 					</excludes>
 					<includeSystemScope>true</includeSystemScope>
 				</configuration>
+				<executions>
+					<execution>
+						<id>process-aot</id>
+						<goals>
+							<goal>process-aot</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

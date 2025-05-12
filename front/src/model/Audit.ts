@@ -1,4 +1,4 @@
-import type { User } from '@/entity/User.ts'
+import type { User } from '@/model/User.ts'
 
 /**
  * 审计实体

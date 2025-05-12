@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +18,10 @@ import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
 @Entity
 @Data
 @EqualsAndHashCode(callSuper = true)
+@Table(indexes = {
+        @Index(columnList = "number"),
+        @Index(columnList = "created_date")
+})
 public class ServiceBill extends AuditEntity {
     @Id
     @GeneratedValue
@@ -72,7 +76,7 @@ public class ServiceBill extends AuditEntity {
     /**
      * 完工时间
      */
-    private LocalDateTime processedDate;
+    private LocalDate processedDate;
     /**
      * 备注
      */
@@ -84,12 +88,6 @@ public class ServiceBill extends AuditEntity {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private List<ServiceBillDetail> details = new ArrayList<>();
-    /**
-     * 处理人明细列表
-     */
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private List<ServiceBillProcessorDetail> processDetails = new ArrayList<>();
     /**
      * 附件列表
      */

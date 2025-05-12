@@ -15,7 +15,6 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -79,7 +78,7 @@ public class OcrService {
     public void executeMapRule(OcrResult ocrResult, Object target) {
         String className = target.getClass().getSimpleName();
         try {
-            File mapJson = ResourceUtils.getFile("classpath:rule/" + className + ".json");
+            File mapJson = ResourceUtils.getFile("classpath:rule/OCR-" + className + ".json");
             List<MapRule> mapRule = objectMapper.readValue(mapJson, new TypeReference<>() {
             });
 
@@ -106,12 +105,12 @@ public class OcrService {
                                     field.set(target, Boolean.parseBoolean(value));
                                 } else if (type == BigDecimal.class) {
                                     field.set(target, new BigDecimal(value));
-                                } else if (type == LocalDateTime.class) {
+                                } else if (type == LocalDate.class) {
                                     // 单独处理中文日期
                                     if (value.contains("日")) {
                                         field.set(target, LocalDate.parse(value, DateTimeFormatter.ofPattern("yyyy年M月d日")).atStartOfDay());
                                     } else {
-                                        field.set(target, LocalDateTime.parse(value));
+                                        field.set(target, LocalDate.parse(value));
                                     }
                                 }
                             } catch (NoSuchFieldException | IllegalAccessException ignored) {

@@ -5,7 +5,7 @@ import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillType;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,10 +56,6 @@ public class ServiceBillDTO {
      */
     private String elevatorInfo;
     /**
-     * 处理人明细列表
-     */
-    private List<ServiceBillProcessorDetailDTO> processDetails = new ArrayList<>();
-    /**
      * 服务明细
      */
     private List<ServiceBillDetailDTO> details = new ArrayList<>();
@@ -74,7 +70,7 @@ public class ServiceBillDTO {
     /**
      * 完工时间
      */
-    private LocalDateTime processedDate;
+    private LocalDate processedDate;
     /**
      * 备注
      */
@@ -82,9 +78,9 @@ public class ServiceBillDTO {
     /**
      * 创建时间
      */
-    private LocalDateTime createdDate;
+    private LocalDate createdDate;
     /**
      * 最后修改时间
      */
-    private LocalDateTime lastModifiedDate;
+    private LocalDate lastModifiedDate;
 }

@@ -1,21 +1,29 @@
 package com.eastwind.EACAfterSaleMgr.service;
 
 import com.benjaminwan.ocrlibrary.OcrResult;
+import com.eastwind.EACAfterSaleMgr.model.common.AttachmentType;
 import com.eastwind.EACAfterSaleMgr.model.dto.AttachmentDTO;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
+import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillQueryParam;
 import com.eastwind.EACAfterSaleMgr.model.mapper.ServiceBillMapper;
 import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBill;
-import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBillProcessorDetail;
 import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
 import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import com.eastwind.EACAfterSaleMgr.repository.ServiceBillRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +58,7 @@ public class ServiceBillService {
             throw new RuntimeException("单据已存在");
         }
         if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {
-            serviceBillDTO.setNumber(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + new SecureRandom().nextInt(1000));
+            serviceBillDTO.setNumber(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + new SecureRandom().nextInt(1000));
         } else {
             if (serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())) {
                 throw new RuntimeException("单据编号已存在");
@@ -82,19 +90,21 @@ public class ServiceBillService {
      * 根据文件生成单据
      */
     public ServiceBillDTO generateByFile(MultipartFile file) {
-        AttachmentDTO path = attachmentService.uploadTemp(file);
-        OcrResult ocrResult = ocrService.runOcr(path);
-        if (ocrResult == null) {
-            throw new RuntimeException("OCR 结果为空");
+        AttachmentDTO attachment = attachmentService.uploadTemp(file);
+        if (attachment.getType() == AttachmentType.IMAGE) {
+            OcrResult ocrResult = ocrService.runOcr(Path.of(attachment.getRelativePath()));
+            if (ocrResult == null) {
+                throw new RuntimeException("OCR 结果为空");
+            }
+
+            ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
+            ocrService.executeMapRule(ocrResult, serviceBillDTO);
+
+            serviceBillDTO.setAttachments(List.of(attachment));
+            return serviceBillDTO;
+        } else {
+            throw new UnsupportedOperationException("暂不支持非图片");
         }
-        ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
-        ocrService.executeMapRule(ocrResult, serviceBillDTO);
-        AttachmentDTO attach = new AttachmentDTO();
-        attach.setName(path.getFileName().toString());
-        // 禁止向外部传递绝对路径
-        attach.setRelativePath(path.toString());
-        serviceBillDTO.setAttachments(List.of(attach));
-        return serviceBillDTO;
     }
 
     /**
@@ -133,44 +143,55 @@ public class ServiceBillService {
         return serviceBillMapper.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
     }
 
-    public List<ServiceBillDTO> findAll() {
-        return serviceBillMapper.toServiceBillDTOs(serviceBillRepository.findAll());
-    }
-
-    public List<ServiceBillDTO> findAllByStateAndProcessor(ServiceBillState state, User user) {
-        return serviceBillMapper.toServiceBillDTOs(serviceBillRepository.findAllByStateAndProcessor(state, user));
-    }
-
-    @Transactional
-    public void allocateProcessor(Integer id, List<User> users) {
-        if (id == null) {
-            throw new RuntimeException("id不能为空");
+    /**
+     * 根据条件查询
+     *
+     * @param param 查询参数
+     * @return 分页结果
+     */
+    public Page<ServiceBillDTO> findByParam(ServiceBillQueryParam param) {
+        if (param == null) {
+            throw new RuntimeException("查询参数为空");
         }
-        ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
-        if (bill == null) {
-            throw new RuntimeException("未找到该单据");
-        }
-
-        if (bill.getState() != ServiceBillState.CREATED && bill.getState() != ServiceBillState.PROCESSING) {
-            throw new RuntimeException("该单据非新建或处理中，无法分配");
-        }
-
-        for (ServiceBillProcessorDetail processDetail : bill.getProcessDetails()) {
-            for (User user : users) {
-                if (Objects.equals(processDetail.getProcessUser().getId(), user.getId())) {
-                    throw new RuntimeException("[" + user.getName() + "]正在处理该单据，无需再次分配");
+        Specification<ServiceBill> specification = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (param.getNumber() != null) {
+                predicates.add(cb.like(root.get("number"), param.getNumber() + "%"));
+            }
+            if (param.getState() != null && !param.getState().isEmpty()) {
+                if (param.getState().size() == 1) {
+                    predicates.add(cb.equal(root.get("state"), param.getState().getFirst()));
+                } else {
+                    predicates.add(root.get("state").in(param.getState()));
                 }
             }
-        }
-        for (User user : users) {
-            ServiceBillProcessorDetail processorDetail = new ServiceBillProcessorDetail();
-            processorDetail.setProcessUser(user);
-            processorDetail.setAcceptDate(LocalDateTime.now());
-            bill.getProcessDetails().add(processorDetail);
-        }
-        if (bill.getState() == ServiceBillState.CREATED) {
-            bill.setState(ServiceBillState.PROCESSING);
-        }
-        serviceBillRepository.save(bill);
+            if (param.getProjectName() != null) {
+                predicates.add(cb.like(root.get("projectName"), "%" + param.getProjectName() + "%"));
+            }
+            if (param.getCreatedStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdDate"), param.getCreatedStartDate()));
+            }
+            if (param.getCreatedEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdDate"), param.getCreatedEndDate()));
+            }
+            if (param.getProcessedStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("processedDate"), param.getProcessedStartDate()));
+            }
+            if (param.getProcessedEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("processedDate"), param.getProcessedEndDate()));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        EntityManager em;
+        em.createNativeQuery().
+        // 默认取前 20 行，创建时间降序排序
+        int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
+        int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
+        List<Sort.Order> orders = param.getSorts() == null ? List.of(
+                Sort.Order.desc("createdDate")
+        ) : param.getSorts().stream().map(sortParam -> Sort.Order.by(sortParam.getField()).with(Sort.Direction.fromString(sortParam.getDirection()))).toList();
+        Pageable pageable = PageRequest.of(pageIndex, pageSize, Sort.by(orders));
+        Page<ServiceBill> pageResult = serviceBillRepository.findAll(specification, pageable);
+        return pageResult.map(serviceBillMapper::toServiceBillDTO);
     }
 }

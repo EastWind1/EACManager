@@ -24,7 +24,7 @@ export const enum AttachmentType {
   OTHER = 'OTHER'
 }
 export interface Attachment {
-  id: number
+  id?: number
   /**
    * 文件名
    */

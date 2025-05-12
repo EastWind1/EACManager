@@ -7,6 +7,8 @@ import com.eastwind.EACAfterSaleMgr.model.mapper.AttachmentMapper;
 import com.eastwind.EACAfterSaleMgr.repository.AttachmentRepository;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -165,7 +167,7 @@ public class AttachmentService implements InitializingBean {
 
     /**
      * 获取绝对路径
-     * 只允许项目内调用
+     * 只允许包内调用
      *
      * @param relativePath 相对路径
      * @return 绝对路径

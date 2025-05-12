@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Attachment } from '@/entity/Attachment.ts'
+import type { Attachment } from '@/model/Attachment.ts'
 import { mdiFileImage, mdiFilePdfBox } from '@mdi/js'
 import { ref } from 'vue'
 import { useGlobalStore } from '@/stores/global.ts'

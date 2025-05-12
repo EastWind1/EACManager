@@ -1,11 +1,19 @@
 package com.eastwind.EACAfterSaleMgr.controller;
 
+import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
+import com.eastwind.EACAfterSaleMgr.model.dto.PageResult;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
+import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillQueryParam;
+import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBill;
 import com.eastwind.EACAfterSaleMgr.service.ServiceBillService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -21,16 +29,20 @@ public class ServiceBillController {
         this.serviceBillService = serviceBillService;
     }
 
+
     /**
-     * 获取所有服务单
+     * 根据条件查找服务单
      *
      * @return 服务单列表
      */
-    @GetMapping
-    public List<ServiceBillDTO> getAll() {
-        return serviceBillService.findAll();
+    @PostMapping("query")
+    public PageResult<ServiceBillDTO> queryByParam(@RequestBody ServiceBillQueryParam queryParam) {
+
+        Page<ServiceBillDTO> pageResult = serviceBillService.findByParam(queryParam);
+        return new PageResult<>(pageResult.getContent(), pageResult.getTotalElements(), pageResult.getTotalPages(),  pageResult.getSize(), pageResult.getNumber());
 
     }
+
     /**
      * 根据 ID 获取服务单
      */

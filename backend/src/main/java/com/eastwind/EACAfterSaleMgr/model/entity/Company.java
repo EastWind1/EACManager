@@ -11,8 +11,7 @@ import lombok.EqualsAndHashCode;
  */
 @Entity
 @Data
-@EqualsAndHashCode(callSuper=true)
-public class Company extends AuditEntity {
+public class Company {
     @Id
     @GeneratedValue
     private Integer id;

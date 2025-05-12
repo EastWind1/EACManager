@@ -1,16 +1,22 @@
 import { useAxios } from '@/api/AxiosConfig.ts'
-import type { ServiceBill } from '@/entity/ServiceBill.ts'
-import type { Attachment } from '@/entity/Attachment.ts'
+import { type ServiceBill, type ServiceBillQueryParam } from '@/model/ServiceBill.ts'
+import type { Attachment } from '@/model/Attachment.ts'
+import type { PageResult } from '@/model/PageResult.ts'
 
 const axios = useAxios()
 
 export const ServiceBillApi = {
   /**
-   * 获取所有订单
+   * 条件查询
+   * @param queryParam 查询参数
    */
-  getAll: () => axios.get('serviceBill').then((res) => res.data as ServiceBill[]),
+  getByQueryParam: (queryParam: ServiceBillQueryParam) =>
+    axios.post('serviceBill/query', queryParam).then(
+      (res) =>
+        res.data as PageResult<ServiceBill>
+    ),
   /**
-   * 根据 id 获取定点
+   * 根据 id 获取
    * @param id 订单 ID
    */
   getById: (id: number) => axios.get(`serviceBill/${id}`).then((res) => res.data as ServiceBill),

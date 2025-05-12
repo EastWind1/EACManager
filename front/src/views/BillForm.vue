@@ -18,8 +18,8 @@
                   <h3>
                     状态:
                     <v-badge
-                      :color="serviceBillStates[serviceBill.state].color"
-                      :content="serviceBillStates[serviceBill.state].label"
+                      :color="stateMap[serviceBill.state].color"
+                      :content="stateMap[serviceBill.state].label"
                       inline
                     ></v-badge>
                   </h3>
@@ -132,14 +132,6 @@
         <template #title>
           <v-tabs v-model="tab">
             <v-tab value="details" class="v-card-title">明细</v-tab>
-            <!-- 处理明细非新建状态显示 -->
-            <v-tab
-              value="processors"
-              class="v-card-title"
-              v-if="serviceBill.state != ServiceBillState.CREATED"
-            >
-              处理人
-            </v-tab>
             <v-tab value="attachment" class="v-card-title">附件</v-tab>
           </v-tabs>
         </template>
@@ -148,54 +140,6 @@
             <!-- 服务单明细 -->
             <v-tabs-window-item value="details">
               <BillFormDetail v-model="serviceBill" :readonly="canEdit"></BillFormDetail>
-            </v-tabs-window-item>
-            <!-- 处理人明细 TODO: 独立为单个组件 -->
-            <v-tabs-window-item
-              value="processors"
-              v-if="serviceBill.state != ServiceBillState.CREATED"
-            >
-              <div v-for="(detail, index) in serviceBill.processDetails" :key="index">
-                <v-divider></v-divider>
-                <v-row>
-                  <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-                    <v-text-field
-                      v-model="detail.processUser.name"
-                      label="处理人姓名"
-                      :rules="[requiredRule]"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-                    <v-text-field
-                      v-model="detail.processCount"
-                      label="处理数量"
-                      :rules="[requiredRule]"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-                    <v-text-field
-                      v-model="detail.processedAmount"
-                      label="处理金额"
-                      :rules="[requiredRule]"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-                    <v-text-field
-                      v-model="detail.acceptDate"
-                      label="接受时间"
-                      type="date"
-                      :rules="[requiredRule]"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-                    <v-text-field
-                      v-model="detail.processedDate"
-                      label="处理完成时间"
-                      type="date"
-                      :rules="[requiredRule]"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
-              </div>
             </v-tabs-window-item>
             <!-- 附件 -->
             <v-tabs-window-item value="attachment">
@@ -265,7 +209,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/entity/ServiceBill.ts'
+import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/model/ServiceBill.ts'
 import BillFormDetail from '@/views/BillFormDetail.vue'
 import * as date from 'date-fns'
 import { ServiceBillApi } from '@/api/Api.ts'
@@ -286,25 +230,15 @@ const canEdit = computed(
 )
 // 初始化表单数据
 const serviceBill = ref<ServiceBill>({
-  id: undefined,
-  number: undefined,
   type: ServiceBillType.INSTALL,
   state: ServiceBillState.CREATED,
   projectName: '',
   projectAddress: '',
   projectContact: '',
   projectContactPhone: '',
-  onSiteContact: '',
-  onSitePhone: '',
-  cargoSenderPhone: '',
-  elevatorInfo: '',
-  processDetails: [],
   details: [],
   attachments: [],
   totalAmount: 0,
-  processedDate: '',
-  remark: '',
-  createdDate: new Date(),
 })
 
 // 枚举值映射
@@ -319,8 +253,8 @@ const serviceBillTypes = [
   },
 ]
 
-// 状态显示映射
-const serviceBillStates = {
+// 状态映射
+const stateMap = {
   [ServiceBillState.CREATED]: { label: '新建', color: 'light-blue' },
   [ServiceBillState.PROCESSING]: { label: '处理中', color: 'amber' },
   [ServiceBillState.PROCESSED]: { label: '处理完成', color: 'light-green' },

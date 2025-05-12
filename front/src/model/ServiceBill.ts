@@ -1,6 +1,6 @@
-import type { User } from '@/entity/User'
-import type { AuditEntity } from '@/entity/Audit.ts'
-import type { Attachment } from '@/entity/Attachment.ts'
+import type { AuditEntity } from '@/model/Audit.ts'
+import type { Attachment } from '@/model/Attachment.ts'
+import type { QueryParam } from '@/model/QueryParam.ts'
 
 /**
  * 服务单类型
@@ -38,7 +38,6 @@ export const enum ServiceBillState {
   FINISHED = 'FINISHED',
 }
 
-
 /**
  * 服务单实体
  */
@@ -75,23 +74,15 @@ export interface ServiceBill extends AuditEntity {
   /**
    * 现场联系人
    */
-  onSiteContact: string
+  onSiteContact?: string
   /**
    * 现场联系人电话
    */
-  onSitePhone: string
-  /**
-   * 送货联系电话
-   */
-  cargoSenderPhone: string
+  onSitePhone?: string
   /**
    * 电梯信息
    */
-  elevatorInfo: string
-  /**
-   * 处理人明细列表
-   */
-  processDetails: ServiceBillProcessorDetail[]
+  elevatorInfo?: string
   /**
    * 服务明细
    */
@@ -107,12 +98,13 @@ export interface ServiceBill extends AuditEntity {
   /**
    * 完工时间
    */
-  processedDate: string
+  processedDate?: Date
   /**
    * 备注
    */
-  remark: string
+  remark?: string
 }
+
 /**
  * 服务项目明细
  */
@@ -141,31 +133,41 @@ export interface ServiceBillDetail {
 }
 
 /**
- * 处理人明细
+ * 服务单查询参数
  */
-interface ServiceBillProcessorDetail {
-  id: number
+export interface ServiceBillQueryParam extends QueryParam {
   /**
-   * 处理人
+   * 单号
    */
-  processUser: User
-
-  /*
-   * 处理数量
-   */
-  processCount: number
+  number?: string
 
   /**
-   * 处理金额
+   * 状态
    */
-  processedAmount: number
-  /**
-   * 接受时间
-   */
-  acceptDate: string
+  state?: ServiceBillState
 
   /**
-   * 处理完成时间
+   * 项目名称
    */
-  processedDate: string
+  projectName?: string
+
+  /**
+   * 创建起始日期
+   */
+  createdStartDate?: Date
+
+  /**
+   * 创建结束日期
+   */
+  createdEndDate?: Date
+
+  /**
+   * 处理完成起始日期
+   */
+  processedStartDate?: Date
+
+  /**
+   * 处理完成结束日期
+   */
+  processedEndDate?: Date
 }
