@@ -7,8 +7,6 @@ import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillQueryParam;
 import com.eastwind.EACAfterSaleMgr.model.mapper.ServiceBillMapper;
 import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBill;
-import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
-import com.eastwind.EACAfterSaleMgr.model.entity.User;
 import com.eastwind.EACAfterSaleMgr.repository.ServiceBillRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
@@ -182,8 +180,6 @@ public class ServiceBillService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        EntityManager em;
-        em.createNativeQuery().
         // 默认取前 20 行，创建时间降序排序
         int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
         int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();

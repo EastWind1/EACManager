@@ -1,24 +1,54 @@
 <template>
-  <v-card>
-    <template #text>
-      <v-container>
-        <v-row>
-          <v-col cols="12" sm="4">
-            <v-text-field v-model="queryParam.number" label="单号" />
-          </v-col>
-          <v-col cols="12" sm="4">
-            <v-select v-model="queryParam.state" :items="stateOptions" item-title="title" item-value="value" label="状态" />
-          </v-col>
-          <v-col cols="12" sm="4">
-            <v-select v-model="query.type" :items="typeOptions" item-title="title" item-value="value" label="类型" />
-          </v-col>
-          <v-col cols="12" class="text-right">
-            <v-btn @click="searchBills">查询</v-btn>
-          </v-col>
-        </v-row>
-      </v-container>
-    </template>
-  </v-card>
+  <v-expansion-panels>
+    <v-expansion-panel title="过滤条件">
+      <template #text>
+        <v-container>
+          <v-row>
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-text-field v-model="queryParam.number" label="单号" />
+            </v-col>
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-select
+                v-model="queryParam.state"
+                :items="stateOptions"
+                label="状态"
+                multiple
+                chips
+                closable-chips
+                clearable
+              />
+            </v-col>
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-text-field v-model="queryParam.projectName" label="项目名称" />
+            </v-col>
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-date-input
+                v-model="createdDateRange"
+                multiple="range"
+                label="创建日期"
+                prepend-icon=""
+                prepend-inner-icon="$calendar"
+                clearable
+              ></v-date-input>
+            </v-col>
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-date-input
+                v-model="processedDateRange"
+                multiple="range"
+                label="完工日期"
+                prepend-icon=""
+                prepend-inner-icon="$calendar"
+                clearable
+              ></v-date-input>
+            </v-col>
+            <v-col cols="12" class="text-right">
+              <v-btn @click="search = 'reload'">查询</v-btn>
+            </v-col>
+          </v-row>
+        </v-container>
+      </template>
+    </v-expansion-panel>
+  </v-expansion-panels>
   <v-data-table-server
     :headers="headers"
     :items="data.items"
@@ -27,7 +57,12 @@
     :sort-by="defaultSortBy"
     :loading="loading"
     @update:options="loadItems"
+    class="mt-2"
+    :search="search"
   >
+    <template #[`item.number`]="{ item }">
+      <RouterLink :to="`/bill/${item.id}`">{{item.number}}</RouterLink>
+    </template>
     <template #[`item.state`]="{ item }">
       <v-badge
         :color="stateMap[item.state].color"
@@ -46,32 +81,52 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { type ServiceBill, type ServiceBillQueryParam, ServiceBillState, ServiceBillType } from '@/model/ServiceBill.ts'
+import { ref, watch } from 'vue'
+import {
+  type ServiceBill,
+  type ServiceBillQueryParam,
+  ServiceBillState,
+  ServiceBillType,
+} from '@/model/ServiceBill.ts'
 import { ServiceBillApi } from '@/api/Api.ts'
 import { storeToRefs } from 'pinia'
 import { useGlobalStore } from '@/stores/global.ts'
 import type { PageResult } from '@/model/PageResult.ts'
+import { VDateInput } from 'vuetify/labs/components'
 
 // 查询参数
 const queryParam = ref<ServiceBillQueryParam>({
-  state: ServiceBillState.CREATED,
+  state: [ServiceBillState.CREATED],
   pageSize: 20,
   pageIndex: 0,
   sorts: [
     {
-      field: 'createDate',
+      field: 'createdDate',
       direction: 'DESC',
     },
   ],
 })
+// 创建日期范围
+const createdDateRange = ref([])
+watch(createdDateRange, (value) => {
+  queryParam.value.createdStartDate = value[0]
+  queryParam.value.createdEndDate = value[value.length - 1]
+})
+// 完工日期范围
+const processedDateRange = ref([])
+watch(processedDateRange, (value) => {
+  queryParam.value.processedStartDate = value[0]
+  queryParam.value.processedEndDate = value[value.length - 1]
+})
 // 默认排序
-const defaultSortBy = queryParam.value.sorts? queryParam.value.sorts.map((sort) => ({
-  key: sort.field,
-  order: sort.direction === 'ASC' ? 'asc' : 'desc',
-})) as {  key: string; order: 'asc' | 'desc'}[] : [];
+const defaultSortBy = queryParam.value.sorts
+  ? (queryParam.value.sorts.map((sort) => ({
+      key: sort.field,
+      order: sort.direction === 'ASC' ? 'asc' : 'desc',
+    })) as { key: string; order: 'asc' | 'desc' }[])
+  : []
 // 加载状态
-const {loading} = storeToRefs(useGlobalStore())
+const { loading } = storeToRefs(useGlobalStore())
 // 表头
 const headers = [
   { title: '单号', key: 'number', sortable: false },
@@ -91,7 +146,14 @@ const data = ref<PageResult<ServiceBill>>({
   pageSize: 20,
   pageIndex: 0,
 })
-// 状态映射
+// 查询状态下拉框
+const stateOptions = [
+  { title: '新建', value: ServiceBillState.CREATED },
+  { title: '处理中', value: ServiceBillState.PROCESSING },
+  { title: '处理完成', value: ServiceBillState.PROCESSED },
+  { title: '完成', value: ServiceBillState.FINISHED },
+]
+// 列表状态显示映射
 const stateMap = {
   [ServiceBillState.CREATED]: { label: '新建', color: 'light-blue' },
   [ServiceBillState.PROCESSING]: { label: '处理中', color: 'amber' },
@@ -103,6 +165,8 @@ const typeMap = {
   [ServiceBillType.FIX]: { label: '维修', color: 'light-blue' },
   [ServiceBillType.INSTALL]: { label: '安装', color: 'light-green' },
 }
+// 触发数据搜索
+const search = ref('')
 /**
  * 加载数据
  * @param options 参数
@@ -118,10 +182,8 @@ function loadItems(options: {
     field: sort.key,
     direction: sort.order === 'asc' ? 'ASC' : 'DESC',
   }))
-  ServiceBillApi.getByQueryParam(queryParam.value).then(inData => {
+  ServiceBillApi.getByQueryParam(queryParam.value).then((inData) => {
     data.value = inData
   })
 }
-
-
 </script>

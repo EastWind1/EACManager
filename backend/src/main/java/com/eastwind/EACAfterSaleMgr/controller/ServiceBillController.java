@@ -35,7 +35,7 @@ public class ServiceBillController {
      *
      * @return 服务单列表
      */
-    @PostMapping("query")
+    @PostMapping("/query")
     public PageResult<ServiceBillDTO> queryByParam(@RequestBody ServiceBillQueryParam queryParam) {
 
         Page<ServiceBillDTO> pageResult = serviceBillService.findByParam(queryParam);
@@ -65,7 +65,7 @@ public class ServiceBillController {
     /**
      * 通过文件创建
      */
-    @PostMapping("import")
+    @PostMapping("/import")
     public ServiceBillDTO importByFile(MultipartFile file) {
         return serviceBillService.generateByFile(file);
     }

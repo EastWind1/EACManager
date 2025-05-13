@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '@/views/Home.vue'
+import HomeView from '@/views/HomeView.vue'
 import BillList from '@/views/BillList.vue'
 import BillForm from '@/views/BillForm.vue'
 import LoginForm from '@/views/LoginForm.vue'
@@ -14,7 +14,7 @@ const router = createRouter({
     // 首页
     {
       path: '/',
-      component: Home,
+      component: HomeView,
       children: [
         // 基本信息
         {

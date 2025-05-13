@@ -30,7 +30,7 @@ public class UserController {
      * @param param 登录参数
      * @return token
      */
-    @PostMapping("token")
+    @PostMapping("/token")
     public String login(@RequestBody LoginParam param) {
         return userService.login(param.username, param.password);
     }

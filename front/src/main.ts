@@ -47,6 +47,10 @@ createApp(App)
           density: 'compact',
           controlVariant: 'stacked',
         },
+        VDateInput: {
+          variant: 'outlined',
+          density: 'compact',
+        },
       },
     }),
   )

@@ -30,9 +30,9 @@ export interface Attachment {
    */
   name: string
   /**
-   * 文件路径
+   * 文件相对路径
    */
-  path: string
+  relativePath: string
   /**
    * 文件类型
    */

@@ -8,7 +8,7 @@
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>
       <!-- 右侧新增按钮 -->
-      <v-btn v-if="route.path !== '/form'" color="primary" to="/form">
+      <v-btn v-if="route.path !== '/bill'" color="primary" to="/bill">
         <template v-slot:prepend>
           <v-icon :icon="mdiPlus"></v-icon>
         </template>

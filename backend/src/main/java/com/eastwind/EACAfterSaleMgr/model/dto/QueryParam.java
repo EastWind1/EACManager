@@ -38,5 +38,16 @@ public class QueryParam {
          * 排序方向
          */
         private String direction;
+
+        public void setDirection(String direction) {
+            if (direction == null) {
+                direction = "asc";
+            }
+            direction = direction.toLowerCase();
+            if (!"asc".equals(direction) && !"desc".equals(direction)) {
+                throw new RuntimeException("排序方向必须为 asc 或 desc");
+            }
+            this.direction = direction;
+        }
     }
 }

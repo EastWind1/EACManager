@@ -63,7 +63,7 @@
               <v-select
                 v-model="serviceBill.type"
                 :items="serviceBillTypes"
-                item-title="label"
+                item-title="title"
                 item-value="value"
                 label="单据类型"
               ></v-select>
@@ -245,11 +245,11 @@ const serviceBill = ref<ServiceBill>({
 const serviceBillTypes = [
   {
     value: ServiceBillType.INSTALL,
-    label: '安装单',
+    title: '安装单',
   },
   {
     value: ServiceBillType.FIX,
-    label: '维修单',
+    title: '维修单',
   },
 ]
 

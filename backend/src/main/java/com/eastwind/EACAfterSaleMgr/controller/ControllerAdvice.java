@@ -13,6 +13,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /**
@@ -57,9 +58,25 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
     }
 
     /**
+     * 处理参数类型错误
+     * 异常处理优先级高于 beforeBodyWrite
+     * Spring Security 中的异常位于 Filter, 无法被此处处理
+     *
+     * @param e 异常
+     * @return 结果
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result<Object> handleArgumentException(Exception e) {
+        log.error(e.getMessage(), e);
+        return Result.error("参数类型错误: " + e.getMessage());
+    }
+
+    /**
      * 处理业务层异常
      * 异常处理优先级高于 beforeBodyWrite
      * Spring Security 中的异常位于 Filter, 无法被此处处理
+     *
      * @param e 异常
      * @return 结果
      */
