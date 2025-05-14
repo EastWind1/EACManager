@@ -45,6 +45,29 @@ public class ServiceBillService {
     }
 
     /**
+     *
+     * 获取移动临时文件线程,
+     * 用于保存时处理临时文件
+     * @param dto 单据
+     * @return Runnable 列表
+     */
+    private List<Runnable> getMoveTempRunnable(ServiceBillDTO dto) {
+        List<Runnable> moveRunnable = new ArrayList<>();
+        if (dto.getAttachments() == null || dto.getAttachments().isEmpty()) {
+            return moveRunnable;
+        }
+        for (AttachmentDTO attachment : dto.getAttachments()) {
+            if (attachment.getRelativePath().startsWith(attachmentService.TEMP_DIR)) {
+                Path origin = Path.of(attachment.getRelativePath());
+                Path target = Path.of(dto.getNumber()).resolve(origin.getFileName());
+                attachment.setRelativePath(target.toString());
+                moveRunnable.add(() -> attachmentService.move(origin, target));
+            }
+        }
+        return moveRunnable;
+    }
+
+    /**
      * 创建单据
      *
      * @param serviceBillDTO 单据
@@ -62,24 +85,11 @@ public class ServiceBillService {
                 throw new RuntimeException("单据编号已存在");
             }
         }
-        // 若为导入单据，移动临时文件到单据附件目录
-        // 在保存之后另起线程执行
-        record Move(Path origin, Path target) {
-        }
-        List<Move> moveThread = new ArrayList<>();
-
-        for (AttachmentDTO attachment : serviceBillDTO.getAttachments()) {
-            Path origin = Path.of(attachment.getRelativePath());
-            Path target = Path.of(serviceBillDTO.getNumber()).resolve(origin.getFileName());
-            attachment.setRelativePath(target.toString());
-            moveThread.add(new Move(origin, target));
-        }
-
+        // 移动临时文件
+        List<Runnable> moves = getMoveTempRunnable(serviceBillDTO);
         ServiceBill bill = serviceBillRepository.save(serviceBillMapper.toServiceBill(serviceBillDTO));
-        for (Move move : moveThread) {
-            Thread.startVirtualThread(() -> {
-                attachmentService.move(move.origin, move.target);
-            });
+        for (Runnable move : moves) {
+            Thread.startVirtualThread(move);
         }
         return serviceBillMapper.toServiceBillDTO(bill);
     }
@@ -121,7 +131,13 @@ public class ServiceBillService {
             throw new RuntimeException("单据不存在");
         }
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
-        return serviceBillMapper.toServiceBillDTO(serviceBillRepository.save(bill));
+        // 移动临时文件
+        List<Runnable> moves = getMoveTempRunnable(serviceBillDTO);
+        ServiceBill savedBill = serviceBillRepository.save(serviceBillMapper.toServiceBill(serviceBillDTO));
+        for (Runnable move : moves) {
+            Thread.startVirtualThread(move);
+        }
+        return serviceBillMapper.toServiceBillDTO(savedBill);
     }
 
     /**

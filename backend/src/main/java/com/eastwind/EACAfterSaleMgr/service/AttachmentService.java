@@ -33,9 +33,14 @@ import java.util.stream.Stream;
 @Slf4j
 @Service
 public class AttachmentService implements InitializingBean {
-
+    /**
+     * 附件根目录
+     */
     @Value("${attachment.path}")
     private String ROOT_DIR;
+    /**
+     * 临时目录
+     */
     @Value("${attachment.temp}")
     public String TEMP_DIR;
     /**

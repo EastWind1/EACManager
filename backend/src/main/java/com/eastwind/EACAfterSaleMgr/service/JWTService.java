@@ -57,15 +57,20 @@ public class JWTService {
     /**
      * 验证 TOKEN
      */
-    public boolean verifyToken(String token) {
-        SignedJWT jwt = null;
+    public boolean verifyToken(String token, String subject) {
+        SignedJWT jwt;
+        JWTClaimsSet claimsSet;
         try {
             jwt = SignedJWT.parse(token);
+            claimsSet = jwt.getJWTClaimsSet();
         } catch (ParseException e) {
             throw new RuntimeException("解析 JWT 失败");
         }
         try {
-            return jwt.verify(verifier);
+            // 校验签名加密、过期时间、摘要
+            return jwt.verify(verifier)
+                    && claimsSet.getExpirationTime().after(new Date())
+                    && claimsSet.getSubject().equals(subject);
         } catch (JOSEException e) {
             throw new RuntimeException("验证 JWT 异常");
         }

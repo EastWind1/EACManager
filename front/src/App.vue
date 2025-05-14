@@ -21,7 +21,7 @@
 <script setup lang="ts">
 // 全局进度条、通知
 import { storeToRefs } from 'pinia'
-import { useGlobalStore } from '@/stores/global.ts'
+import { useUIStore } from '@/stores/UIStore.ts'
 
-const { loading, notify } = storeToRefs(useGlobalStore())
+const { loading, notify } = storeToRefs(useUIStore())
 </script>

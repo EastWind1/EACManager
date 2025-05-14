@@ -29,15 +29,6 @@
             <!-- 右侧按钮区域 -->
             <v-col justify-end>
               <v-row justify="end" class="ga-2">
-                <!-- 导入按钮 -->
-                <v-btn
-                  color="primary"
-                  @click="importFile"
-                  :loading="loading"
-                  :disabled="isEditState"
-                >
-                  导入
-                </v-btn>
                 <!-- 编辑按钮 -->
                 <v-btn
                   color="primary"
@@ -144,7 +135,7 @@
             <!-- 附件 -->
             <v-tabs-window-item value="attachment">
               <BillFormAttachDetail
-                v-model="serviceBill.attachments"
+                v-model="serviceBill"
                 :readonly="!isEditState"
               ></BillFormAttachDetail>
             </v-tabs-window-item>
@@ -213,12 +204,13 @@ import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/model/Ser
 import BillFormDetail from '@/views/BillFormDetail.vue'
 import * as date from 'date-fns'
 import { ServiceBillApi } from '@/api/Api.ts'
-import { useGlobalStore } from '@/stores/global.ts'
 import { storeToRefs } from 'pinia'
 import BillFormAttachDetail from '@/views/BillFormAttachDetail.vue'
 import { useRoute } from 'vue-router'
+import { useUIStore } from '@/stores/UIStore.ts'
+import { useRouterStore } from '@/stores/RouterStore.ts'
 
-const store = useGlobalStore()
+const store = useUIStore()
 const { loading } = storeToRefs(store)
 const { warning } = store
 const route = useRoute()
@@ -262,6 +254,7 @@ const stateMap = {
 }
 
 onMounted(() => {
+  // 链接查看
   if (route.params.id) {
     ServiceBillApi.getById(parseInt(route.params.id as string)).then((bill) => {
       if (bill) {
@@ -270,6 +263,23 @@ onMounted(() => {
         warning('未找到该单据')
       }
     })
+  } else {
+    const actionQuery = route.query.action
+    switch (actionQuery) {
+      // 新建
+      case 'create':
+        isEditState.value = true
+        break
+      // 导入
+      case 'import':
+        const {getData} = useRouterStore()
+        const data = getData() as ServiceBill
+        serviceBill.value = data
+        isEditState.value = true
+        break
+      default:
+        warning('不支持的操作: ' + actionQuery)
+    }
   }
 })
 
@@ -283,37 +293,12 @@ const phoneRule = (v: string) => /^\d{10,11}$/.test(v) || '请输入有效的电
 // 当前 Tab 页
 const tab = ref('details')
 
-// 导入
-function importFile() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.pdf,.jpg,.jpeg,.pdf'
-  input.onchange = () => {
-    const file = input.files?.[0]
-    if (file) {
-      if (file.size > 1024 * 1024 * 50) {
-        warning('文件大小不能超过50M')
-        return
-      }
-      ServiceBillApi.import(file)
-        .then((bill) => {
-          Object.assign(serviceBill.value, bill)
-          isEditState.value = true
-        })
-        .finally(() => {
-          input.remove()
-        })
-    }
-  }
-  input.click()
-}
-
 // 提交表单
 function save() {
   if (valid.value) {
-    ServiceBillApi.save(serviceBill.value).then((bill) => {
+    ServiceBillApi.create(serviceBill.value).then((bill) => {
       isEditState.value = false
-      Object.assign(serviceBill.value, bill)
+      serviceBill.value = bill
     })
   }
 }

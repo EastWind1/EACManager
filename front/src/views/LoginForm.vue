@@ -24,12 +24,14 @@
 import { ref } from 'vue'
 import { mdiAccount, mdiLock, mdiEye, mdiEyeOff } from '@mdi/js'
 import { UserApi } from '@/api/Api.ts'
-import { useGlobalStore } from '@/stores/global.ts'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { useTokenStore } from '@/stores/TokenStore.ts'
+import { useUIStore } from '@/stores/UIStore.ts'
 
-const store = useGlobalStore()
-const { setToken, success } = store
+const {setToken} = useTokenStore()
+const store = useUIStore()
+const { success } = store
 const {loading} = storeToRefs(store)
 const router = useRouter()
 

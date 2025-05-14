@@ -7,56 +7,45 @@
       <h1 class="ml-3 mr-3">服务单管理</h1>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>
-      <!-- 右侧新增按钮 -->
-      <v-btn v-if="route.path !== '/bill'" color="primary" to="/bill">
-        <template v-slot:prepend>
-          <v-icon :icon="mdiPlus"></v-icon>
-        </template>
-        <span>新单据</span>
-      </v-btn>
       <!-- 登录用户图标 -->
-      <v-avatar>
-        <v-icon :icon="mdiAccount"></v-icon>
-      </v-avatar>
+      <v-menu open-on-hover>
+        <template #activator="{ props }">
+          <v-avatar v-bind="props">
+            <v-icon :icon="mdiAccount"></v-icon>
+          </v-avatar>
+        </template>
+
+        <v-list>
+          <v-list-item @click="logout">
+            <v-list-item-title>退出登录</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-app-bar>
     <v-main>
       <!-- 左侧导航栏 -->
       <v-navigation-drawer v-model="drawer">
         <v-list density="compact" nav>
           <!-- 仪表盘 -->
-          <v-list-item to="/">
-            <template v-slot:prepend>
+          <v-list-item to="/home" exact>
+            <template #prepend>
               <v-icon :icon="mdiHome"></v-icon>
             </template>
             仪表盘
           </v-list-item>
           <!-- 基本信息维护 -->
           <v-list-item to="/basic">
-            <template v-slot:prepend>
+            <template #prepend>
               <v-icon :icon="mdiListBox"></v-icon>
             </template>
             基本信息
           </v-list-item>
           <!-- 单据列表 -->
           <v-list-item to="/list">
-            <template v-slot:prepend>
+            <template #prepend>
               <v-icon :icon="mdiMenu"></v-icon>
             </template>
             单据列表
-          </v-list-item>
-          <!-- 表单  TODO: 测试用 -->
-          <v-list-item to="/bill">
-            <template v-slot:prepend>
-              <v-icon :icon="mdiFormatFloatLeft"></v-icon>
-            </template>
-            表单
-          </v-list-item>
-          <!-- 文件处理  TODO: 测试用 -->
-          <v-list-item to="/file">
-            <template v-slot:prepend>
-              <v-icon :icon="mdiFormatFloatLeft"></v-icon>
-            </template>
-            文件处理
           </v-list-item>
         </v-list>
       </v-navigation-drawer>
@@ -68,15 +57,23 @@
 </template>
 
 <script setup lang="ts">
-import { RouterView, useRoute } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import { ref } from 'vue'
-import { mdiHome, mdiPlus, mdiListBox, mdiMenu, mdiFormatFloatLeft, mdiAccount } from '@mdi/js'
+import { mdiHome, mdiListBox, mdiMenu, mdiFormatFloatLeft, mdiAccount } from '@mdi/js'
+import { useTokenStore } from '@/stores/TokenStore.ts'
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
 // 当前路由
-const route = useRoute()
+const router = useRouter()
+// 移除 token
+const {removeToken} = useTokenStore()
 
+// 退出登录
+function logout() {
+  removeToken()
+  router.push('/login')
+}
 </script>
 
 <style scoped></style>

@@ -61,7 +61,16 @@ public class ServiceBillController {
     public ServiceBillDTO create(@RequestBody ServiceBillDTO serviceBillDTO) {
         return serviceBillService.create(serviceBillDTO);
     }
-
+    /**
+     * 保存服务单
+     *
+     * @param serviceBillDTO 服务单
+     * @return 保存后的服务单
+     */
+    @PutMapping
+    public ServiceBillDTO save(@RequestBody ServiceBillDTO serviceBillDTO) {
+        return serviceBillService.update(serviceBillDTO);
+    }
     /**
      * 通过文件创建
      */

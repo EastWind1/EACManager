@@ -88,7 +88,7 @@ export interface ServiceBill extends AuditEntity {
    */
   details: ServiceBillDetail[]
   /**
-   *
+   * 附件
    */
   attachments: Attachment[]
   /**

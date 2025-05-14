@@ -1,11 +1,11 @@
 import axios, { type AxiosInstance } from 'axios'
-import { useGlobalStore } from '@/stores/global.ts'
 import pinia from '@/stores'
 import router from '@/router/router.ts'
+import { useUIStore } from '@/stores/UIStore.ts'
+import { useTokenStore } from '@/stores/TokenStore.ts'
 
 // 实例化缓存
 let existInstance: AxiosInstance | undefined = undefined
-
 
 /**
  * 获取 axios 实例
@@ -14,17 +14,16 @@ function useAxios(): AxiosInstance {
   if (existInstance) {
     return existInstance
   }
-  // 全局加载框、通知框
-  const { showLoading, hideLoading, warning, getToken } = useGlobalStore(pinia)
-
+  const { showLoading, hideLoading, warning } = useUIStore(pinia)
+  const { getToken } = useTokenStore(pinia)
   const instance = axios.create({
     // 从 .env 文件读取后端地址
-    baseURL: `${import.meta.env.VITE_BACKGROUND_URL}`
+    baseURL: `${import.meta.env.VITE_BACKGROUND_URL}`,
   })
   // 请求前拦截器
   instance.interceptors.request.use(
     // 显示进度条
-    config => {
+    (config) => {
       // 设置 token
       const token = getToken()
       if (token) {
@@ -33,21 +32,21 @@ function useAxios(): AxiosInstance {
       // 设置加载条
       showLoading()
       return config
-    }
+    },
   )
   // 响应后拦截器
   instance.interceptors.response.use(
-    res => {
+    (res) => {
       // 隐藏进度条
       hideLoading()
       // 直接获取 data
       return res.data
     },
     // 全局异常处理
-    err => {
+    (err) => {
       hideLoading()
       if (err.code === 'ERR_NETWORK') {
-        warning('网络异常');
+        warning('网络异常')
       } else {
         switch (err.status) {
           case 401:
@@ -68,10 +67,11 @@ function useAxios(): AxiosInstance {
         }
       }
       return Promise.reject(err.response?.data)
-    }
+    },
   )
 
   existInstance = instance
   return instance
 }
+
 export { useAxios }

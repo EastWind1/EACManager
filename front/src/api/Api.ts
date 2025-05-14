@@ -11,10 +11,7 @@ export const ServiceBillApi = {
    * @param queryParam 查询参数
    */
   getByQueryParam: (queryParam: ServiceBillQueryParam) =>
-    axios.post('serviceBill/query', queryParam).then(
-      (res) =>
-        res.data as PageResult<ServiceBill>
-    ),
+    axios.post('serviceBill/query', queryParam).then((res) => res.data as PageResult<ServiceBill>),
   /**
    * 根据 id 获取
    * @param id 订单 ID
@@ -30,11 +27,21 @@ export const ServiceBillApi = {
       })
       .then((res) => res.data as ServiceBill),
   /**
+   * 新建
+   * @param serviceBill 订单
+   */
+  create: (serviceBill: ServiceBill) =>
+    axios.post('serviceBill', serviceBill).then((res) => res.data as ServiceBill),
+  /**
+   * 删除
+   * @param id 订单 ID
+   */
+  /**
    * 保存
    * @param serviceBill 订单
    */
   save: (serviceBill: ServiceBill) =>
-    axios.post('serviceBill', serviceBill).then((res) => res.data as ServiceBill),
+    axios.put('serviceBill', serviceBill).then((res) => res.data as ServiceBill),
   /**
    * 删除
    * @param id 订单 ID
@@ -62,10 +69,21 @@ export const FileApi = {
   /**
    * 上传文件
    * @param file 文件
+   * @param path 路径，必须为相对路径
    */
-  upload: (file: File) =>
+  upload: (file: File, path: string) =>
     axios
-      .postForm('attachment', {
+      .postForm(`attachment?path=${path}`, {
+        file,
+      })
+      .then((res) => res.data as Attachment),
+  /**
+   * 上传临时文件
+   * @param file 文件
+   */
+  uploadTemp: (file: File) =>
+    axios
+      .postForm(`attachment/temp`, {
         file,
       })
       .then((res) => res.data as Attachment),

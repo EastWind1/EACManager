@@ -3,8 +3,7 @@ import HomeView from '@/views/HomeView.vue'
 import BillList from '@/views/BillList.vue'
 import BillForm from '@/views/BillForm.vue'
 import LoginForm from '@/views/LoginForm.vue'
-import { useGlobalStore } from '@/stores/global.ts'
-import FileTest from '@/views/FileTest.vue'
+import { useTokenStore } from '@/stores/TokenStore.ts'
 
 
 
@@ -14,6 +13,10 @@ const router = createRouter({
     // 首页
     {
       path: '/',
+      redirect: '/home',
+    },
+    {
+      path: '/home',
       component: HomeView,
       children: [
         // 基本信息
@@ -33,12 +36,7 @@ const router = createRouter({
         {
           path: '/bill/:id',
           component: BillForm,
-        },
-        // 文件 TODO：调试用
-        {
-          path: '/file',
-          component: FileTest,
-        },
+        }
       ],
     },
     {
@@ -50,7 +48,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   if (to.path !== '/login') {
-    const {getToken} = useGlobalStore()
+    const {getToken} = useTokenStore()
     if (!getToken()) {
       return '/login'
     }

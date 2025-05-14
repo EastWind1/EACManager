@@ -1,64 +1,66 @@
 <!-- 订单明细 -->
 <template>
-  <!-- 条数大于 10 时才显示分页 -->
-  <v-data-table
-    :headers="detailHeaders"
-    :items="serviceBill!.details"
-    item-key="id"
-    :hide-default-footer="serviceBill!.details.length <= 10"
-  >
-    <!-- 最后一列显示操作按钮 -->
-    <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
-    <template #[`item.actions`]="{ item }" v-if="!readonly">
-      <div class="d-flex ga-3">
-        <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
-        <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
-      </div>
-    </template>
-
-    <!-- 最后一行添加加号按钮 -->
-    <template #[`body.append`] v-if="!readonly">
-      <tr>
-        <td :colspan="detailHeaders.length" class="align-center">
-          <v-btn block @click="addDetail" variant="plain">
-            <v-icon :icon="mdiPlus"></v-icon>
-          </v-btn>
-        </td>
-      </tr>
-    </template>
-  </v-data-table>
-  <!-- 模态框，用于新增或编辑时更改数据 -->
-  <v-dialog v-model="showDialog" width="50rem">
-    <v-card title="Dialog">
-      <template #text>
-        <v-row>
-          <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-text-field
-              v-model="dialogData.device"
-              label="设备类型"
-              :rules="[requiredRule]"
-            ></v-text-field>
-          </v-col>
-          <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-number-input v-model="dialogData.unitPrice" label="单价"></v-number-input>
-          </v-col>
-          <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-number-input v-model="dialogData.quantity" label="数量"></v-number-input>
-          </v-col>
-
-          <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-            <v-text-field v-model="dialogData.remark" label="备注"></v-text-field>
-          </v-col>
-        </v-row>
+  <v-container>
+    <!-- 条数大于 10 时才显示分页 -->
+    <v-data-table
+      :headers="detailHeaders"
+      :items="serviceBill!.details"
+      item-key="id"
+      :hide-default-footer="serviceBill!.details.length <= 10"
+    >
+      <!-- 最后一列显示操作按钮 -->
+      <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
+      <template #[`item.actions`]="{ item }" v-if="!readonly">
+        <div class="d-flex ga-3">
+          <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
+          <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
+        </div>
       </template>
-      <template #actions>
-        <span
-          >小计: <span class="text-red">￥ {{ dialogData.subtotal }}</span></span
-        >
-        <v-btn text="保存" @click="saveDialog"></v-btn>
+
+      <!-- 最后一行添加加号按钮 -->
+      <template #[`body.append`] v-if="!readonly">
+        <tr>
+          <td :colspan="detailHeaders.length" class="align-center">
+            <v-btn block @click="addDetail" variant="plain">
+              <v-icon :icon="mdiPlus"></v-icon>
+            </v-btn>
+          </td>
+        </tr>
       </template>
-    </v-card>
-  </v-dialog>
+    </v-data-table>
+    <!-- 模态框，用于新增或编辑时更改数据 -->
+    <v-dialog v-model="showDialog" width="50rem">
+      <v-card title="Dialog">
+        <template #text>
+          <v-row>
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-text-field
+                v-model="dialogData.device"
+                label="设备类型"
+                :rules="[requiredRule]"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-number-input v-model="dialogData.unitPrice" label="单价"></v-number-input>
+            </v-col>
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-number-input v-model="dialogData.quantity" label="数量"></v-number-input>
+            </v-col>
+
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-text-field v-model="dialogData.remark" label="备注"></v-text-field>
+            </v-col>
+          </v-row>
+        </template>
+        <template #actions>
+          <span
+            >小计: <span class="text-red">￥ {{ dialogData.subtotal }}</span></span
+          >
+          <v-btn text="保存" @click="saveDialog"></v-btn>
+        </template>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 
 <script setup lang="ts">

@@ -30,6 +30,12 @@ createApp(App)
       },
       // UI 默认样式
       defaults: {
+        VContainer: {
+          fluid: true,
+        },
+        VRow: {
+          dense: true
+        },
         VTextField: {
           variant: 'outlined',
           density: 'compact',

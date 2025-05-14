@@ -1,34 +1,13 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-export const useGlobalStore = defineStore('global', () => {
-  // 用户 token
-  const token = ref(localStorage.getItem('token'))
+/**
+ * 全局 UI
+ * 包含加载条、通知
+ */
+export const useUIStore = defineStore('uiStore', () => {
   // 加载条是否显示
   const loading = ref(false)
-  // 通知状态
-  const notify = ref({
-    show: false,
-    text: '',
-    color: 'info',
-    timeout: 2000,
-  })
-
-  /**
-   * 设置用户 token
-   * @param value token
-   */
-  function setToken(value: string) {
-    token.value = value
-    localStorage.setItem('token', value)
-  }
-
-  /**
-   * 获取 token
-   */
-  function getToken() {
-    return token.value
-  }
 
   /**
    * 显示加载条
@@ -43,6 +22,14 @@ export const useGlobalStore = defineStore('global', () => {
   function hideLoading() {
     loading.value = false
   }
+
+  // 通知状态
+  const notify = ref({
+    show: false,
+    text: '',
+    color: 'info',
+    timeout: 2000,
+  })
 
   /**
    * 显示通知
@@ -90,10 +77,9 @@ export const useGlobalStore = defineStore('global', () => {
     showLoading,
     hideLoading,
     notify,
+    showNotify,
     success,
     info,
     warning,
-    setToken,
-    getToken,
   }
 })

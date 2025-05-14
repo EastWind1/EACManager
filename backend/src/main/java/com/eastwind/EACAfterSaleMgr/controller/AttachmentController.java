@@ -23,7 +23,7 @@ public class AttachmentController {
         if (path == null) {
             throw new RuntimeException("路径为空");
         }
-        // path拿到的路径以斜杠开到，path 会认为是绝对路径
+        // path拿到的路径以斜杠开始，path 会认为是绝对路径
         if (path.startsWith("/")) {
             int index = 0;
             while (index < path.length() && path.charAt(index) == '/') {
@@ -43,5 +43,12 @@ public class AttachmentController {
             throw new RuntimeException("路径为空");
         }
         return attachmentService.upload(file, Path.of(path));
+    }
+    @PostMapping("/temp")
+    public AttachmentDTO upload(@RequestParam MultipartFile file) {
+        if (file == null) {
+            throw new RuntimeException("文件为空");
+        }
+        return attachmentService.uploadTemp(file);
     }
 }

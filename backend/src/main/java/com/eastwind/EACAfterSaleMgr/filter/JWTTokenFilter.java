@@ -38,26 +38,20 @@ public class JWTTokenFilter extends OncePerRequestFilter {
         // 获取 token
         String prefix = "Bearer ";
         String auth = request.getHeader("Authorization");
-        if (auth == null || !auth.startsWith("Bearer ")) {
+        if (auth == null || !auth.startsWith(prefix)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = auth.substring(prefix.length());
-        if (jwtUtil.verifyToken(token)) {
-
-            String userName = null;
+        if (jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.ORIGIN))) {
+            String userName;
             try {
                 SignedJWT jwt = SignedJWT.parse(token);
-                // 验证请求来源，防止盗用
-                String origin = jwt.getJWTClaimsSet().getSubject();
-                if (request.getHeader(HttpHeaders.ORIGIN).equals(origin)) {
-                    userName = jwt.getJWTClaimsSet().getAudience().getFirst();
-                }
+                userName = jwt.getJWTClaimsSet().getAudience().getFirst();
             } catch (ParseException e) {
                 throw new RuntimeException("解析 token 失败", e);
             }
-
             if (userName != null) {
                 UserDetails user = userService.loadUserByUsername(userName);
                 Authentication exist = SecurityContextHolder.getContext().getAuthentication();
