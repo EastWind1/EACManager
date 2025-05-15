@@ -4,7 +4,7 @@ import { ref } from 'vue'
 /**
  * 用户 token 存储
  */
-export const useTokenStore = defineStore('tokenStore', () => {
+export const useUserStore = defineStore('userStore', () => {
   // 用户 token
   const token = ref(localStorage.getItem('token'))
 

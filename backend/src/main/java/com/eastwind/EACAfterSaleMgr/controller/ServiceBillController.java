@@ -1,6 +1,7 @@
 package com.eastwind.EACAfterSaleMgr.controller;
 
 import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
+import com.eastwind.EACAfterSaleMgr.model.dto.ActionsResult;
 import com.eastwind.EACAfterSaleMgr.model.dto.PageResult;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillQueryParam;
@@ -39,7 +40,7 @@ public class ServiceBillController {
     public PageResult<ServiceBillDTO> queryByParam(@RequestBody ServiceBillQueryParam queryParam) {
 
         Page<ServiceBillDTO> pageResult = serviceBillService.findByParam(queryParam);
-        return new PageResult<>(pageResult.getContent(), pageResult.getTotalElements(), pageResult.getTotalPages(),  pageResult.getSize(), pageResult.getNumber());
+        return PageResult.fromPage(pageResult);
 
     }
 
@@ -78,5 +79,32 @@ public class ServiceBillController {
     public ServiceBillDTO importByFile(MultipartFile file) {
         return serviceBillService.generateByFile(file);
     }
-
+    /**
+     * 删除服务单
+     */
+    @DeleteMapping
+    public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
+        return serviceBillService.delete(ids);
+    }
+    /**
+     * 处理服务单
+     */
+    @PutMapping("/process")
+    public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
+        return serviceBillService.process(ids);
+    }
+    /**
+     * 处理完成服务单
+     */
+    @PutMapping("/processed")
+    public ActionsResult<Integer, Void> processed(@RequestBody List<Integer> ids) {
+        return serviceBillService.processed(ids);
+    }
+    /**
+     * 完成服务单
+     */
+    @PutMapping("/finish")
+    public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
+        return serviceBillService.finish(ids);
+    }
 }

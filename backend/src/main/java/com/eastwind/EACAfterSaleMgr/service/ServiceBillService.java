@@ -2,14 +2,17 @@ package com.eastwind.EACAfterSaleMgr.service;
 
 import com.benjaminwan.ocrlibrary.OcrResult;
 import com.eastwind.EACAfterSaleMgr.model.common.AttachmentType;
+import com.eastwind.EACAfterSaleMgr.model.common.ServiceBillState;
+import com.eastwind.EACAfterSaleMgr.model.dto.ActionsResult;
 import com.eastwind.EACAfterSaleMgr.model.dto.AttachmentDTO;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillDTO;
 import com.eastwind.EACAfterSaleMgr.model.dto.ServiceBillQueryParam;
 import com.eastwind.EACAfterSaleMgr.model.mapper.ServiceBillMapper;
 import com.eastwind.EACAfterSaleMgr.model.entity.ServiceBill;
 import com.eastwind.EACAfterSaleMgr.repository.ServiceBillRepository;
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
@@ -25,29 +29,31 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 服务单服务
  */
+@Slf4j
 @Service
 public class ServiceBillService {
     private final ServiceBillRepository serviceBillRepository;
     private final ServiceBillMapper serviceBillMapper;
     private final OcrService ocrService;
     private final AttachmentService attachmentService;
+    private final TransactionTemplate transactionTemplate;
 
-    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, OcrService ocrService, AttachmentService attachmentService) {
+    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, OcrService ocrService, AttachmentService attachmentService, ResourcePatternResolver resourcePatternResolver, TransactionTemplate transactionTemplate) {
         this.serviceBillRepository = serviceBillRepository;
         this.serviceBillMapper = serviceBillMapper;
         this.ocrService = ocrService;
         this.attachmentService = attachmentService;
+        this.transactionTemplate = transactionTemplate;
     }
 
     /**
-     *
      * 获取移动临时文件线程,
      * 用于保存时处理临时文件
+     *
      * @param dto 单据
      * @return Runnable 列表
      */
@@ -205,5 +211,94 @@ public class ServiceBillService {
         Pageable pageable = PageRequest.of(pageIndex, pageSize, Sort.by(orders));
         Page<ServiceBill> pageResult = serviceBillRepository.findAll(specification, pageable);
         return pageResult.map(serviceBillMapper::toServiceBillDTO);
+    }
+
+    /**
+     * 批量删除单据
+     *
+     * @param ids 单据 ID 列表
+     * @return 批量操作结果
+     */
+    public ActionsResult<Integer, Void> delete(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new RuntimeException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+            if (bill == null) {
+                throw new RuntimeException("单据不存在");
+            }
+            if (bill.getState() != ServiceBillState.CREATED) {
+                throw new RuntimeException("非创建状态的单据不能删除");
+            }
+            transactionTemplate.executeWithoutResult(status -> serviceBillRepository.deleteById(id));
+            return null;
+        });
+    }
+
+    /**
+     * 批量更改为处理中
+     *
+     * @param ids 单据 ID 列表
+     * @return 批量操作结果
+     */
+    public ActionsResult<Integer, Void> process(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new RuntimeException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+            if (bill == null) {
+                throw new RuntimeException("单据不存在");
+            }
+            if (bill.getState() != ServiceBillState.CREATED) {
+                throw new RuntimeException("非创建状态的单据不能处理");
+            }
+            bill.setState(ServiceBillState.PROCESSING);
+            transactionTemplate.executeWithoutResult(status -> serviceBillRepository.save(bill));
+            return null;
+        });
+    }
+
+    /**
+     * 批量更改为处理完成
+     */
+    public ActionsResult<Integer, Void> processed(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new RuntimeException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+            if (bill == null) {
+                throw new RuntimeException("单据不存在");
+            }
+            if (bill.getState() != ServiceBillState.PROCESSING) {
+                throw new RuntimeException("非处理中状态的单据不能处理完成");
+            }
+            bill.setState(ServiceBillState.PROCESSED);
+            bill.setProcessedDate(LocalDate.now());
+            transactionTemplate.executeWithoutResult(status -> serviceBillRepository.save(bill));
+            return null;
+        });
+    }
+    /**
+     * 批量更改为完成
+     */
+    public ActionsResult<Integer, Void> finish(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new RuntimeException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+            if (bill == null) {
+                throw new RuntimeException("单据不存在");
+            }
+            if (bill.getState() != ServiceBillState.PROCESSING) {
+                throw new RuntimeException("非处理完成状态的单据不能完成");
+            }
+            bill.setState(ServiceBillState.FINISHED);
+            transactionTemplate.executeWithoutResult(status -> serviceBillRepository.save(bill));
+            return null;
+        });
     }
 }

@@ -118,7 +118,7 @@ public class AttachmentService implements InitializingBean {
         if (path == null) {
             throw new RuntimeException("路径不能为空");
         }
-        if (file.isEmpty()) {
+        if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("禁止上传空文件");
         }
         if (file.getOriginalFilename() == null) {

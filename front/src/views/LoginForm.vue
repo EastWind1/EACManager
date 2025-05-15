@@ -23,13 +23,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { mdiAccount, mdiLock, mdiEye, mdiEyeOff } from '@mdi/js'
-import { UserApi } from '@/api/Api.ts'
+import UserApi from '@/api/UserApi.ts'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useTokenStore } from '@/stores/TokenStore.ts'
+import { useUserStore } from '@/stores/UserStore.ts'
 import { useUIStore } from '@/stores/UIStore.ts'
 
-const {setToken} = useTokenStore()
+const {setToken} = useUserStore()
 const store = useUIStore()
 const { success } = store
 const {loading} = storeToRefs(store)

@@ -53,12 +53,18 @@ public class JWTTokenFilter extends OncePerRequestFilter {
                 throw new RuntimeException("解析 token 失败", e);
             }
             if (userName != null) {
-                UserDetails user = userService.loadUserByUsername(userName);
                 Authentication exist = SecurityContextHolder.getContext().getAuthentication();
-                if (exist == null) {
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, user.getPassword(), user.getAuthorities());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (exist == null || !exist.isAuthenticated() ||
+                        !(exist.getPrincipal() instanceof UserDetails userDetails &&
+                        userDetails.getUsername().equals(userName))) {
+                    UserDetails user = userService.loadUserByUsername(userName);
+                    if (user.isEnabled()) {
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                user, user.getPassword(), user.getAuthorities()
+                        );
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
                 }
             }
         }

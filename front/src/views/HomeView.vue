@@ -59,15 +59,15 @@
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
 import { ref } from 'vue'
-import { mdiHome, mdiListBox, mdiMenu, mdiFormatFloatLeft, mdiAccount } from '@mdi/js'
-import { useTokenStore } from '@/stores/TokenStore.ts'
+import { mdiHome, mdiListBox, mdiMenu, mdiAccount } from '@mdi/js'
+import { useUserStore } from '@/stores/UserStore.ts'
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
 // 当前路由
 const router = useRouter()
 // 移除 token
-const {removeToken} = useTokenStore()
+const {removeToken} = useUserStore()
 
 // 退出登录
 function logout() {

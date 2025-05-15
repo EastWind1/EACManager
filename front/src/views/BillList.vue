@@ -70,7 +70,6 @@
       :items-length="data.totalCount"
       :items-per-page="data.pageSize"
       :sort-by="defaultSortBy"
-      :loading="loading"
       @update:options="loadItems"
       class="mt-2 flex-grow-1"
       :search="search"
@@ -106,8 +105,7 @@ import {
   ServiceBillState,
   ServiceBillType,
 } from '@/model/ServiceBill.ts'
-import { ServiceBillApi } from '@/api/Api.ts'
-import { storeToRefs } from 'pinia'
+import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { PageResult } from '@/model/PageResult.ts'
 import { VDateInput } from 'vuetify/labs/components'
 import { useRouter } from 'vue-router'
@@ -149,8 +147,6 @@ const store = useUIStore()
 const {warning} = store
 const router = useRouter()
 const {setData} = useRouterStore()
-// 加载状态
-const { loading } = storeToRefs(store)
 // 表头
 const headers = [
   { title: '单号', key: 'number', sortable: false },
@@ -229,7 +225,14 @@ function importFile() {
   input.type = 'file'
   input.accept = '.pdf,.jpg,.jpeg'
   input.onchange = () => {
-    const file = input.files?.[0]
+    if (!input.files || !input.files.length) {
+      return
+    }
+    if (input.files.length > 1) {
+      warning('只能选择一个文件')
+      return
+    }
+    const file = input.files[0]
     if (file) {
       if (file.size > 1024 * 1024 * 50) {
         warning('文件大小不能超过50M')

@@ -1,5 +1,7 @@
 package com.eastwind.EACAfterSaleMgr.model.dto;
 
+import org.springframework.data.domain.Page;
+
 import java.util.List;
 
 /**
@@ -18,4 +20,13 @@ public record PageResult<T>(
         Integer pageSize,
         Integer pageIndex
 ) {
+    public static <T> PageResult<T> fromPage(Page<T> page) {
+        return new PageResult<>(
+                page.getContent(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.getSize(),
+                page.getNumber()
+        );
+    }
 }

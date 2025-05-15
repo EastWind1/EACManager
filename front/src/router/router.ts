@@ -3,7 +3,7 @@ import HomeView from '@/views/HomeView.vue'
 import BillList from '@/views/BillList.vue'
 import BillForm from '@/views/BillForm.vue'
 import LoginForm from '@/views/LoginForm.vue'
-import { useTokenStore } from '@/stores/TokenStore.ts'
+import { useUserStore } from '@/stores/UserStore.ts'
 
 
 
@@ -48,7 +48,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   if (to.path !== '/login') {
-    const {getToken} = useTokenStore()
+    const {getToken} = useUserStore()
     if (!getToken()) {
       return '/login'
     }

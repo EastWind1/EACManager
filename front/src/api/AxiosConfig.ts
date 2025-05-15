@@ -1,8 +1,8 @@
 import axios, { type AxiosInstance } from 'axios'
-import pinia from '@/stores'
 import router from '@/router/router.ts'
 import { useUIStore } from '@/stores/UIStore.ts'
-import { useTokenStore } from '@/stores/TokenStore.ts'
+import { useUserStore } from '@/stores/UserStore.ts'
+import pinia from '@/stores'
 
 // 实例化缓存
 let existInstance: AxiosInstance | undefined = undefined
@@ -15,7 +15,7 @@ function useAxios(): AxiosInstance {
     return existInstance
   }
   const { showLoading, hideLoading, warning } = useUIStore(pinia)
-  const { getToken } = useTokenStore(pinia)
+  const { getToken } = useUserStore(pinia)
   const instance = axios.create({
     // 从 .env 文件读取后端地址
     baseURL: `${import.meta.env.VITE_BACKGROUND_URL}`,

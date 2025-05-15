@@ -203,7 +203,7 @@ import { computed, onMounted, ref } from 'vue'
 import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/model/ServiceBill.ts'
 import BillFormDetail from '@/views/BillFormDetail.vue'
 import * as date from 'date-fns'
-import { ServiceBillApi } from '@/api/Api.ts'
+import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import { storeToRefs } from 'pinia'
 import BillFormAttachDetail from '@/views/BillFormAttachDetail.vue'
 import { useRoute } from 'vue-router'
@@ -272,7 +272,7 @@ onMounted(() => {
         break
       // 导入
       case 'import':
-        const {getData} = useRouterStore()
+        const { getData } = useRouterStore()
         const data = getData() as ServiceBill
         serviceBill.value = data
         isEditState.value = true

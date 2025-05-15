@@ -1,7 +1,7 @@
 import { createPinia } from 'pinia'
 
 /**
- * 单独创建以供全局调用
+ * 导出以供 composable 方法使用，保证实例唯一
  */
 const pinia = createPinia()
 export default pinia
