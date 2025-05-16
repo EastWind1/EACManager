@@ -7,7 +7,7 @@ import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
 import { zhHans } from 'vuetify/locale'
 import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
-import pinia from '@/stores'
+import pinia from '@/store'
 
 createApp(App)
   // 状态管理

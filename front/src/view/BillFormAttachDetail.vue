@@ -59,7 +59,8 @@ import { mdiFile, mdiFileExcel, mdiFileImage, mdiFilePdfBox, mdiFileWord, mdiPlu
 import { ref } from 'vue'
 import AttachmentApi from '@/api/AttachmentApi.ts'
 import type { ServiceBill } from '@/model/ServiceBill.ts'
-import { useUIStore } from '@/stores/UIStore.ts'
+import { useUIStore } from '@/store/UIStore.ts'
+import { useFileSelector } from '@/composable/FileSelector.ts'
 
 const bill = defineModel<ServiceBill>()
 const { warning } = useUIStore()
@@ -79,7 +80,7 @@ const previewInfo = ref<{
   attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER },
   objectUrl: '',
 })
-
+// 图标映射
 const typeIcons = {
   [AttachmentType.IMAGE]: mdiFileImage,
   [AttachmentType.PDF]: mdiFilePdfBox,
@@ -88,22 +89,27 @@ const typeIcons = {
   [AttachmentType.OTHER]: mdiFile,
 }
 
-function download(attach: Attachment) {
+/**
+ * 下载附件
+ */
+async function download(attach: Attachment) {
   if (attach == null) {
     warning('文件为空')
     return
   }
-  AttachmentApi.download(attach.relativePath).then((data) => {
-    const url = URL.createObjectURL(data)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = attach.name
-    a.click()
-    a.remove()
-  })
+  const data = await AttachmentApi.download(attach.relativePath)
+  const url = URL.createObjectURL(data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = attach.name
+  a.click()
+  a.remove()
 }
 
-function preview(attach: Attachment) {
+/**
+ * 预览附件
+ */
+async function preview(attach: Attachment) {
   if (attach == null) {
     warning('文件为空')
     return
@@ -112,40 +118,26 @@ function preview(attach: Attachment) {
     warning('暂不支持预览该文件')
     return
   }
-  AttachmentApi.download(attach.relativePath).then((data) => {
-    const url = URL.createObjectURL(data)
-    previewInfo.value.attachment = attach
-    previewInfo.value.objectUrl = url
-    previewDialog.value = true
-  })
+  const data = await AttachmentApi.download(attach.relativePath)
+
+  const url = URL.createObjectURL(data)
+  previewInfo.value.attachment = attach
+  previewInfo.value.objectUrl = url
+  previewDialog.value = true
 }
 
-function upload() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.pdf,.jpg,.jpeg,.pdf'
-  input.onchange = () => {
-    if (!input.files || !input.files.length) {
-      return
-    }
-    if (input.files.length > 1) {
-      warning('只能选择一个文件')
-      return
-    }
-    const file = input.files[0]
-    if (file) {
-      if (file.size > 1024 * 1024 * 50) {
-        warning('文件大小不能超过50M')
-        return
-      }
-      AttachmentApi.uploadTemp(file).then((attach) => {
-        bill.value?.attachments.push(attach)
-      })
-    }
-  }
-  input.click()
+/**
+ * 上传附件
+ */
+async function upload() {
+  const fileList = await useFileSelector('.pdf,.jpg,.jpeg', false)
+  const attach = await AttachmentApi.uploadTemp(fileList[0])
+  bill.value?.attachments.push(attach)
 }
 
+/**
+ * 删除附件
+ */
 function deleteAttach(attach: Attachment) {
   bill.value?.attachments.splice(
     bill.value.attachments.findIndex((i) => i === attach),

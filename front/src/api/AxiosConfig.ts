@@ -1,8 +1,8 @@
 import axios, { type AxiosInstance } from 'axios'
 import router from '@/router/router.ts'
-import { useUIStore } from '@/stores/UIStore.ts'
-import { useUserStore } from '@/stores/UserStore.ts'
-import pinia from '@/stores'
+import { useUIStore } from '@/store/UIStore.ts'
+import { useUserStore } from '@/store/UserStore.ts'
+import pinia from '../store'
 
 // 实例化缓存
 let existInstance: AxiosInstance | undefined = undefined

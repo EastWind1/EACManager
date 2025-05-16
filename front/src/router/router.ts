@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
-import BillList from '@/views/BillList.vue'
-import BillForm from '@/views/BillForm.vue'
-import LoginForm from '@/views/LoginForm.vue'
-import { useUserStore } from '@/stores/UserStore.ts'
+import HomeView from '@/view/HomeView.vue'
+import BillList from '@/view/BillList.vue'
+import BillForm from '@/view/BillForm.vue'
+import LoginForm from '@/view/LoginForm.vue'
+import { useUserStore } from '@/store/UserStore.ts'
 
 
 

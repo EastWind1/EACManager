@@ -1,7 +1,7 @@
 <!-- 订单表单 -->
 <template>
   <v-container>
-    <v-form ref="form" v-model="valid" :readonly="loading || !canEdit" @submit.prevent="save">
+    <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
       <!-- 单据头部 -->
       <v-card>
         <template #text>
@@ -29,16 +29,18 @@
             <!-- 右侧按钮区域 -->
             <v-col justify-end>
               <v-row justify="end" class="ga-2">
-                <!-- 编辑按钮 -->
                 <v-btn
                   color="primary"
-                  v-if="serviceBill.state === ServiceBillState.CREATED"
+                  v-if="serviceBill.id && serviceBill.state === ServiceBillState.CREATED"
                   :disabled="isEditState"
                   @click="isEditState = true"
                   >编辑
                 </v-btn>
-                <!-- 保存按钮 -->
-                <v-btn :disabled="!isEditState" type="submit" :loading="loading">提交</v-btn>
+                <v-btn v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED" @click="process([serviceBill.id!])">开始处理</v-btn>
+                <v-btn v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING" @click="processed([serviceBill.id!])">处理完成</v-btn>
+                <v-btn v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED" @click="finish([serviceBill.id!])">回款完成</v-btn>
+                <v-btn v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED" @click="remove([serviceBill.id!])">删除</v-btn>
+                <v-btn v-if="isEditState" type="submit" :loading="loading">保存</v-btn>
               </v-row>
             </v-col>
           </v-row>
@@ -130,7 +132,7 @@
           <v-tabs-window v-model="tab">
             <!-- 服务单明细 -->
             <v-tabs-window-item value="details">
-              <BillFormDetail v-model="serviceBill" :readonly="canEdit"></BillFormDetail>
+              <BillFormDetail v-model="serviceBill" :readonly="!isEditState"></BillFormDetail>
             </v-tabs-window-item>
             <!-- 附件 -->
             <v-tabs-window-item value="attachment">
@@ -199,27 +201,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/model/ServiceBill.ts'
-import BillFormDetail from '@/views/BillFormDetail.vue'
+import BillFormDetail from '@/view/BillFormDetail.vue'
 import * as date from 'date-fns'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import { storeToRefs } from 'pinia'
-import BillFormAttachDetail from '@/views/BillFormAttachDetail.vue'
+import BillFormAttachDetail from '@/view/BillFormAttachDetail.vue'
 import { useRoute } from 'vue-router'
-import { useUIStore } from '@/stores/UIStore.ts'
-import { useRouterStore } from '@/stores/RouterStore.ts'
+import { useUIStore } from '@/store/UIStore.ts'
+import { useRouterStore } from '@/store/RouterStore.ts'
+import type { ActionsResult } from '@/model/ActionsResult.ts'
+import { useBillActions } from '@/composable/BillActions.ts'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
-const { warning } = store
+const { warning, success } = store
 const route = useRoute()
 // 页面是否编辑状态
 const isEditState = ref(false)
-// 单据是否可编辑
-const canEdit = computed(
-  () => isEditState.value && serviceBill.value.state === ServiceBillState.CREATED,
-)
+
 // 初始化表单数据
 const serviceBill = ref<ServiceBill>({
   type: ServiceBillType.INSTALL,
@@ -253,16 +254,15 @@ const stateMap = {
   [ServiceBillState.FINISHED]: { label: '完成', color: 'green' },
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 链接查看
   if (route.params.id) {
-    ServiceBillApi.getById(parseInt(route.params.id as string)).then((bill) => {
-      if (bill) {
-        Object.assign(serviceBill.value, bill)
-      } else {
-        warning('未找到该单据')
-      }
-    })
+    const bill = await ServiceBillApi.getById(parseInt(route.params.id as string))
+    if (bill) {
+      serviceBill.value = bill
+    } else {
+      warning('未找到该单据')
+    }
   } else {
     const actionQuery = route.query.action
     switch (actionQuery) {
@@ -294,14 +294,28 @@ const phoneRule = (v: string) => /^\d{10,11}$/.test(v) || '请输入有效的电
 const tab = ref('details')
 
 // 提交表单
-function save() {
+async function save() {
   if (valid.value) {
-    ServiceBillApi.create(serviceBill.value).then((bill) => {
-      isEditState.value = false
-      serviceBill.value = bill
-    })
+    const bill = await ServiceBillApi.create(serviceBill.value)
+
+    isEditState.value = false
+    serviceBill.value = bill
   }
 }
+
+/**
+ * 处理动作结果
+ */
+async function processResult(result: ActionsResult<number, void>) {
+  const res = result.results[0];
+  if (res.success) {
+    success('操作成功')
+    serviceBill.value = await ServiceBillApi.getById(serviceBill.value.id!)
+  } else {
+    warning( `操作失败：${res.message}`)
+  }
+}
+const { process, processed, finish, remove } = useBillActions(processResult)
 </script>
 
 <style scoped>

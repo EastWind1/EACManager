@@ -60,7 +60,7 @@
 import { RouterView, useRouter } from 'vue-router'
 import { ref } from 'vue'
 import { mdiHome, mdiListBox, mdiMenu, mdiAccount } from '@mdi/js'
-import { useUserStore } from '@/stores/UserStore.ts'
+import { useUserStore } from '@/store/UserStore.ts'
 
 // 左侧抽屉是否显示
 const drawer = ref(true)

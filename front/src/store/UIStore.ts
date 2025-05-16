@@ -72,6 +72,56 @@ export const useUIStore = defineStore('uiStore', () => {
     showNotify('red', message, timeout)
   }
 
+  /**
+   * 确认框属性
+   */
+  const dialogData = ref({
+    /**
+     * 是否显示
+     */
+    show: false,
+    /**
+     * 标题
+     */
+    title: '',
+    /**
+     * 内容
+     */
+    text: '',
+    /**
+     * 确认回调
+     */
+    confirm: () => {},
+    /**
+     * 取消回调
+     */
+    cancel: ()=> {}
+  })
+
+
+  /**
+   * 显示确认框
+   * @param title 标题
+   * @param content 内容
+   * @return Promise<boolean> 是否确认
+   */
+  function confirm(title: string, content: string): Promise<boolean> {
+    dialogData.value.show = true
+    dialogData.value.title = title
+    dialogData.value.text = content
+    return new Promise<boolean>(resolve => {
+      dialogData.value.confirm = () => {
+        dialogData.value.show = false
+        resolve(true)
+      }
+      dialogData.value.cancel = () => {
+        dialogData.value.show = false
+        resolve(false)
+      }
+    })
+  }
+
+
   return {
     loading,
     showLoading,
@@ -81,5 +131,9 @@ export const useUIStore = defineStore('uiStore', () => {
     success,
     info,
     warning,
+    dialogData,
+    showConfirmDialog: confirm
   }
+
+
 })

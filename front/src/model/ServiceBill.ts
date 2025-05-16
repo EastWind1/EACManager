@@ -46,7 +46,7 @@ export interface ServiceBill extends AuditEntity {
   /**
    * 单号
    */
-  number?: number
+  number?: string
   /**
    * 单据类型
    */

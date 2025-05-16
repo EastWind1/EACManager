@@ -4,7 +4,12 @@
     <v-card elevation="6" width="400" class="pa-6">
       <v-card-title class="text-h5 text-center mb-6">登录</v-card-title>
       <v-form v-model="valid" @submit.prevent="login">
-        <v-text-field v-model="username" label="用户名" :prepend-inner-icon="mdiAccount" :rules="[required]" />
+        <v-text-field
+          v-model="username"
+          label="用户名"
+          :prepend-inner-icon="mdiAccount"
+          :rules="[required]"
+        />
         <v-text-field
           v-model="password"
           label="密码"
@@ -26,13 +31,13 @@ import { mdiAccount, mdiLock, mdiEye, mdiEyeOff } from '@mdi/js'
 import UserApi from '@/api/UserApi.ts'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useUserStore } from '@/stores/UserStore.ts'
-import { useUIStore } from '@/stores/UIStore.ts'
+import { useUserStore } from '@/store/UserStore.ts'
+import { useUIStore } from '@/store/UIStore.ts'
 
-const {setToken} = useUserStore()
+const { setToken } = useUserStore()
 const store = useUIStore()
 const { success } = store
-const {loading} = storeToRefs(store)
+const { loading } = storeToRefs(store)
 const router = useRouter()
 
 // 用户名
@@ -46,14 +51,15 @@ const valid = ref(true)
 // 必填
 const required = (value: string) => !!value || '不能为空'
 
-function login() {
+// 登陆
+async function login() {
   if (!valid.value) {
     return
   }
-  UserApi.login(username.value, password.value).then((token) => {
-    setToken(token)
-    success('登录成功')
-    router.push('/')
-  })
+  const token = await UserApi.login(username.value, password.value)
+
+  setToken(token)
+  success('登录成功')
+  await router.push('/')
 }
 </script>
