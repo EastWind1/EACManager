@@ -52,12 +52,12 @@
     </v-expansion-panels>
     <v-toolbar density="compact" class="mt-2">
       <template #append>
-        <v-btn color="primary" @click="create">新增</v-btn>
-        <v-btn @click="importFile">导入</v-btn>
-        <v-btn @click="process(selectedIds)">开始处理</v-btn>
-        <v-btn @click="processed(selectedIds)">处理完成</v-btn>
-        <v-btn @click="finish(selectedIds)">回款完成</v-btn>
-        <v-btn color="red" @click="remove(selectedIds)">删除</v-btn>
+        <v-btn color="primary" @click="create" :disabled="loading">新增</v-btn>
+        <v-btn @click="importFile" :disabled="loading">导入</v-btn>
+        <v-btn @click="process(selectedIds)" :disabled="loading">开始处理</v-btn>
+        <v-btn @click="processed(selectedIds)" :disabled="loading">处理完成</v-btn>
+        <v-btn @click="finish(selectedIds)" :disabled="loading">回款完成</v-btn>
+        <v-btn color="red" @click="remove(selectedIds)" :disabled="loading">删除</v-btn>
 
         <v-spacer></v-spacer>
         <div v-if="selectedIds.length > 0" class="text-caption mr-4">
@@ -135,9 +135,11 @@ import { useRouterStore } from '@/store/RouterStore.ts'
 import { useFileSelector } from '@/composable/FileSelector.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
+import { storeToRefs } from 'pinia'
 
 const store = useUIStore()
 const { success } = store
+const { loading} = storeToRefs(store)
 const router = useRouter()
 const { setData } = useRouterStore()
 

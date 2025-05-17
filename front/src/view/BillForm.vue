@@ -36,10 +36,30 @@
                   @click="isEditState = true"
                   >编辑
                 </v-btn>
-                <v-btn v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED" @click="process([serviceBill.id!])">开始处理</v-btn>
-                <v-btn v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING" @click="processed([serviceBill.id!])">处理完成</v-btn>
-                <v-btn v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED" @click="finish([serviceBill.id!])">回款完成</v-btn>
-                <v-btn v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED" @click="remove([serviceBill.id!])">删除</v-btn>
+                <v-btn
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED"
+                  @click="process([serviceBill.id!])"
+                  :loading="loading"
+                  >开始处理
+                </v-btn>
+                <v-btn
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING"
+                  @click="processed([serviceBill.id!])"
+                  :loading="loading"
+                  >处理完成
+                </v-btn>
+                <v-btn
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED"
+                  @click="finish([serviceBill.id!])"
+                  :loading="loading"
+                  >回款完成
+                </v-btn>
+                <v-btn
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED"
+                  @click="remove([serviceBill.id!])"
+                  :loading="loading"
+                  >删除
+                </v-btn>
                 <v-btn v-if="isEditState" type="submit" :loading="loading">保存</v-btn>
               </v-row>
             </v-col>
@@ -307,14 +327,15 @@ async function save() {
  * 处理动作结果
  */
 async function processResult(result: ActionsResult<number, void>) {
-  const res = result.results[0];
+  const res = result.results[0]
   if (res.success) {
     success('操作成功')
     serviceBill.value = await ServiceBillApi.getById(serviceBill.value.id!)
   } else {
-    warning( `操作失败：${res.message}`)
+    warning(`操作失败：${res.message}`)
   }
 }
+
 const { process, processed, finish, remove } = useBillActions(processResult)
 </script>
 

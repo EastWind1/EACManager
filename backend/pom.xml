@@ -8,11 +8,11 @@
 		<version>3.4.4</version>
 		<relativePath/>
 	</parent>
-	<groupId>com.eastwind</groupId>
-	<artifactId>EACAfterSaleMgr</artifactId>
+	<groupId>pers.eastwind</groupId>
+	<artifactId>billmanager</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>EACAfterSaleMgr</name>
-	<description>Elevator AC After-Sale Manager</description>
+	<name>Elevator AC After-Sale Bill Manager</name>
+	<description>Elevator AC After-Sale Bill Manager</description>
 	<url/>
 	<licenses>
 		<license/>
