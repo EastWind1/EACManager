@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/view/HomeView.vue'
-import BillList from '@/view/BillList.vue'
-import BillForm from '@/view/BillForm.vue'
-import LoginForm from '@/view/LoginForm.vue'
+import BillListView from '@/view/BillListView.vue'
+import BillFormView from '@/view/BillFormView.vue'
+import LoginView from '@/view/LoginView.vue'
 import { useUserStore } from '@/store/UserStore.ts'
 
 
@@ -22,26 +22,26 @@ const router = createRouter({
         // 基本信息
         {
           path: '/basic',
-          component: LoginForm,
+          component: LoginView,
         },
         // 订单列表
         {
           path: '/list',
-          component: BillList,
+          component: BillListView,
         },
         {
           path: '/bill',
-          component: BillForm,
+          component: BillFormView,
         },
         {
           path: '/bill/:id',
-          component: BillForm,
+          component: BillFormView,
         }
       ],
     },
     {
       path: '/login',
-      component: LoginForm,
+      component: LoginView,
     },
   ],
 })

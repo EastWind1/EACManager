@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.controller;
 
+import org.springframework.http.ResponseEntity;
 import pers.eastwind.billmanager.service.UserService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,7 +32,8 @@ public class UserController {
      * @return token
      */
     @PostMapping("/token")
-    public String login(@RequestBody LoginParam param) {
-        return userService.login(param.username, param.password);
+    public ResponseEntity<Void> login(@RequestBody LoginParam param) {
+        String token = userService.login(param.username, param.password);
+        return ResponseEntity.ok().header("X-Auth-Toke", token).build();
     }
 }

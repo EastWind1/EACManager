@@ -28,9 +28,12 @@ import java.util.List;
 @Configuration
 public class SecurityConfig {
 
+    private final ConfigProperties properties;
     private final ObjectMapper objectMapper;
     private final JWTTokenFilter jwtTokenFilter;
-    public SecurityConfig(ObjectMapper objectMapper, JWTTokenFilter jwtTokenFilter) {
+
+    public SecurityConfig(ConfigProperties properties, ObjectMapper objectMapper, JWTTokenFilter jwtTokenFilter) {
+        this.properties = properties;
         this.objectMapper = objectMapper;
         this.jwtTokenFilter = jwtTokenFilter;
     }
@@ -41,9 +44,10 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(List.of("*"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedOrigins(properties.getCors().getAllowOrigin());
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("content-type","Authorization"));
+        configuration.setExposedHeaders(List.of("X-Auth-Toke"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         return source;

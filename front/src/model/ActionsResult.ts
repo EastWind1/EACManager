@@ -30,5 +30,5 @@ export interface ActionsResult<P, R> {
   /**
    * 失败数量
    */
-  failedCount: number
+  failCount: number
 }

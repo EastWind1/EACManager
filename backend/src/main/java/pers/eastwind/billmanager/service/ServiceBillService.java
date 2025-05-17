@@ -224,14 +224,16 @@ public class ServiceBillService {
             throw new RuntimeException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
-            if (bill == null) {
-                throw new RuntimeException("单据不存在");
-            }
-            if (bill.getState() != ServiceBillState.CREATED) {
-                throw new RuntimeException("非创建状态的单据不能删除");
-            }
-            transactionTemplate.executeWithoutResult(status -> serviceBillRepository.deleteById(id));
+            transactionTemplate.executeWithoutResult(status -> {
+                ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+                if (bill == null) {
+                    throw new RuntimeException("单据不存在");
+                }
+                if (bill.getState() != ServiceBillState.CREATED) {
+                    throw new RuntimeException("非创建状态的单据不能删除");
+                }
+                serviceBillRepository.deleteById(id);
+            });
             return null;
         });
     }
@@ -247,15 +249,17 @@ public class ServiceBillService {
             throw new RuntimeException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
-            if (bill == null) {
-                throw new RuntimeException("单据不存在");
-            }
-            if (bill.getState() != ServiceBillState.CREATED) {
-                throw new RuntimeException("非创建状态的单据不能处理");
-            }
-            bill.setState(ServiceBillState.PROCESSING);
-            transactionTemplate.executeWithoutResult(status -> serviceBillRepository.save(bill));
+            transactionTemplate.executeWithoutResult(status -> {
+                ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+                if (bill == null) {
+                    throw new RuntimeException("单据不存在");
+                }
+                if (bill.getState() != ServiceBillState.CREATED) {
+                    throw new RuntimeException("非创建状态的单据不能处理");
+                }
+                bill.setState(ServiceBillState.PROCESSING);
+                serviceBillRepository.save(bill);
+            });
             return null;
         });
     }
@@ -268,19 +272,22 @@ public class ServiceBillService {
             throw new RuntimeException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
-            if (bill == null) {
-                throw new RuntimeException("单据不存在");
-            }
-            if (bill.getState() != ServiceBillState.PROCESSING) {
-                throw new RuntimeException("非处理中状态的单据不能处理完成");
-            }
-            bill.setState(ServiceBillState.PROCESSED);
-            bill.setProcessedDate(LocalDate.now());
-            transactionTemplate.executeWithoutResult(status -> serviceBillRepository.save(bill));
+            transactionTemplate.executeWithoutResult(status -> {
+                ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+                if (bill == null) {
+                    throw new RuntimeException("单据不存在");
+                }
+                if (bill.getState() != ServiceBillState.PROCESSING) {
+                    throw new RuntimeException("非处理中状态的单据不能处理完成");
+                }
+                bill.setState(ServiceBillState.PROCESSED);
+                bill.setProcessedDate(LocalDate.now());
+                serviceBillRepository.save(bill);
+            });
             return null;
         });
     }
+
     /**
      * 批量更改为完成
      */
@@ -289,15 +296,17 @@ public class ServiceBillService {
             throw new RuntimeException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
-            if (bill == null) {
-                throw new RuntimeException("单据不存在");
-            }
-            if (bill.getState() != ServiceBillState.PROCESSING) {
-                throw new RuntimeException("非处理完成状态的单据不能完成");
-            }
-            bill.setState(ServiceBillState.FINISHED);
-            transactionTemplate.executeWithoutResult(status -> serviceBillRepository.save(bill));
+            transactionTemplate.executeWithoutResult(status -> {
+                ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+                if (bill == null) {
+                    throw new RuntimeException("单据不存在");
+                }
+                if (bill.getState() != ServiceBillState.PROCESSED) {
+                    throw new RuntimeException("非处理完成状态的单据不能完成");
+                }
+                bill.setState(ServiceBillState.FINISHED);
+                serviceBillRepository.save(bill);
+            });
             return null;
         });
     }

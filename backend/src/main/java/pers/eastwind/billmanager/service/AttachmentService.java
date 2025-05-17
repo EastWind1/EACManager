@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.service;
 
+import pers.eastwind.billmanager.config.ConfigProperties;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.entity.Attachment;
@@ -9,7 +10,6 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -32,14 +32,8 @@ import java.util.stream.Stream;
 @Service
 public class AttachmentService implements InitializingBean {
     /**
-     * 附件根目录
+     * 临时路径
      */
-    @Value("${attachment.path}")
-    private String ROOT_DIR;
-    /**
-     * 临时目录
-     */
-    @Value("${attachment.temp}")
     public String TEMP_DIR;
     /**
      * 根目录
@@ -49,10 +43,12 @@ public class AttachmentService implements InitializingBean {
      * 临时目录
      */
     private Path tempPath;
+    private final ConfigProperties properties;
     private final AttachmentRepository attachmentRepository;
     private final AttachmentMapper attachmentMapper;
 
-    public AttachmentService(AttachmentRepository attachmentRepository, AttachmentMapper attachmentMapper) {
+    public AttachmentService(ConfigProperties properties, AttachmentRepository attachmentRepository, AttachmentMapper attachmentMapper) {
+        this.properties = properties;
         this.attachmentRepository = attachmentRepository;
         this.attachmentMapper = attachmentMapper;
     }
@@ -62,7 +58,8 @@ public class AttachmentService implements InitializingBean {
      */
     @Override
     public void afterPropertiesSet() {
-        rootPath = Path.of(ROOT_DIR).normalize().toAbsolutePath();
+        rootPath = properties.getAttachment().getPath().normalize().toAbsolutePath();
+        TEMP_DIR = properties.getAttachment().getTemp();
         tempPath = rootPath.resolve(TEMP_DIR).normalize().toAbsolutePath();
         if (!Files.exists(rootPath)) {
             try {

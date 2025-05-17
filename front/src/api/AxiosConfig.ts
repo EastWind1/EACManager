@@ -2,7 +2,6 @@ import axios, { type AxiosInstance } from 'axios'
 import router from '@/router/router.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
-import pinia from '../store'
 
 // 实例化缓存
 let existInstance: AxiosInstance | undefined = undefined
@@ -14,16 +13,26 @@ function useAxios(): AxiosInstance {
   if (existInstance) {
     return existInstance
   }
-  const { showLoading, hideLoading, warning } = useUIStore(pinia)
-  const { getToken } = useUserStore(pinia)
+  const { showLoading, hideLoading, warning } = useUIStore()
+  const { getToken } = useUserStore()
   const instance = axios.create({
     // 从 .env 文件读取后端地址
     baseURL: `${import.meta.env.VITE_BACKGROUND_URL}`,
   })
+
+  const requestMap = new Map<string, AbortController>()
   // 请求前拦截器
   instance.interceptors.request.use(
     // 显示进度条
     (config) => {
+      // 请求防抖
+      const key = config.url! + config.method!
+      if (requestMap.has(key)) {
+        requestMap.get(key)?.abort()
+      }
+      const abortController = new AbortController()
+      config.signal = abortController.signal
+      requestMap.set(key, abortController)
       // 设置 token
       const token = getToken()
       if (token) {
@@ -39,6 +48,10 @@ function useAxios(): AxiosInstance {
     (res) => {
       // 隐藏进度条
       hideLoading()
+      // 获取 Token 的请求不处理响应
+      if (res.headers['x-auth-toke']) {
+        return res
+      }
       // 直接获取 data
       return res.data
     },

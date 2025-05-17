@@ -1,5 +1,5 @@
 <template>
-  <div class="text-h3 d-flex justify-center mt-4">订单管理系统</div>
+  <div class="text-h3 d-flex justify-center mt-4">服务单管理系统</div>
   <v-container class="d-flex align-center justify-center">
     <v-card elevation="6" width="400" class="pa-6">
       <v-card-title class="text-h5 text-center mb-6">登录</v-card-title>
@@ -31,10 +31,8 @@ import { mdiAccount, mdiLock, mdiEye, mdiEyeOff } from '@mdi/js'
 import UserApi from '@/api/UserApi.ts'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useUserStore } from '@/store/UserStore.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 
-const { setToken } = useUserStore()
 const store = useUIStore()
 const { success } = store
 const { loading } = storeToRefs(store)
@@ -56,9 +54,7 @@ async function login() {
   if (!valid.value) {
     return
   }
-  const token = await UserApi.login(username.value, password.value)
-
-  setToken(token)
+  await UserApi.login(username.value, password.value)
   success('登录成功')
   await router.push('/')
 }

@@ -6,7 +6,7 @@
           <v-container>
             <v-row>
               <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-                <v-text-field v-model="queryParam.number" label="单号" />
+                <v-text-field v-model="queryParam.number" clearable label="单号" />
               </v-col>
               <v-col cols="12" sm="12" md="6" lg="4" xl="3">
                 <v-select
@@ -20,7 +20,7 @@
                 />
               </v-col>
               <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-                <v-text-field v-model="queryParam.projectName" label="项目名称" />
+                <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
               </v-col>
               <v-col cols="12" sm="12" md="6" lg="4" xl="3">
                 <v-date-input
@@ -43,7 +43,7 @@
                 ></v-date-input>
               </v-col>
               <v-col cols="12" class="text-right">
-                <v-btn @click="search = 'reload'">查询</v-btn>
+                <v-btn @click="search = new Date().toString()">查询</v-btn>
               </v-col>
             </v-row>
           </v-container>
@@ -283,7 +283,7 @@ async function importFile() {
 function setResultDialogData(result: ActionsResult<number, void>) {
   const rows = []
   resultDialog.value.successCount = result.successCount
-  resultDialog.value.failedCount = result.failedCount
+  resultDialog.value.failedCount = result.failCount
   for (const res of result.results) {
     if (!res.success) {
       rows.push({
@@ -299,14 +299,14 @@ function setResultDialogData(result: ActionsResult<number, void>) {
  * 处理动作结果
  */
 function processResult(result: ActionsResult<number, void>) {
-  if (!result.failedCount) {
+  if (!result.failCount) {
     success(`${result.successCount} 条单据操作成功, 0 条失败`)
   } else {
     setResultDialogData(result)
     resultDialog.value.show = true
   }
   if (result.successCount) {
-    search.value = 'reload'
+    search.value = new Date().toString()
   }
 }
 

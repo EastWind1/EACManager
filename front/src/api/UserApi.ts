@@ -1,6 +1,6 @@
 import { useAxios } from '@/api/AxiosConfig.ts'
+import { useUserStore } from '@/store/UserStore.ts'
 
-const axios = useAxios()
 const UserApi = {
   /**
    * 登录
@@ -9,11 +9,15 @@ const UserApi = {
    * @param password 密码
    */
   login: (username: string, password: string) =>
-    axios
+    useAxios()
       .post('user/token', {
         username,
         password,
       })
-      .then((res) => res.data as string),
+      .then((res) => {
+        const {setToken} = useUserStore()
+        const token = res.headers['x-auth-toke']
+        setToken(token)
+      }),
 }
 export default UserApi

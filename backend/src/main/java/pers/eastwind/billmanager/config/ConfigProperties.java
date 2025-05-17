@@ -1,0 +1,57 @@
+package pers.eastwind.billmanager.config;
+
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+import java.nio.file.Path;
+import java.util.List;
+
+@Configuration
+@ConfigurationProperties(prefix = "config")
+@Data
+public class ConfigProperties {
+    /**
+     * JWT 配置
+     */
+    private Jwt jwt;
+
+    /**
+     * 跨域配置
+     */
+    private Cors cors;
+
+    /**
+     * 附件路径相关配置
+     */
+    private Attachment attachment;
+
+    @Data
+    public static class Jwt {
+        /**
+         * 密钥（base64 编码）
+         */
+        private String key;
+    }
+
+    @Data
+    public static class Cors {
+        /**
+         * 允许的跨域源
+         */
+        private List<String> allowOrigin;
+    }
+
+    @Data
+    public static class Attachment {
+        /**
+         * 存储附件的根目录（必须是绝对路径）
+         */
+        private Path path;
+
+        /**
+         * 临时文件目录（相对于 path）
+         */
+        private String temp;
+    }
+}

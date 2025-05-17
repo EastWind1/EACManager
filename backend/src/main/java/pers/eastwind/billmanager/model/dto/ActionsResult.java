@@ -43,11 +43,11 @@ public class ActionsResult<P, R> {
     /**
      * 成功条数
      */
-    private Integer successCount;
+    private Integer successCount = 0;
     /**
      * 失败条数
      */
-    private Integer failCount;
+    private Integer failCount = 0;
 
 
     /**

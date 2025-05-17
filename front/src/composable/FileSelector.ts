@@ -1,5 +1,4 @@
 import { useUIStore } from '@/store/UIStore.ts'
-import pinia from '@/store'
 
 /**
  * 文件选择器
@@ -7,7 +6,7 @@ import pinia from '@/store'
  * @param multiple 是否多选
  */
 export function useFileSelector(accept: string, multiple: boolean): Promise<FileList> {
-  const { warning } = useUIStore(pinia)
+  const { warning } = useUIStore()
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = accept

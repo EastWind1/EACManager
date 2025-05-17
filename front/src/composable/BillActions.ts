@@ -1,14 +1,16 @@
 import { useUIStore } from '@/store/UIStore.ts'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
-import pinia from '@/store'
+import { type AppContext, getCurrentInstance, h, ref, render } from 'vue'
+import { VBtn, VDatePicker, VDefaultsProvider, VDialog } from 'vuetify/components'
 
 /**
  * 单据操作
  * @param processResult 处理结果回调
  */
 export function useBillActions(processResult: (result: ActionsResult<number, void>) => void) {
-  const {warning, showConfirmDialog } = useUIStore(pinia)
+  const { warning, showConfirmDialog } = useUIStore()
+
   /**
    * 开始处理
    */
@@ -21,6 +23,53 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
   }
 
   /**
+   * 显示日期选择器
+   * @param title 标题
+   */
+  function showDatePicker(title: string): Promise<Date | undefined> {
+    return new Promise<Date | undefined>((resolve) => {
+      const date = ref<Date>()
+      const node = h(
+        VDialog,
+        { modelValue: true, persistent: true },
+        {
+          title: () => title,
+          text: () =>
+            h(VDatePicker, {
+              modelValue: date.value,
+              onUpdateModelValue: (value: Date) => (date.value = value),
+            }),
+          actions: () =>
+            h([
+              h(
+                VBtn,
+                {
+                  color: 'primary',
+                  text: true,
+                  onClick: () => {
+                    resolve(date.value)
+                  },
+                },
+                '确定',
+              ),
+              h(
+                VBtn,
+                {
+                  text: true,
+                  onClick: () => {
+                    resolve(undefined)
+                  },
+                },
+                '取消',
+              ),
+            ]),
+        },
+      )
+      render(node, document.body)
+    })
+  }
+
+  /**
    * 处理完成
    */
   async function processed(ids: number[]) {
@@ -28,7 +77,11 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    processResult(await ServiceBillApi.processed(ids))
+    const date = await showDatePicker('请选择处理完成日期')
+    if (!date) {
+      return
+    }
+    processResult(await ServiceBillApi.processed(ids, date))
   }
 
   /**
@@ -41,6 +94,7 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
     }
     processResult(await ServiceBillApi.finish(ids))
   }
+
   /**
    * 删除
    */
@@ -49,10 +103,7 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    const confirmResult = await showConfirmDialog(
-      '确认删除',
-      `确认删除 ${ids.length} 条单据？`,
-    )
+    const confirmResult = await showConfirmDialog('确认删除', `确认删除 ${ids.length} 条单据？`)
     if (!confirmResult) {
       return
     }
@@ -63,6 +114,6 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
     process,
     processed,
     finish,
-    remove
+    remove,
   }
 }

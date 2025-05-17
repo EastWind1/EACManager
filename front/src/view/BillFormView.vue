@@ -130,12 +130,12 @@
               <v-text-field v-model="serviceBill.onSitePhone" label="现场联系人电话"></v-text-field>
             </v-col>
             <!-- 电梯信息 -->
-            <v-col cols="12">
-              <v-textarea
+            <v-col cols="12" sm="12" md="12" lg="8" xl="6">
+              <v-text-field
                 v-model="serviceBill.elevatorInfo"
                 label="电梯信息"
                 variant="outlined"
-              ></v-textarea>
+              ></v-text-field>
             </v-col>
           </v-row>
         </template>
@@ -194,6 +194,22 @@
                 }}</label
               >
             </v-col>
+            <!-- 创建时间 -->
+            <v-col
+              cols="12"
+              sm="12"
+              md="6"
+              lg="4"
+              xl="3"
+              v-if="serviceBill.processedDate"
+            >
+              <label class="text-subtitle-1"
+                >处理完成时间
+                {{
+                  serviceBill.processedDate ? date.format(serviceBill.processedDate, 'yyyy-MM-dd') : ''
+                }}</label
+              >
+            </v-col>
             <!-- 最后修改时间 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <label class="text-subtitle-1"
@@ -223,11 +239,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/model/ServiceBill.ts'
-import BillFormDetail from '@/view/BillFormDetail.vue'
+import BillFormDetail from '@/component/BillFormDetail.vue'
 import * as date from 'date-fns'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import { storeToRefs } from 'pinia'
-import BillFormAttachDetail from '@/view/BillFormAttachDetail.vue'
+import BillFormAttachDetail from '@/component/BillFormAttachDetail.vue'
 import { useRoute } from 'vue-router'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useRouterStore } from '@/store/RouterStore.ts'

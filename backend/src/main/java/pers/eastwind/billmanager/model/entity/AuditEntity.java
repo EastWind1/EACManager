@@ -28,7 +28,7 @@ public class AuditEntity {
      * 创建人
      */
     @CreatedBy
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User createdBy;
 
@@ -42,7 +42,7 @@ public class AuditEntity {
      * 修改人
      */
     @LastModifiedBy
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User lastModifiedBy;
 }

@@ -6,8 +6,8 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import pers.eastwind.billmanager.config.ConfigProperties;
 
 import java.text.ParseException;
 import java.util.Date;
@@ -19,12 +19,15 @@ import java.util.Date;
 public class JWTService {
     private JWSSigner signer;
     private JWSVerifier verifier;
-    @Value("${jwt.key}")
-    private String key;
+    private final ConfigProperties properties;
+
+    public JWTService(ConfigProperties properties) {
+        this.properties = properties;
+    }
 
     @PostConstruct
     public void init() throws JOSEException {
-        byte[] shareSecurity = key.getBytes();
+        byte[] shareSecurity = properties.getJwt().getKey().getBytes();
         signer = new MACSigner(shareSecurity);
         verifier = new MACVerifier(shareSecurity);
     }
