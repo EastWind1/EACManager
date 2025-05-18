@@ -34,6 +34,6 @@ public class UserController {
     @PostMapping("/token")
     public ResponseEntity<Void> login(@RequestBody LoginParam param) {
         String token = userService.login(param.username, param.password);
-        return ResponseEntity.ok().header("X-Auth-Toke", token).build();
+        return ResponseEntity.ok().header("X-Auth-Token", token).build();
     }
 }

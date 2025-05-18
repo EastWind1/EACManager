@@ -16,7 +16,7 @@ const UserApi = {
       })
       .then((res) => {
         const {setToken} = useUserStore()
-        const token = res.headers['x-auth-toke']
+        const token = res.headers['x-auth-token']
         setToken(token)
       }),
 }

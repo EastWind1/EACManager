@@ -7,8 +7,15 @@
       <h1 class="ml-3 mr-3">服务单管理</h1>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>
+      <v-switch
+        v-model="isDark"
+        label="暗色模式"
+        color="primary"
+        @click="isDark = !isDark"
+        hide-details
+      />
       <!-- 登录用户图标 -->
-      <v-menu open-on-hover>
+      <v-menu open-on-hover class="ml-3">
         <template #activator="{ props }">
           <v-avatar v-bind="props">
             <v-icon :icon="mdiAccount"></v-icon>
@@ -27,9 +34,9 @@
       <v-navigation-drawer v-model="drawer">
         <v-list density="compact" nav>
           <!-- 仪表盘 -->
-          <v-list-item to="/home" exact>
+          <v-list-item to="/dashboard" exact>
             <template #prepend>
-              <v-icon :icon="mdiHome"></v-icon>
+              <v-icon :icon="mdiMonitorDashboard"></v-icon>
             </template>
             仪表盘
           </v-list-item>
@@ -58,14 +65,23 @@
 
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
-import { ref } from 'vue'
-import { mdiHome, mdiListBox, mdiMenu, mdiAccount } from '@mdi/js'
+import { computed, ref } from 'vue'
+import { mdiListBox, mdiMenu, mdiAccount, mdiMonitorDashboard } from '@mdi/js'
 import { useUserStore } from '@/store/UserStore.ts'
+import { useTheme } from 'vuetify/framework'
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
 // 当前路由
 const router = useRouter()
+// 主题切换
+const theme = useTheme()
+const isDark = computed({
+  get: () => theme.global.name.value === 'dark',
+  set: (value) => {
+    theme.global.name.value = value ? 'dark' : 'light'
+  },
+})
 // 移除 token
 const {removeToken} = useUserStore()
 

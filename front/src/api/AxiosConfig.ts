@@ -49,7 +49,7 @@ function useAxios(): AxiosInstance {
       // 隐藏进度条
       hideLoading()
       // 获取 Token 的请求不处理响应
-      if (res.headers['x-auth-toke']) {
+      if (res.headers['x-auth-token']) {
         return res
       }
       // 直接获取 data

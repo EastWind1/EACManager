@@ -21,6 +21,10 @@ const vuetify = createVuetify({
       mdi,
     },
   },
+  // 主题
+  theme: {
+    defaultTheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+  },
   // UI 默认样式
   defaults: {
     VContainer: {
@@ -54,14 +58,11 @@ const vuetify = createVuetify({
 })
 
 const app = createApp(App)
-  // 状态管理
-  .use(createPinia())
-  // 路由
+  app.use(createPinia())
   .use(router)
   .use(vuetify)
   .mount('#app')
 
-const context = app.$
-export {
-  context
-}
+// 导出上下文以供动态创建 vnode 使用
+const appContext = app._context
+export {appContext}

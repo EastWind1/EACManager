@@ -47,7 +47,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(properties.getCors().getAllowOrigin());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("content-type","Authorization"));
-        configuration.setExposedHeaders(List.of("X-Auth-Toke"));
+        configuration.setExposedHeaders(List.of("X-Auth-Token"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         return source;

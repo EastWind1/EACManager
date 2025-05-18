@@ -266,11 +266,14 @@ public class ServiceBillService {
 
     /**
      * 批量更改为处理完成
+     * @param ids 单据 ID
+     * @param processedDate 完成日期，默认为当前时间
      */
-    public ActionsResult<Integer, Void> processed(List<Integer> ids) {
+    public ActionsResult<Integer, Void> processed(List<Integer> ids, LocalDate processedDate) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
         }
+        final LocalDate finalProcessedDate = processedDate == null ? LocalDate.now() : processedDate;
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
                 ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
@@ -281,7 +284,7 @@ public class ServiceBillService {
                     throw new RuntimeException("非处理中状态的单据不能处理完成");
                 }
                 bill.setState(ServiceBillState.PROCESSED);
-                bill.setProcessedDate(LocalDate.now());
+                bill.setProcessedDate(processedDate);
                 serviceBillRepository.save(bill);
             });
             return null;

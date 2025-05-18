@@ -1,8 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/view/HomeView.vue'
-import BillListView from '@/view/BillListView.vue'
-import BillFormView from '@/view/BillFormView.vue'
-import LoginView from '@/view/LoginView.vue'
 import { useUserStore } from '@/store/UserStore.ts'
 
 
@@ -17,31 +13,36 @@ const router = createRouter({
     },
     {
       path: '/home',
-      component: HomeView,
+      component: () => import('@/view/HomeView.vue'),
       children: [
+        // 仪表盘
+        {
+          path: '/dashboard',
+          component: () => import('@/view/DashboardView.vue'),
+        },
         // 基本信息
         {
           path: '/basic',
-          component: LoginView,
+          component: () => import('@/view/LoginView.vue'),
         },
         // 订单列表
         {
           path: '/list',
-          component: BillListView,
+          component: () => import('@/view/BillListView.vue'),
         },
         {
           path: '/bill',
-          component: BillFormView,
+          component: () => import('@/view/BillFormView.vue'),
         },
         {
           path: '/bill/:id',
-          component: BillFormView,
+          component: () => import('@/view/BillFormView.vue'),
         }
       ],
     },
     {
       path: '/login',
-      component: LoginView,
+      component: () => import('@/view/LoginView.vue'),
     },
   ],
 })

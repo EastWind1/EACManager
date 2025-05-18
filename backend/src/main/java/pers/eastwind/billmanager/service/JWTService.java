@@ -7,10 +7,12 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import pers.eastwind.billmanager.config.ConfigProperties;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.Objects;
 
 /**
  * JWT 工具类
@@ -72,7 +74,7 @@ public class JWTService {
             // 校验签名加密、过期时间、摘要
             return jwt.verify(verifier)
                     && claimsSet.getExpirationTime().after(new Date())
-                    && claimsSet.getSubject().equals(subject);
+                    && Objects.equals(claimsSet.getSubject(),subject);
         } catch (JOSEException e) {
             throw new RuntimeException("验证 JWT 异常");
         }

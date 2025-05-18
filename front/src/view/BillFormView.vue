@@ -24,6 +24,12 @@
                     ></v-badge>
                   </h3>
                 </v-col>
+                <!-- 总金额 -->
+                <v-col>
+                  <h3>
+                    总金额: <span class="text-red">￥ {{serviceBill.totalAmount ?  serviceBill.totalAmount.toFixed(2) : '0.00'}}</span>
+                  </h3>
+                </v-col>
               </v-row>
             </v-col>
             <!-- 右侧按钮区域 -->
@@ -225,14 +231,6 @@
         </template>
       </v-card>
     </v-form>
-    <!-- 底部空间， 用于滚动到底部是不会遮挡 -->
-    <div class="bottom-empty"></div>
-    <!-- 总金额显示 -->
-    <v-container class="position-fixed bottom-0 bg-white d-flex justify-end ga-2">
-      <span
-        >总额: <span class="text-red">￥ {{ serviceBill.totalAmount }}</span></span
-      >
-    </v-container>
   </v-container>
 </template>
 
@@ -356,7 +354,5 @@ const { process, processed, finish, remove } = useBillActions(processResult)
 </script>
 
 <style scoped>
-.bottom-empty {
-  height: 68px;
-}
+
 </style>

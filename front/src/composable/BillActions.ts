@@ -1,8 +1,9 @@
 import { useUIStore } from '@/store/UIStore.ts'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
-import { type AppContext, getCurrentInstance, h, ref, render } from 'vue'
-import { VBtn, VDatePicker, VDefaultsProvider, VDialog } from 'vuetify/components'
+import { h, ref, render } from 'vue'
+import { VBtn, VCard, VDatePicker, VDialog } from 'vuetify/components'
+import { appContext } from '@/main.ts'
 
 /**
  * 单据操作
@@ -25,22 +26,34 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
   /**
    * 显示日期选择器
    * @param title 标题
+   * @param minDate 最小日期
+   * @param maxDate 最大日期
    */
-  function showDatePicker(title: string): Promise<Date | undefined> {
+  function showDatePicker(
+    title: string,
+    minDate?: Date,
+    maxDate?: Date,
+  ): Promise<Date | undefined> {
     return new Promise<Date | undefined>((resolve) => {
       const date = ref<Date>()
       const node = h(
         VDialog,
-        { modelValue: true, persistent: true },
         {
-          title: () => title,
-          text: () =>
-            h(VDatePicker, {
-              modelValue: date.value,
-              onUpdateModelValue: (value: Date) => (date.value = value),
-            }),
-          actions: () =>
-            h([
+          modelValue: true,
+          persistent: true,
+          width: 'auto'
+        },
+        () =>
+          h(VCard, null, {
+            title: () => title,
+            text: () =>
+              h(VDatePicker, {
+                modelValue: date.value,
+                'onUpdate:modelValue':  (value) => date.value = value as Date,
+                min: minDate,
+                max: maxDate,
+              }),
+            actions: () => [
               h(
                 VBtn,
                 {
@@ -48,9 +61,10 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
                   text: true,
                   onClick: () => {
                     resolve(date.value)
+                    render(null, document.body)
                   },
                 },
-                '确定',
+                () => '确定',
               ),
               h(
                 VBtn,
@@ -58,13 +72,15 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
                   text: true,
                   onClick: () => {
                     resolve(undefined)
+                    render(null, document.body)
                   },
                 },
-                '取消',
+                () => '取消',
               ),
-            ]),
-        },
+            ],
+          }),
       )
+      node.appContext = appContext
       render(node, document.body)
     })
   }

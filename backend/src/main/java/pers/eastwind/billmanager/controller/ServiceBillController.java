@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -87,12 +89,17 @@ public class ServiceBillController {
     public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
         return serviceBillService.process(ids);
     }
+
+    /**
+     * 处理完成参数
+     */
+    public record ProcessedParam(List<Integer> ids, LocalDate processedDate) {}
     /**
      * 处理完成服务单
      */
     @PutMapping("/processed")
-    public ActionsResult<Integer, Void> processed(@RequestBody List<Integer> ids) {
-        return serviceBillService.processed(ids);
+    public ActionsResult<Integer, Void> processed(@RequestBody ProcessedParam param) {
+        return serviceBillService.processed(param.ids, param.processedDate);
     }
     /**
      * 完成服务单
