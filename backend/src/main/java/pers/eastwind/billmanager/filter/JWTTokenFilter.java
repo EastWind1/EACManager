@@ -44,7 +44,7 @@ public class JWTTokenFilter extends OncePerRequestFilter {
         }
 
         String token = auth.substring(prefix.length());
-        if (jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.ORIGIN))) {
+        if (jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
             String userName;
             try {
                 SignedJWT jwt = SignedJWT.parse(token);

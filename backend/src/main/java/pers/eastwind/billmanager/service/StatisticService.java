@@ -3,14 +3,12 @@ package pers.eastwind.billmanager.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
+import pers.eastwind.billmanager.model.dto.MonthSumAmount;
 import pers.eastwind.billmanager.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -39,24 +37,25 @@ public class StatisticService {
         return stateCountMap;
     }
 
+
     /**
      * 按月份统计非新建状态的单据金额总和
      *
      * @return 每个月份与对应金额的 Map
      */
-    public Map<YearMonth, BigDecimal> sumTotalAmountByMonth() {
+    public List<MonthSumAmount> sumTotalAmountByMonth() {
+
         List<Object[]> results = serviceBillRepository.sumTotalAmountByMonth();
-        Map<YearMonth, BigDecimal> monthAmountMap = new HashMap<>();
+        List<MonthSumAmount> rows = new ArrayList<>();
 
         for (Object[] result : results) {
-            LocalDate processedDate = (LocalDate) result[0];
-            BigDecimal totalAmount = (BigDecimal) result[1];
+            int rowYear = ((Number)result[0]).intValue();
+            int month = ((Number)result[1]).intValue();
+            BigDecimal totalAmount = new BigDecimal(result[2].toString());
 
-            YearMonth yearMonth = YearMonth.from(processedDate);
-
-            monthAmountMap.merge(yearMonth, totalAmount, BigDecimal::add);
+            rows.add(new MonthSumAmount(YearMonth.of(rowYear, month).toString(), totalAmount));
         }
-
-        return monthAmountMap;
+        rows.sort(Comparator.comparing(MonthSumAmount::month));
+        return rows;
     }
 }

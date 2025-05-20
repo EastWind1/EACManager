@@ -25,7 +25,6 @@ public interface ServiceBillMapper {
      * @param serviceBillDTO dto
      * @param serviceBill 实体
      */
-    @Mapping(target = "createdDate", ignore = true)
     @Mapping(target = "lastModifiedDate", ignore = true)
     void updateEntityFromDTO(ServiceBillDTO serviceBillDTO, @MappingTarget ServiceBill serviceBill);
 }

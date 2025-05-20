@@ -16,8 +16,7 @@ function useAxios(): AxiosInstance {
   const { showLoading, hideLoading, warning } = useUIStore()
   const { getToken } = useUserStore()
   const instance = axios.create({
-    // 从 .env 文件读取后端地址
-    baseURL: `${import.meta.env.VITE_BACKGROUND_URL}`,
+    baseURL: '/api',
   })
 
   const requestMap = new Map<string, AbortController>()
@@ -73,13 +72,13 @@ function useAxios(): AxiosInstance {
             warning('请求地址错误')
             break
           case 500:
-            warning(err.response.data.message)
+            warning(err.response.data? err.response.data.message: err.response.statusText)
             break
           default:
             warning('未处理异常')
         }
       }
-      return Promise.reject(err.response?.data)
+      return Promise.reject(err)
     },
   )
 

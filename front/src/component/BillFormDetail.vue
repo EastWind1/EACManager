@@ -30,7 +30,7 @@
     </v-data-table>
     <!-- 模态框，用于新增或编辑时更改数据 -->
     <v-dialog v-model="showDialog" width="50rem">
-      <v-card title="Dialog">
+      <v-card title="明细">
         <template #text>
           <v-row>
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">

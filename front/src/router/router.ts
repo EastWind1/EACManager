@@ -1,10 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useUserStore } from '@/store/UserStore.ts'
-
-
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     // 首页
     {
@@ -20,11 +17,6 @@ const router = createRouter({
           path: '/dashboard',
           component: () => import('@/view/DashboardView.vue'),
         },
-        // 基本信息
-        {
-          path: '/basic',
-          component: () => import('@/view/LoginView.vue'),
-        },
         // 订单列表
         {
           path: '/list',
@@ -37,7 +29,7 @@ const router = createRouter({
         {
           path: '/bill/:id',
           component: () => import('@/view/BillFormView.vue'),
-        }
+        },
       ],
     },
     {
@@ -45,15 +37,6 @@ const router = createRouter({
       component: () => import('@/view/LoginView.vue'),
     },
   ],
-})
-
-router.beforeEach((to) => {
-  if (to.path !== '/login') {
-    const {getToken} = useUserStore()
-    if (!getToken()) {
-      return '/login'
-    }
-  }
 })
 
 export default router

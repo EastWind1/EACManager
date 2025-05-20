@@ -63,7 +63,7 @@ public class ServiceBillService {
             return moveRunnable;
         }
         for (AttachmentDTO attachment : dto.getAttachments()) {
-            if (attachment.getRelativePath().startsWith(attachmentService.TEMP_DIR)) {
+            if (attachmentService.isTempFile(Path.of(attachment.getRelativePath()))) {
                 Path origin = Path.of(attachment.getRelativePath());
                 Path target = Path.of(dto.getNumber()).resolve(origin.getFileName());
                 attachment.setRelativePath(target.toString());
@@ -101,24 +101,40 @@ public class ServiceBillService {
     }
 
     /**
+     * Ocr 生成
+     *
+     * @param attachment 附件
+     * @return 单据
+     */
+    private ServiceBillDTO generateByOcr(AttachmentDTO attachment) {
+        OcrResult ocrResult = ocrService.runOcr(Path.of(attachment.getRelativePath()));
+        if (ocrResult == null) {
+            throw new RuntimeException("OCR 结果为空");
+        }
+
+        ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
+        ocrService.executeMapRule(ocrResult, serviceBillDTO);
+        return serviceBillDTO;
+    }
+
+    /**
      * 根据文件生成单据
+     * @param file 文件
+     * @return 单据
      */
     public ServiceBillDTO generateByFile(MultipartFile file) {
         AttachmentDTO attachment = attachmentService.uploadTemp(file);
-        if (attachment.getType() == AttachmentType.IMAGE) {
-            OcrResult ocrResult = ocrService.runOcr(Path.of(attachment.getRelativePath()));
-            if (ocrResult == null) {
-                throw new RuntimeException("OCR 结果为空");
-            }
-
-            ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
-            ocrService.executeMapRule(ocrResult, serviceBillDTO);
-
-            serviceBillDTO.setAttachments(List.of(attachment));
-            return serviceBillDTO;
+        ServiceBillDTO serviceBillDTO = null;
+        if (attachment.getType() == AttachmentType.PDF && attachmentService.isScannedPdf(Path.of(attachment.getRelativePath()))) {
+            AttachmentDTO tempImage = attachmentService.extractImages(Path.of(attachment.getRelativePath()));
+            serviceBillDTO = generateByOcr(tempImage);
+        } else if (attachment.getType() == AttachmentType.IMAGE) {
+            serviceBillDTO = generateByOcr(attachment);
         } else {
             throw new UnsupportedOperationException("暂不支持非图片");
         }
+        serviceBillDTO.setAttachments(List.of(attachment));
+        return serviceBillDTO;
     }
 
     /**
@@ -205,9 +221,7 @@ public class ServiceBillService {
         // 默认取前 20 行，创建时间降序排序
         int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
         int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
-        List<Sort.Order> orders = param.getSorts() == null ? List.of(
-                Sort.Order.desc("createdDate")
-        ) : param.getSorts().stream().map(sortParam -> Sort.Order.by(sortParam.getField()).with(Sort.Direction.fromString(sortParam.getDirection()))).toList();
+        List<Sort.Order> orders = param.getSorts() == null ? List.of(Sort.Order.desc("createdDate")) : param.getSorts().stream().map(sortParam -> Sort.Order.by(sortParam.getField()).with(Sort.Direction.fromString(sortParam.getDirection()))).toList();
         Pageable pageable = PageRequest.of(pageIndex, pageSize, Sort.by(orders));
         Page<ServiceBill> pageResult = serviceBillRepository.findAll(specification, pageable);
         return pageResult.map(serviceBillMapper::toServiceBillDTO);
@@ -266,7 +280,8 @@ public class ServiceBillService {
 
     /**
      * 批量更改为处理完成
-     * @param ids 单据 ID
+     *
+     * @param ids           单据 ID
      * @param processedDate 完成日期，默认为当前时间
      */
     public ActionsResult<Integer, Void> processed(List<Integer> ids, LocalDate processedDate) {

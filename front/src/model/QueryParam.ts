@@ -5,17 +5,17 @@ export interface QueryParam {
   /**
    * 页面大小
    */
-  pageSize?: number;
+  pageSize?: number
 
   /**
    * 页面索引，从 0 开始
    */
-  pageIndex?: number;
+  pageIndex?: number
 
   /**
    * 排序参数列表
    */
-  sorts?: SortParam[];
+  sorts?: SortParam[]
 }
 
 /**
@@ -25,10 +25,10 @@ export interface SortParam {
   /**
    * 排序字段
    */
-  field: string;
+  field: string
 
   /**
    * 排序方向（ASC / DESC）
    */
-  direction: string;
+  direction: string
 }

@@ -27,7 +27,13 @@
                 <!-- 总金额 -->
                 <v-col>
                   <h3>
-                    总金额: <span class="text-red">￥ {{serviceBill.totalAmount ?  serviceBill.totalAmount.toFixed(2) : '0.00'}}</span>
+                    总金额:
+                    <span class="text-red"
+                      >￥
+                      {{
+                        serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00'
+                      }}</span
+                    >
                   </h3>
                 </v-col>
               </v-row>
@@ -193,26 +199,29 @@
             </v-col>
             <!-- 创建时间 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <label class="text-subtitle-1"
+              <label class="text-subtitle-1" v-if="serviceBill.state !== ServiceBillState.CREATED"
                 >创建时间
                 {{
                   serviceBill.createdDate ? date.format(serviceBill.createdDate, 'yyyy-MM-dd') : ''
                 }}</label
               >
+              <v-date-input
+                v-else
+                v-model="serviceBill.createdDate"
+                label="创建时间"
+                prepend-icon=""
+                prepend-inner-icon="$calendar"
+              >
+              </v-date-input>
             </v-col>
             <!-- 创建时间 -->
-            <v-col
-              cols="12"
-              sm="12"
-              md="6"
-              lg="4"
-              xl="3"
-              v-if="serviceBill.processedDate"
-            >
+            <v-col cols="12" sm="12" md="6" lg="4" xl="3" v-if="serviceBill.processedDate">
               <label class="text-subtitle-1"
                 >处理完成时间
                 {{
-                  serviceBill.processedDate ? date.format(serviceBill.processedDate, 'yyyy-MM-dd') : ''
+                  serviceBill.processedDate
+                    ? date.format(serviceBill.processedDate, 'yyyy-MM-dd')
+                    : ''
                 }}</label
               >
             </v-col>
@@ -247,6 +256,7 @@ import { useUIStore } from '@/store/UIStore.ts'
 import { useRouterStore } from '@/store/RouterStore.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
+import {VDateInput}  from 'vuetify/labs/components'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
@@ -291,7 +301,9 @@ const stateMap = {
 onMounted(async () => {
   // 链接查看
   if (route.params.id) {
-    const bill = await ServiceBillApi.getById(parseInt(route.params.id as string))
+    const bill = await ServiceBillApi.getById(parseInt(route.params.id as string)).catch(
+      () => undefined,
+    )
     if (bill) {
       serviceBill.value = bill
     } else {
@@ -308,6 +320,10 @@ onMounted(async () => {
       case 'import':
         const { getData } = useRouterStore()
         const data = getData() as ServiceBill
+        if (!data) {
+          warning('未获取到识别结果')
+          return
+        }
         serviceBill.value = data
         isEditState.value = true
         break
@@ -331,6 +347,7 @@ const tab = ref('details')
 async function save() {
   if (valid.value) {
     const bill = await ServiceBillApi.create(serviceBill.value)
+    success('保存成功')
 
     isEditState.value = false
     serviceBill.value = bill
@@ -353,6 +370,4 @@ async function processResult(result: ActionsResult<number, void>) {
 const { process, processed, finish, remove } = useBillActions(processResult)
 </script>
 
-<style scoped>
-
-</style>
+<style scoped></style>

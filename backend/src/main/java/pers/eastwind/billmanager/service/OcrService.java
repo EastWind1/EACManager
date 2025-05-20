@@ -7,10 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.mymonstercat.Model;
 import io.github.mymonstercat.ocr.InferenceEngine;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ResourceUtils;
-
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -78,8 +76,8 @@ public class OcrService {
     public void executeMapRule(OcrResult ocrResult, Object target) {
         String className = target.getClass().getSimpleName();
         try {
-            File mapJson = ResourceUtils.getFile("classpath:rule/OCR-" + className + ".json");
-            List<MapRule> mapRule = objectMapper.readValue(mapJson, new TypeReference<>() {
+            InputStream mapStream = getClass().getClassLoader().getResourceAsStream("rule/OCR-" + className + ".json");
+            List<MapRule> mapRule = objectMapper.readValue(mapStream, new TypeReference<>() {
             });
 
             for (TextBlock textBlock : ocrResult.getTextBlocks()) {
@@ -108,7 +106,7 @@ public class OcrService {
                                 } else if (type == LocalDate.class) {
                                     // 单独处理中文日期
                                     if (value.contains("日")) {
-                                        field.set(target, LocalDate.parse(value, DateTimeFormatter.ofPattern("yyyy年M月d日")).atStartOfDay());
+                                        field.set(target, LocalDate.parse(value, DateTimeFormatter.ofPattern("yyyy年M月d日")));
                                     } else {
                                         field.set(target, LocalDate.parse(value));
                                     }

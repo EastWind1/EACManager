@@ -53,8 +53,8 @@ public class UserService implements UserDetailsService {
         if (!BCrypt.checkpw(password, user.getPassword())) {
             throw new RuntimeException("用户名或密码错误");
         }
-        String origin = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.ORIGIN);
-        return jwtUtil.generateToken(username, origin);
+        String subject = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.HOST);
+        return jwtUtil.generateToken(username, subject);
     }
 
 }

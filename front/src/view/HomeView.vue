@@ -40,13 +40,13 @@
             </template>
             仪表盘
           </v-list-item>
-          <!-- 基本信息维护 -->
-          <v-list-item to="/basic">
-            <template #prepend>
-              <v-icon :icon="mdiListBox"></v-icon>
-            </template>
-            基本信息
-          </v-list-item>
+          <!-- 基本信息维护 TODO -->
+<!--          <v-list-item to="/basic">-->
+<!--            <template #prepend>-->
+<!--              <v-icon :icon="mdiListBox"></v-icon>-->
+<!--            </template>-->
+<!--            基本信息-->
+<!--          </v-list-item>-->
           <!-- 单据列表 -->
           <v-list-item to="/list">
             <template #prepend>
@@ -66,7 +66,7 @@
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
-import { mdiListBox, mdiMenu, mdiAccount, mdiMonitorDashboard } from '@mdi/js'
+import { mdiMenu, mdiAccount, mdiMonitorDashboard } from '@mdi/js'
 import { useUserStore } from '@/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
 

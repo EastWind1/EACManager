@@ -7,7 +7,6 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import pers.eastwind.billmanager.config.ConfigProperties;
 
 import java.text.ParseException;
@@ -40,11 +39,11 @@ public class JWTService {
      * @param userName 用户名
      * @return TOKEN
      */
-    public String generateToken(String userName, String origin) {
+    public String generateToken(String userName, String subject) {
         Date now = new Date();
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .audience(userName)
-                .subject(origin)
+                .subject(subject)
                 .issueTime(now)
                 // 24 小时后过期
                 .expirationTime(new Date(now.getTime() + 24 * 60 * 60 * 1000))

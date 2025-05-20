@@ -1,6 +1,6 @@
 .idea
 .vscode
-.iml
+*.iml
 
 .mvn
 attachment
@@ -10,3 +10,8 @@ target
 dist
 node_modules
 .env
+
+deploy/backend/lib
+deploy/backend/app.jar
+deploy/front/nginx
+!deploy/front/nginx/conf/nginx.conf

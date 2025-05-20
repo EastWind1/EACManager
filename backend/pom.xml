@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>pers.eastwind</groupId>
 	<artifactId>billmanager</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0-SNAPSHOT</version>
 	<name>Elevator AC After-Sale Bill Manager</name>
 	<description>Elevator AC After-Sale Bill Manager</description>
 	<url/>
@@ -140,6 +140,13 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+					<includes>
+						<include>
+							<groupId>null</groupId>
+							<artifactId>null</artifactId>
+						</include>
+					</includes>
+					<layout>ZIP</layout>
 					<includeSystemScope>true</includeSystemScope>
 				</configuration>
 			</plugin>
@@ -168,6 +175,26 @@
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
+			</plugin>
+			<!-- 拷贝依赖 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-dependencies</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/lib</outputDirectory>
+							<excludeTransitive>false</excludeTransitive>
+							<stripVersion>false</stripVersion>
+							<silent>true</silent>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

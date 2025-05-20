@@ -69,7 +69,7 @@
       :headers="headers"
       :items="data.items"
       :items-length="data.totalCount"
-      :items-per-page="data.pageSize"
+      :items-per-page="data.pageSize ? data.pageSize : 20"
       @update:options="loadItems"
       class="mt-2 flex-grow-1"
       :search="search"
@@ -129,7 +129,7 @@ import {
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { PageResult } from '@/model/PageResult.ts'
 import { VDateInput } from 'vuetify/labs/components'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useRouterStore } from '@/store/RouterStore.ts'
 import { useFileSelector } from '@/composable/FileSelector.ts'
@@ -139,7 +139,7 @@ import { storeToRefs } from 'pinia'
 
 const store = useUIStore()
 const { success } = store
-const { loading} = storeToRefs(store)
+const { loading } = storeToRefs(store)
 const router = useRouter()
 const { setData } = useRouterStore()
 
@@ -163,6 +163,12 @@ const queryParam = ref<ServiceBillQueryParam>({
     },
   ],
 })
+// 处理查询情况
+const route = useRoute()
+if (route.query.hasOwnProperty('query')) {
+  const data = useRouterStore().getData() as ServiceBillQueryParam
+  Object.assign(queryParam.value, data)
+}
 // 创建日期范围
 const createdDateRange = ref([])
 watch(createdDateRange, (value) => {
@@ -184,6 +190,7 @@ const headers = [
   { title: '类型', key: 'type', sortable: false },
   { title: '项目', key: 'projectName', sortable: false },
   { title: '地址', key: 'projectAddress', sortable: false },
+  { title: '完工时间', key: 'processedDate', sortable: false },
 ]
 // 列表状态显示映射
 const stateMap = {
@@ -197,14 +204,16 @@ const typeMap = {
   [ServiceBillType.FIX]: { label: '维修', color: 'light-blue' },
   [ServiceBillType.INSTALL]: { label: '安装', color: 'light-green' },
 }
-// 数据
-const data = ref<PageResult<ServiceBill>>({
+// 默认数据
+const defaultData = {
   items: [],
   totalCount: 0,
   totalPages: 0,
   pageSize: 20,
   pageIndex: 0,
-})
+}
+// 数据
+const data = ref<PageResult<ServiceBill>>(defaultData)
 
 // 触发数据搜索
 const search = ref('')
@@ -227,7 +236,7 @@ async function loadItems(options: {
     direction: sort.order === 'asc' ? 'ASC' : 'DESC',
   }))
 
-  data.value = await ServiceBillApi.getByQueryParam(queryParam.value)
+  data.value = await ServiceBillApi.getByQueryParam(queryParam.value).catch(() => defaultData)
 }
 
 // 结果展示弹窗
@@ -266,7 +275,10 @@ function create() {
  */
 async function importFile() {
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg', false)
-  const bill = ServiceBillApi.import(fileList[0])
+  const bill = await ServiceBillApi.import(fileList[0]).catch(() => undefined)
+  if (!bill) {
+    return
+  }
   setData(bill)
   await router.push({
     path: '/bill',

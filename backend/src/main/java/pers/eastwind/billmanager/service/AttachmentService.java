@@ -1,5 +1,10 @@
 package pers.eastwind.billmanager.service;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.rendering.PDFRenderer;
+import org.apache.pdfbox.text.PDFTextStripper;
 import pers.eastwind.billmanager.config.ConfigProperties;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
@@ -16,12 +21,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.InputStream;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.stream.Stream;
 
@@ -34,7 +42,7 @@ public class AttachmentService implements InitializingBean {
     /**
      * 临时路径
      */
-    public String TEMP_DIR;
+    private String TEMP_DIR;
     /**
      * 根目录
      */
@@ -79,26 +87,93 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
+     * 判断是否是临时文件
+     */
+    public boolean isTempFile(Path path) {
+
+        return getAbsolutePath(path).startsWith(tempPath);
+    }
+
+    /**
      * 获取文件类型
      *
-     * @param inputStream 文件输入流
+     * @param bytes 文件字节
      * @return 文件类型
      */
-    private AttachmentType getFileType(InputStream inputStream) {
+    private AttachmentType getFileType(byte[] bytes) {
         Tika tika = new Tika();
-        try {
-            String mimeType = tika.detect(inputStream);
-            return switch (mimeType) {
-                case "application/pdf" -> AttachmentType.PDF;
-                case "image/jpeg", "image/png", "image/gif" -> AttachmentType.IMAGE;
-                case "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
-                        AttachmentType.WORD;
-                case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
-                        AttachmentType.EXCEL;
-                default -> throw new RuntimeException("不支持的文件类型: " + mimeType);
-            };
+        String mimeType = tika.detect(bytes);
+        return switch (mimeType) {
+            case "application/pdf" -> AttachmentType.PDF;
+            case "image/jpeg", "image/png", "image/gif" -> AttachmentType.IMAGE;
+            case "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
+                    AttachmentType.WORD;
+            case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
+                    AttachmentType.EXCEL;
+            default -> throw new RuntimeException("不支持的文件类型: " + mimeType);
+        };
+    }
+
+    /**
+     * 获取绝对路径
+     * 只允许包内调用
+     *
+     * @param relativePath 相对路径
+     * @return 绝对路径
+     */
+    Path getAbsolutePath(Path relativePath) {
+        if (relativePath == null) {
+            throw new RuntimeException("路径不能为空");
+        }
+        // 去除头部的斜杠
+        relativePath = relativePath.startsWith("/") ? relativePath.subpath(1, relativePath.getNameCount()) : relativePath;
+        Path targetPath = rootPath.resolve(relativePath).normalize().toAbsolutePath();
+        if (!targetPath.startsWith(rootPath)) {
+            throw new RuntimeException("禁止使用外部路径");
+        }
+
+        return rootPath.resolve(relativePath);
+    }
+
+    /**
+     * 判断 PDF 是否是扫描件
+     */
+    public boolean isScannedPdf(Path path) {
+        Path absolutePath = getAbsolutePath(path);
+        try (PDDocument document = Loader.loadPDF(absolutePath.toFile())) {
+            for (PDPage page : document.getPages()) {
+                String text = new PDFTextStripper().getText(document);
+                if (text.trim().isEmpty()) {
+                    return true;
+                }
+            }
         } catch (IOException e) {
-            throw new RuntimeException("读取文件流失败", e);
+            throw new RuntimeException("读取 PDF 失败", e);
+        }
+        return false;
+    }
+
+    /**
+     * 提取 PDF 中的图片并保存至临时文件
+     */
+    public AttachmentDTO extractImages(Path path) {
+        Path absolutePath = getAbsolutePath(path);
+        try (PDDocument document = Loader.loadPDF(absolutePath.toFile())) {
+            Attachment attachment = null;
+            PDFRenderer renderer = new PDFRenderer(document);
+            for (int page = 0; page < document.getNumberOfPages(); page++) {
+                BufferedImage image = renderer.renderImage(page);
+                ByteArrayOutputStream os = new ByteArrayOutputStream();
+                ImageIO.write(image, "png", os);
+                attachment = saveFile(os.toByteArray(), LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".png", Path.of(TEMP_DIR));
+            }
+            if (attachment != null) {
+                return attachmentMapper.toAttachmentDTO(attachment);
+            } else {
+                throw new RuntimeException("提取 PDF 图片失败");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("提取 PDF 图片失败", e);
         }
     }
 
@@ -110,33 +185,53 @@ public class AttachmentService implements InitializingBean {
      * @return 附件实体
      */
     private Attachment saveFile(MultipartFile file, Path path) {
-        if (path == null) {
-            throw new RuntimeException("路径不能为空");
-        }
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("禁止上传空文件");
         }
+
         if (file.getOriginalFilename() == null) {
             throw new RuntimeException("文件名不能为空");
         }
-        Path targetPath = rootPath.resolve(path).resolve(file.getOriginalFilename()).normalize().toAbsolutePath();
-        if (!targetPath.startsWith(rootPath)) {
-            throw new RuntimeException("禁止使用外部路径");
+
+        try {
+            return saveFile(file.getBytes(), file.getOriginalFilename(), path);
+        } catch (IOException e) {
+            throw new RuntimeException("获取文件流失败", e);
         }
+    }
+
+    /**
+     * 保存文件
+     *
+     * @param bytes    文件字节
+     * @param fileName 文件名称
+     * @param path     相对附件目录路径
+     * @return 附件实体
+     */
+    private Attachment saveFile(byte[] bytes, String fileName, Path path) {
+        if (bytes == null) {
+            throw new IllegalArgumentException("禁止上传空文件");
+        }
+
+        if (fileName == null || fileName.isEmpty()) {
+            throw new RuntimeException("文件名不能为空");
+        }
+
+        Path targetPath = getAbsolutePath(path.resolve(fileName));
 
         AttachmentType type;
         try {
-            type = getFileType(file.getInputStream());
+            type = getFileType(bytes);
             if (!Files.exists(targetPath)) {
                 Files.createDirectories(targetPath);
             }
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(new ByteArrayInputStream(bytes), targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException("保存文件失败", e);
         }
         Path relativePath = rootPath.relativize(targetPath);
         Attachment attachment = new Attachment();
-        attachment.setName(path.getFileName().toString());
+        attachment.setName(fileName);
         attachment.setType(type);
         attachment.setRelativePath(relativePath.toString());
 
@@ -165,16 +260,6 @@ public class AttachmentService implements InitializingBean {
         return attachmentMapper.toAttachmentDTO(saveFile(file, Path.of(TEMP_DIR)));
     }
 
-    /**
-     * 获取绝对路径
-     * 只允许包内调用
-     *
-     * @param relativePath 相对路径
-     * @return 绝对路径
-     */
-    Path getAbsolutePath(Path relativePath) {
-        return rootPath.resolve(relativePath);
-    }
 
     /**
      * 读取文件
@@ -183,13 +268,7 @@ public class AttachmentService implements InitializingBean {
      * @return 文件资源
      */
     public Resource loadByPath(Path path) {
-        if (path == null) {
-            throw new RuntimeException("文件路径为空");
-        }
-        Path absolutePath = rootPath.resolve(path).normalize().toAbsolutePath();
-        if (!absolutePath.startsWith(rootPath)) {
-            throw new RuntimeException("禁止使用外部路径");
-        }
+        Path absolutePath = getAbsolutePath(path);
         if (!Files.exists(absolutePath) || Files.isDirectory(absolutePath)) {
             throw new RuntimeException("文件不存在");
         }
@@ -244,4 +323,6 @@ public class AttachmentService implements InitializingBean {
             log.error("清理临时文件失败", e);
         }
     }
+
+
 }

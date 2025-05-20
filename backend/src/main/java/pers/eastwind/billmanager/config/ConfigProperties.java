@@ -5,7 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 import java.nio.file.Path;
-import java.util.List;
 
 @Configuration
 @ConfigurationProperties(prefix = "config")
@@ -15,11 +14,6 @@ public class ConfigProperties {
      * JWT 配置
      */
     private Jwt jwt;
-
-    /**
-     * 跨域配置
-     */
-    private Cors cors;
 
     /**
      * 附件路径相关配置
@@ -32,14 +26,6 @@ public class ConfigProperties {
          * 密钥（base64 编码）
          */
         private String key;
-    }
-
-    @Data
-    public static class Cors {
-        /**
-         * 允许的跨域源
-         */
-        private List<String> allowOrigin;
     }
 
     @Data
