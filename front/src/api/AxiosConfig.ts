@@ -72,7 +72,16 @@ function useAxios(): AxiosInstance {
             warning('请求地址错误')
             break
           case 500:
-            warning(err.response.data? err.response.data.message: err.response.statusText)
+            if (err.response.data instanceof Blob) {
+              const reader = new FileReader()
+              reader.onload = () => {
+                const json = JSON.parse(reader.result as string)
+                warning(json.message? json.message: err.response.statusText)
+              }
+              reader.readAsText(err.response.data)
+            } else {
+              warning(err.response.data ? err.response.data.message : err.response.statusText)
+            }
             break
           default:
             warning('未处理异常')

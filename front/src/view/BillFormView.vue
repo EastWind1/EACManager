@@ -11,7 +11,13 @@
               <v-row justify="start">
                 <!-- 单号 -->
                 <v-col>
-                  <h3>单号: {{ serviceBill.number ? serviceBill.number : ' (保存后自动生成)' }}</h3>
+                  <v-text-field
+                    v-if="serviceBill.state === ServiceBillState.CREATED"
+                    v-model="serviceBill.number"
+                    label="单号"
+                    placeholder="为空时生成自动"
+                  ></v-text-field>
+                  <h3 v-else>单号: {{ serviceBill.number }}</h3>
                 </v-col>
                 <!-- 单据状态 -->
                 <v-col>
@@ -41,9 +47,10 @@
             <!-- 右侧按钮区域 -->
             <v-col justify-end>
               <v-row justify="end" class="ga-2">
+                <!-- 非完成状态都可以编辑 -->
                 <v-btn
                   color="primary"
-                  v-if="serviceBill.id && serviceBill.state === ServiceBillState.CREATED"
+                  v-if="serviceBill.id && (serviceBill.state !== ServiceBillState.FINISHED)"
                   :disabled="isEditState"
                   @click="isEditState = true"
                   >编辑
@@ -114,7 +121,6 @@
               <v-text-field
                 v-model="serviceBill.projectContact"
                 label="项目联系人"
-                :rules="[requiredRule]"
               ></v-text-field>
             </v-col>
             <!-- 项目联系人电话 -->
@@ -122,7 +128,6 @@
               <v-text-field
                 v-model="serviceBill.projectContactPhone"
                 label="项目联系人电话"
-                :rules="[phoneRule]"
               ></v-text-field>
             </v-col>
           </v-row>
@@ -181,19 +186,6 @@
         <template #title>其它信息</template>
         <template #text>
           <v-row>
-            <!-- 完成时间 -->
-            <!-- 处理完之后的状态显示 -->
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <v-text-field
-                v-if="
-                  serviceBill.state === ServiceBillState.PROCESSED ||
-                  serviceBill.state === ServiceBillState.FINISHED
-                "
-                v-model="serviceBill.processedDate"
-                label="完工时间"
-                type="date"
-              ></v-text-field>
-            </v-col>
             <v-col cols="12">
               <v-textarea v-model="serviceBill.remark" label="备注"></v-textarea>
             </v-col>
@@ -202,37 +194,25 @@
               <label class="text-subtitle-1" v-if="serviceBill.state !== ServiceBillState.CREATED"
                 >创建时间
                 {{
-                  serviceBill.createdDate ? date.format(serviceBill.createdDate, 'yyyy-MM-dd') : ''
+                  serviceBill.orderDate ? date.format(serviceBill.orderDate, 'yyyy-MM-dd') : ''
                 }}</label
               >
               <v-date-input
                 v-else
-                v-model="serviceBill.createdDate"
+                v-model="serviceBill.orderDate"
                 label="创建时间"
                 prepend-icon=""
                 prepend-inner-icon="$calendar"
+                :readonly="!isEditState"
               >
               </v-date-input>
             </v-col>
-            <!-- 创建时间 -->
+            <!-- 处理完成时间 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3" v-if="serviceBill.processedDate">
               <label class="text-subtitle-1"
                 >处理完成时间
                 {{
-                  serviceBill.processedDate
-                    ? date.format(serviceBill.processedDate, 'yyyy-MM-dd')
-                    : ''
-                }}</label
-              >
-            </v-col>
-            <!-- 最后修改时间 -->
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <label class="text-subtitle-1"
-                >最后修改时间
-                {{
-                  serviceBill.lastModifiedDate
-                    ? date.format(serviceBill.lastModifiedDate, 'yyyy-MM-dd')
-                    : ''
+                  date.format(serviceBill.processedDate, 'yyyy-MM-dd')
                 }}</label
               >
             </v-col>
@@ -276,6 +256,7 @@ const serviceBill = ref<ServiceBill>({
   details: [],
   attachments: [],
   totalAmount: 0,
+  orderDate: new Date()
 })
 
 // 枚举值映射
@@ -337,8 +318,6 @@ onMounted(async () => {
 const valid = ref(false)
 // 必填验证
 const requiredRule = (v: unknown) => !!v || '必填项'
-// 电话号码验证
-const phoneRule = (v: string) => /^\d{10,11}$/.test(v) || '请输入有效的电话号码'
 
 // 当前 Tab 页
 const tab = ref('details')
@@ -346,7 +325,13 @@ const tab = ref('details')
 // 提交表单
 async function save() {
   if (valid.value) {
-    const bill = await ServiceBillApi.create(serviceBill.value)
+    let bill
+    // 编辑保存
+    if (!!serviceBill.value.id) {
+      bill = await ServiceBillApi.save(serviceBill.value)
+    } else { // 新增
+      bill = await ServiceBillApi.create(serviceBill.value)
+    }
     success('保存成功')
 
     isEditState.value = false

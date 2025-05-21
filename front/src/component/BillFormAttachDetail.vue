@@ -22,7 +22,7 @@
         </v-hover>
       </v-col>
       <v-col cols="1">
-        <v-card v-if="!readonly" width="53">
+        <v-card width="53">
           <template #text>
             <v-icon :icon="mdiPlus" @click="upload"></v-icon>
           </template>
@@ -56,18 +56,20 @@
 <script setup lang="ts">
 import { type Attachment, AttachmentType } from '@/model/Attachment.ts'
 import { mdiFile, mdiFileExcel, mdiFileImage, mdiFilePdfBox, mdiFileWord, mdiPlus } from '@mdi/js'
-import { ref } from 'vue'
+import { ref, toRefs } from 'vue'
 import AttachmentApi from '@/api/AttachmentApi.ts'
 import type { ServiceBill } from '@/model/ServiceBill.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useFileSelector } from '@/composable/FileSelector.ts'
+import ServiceBillApi from '@/api/ServiceBillApi.ts'
 
 const bill = defineModel<ServiceBill>()
 const { warning } = useUIStore()
 // 是否可编辑
-const { readonly = false } = defineProps<{
+const props = defineProps<{
   readonly: boolean
 }>()
+const {readonly} = toRefs(props)
 // 预览窗口
 const previewDialog = ref(false)
 // 预览信息
@@ -130,8 +132,19 @@ async function preview(attach: Attachment) {
  * 上传附件
  */
 async function upload() {
-  const fileList = await useFileSelector('.pdf,.jpg,.jpeg', false)
-  const attach = await AttachmentApi.uploadTemp(fileList[0])
+
+  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx', false)
+  let attach;
+  // 编辑状态上传的文件，存至临时目录
+  if (!readonly.value) {
+    attach = await AttachmentApi.uploadTemp(fileList[0])
+  } else { // 非编辑状态，直接上传至当前单据
+    if (!bill.value?.id) {
+      warning('单据 ID 不存在')
+      return
+    }
+    attach = await ServiceBillApi.addAttachment(bill.value.id, fileList[0])
+  }
   bill.value?.attachments.push(attach)
 }
 

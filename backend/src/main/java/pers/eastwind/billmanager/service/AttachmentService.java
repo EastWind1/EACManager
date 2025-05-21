@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.service;
 
+import lombok.Getter;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -28,10 +29,13 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * 附件服务
@@ -40,16 +44,14 @@ import java.util.stream.Stream;
 @Service
 public class AttachmentService implements InitializingBean {
     /**
-     * 临时路径
-     */
-    private String TEMP_DIR;
-    /**
      * 根目录
      */
+    @Getter
     private Path rootPath;
     /**
      * 临时目录
      */
+    @Getter
     private Path tempPath;
     private final ConfigProperties properties;
     private final AttachmentRepository attachmentRepository;
@@ -61,14 +63,21 @@ public class AttachmentService implements InitializingBean {
         this.attachmentMapper = attachmentMapper;
     }
 
+
     /**
      * 初始化附件目录
      */
     @Override
     public void afterPropertiesSet() {
         rootPath = properties.getAttachment().getPath().normalize().toAbsolutePath();
-        TEMP_DIR = properties.getAttachment().getTemp();
+        /**
+         * 临时路径
+         */
+        String TEMP_DIR = properties.getAttachment().getTemp();
         tempPath = rootPath.resolve(TEMP_DIR).normalize().toAbsolutePath();
+        if (rootPath.startsWith(tempPath)) {
+            throw new RuntimeException("附件目录不能在临时目录内");
+        }
         if (!Files.exists(rootPath)) {
             try {
                 Files.createDirectories(rootPath);
@@ -87,11 +96,73 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
+     * 获取绝对路径
+     *
+     * @param relativePath 相对路径
+     * @return 绝对路径
+     */
+    public Path getAbsolutePath(Path relativePath) {
+        if (relativePath == null) {
+            throw new RuntimeException("路径不能为空");
+        }
+        // 去除头部的斜杠
+        relativePath = relativePath.startsWith("/") ? relativePath.subpath(1, relativePath.getNameCount()) : relativePath;
+        return rootPath.resolve(relativePath).normalize().toAbsolutePath();
+    }
+
+    /**
+     * 校验路径
+     * 禁止使用根路径外的路径
+     */
+    void validPath(Path path) {
+        if (path == null) {
+            throw new RuntimeException("路径为空");
+        }
+        if (!path.startsWith(rootPath)) {
+            throw new RuntimeException("禁止使用外部路径");
+        }
+    }
+
+    /**
      * 判断是否是临时文件
      */
     public boolean isTempFile(Path path) {
+        validPath(path);
+        return path.startsWith(tempPath);
+    }
 
-        return getAbsolutePath(path).startsWith(tempPath);
+    /**
+     * 创建文件
+     */
+    public Path createFile(Path path) {
+        validPath(path);
+        if (Files.exists(path)) {
+            throw new RuntimeException("文件已存在");
+        }
+        if (!Files.exists(path.getParent())) {
+            createDirectory(path.getParent());
+        }
+        try {
+            Files.createFile(path);
+        } catch (IOException e) {
+            throw new RuntimeException("创建文件失败" + path, e);
+        }
+        return path;
+    }
+
+    /**
+     * 创建文件夹
+     */
+    public Path createDirectory(Path path) {
+        validPath(path);
+        if (!Files.exists(path)) {
+            try {
+                Files.createDirectories(path);
+            } catch (IOException e) {
+                throw new RuntimeException("创建文件夹失败: " + path, e);
+            }
+        }
+        return path;
     }
 
     /**
@@ -114,33 +185,13 @@ public class AttachmentService implements InitializingBean {
         };
     }
 
-    /**
-     * 获取绝对路径
-     * 只允许包内调用
-     *
-     * @param relativePath 相对路径
-     * @return 绝对路径
-     */
-    Path getAbsolutePath(Path relativePath) {
-        if (relativePath == null) {
-            throw new RuntimeException("路径不能为空");
-        }
-        // 去除头部的斜杠
-        relativePath = relativePath.startsWith("/") ? relativePath.subpath(1, relativePath.getNameCount()) : relativePath;
-        Path targetPath = rootPath.resolve(relativePath).normalize().toAbsolutePath();
-        if (!targetPath.startsWith(rootPath)) {
-            throw new RuntimeException("禁止使用外部路径");
-        }
-
-        return rootPath.resolve(relativePath);
-    }
 
     /**
      * 判断 PDF 是否是扫描件
      */
     public boolean isScannedPdf(Path path) {
-        Path absolutePath = getAbsolutePath(path);
-        try (PDDocument document = Loader.loadPDF(absolutePath.toFile())) {
+        validPath(path);
+        try (PDDocument document = Loader.loadPDF(path.toFile())) {
             for (PDPage page : document.getPages()) {
                 String text = new PDFTextStripper().getText(document);
                 if (text.trim().isEmpty()) {
@@ -154,21 +205,22 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
-     * 提取 PDF 中的图片并保存至临时文件
+     * 提取 PDF 为图片并保存至临时文件
      */
-    public AttachmentDTO extractImages(Path path) {
-        Path absolutePath = getAbsolutePath(path);
-        try (PDDocument document = Loader.loadPDF(absolutePath.toFile())) {
-            Attachment attachment = null;
+    public Path renderPDFToImage(Path path) {
+        validPath(path);
+        try (PDDocument document = Loader.loadPDF(path.toFile())) {
+            Path imagePath = null;
             PDFRenderer renderer = new PDFRenderer(document);
             for (int page = 0; page < document.getNumberOfPages(); page++) {
                 BufferedImage image = renderer.renderImage(page);
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
                 ImageIO.write(image, "png", os);
-                attachment = saveFile(os.toByteArray(), LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".png", Path.of(TEMP_DIR));
+                imagePath = tempPath.resolve("PDFImage-"+ System.currentTimeMillis() + ".png");
+                Files.copy(new ByteArrayInputStream(os.toByteArray()), imagePath, StandardCopyOption.REPLACE_EXISTING);
             }
-            if (attachment != null) {
-                return attachmentMapper.toAttachmentDTO(attachment);
+            if (imagePath != null) {
+                return imagePath;
             } else {
                 throw new RuntimeException("提取 PDF 图片失败");
             }
@@ -181,10 +233,11 @@ public class AttachmentService implements InitializingBean {
      * 保存文件
      *
      * @param file 文件
-     * @param path 相对附件目录路径
+     * @param path 目录路径
      * @return 附件实体
      */
     private Attachment saveFile(MultipartFile file, Path path) {
+        validPath(path);
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("禁止上传空文件");
         }
@@ -209,6 +262,7 @@ public class AttachmentService implements InitializingBean {
      * @return 附件实体
      */
     private Attachment saveFile(byte[] bytes, String fileName, Path path) {
+        validPath(path);
         if (bytes == null) {
             throw new IllegalArgumentException("禁止上传空文件");
         }
@@ -217,8 +271,8 @@ public class AttachmentService implements InitializingBean {
             throw new RuntimeException("文件名不能为空");
         }
 
-        Path targetPath = getAbsolutePath(path.resolve(fileName));
-
+        Path targetPath = path.resolve(fileName);
+        validPath(targetPath);
         AttachmentType type;
         try {
             type = getFileType(bytes);
@@ -242,7 +296,7 @@ public class AttachmentService implements InitializingBean {
      * 上传文件
      *
      * @param file 文件
-     * @param path 相对附件目录路径
+     * @param path 目录路径
      * @return 附件实体
      */
     @Transactional
@@ -251,15 +305,14 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
-     * 上传临时文件
+     * 上传至临时文件目录
      *
      * @param file 文件
      * @return 附件实体
      */
     public AttachmentDTO uploadTemp(MultipartFile file) {
-        return attachmentMapper.toAttachmentDTO(saveFile(file, Path.of(TEMP_DIR)));
+        return attachmentMapper.toAttachmentDTO(saveFile(file, tempPath));
     }
-
 
     /**
      * 读取文件
@@ -268,13 +321,13 @@ public class AttachmentService implements InitializingBean {
      * @return 文件资源
      */
     public Resource loadByPath(Path path) {
-        Path absolutePath = getAbsolutePath(path);
-        if (!Files.exists(absolutePath) || Files.isDirectory(absolutePath)) {
+        validPath(path);
+        if (!Files.exists(path) || Files.isDirectory(path)) {
             throw new RuntimeException("文件不存在");
         }
         Resource resource;
         try {
-            resource = new UrlResource(absolutePath.toUri());
+            resource = new UrlResource(path.toUri());
         } catch (MalformedURLException e) {
             throw new RuntimeException("文件地址不合法", e);
         }
@@ -282,26 +335,129 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
-     * 移动文件
+     * 移动文件或文件夹
      *
-     * @param originRelativePath 原始文件相对路径
-     * @param targetRelativePath 目标文件相对路径
+     * @param origin 原始文件相对路径
+     * @param target 目标文件相对路径
      */
-    public void move(Path originRelativePath, Path targetRelativePath) {
-        Path origin = rootPath.resolve(originRelativePath);
-        Path target = rootPath.resolve(targetRelativePath);
+    public void move(Path origin, Path target) {
+        copy(origin, target, true);
+        delete(origin);
+    }
+
+    /**
+     * 复制文件或文件夹
+     *
+     * @param origin      原始文件或文件夹路径，若为文件夹，则复制所有子文件
+     * @param target      目标文件夹路径
+     * @param includeSelf 若为文件夹时，是否复制自身
+     */
+    public void copy(Path origin, Path target, boolean includeSelf) {
+        validPath(origin);
+        validPath(target);
         if (!Files.exists(origin)) {
-            throw new RuntimeException("找不到文件");
+            throw new RuntimeException("找不到文件或文件夹");
+        }
+        if (!Files.exists(target)) {
+            createDirectory(target);
+        } else if (!Files.isDirectory(target)) {
+            throw new RuntimeException("目标必须是文件夹");
         }
 
-        try {
-            if (!Files.exists(target)) {
-                Files.createDirectories(target);
+        if (Files.isDirectory(origin)) {
+            try (Stream<Path> stream = Files.walk(origin)) {
+                stream.forEach(path -> {
+                    Path targetPath = includeSelf ? target.resolve(origin.getParent().relativize(path)) : target.resolve(origin.relativize(path));
+                    try {
+                        if (Files.isDirectory(path)) {
+                            if (!Files.exists(targetPath)) {
+                                Files.createDirectories(targetPath);
+                            }
+                        } else {
+                            Files.copy(path, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException("复制文件失败: " + path, e);
+                    }
+                });
+            } catch (IOException e) {
+                throw new RuntimeException("复制文件失败", e);
             }
-            Files.move(origin, target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new RuntimeException("移动文件失败", e);
+        } else {
+            try {
+                Path targetPath = target.resolve(origin.getFileName());
+                Files.copy(origin, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                throw new RuntimeException("复制文件失败: " + origin, e);
+            }
         }
+    }
+
+    /**
+     * 删除文件或文件夹
+     *
+     * @param path 相对路径
+     */
+    public void delete(Path path) {
+        validPath(path);
+        if (path.equals(rootPath)) {
+            throw new RuntimeException("不能删除根目录");
+        }
+        try (Stream<Path> stream = Files.walk(path)) {
+            stream
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(curPath -> {
+                        try {
+                            Files.delete(curPath);
+                        } catch (IOException e) {
+                            throw new RuntimeException("删除文件失败: " + path, e);
+                        }
+                    });
+        } catch (IOException e) {
+            log.error("删除文件失败", e);
+        }
+    }
+
+    /**
+     * 压缩文件或文件夹
+     *
+     * @param sourceDirPath 源路径
+     * @param zipFilePath   目标路径
+     */
+    public Path zip(Path sourceDirPath, Path zipFilePath) {
+        validPath(sourceDirPath);
+        validPath(zipFilePath);
+
+        try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath.toFile()))) {
+            if (!Files.exists(zipFilePath)) {
+                Files.createFile(zipFilePath);
+            }
+            if (Files.isDirectory(sourceDirPath)) {
+                try (Stream<Path> stream = Files.walk(sourceDirPath)) {
+                    stream.filter(path -> !Files.isDirectory(path))
+                            .forEach(path -> {
+                                String name = sourceDirPath.relativize(path).toString().replace("\\", "/");
+                                ZipEntry zipEntry = new ZipEntry(name);
+                                try {
+                                    zipOut.putNextEntry(zipEntry);
+                                    Files.copy(path, zipOut);
+                                    zipOut.closeEntry();
+                                } catch (IOException e) {
+                                    throw new RuntimeException("压缩文件失败: " + path, e);
+                                }
+                            });
+                }
+            } else {
+                String name = sourceDirPath.getFileName().toString();
+                ZipEntry zipEntry = new ZipEntry(name);
+                zipOut.putNextEntry(zipEntry);
+                Files.copy(sourceDirPath, zipOut);
+                zipOut.closeEntry();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("压缩文件失败", e);
+        }
+        return zipFilePath;
     }
 
     /**
@@ -309,20 +465,6 @@ public class AttachmentService implements InitializingBean {
      */
     @PreDestroy
     public void cleanTemp() {
-        try (Stream<Path> stream = Files.walk(tempPath)) {
-            stream
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.delete(path);
-                        } catch (IOException e) {
-                            log.error("清理临时文件失败:{} {}", path, e.getMessage());
-                        }
-                    });
-        } catch (IOException e) {
-            log.error("清理临时文件失败", e);
-        }
+        delete(tempPath);
     }
-
-
 }

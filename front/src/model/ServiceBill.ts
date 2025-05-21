@@ -1,4 +1,3 @@
-import type { AuditEntity } from '@/model/Audit.ts'
 import type { Attachment } from '@/model/Attachment.ts'
 import type { QueryParam } from '@/model/QueryParam.ts'
 
@@ -41,7 +40,7 @@ export const enum ServiceBillState {
 /**
  * 服务单实体
  */
-export interface ServiceBill extends AuditEntity {
+export interface ServiceBill {
   id?: number
   /**
    * 单号
@@ -95,6 +94,10 @@ export interface ServiceBill extends AuditEntity {
    * 总金额
    */
   totalAmount: number
+  /**
+   * 下单时间
+   */
+  orderDate: Date
   /**
    * 完工时间
    */
@@ -152,14 +155,13 @@ export interface ServiceBillQueryParam extends QueryParam {
   projectName?: string
 
   /**
-   * 创建起始日期
+   * 下单起始日期
    */
-  createdStartDate?: Date
-
+  orderStartDate?: Date
   /**
-   * 创建结束日期
+   * 下单结束日期
    */
-  createdEndDate?: Date
+  orderEndDate?: Date
 
   /**
    * 处理完成起始日期

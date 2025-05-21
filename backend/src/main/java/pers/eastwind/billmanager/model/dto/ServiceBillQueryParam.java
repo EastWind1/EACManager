@@ -4,7 +4,7 @@ import pers.eastwind.billmanager.model.common.ServiceBillState;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -27,19 +27,19 @@ public class ServiceBillQueryParam extends QueryParam {
      */
     private String projectName;
     /**
-     * 创建起始日期
+     * 下单起始日期
      */
-    private LocalDate createdStartDate;
+    private Instant orderStartDate;
     /**
-     * 创建结束日期
+     * 下单结束日期
      */
-    private LocalDate createdEndDate;
+    private Instant orderEndDate;
     /**
      * 处理完成起始日期
      */
-    private LocalDate processedStartDate;
+    private Instant processedStartDate;
     /**
      * 处理完成结束日期
      */
-    private LocalDate processedEndDate;
+    private Instant processedEndDate;
 }

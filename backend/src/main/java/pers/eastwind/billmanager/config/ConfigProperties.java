@@ -19,6 +19,10 @@ public class ConfigProperties {
      * 附件路径相关配置
      */
     private Attachment attachment;
+    /**
+     * 映射规则路径
+     */
+    private Path mapRulePath;
 
     @Data
     public static class Jwt {

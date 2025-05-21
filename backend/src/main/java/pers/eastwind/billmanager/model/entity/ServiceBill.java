@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,9 +74,13 @@ public class ServiceBill extends AuditEntity {
     @Column(scale = 3)
     private BigDecimal totalAmount;
     /**
+     * 下单时间
+     */
+    private Instant orderDate;
+    /**
      * 完工时间
      */
-    private LocalDate processedDate;
+    private Instant processedDate;
     /**
      * 备注
      */
