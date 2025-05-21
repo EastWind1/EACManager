@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.model.mapper;
 
+import org.mapstruct.MappingTarget;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.entity.Attachment;
 import org.mapstruct.Mapper;
@@ -12,4 +13,8 @@ import org.mapstruct.MappingConstants;
 public interface AttachmentMapper {
     AttachmentDTO toAttachmentDTO(Attachment attachment);
     Attachment toAttachment(AttachmentDTO attachmentDTO);
+    /**
+     * 根据 DTO 更新实体
+     */
+    void updateEntityFromDTO(AttachmentDTO attachmentDTO, @MappingTarget Attachment attachment);
 }

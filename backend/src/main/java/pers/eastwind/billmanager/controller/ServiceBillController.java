@@ -1,16 +1,15 @@
 package pers.eastwind.billmanager.controller;
 
-import pers.eastwind.billmanager.model.dto.ActionsResult;
-import pers.eastwind.billmanager.model.dto.PageResult;
-import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
-import pers.eastwind.billmanager.model.dto.ServiceBillQueryParam;
+import org.springframework.core.io.Resource;
+import pers.eastwind.billmanager.model.dto.*;
+import pers.eastwind.billmanager.service.AttachmentService;
 import pers.eastwind.billmanager.service.ServiceBillService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -21,11 +20,12 @@ import java.util.List;
 @RequestMapping("/api/serviceBill")
 public class ServiceBillController {
     private final ServiceBillService serviceBillService;
+    private final AttachmentService attachmentService;
 
-    public ServiceBillController(ServiceBillService serviceBillService) {
+    public ServiceBillController(ServiceBillService serviceBillService, AttachmentService attachmentService) {
         this.serviceBillService = serviceBillService;
+        this.attachmentService = attachmentService;
     }
-
 
     /**
      * 根据条件查找服务单
@@ -93,7 +93,7 @@ public class ServiceBillController {
     /**
      * 处理完成参数
      */
-    public record ProcessedParam(List<Integer> ids, LocalDate processedDate) {}
+    public record ProcessedParam(List<Integer> ids, Instant processedDate) {}
     /**
      * 处理完成服务单
      */
@@ -107,5 +107,20 @@ public class ServiceBillController {
     @PutMapping("/finish")
     public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
         return serviceBillService.finish(ids);
+    }
+    /**
+     * 添加附件
+     */
+    @PostMapping("{id}/attachment")
+    public AttachmentDTO addAttachment(@PathVariable Integer id, @RequestParam MultipartFile file) {
+        return serviceBillService.addAttachment(id, file);
+    }
+
+    /**
+     * 导出
+     */
+    @PostMapping("/export")
+    public Resource export(@RequestBody List<Integer> ids) {
+        return attachmentService.loadByPath(serviceBillService.export(ids));
     }
 }

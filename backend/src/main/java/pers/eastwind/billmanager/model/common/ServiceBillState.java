@@ -7,17 +7,27 @@ public enum ServiceBillState {
     /**
      * 新建
      */
-    CREATED,
+    CREATED("新建"),
     /**
      * 进行中
      */
-    PROCESSING,
+    PROCESSING("进行中"),
     /**
      * 处理完成
      */
-    PROCESSED,
+    PROCESSED("处理完成"),
     /**
      * 完成
      */
-    FINISHED
+    FINISHED("完成");
+
+    private final String label;
+
+    ServiceBillState(String label) {
+        this.label = label;
+    }
+
+    public String getLabel() {
+        return label;
+    }
 }

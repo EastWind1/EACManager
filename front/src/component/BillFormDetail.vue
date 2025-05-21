@@ -12,8 +12,8 @@
       <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
       <template #[`item.actions`]="{ item }" v-if="!readonly">
         <div class="d-flex ga-3">
-          <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
-          <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
+          <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)" :disabled="readonly"></v-icon>
+          <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)" :disabled="readonly"></v-icon>
         </div>
       </template>
 
@@ -21,7 +21,7 @@
       <template #[`body.append`] v-if="!readonly">
         <tr>
           <td :colspan="detailHeaders.length" class="align-center">
-            <v-btn block @click="addDetail" variant="plain">
+            <v-btn block @click="addDetail" variant="plain" :disabled="readonly">
               <v-icon :icon="mdiPlus"></v-icon>
             </v-btn>
           </td>
@@ -53,9 +53,9 @@
           </v-row>
         </template>
         <template #actions>
-          <span
-            >小计: <span class="text-red">￥ {{ dialogData.subtotal }}</span></span
-          >
+          <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+            <v-number-input v-model="dialogData.subtotal" label="小计"></v-number-input>
+          </v-col>
           <v-btn text="保存" @click="saveDialog"></v-btn>
         </template>
       </v-card>
@@ -66,7 +66,7 @@
 <script setup lang="ts">
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import { type ServiceBill, type ServiceBillDetail } from '@/model/ServiceBill.ts'
-import { ref, watchEffect } from 'vue'
+import { ref, toRefs, watchEffect } from 'vue'
 
 // 表单标题
 const detailHeaders = [
@@ -80,9 +80,10 @@ const detailHeaders = [
 // 当前订单数据
 const serviceBill = defineModel<ServiceBill>()
 // 是否可编辑
-const { readonly = false } = defineProps<{
+const props = defineProps<{
   readonly: boolean
 }>()
+const {readonly} = toRefs(props)
 
 // 是否显示模态框
 const showDialog = ref(false)
@@ -126,6 +127,11 @@ function deleteDetail(item: ServiceBillDetail) {
     serviceBill.value.details.findIndex((i) => i === item),
     1,
   )
+  // 重新计算总金额
+  let totalAmount = 0
+
+  serviceBill.value!.details.forEach((detail) => (totalAmount += detail.subtotal))
+  serviceBill.value!.totalAmount = totalAmount
 }
 
 // 保存

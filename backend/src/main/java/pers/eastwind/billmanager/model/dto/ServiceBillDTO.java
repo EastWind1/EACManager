@@ -5,7 +5,7 @@ import pers.eastwind.billmanager.model.common.ServiceBillType;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,19 +68,15 @@ public class ServiceBillDTO {
      */
     private BigDecimal totalAmount;
     /**
+     * 下单时间
+     */
+    private Instant orderDate = Instant.now();
+    /**
      * 完工时间
      */
-    private LocalDate processedDate;
+    private Instant processedDate;
     /**
      * 备注
      */
     private String remark;
-    /**
-     * 创建时间
-     */
-    private LocalDate createdDate;
-    /**
-     * 最后修改时间
-     */
-    private LocalDate lastModifiedDate;
 }

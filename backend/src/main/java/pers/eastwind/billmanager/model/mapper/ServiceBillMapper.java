@@ -3,7 +3,6 @@ package pers.eastwind.billmanager.model.mapper;
 import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
 import pers.eastwind.billmanager.model.entity.ServiceBill;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
@@ -25,6 +24,5 @@ public interface ServiceBillMapper {
      * @param serviceBillDTO dto
      * @param serviceBill 实体
      */
-    @Mapping(target = "lastModifiedDate", ignore = true)
     void updateEntityFromDTO(ServiceBillDTO serviceBillDTO, @MappingTarget ServiceBill serviceBill);
 }

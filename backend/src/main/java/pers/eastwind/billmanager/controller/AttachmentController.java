@@ -29,15 +29,7 @@ public class AttachmentController {
         if (path == null) {
             throw new RuntimeException("路径不能为空");
         }
-        // path拿到的路径以斜杠开始，path 会认为是绝对路径
-        if (path.startsWith("/")) {
-            int index = 0;
-            while (index < path.length() && path.charAt(index) == '/') {
-                index++;
-            }
-            path = path.substring(index);
-        }
-        return attachmentService.loadByPath(Path.of(path));
+        return attachmentService.loadByPath(attachmentService.getAbsolutePath(Path.of(path)));
     }
 
     /**
@@ -48,7 +40,7 @@ public class AttachmentController {
      */
     @PostMapping
     public AttachmentDTO upload(@RequestParam MultipartFile file, @RequestParam String path) {
-        return attachmentService.upload(file, Path.of(path));
+        return attachmentService.upload(file, attachmentService.getAbsolutePath(Path.of(path)));
     }
     /**
      * 上传文件至临时路径

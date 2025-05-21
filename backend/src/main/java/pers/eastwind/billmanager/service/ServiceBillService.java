@@ -1,18 +1,20 @@
 package pers.eastwind.billmanager.service;
 
-import com.benjaminwan.ocrlibrary.OcrResult;
+import org.springframework.core.io.Resource;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
 import pers.eastwind.billmanager.model.dto.ActionsResult;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
 import pers.eastwind.billmanager.model.dto.ServiceBillQueryParam;
+import pers.eastwind.billmanager.model.entity.Attachment;
+import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
 import pers.eastwind.billmanager.model.mapper.ServiceBillMapper;
 import pers.eastwind.billmanager.model.entity.ServiceBill;
+import pers.eastwind.billmanager.repository.AttachmentRepository;
 import pers.eastwind.billmanager.repository.ServiceBillRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,12 +25,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.security.SecureRandom;
-import java.time.LocalDate;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.zip.ZipFile;
 
 /**
  * 服务单服务
@@ -41,15 +48,29 @@ public class ServiceBillService {
     private final OcrService ocrService;
     private final AttachmentService attachmentService;
     private final TransactionTemplate transactionTemplate;
+    private final AttachmentMapper attachmentMapper;
+    private final AttachmentRepository attachmentRepository;
+    private final OfficeFileService officeFileService;
 
-    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, OcrService ocrService, AttachmentService attachmentService, ResourcePatternResolver resourcePatternResolver, TransactionTemplate transactionTemplate) {
+    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, OcrService ocrService, AttachmentService attachmentService, TransactionTemplate transactionTemplate, AttachmentMapper attachmentMapper, AttachmentRepository attachmentRepository, OfficeFileService officeFileService) {
         this.serviceBillRepository = serviceBillRepository;
         this.serviceBillMapper = serviceBillMapper;
         this.ocrService = ocrService;
         this.attachmentService = attachmentService;
         this.transactionTemplate = transactionTemplate;
+        this.attachmentMapper = attachmentMapper;
+        this.attachmentRepository = attachmentRepository;
+        this.officeFileService = officeFileService;
     }
 
+    /**
+     * 根据id查询
+     * @param id ID
+     * @return ServiceBillDTO
+     */
+    public ServiceBillDTO findById(int id) {
+        return serviceBillMapper.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
+    }
     /**
      * 获取移动临时文件线程,
      * 用于保存时处理临时文件
@@ -63,10 +84,11 @@ public class ServiceBillService {
             return moveRunnable;
         }
         for (AttachmentDTO attachment : dto.getAttachments()) {
-            if (attachmentService.isTempFile(Path.of(attachment.getRelativePath()))) {
-                Path origin = Path.of(attachment.getRelativePath());
-                Path target = Path.of(dto.getNumber()).resolve(origin.getFileName());
-                attachment.setRelativePath(target.toString());
+            Path origin = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
+            if (attachmentService.isTempFile(origin)) {
+                Path targetRelativePath = Path.of(dto.getNumber()).resolve(origin.getFileName());
+                Path target = attachmentService.getAbsolutePath(targetRelativePath);
+                attachment.setRelativePath(targetRelativePath.toString());
                 moveRunnable.add(() -> attachmentService.move(origin, target));
             }
         }
@@ -85,7 +107,7 @@ public class ServiceBillService {
             throw new RuntimeException("单据已存在");
         }
         if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {
-            serviceBillDTO.setNumber(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + new SecureRandom().nextInt(1000));
+            serviceBillDTO.setNumber(DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + new SecureRandom().nextInt(1000));
         } else {
             if (serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())) {
                 throw new RuntimeException("单据编号已存在");
@@ -101,37 +123,24 @@ public class ServiceBillService {
     }
 
     /**
-     * Ocr 生成
-     *
-     * @param attachment 附件
-     * @return 单据
-     */
-    private ServiceBillDTO generateByOcr(AttachmentDTO attachment) {
-        OcrResult ocrResult = ocrService.runOcr(Path.of(attachment.getRelativePath()));
-        if (ocrResult == null) {
-            throw new RuntimeException("OCR 结果为空");
-        }
-
-        ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
-        ocrService.executeMapRule(ocrResult, serviceBillDTO);
-        return serviceBillDTO;
-    }
-
-    /**
      * 根据文件生成单据
+     *
      * @param file 文件
      * @return 单据
      */
     public ServiceBillDTO generateByFile(MultipartFile file) {
         AttachmentDTO attachment = attachmentService.uploadTemp(file);
-        ServiceBillDTO serviceBillDTO = null;
-        if (attachment.getType() == AttachmentType.PDF && attachmentService.isScannedPdf(Path.of(attachment.getRelativePath()))) {
-            AttachmentDTO tempImage = attachmentService.extractImages(Path.of(attachment.getRelativePath()));
-            serviceBillDTO = generateByOcr(tempImage);
+        ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
+        Path absolutePath = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
+        if (attachment.getType() == AttachmentType.PDF && attachmentService.isScannedPdf(absolutePath)) {
+            Path tempImage = attachmentService.renderPDFToImage(absolutePath);
+            ocrService.parseImage(tempImage, serviceBillDTO);
         } else if (attachment.getType() == AttachmentType.IMAGE) {
-            serviceBillDTO = generateByOcr(attachment);
+            ocrService.parseImage(absolutePath, serviceBillDTO);
+        } else if (attachment.getType() == AttachmentType.EXCEL) {
+            officeFileService.parseExcel(absolutePath, serviceBillDTO);
         } else {
-            throw new UnsupportedOperationException("暂不支持非图片");
+            throw new RuntimeException("不支持的文件类型");
         }
         serviceBillDTO.setAttachments(List.of(attachment));
         return serviceBillDTO;
@@ -163,23 +172,6 @@ public class ServiceBillService {
     }
 
     /**
-     * 删除单据
-     *
-     * @param id 单据 ID
-     */
-    @Transactional
-    public void deleteById(Integer id) {
-        if (id == null) {
-            throw new RuntimeException("id不能为空");
-        }
-        serviceBillRepository.deleteById(id);
-    }
-
-    public ServiceBillDTO findById(int id) {
-        return serviceBillMapper.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
-    }
-
-    /**
      * 根据条件查询
      *
      * @param param 查询参数
@@ -204,11 +196,11 @@ public class ServiceBillService {
             if (param.getProjectName() != null) {
                 predicates.add(cb.like(root.get("projectName"), "%" + param.getProjectName() + "%"));
             }
-            if (param.getCreatedStartDate() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("createdDate"), param.getCreatedStartDate()));
+            if (param.getOrderStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("orderDate"), param.getOrderStartDate()));
             }
-            if (param.getCreatedEndDate() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("createdDate"), param.getCreatedEndDate()));
+            if (param.getOrderEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("orderDate"), param.getOrderEndDate()));
             }
             if (param.getProcessedStartDate() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("processedDate"), param.getProcessedStartDate()));
@@ -284,11 +276,11 @@ public class ServiceBillService {
      * @param ids           单据 ID
      * @param processedDate 完成日期，默认为当前时间
      */
-    public ActionsResult<Integer, Void> processed(List<Integer> ids, LocalDate processedDate) {
+    public ActionsResult<Integer, Void> processed(List<Integer> ids, Instant processedDate) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
         }
-        final LocalDate finalProcessedDate = processedDate == null ? LocalDate.now() : processedDate;
+        final Instant finalProcessedDate = processedDate == null ? Instant.now() : processedDate;
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
                 ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
@@ -327,5 +319,78 @@ public class ServiceBillService {
             });
             return null;
         });
+    }
+
+    /**
+     * 单独添加附件
+     */
+    public AttachmentDTO addAttachment(Integer id, MultipartFile file) {
+        if (id == null) {
+            throw new RuntimeException("id不能为空");
+        }
+        ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+        if (bill == null) {
+            throw new RuntimeException("单据不存在");
+        }
+        AttachmentDTO attachment = attachmentService.upload(file, attachmentService.getAbsolutePath(Path.of(bill.getNumber())));
+        return transactionTemplate.execute((status) -> {
+            Attachment newAttachment = new Attachment();
+            attachmentMapper.updateEntityFromDTO(attachment, newAttachment);
+            newAttachment.setServiceBill(bill);
+            attachmentRepository.save(newAttachment);
+            return attachmentMapper.toAttachmentDTO(attachmentRepository.save(newAttachment));
+        });
+    }
+
+    /**
+     * 导出单据
+     * @param ids 单据列表
+     * @return 压缩文件路径
+     */
+    public Path export(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new RuntimeException("id不能为空");
+        }
+        List<ServiceBill> serviceBills = serviceBillRepository.findAllById(ids);
+        if (serviceBills.isEmpty()) {
+            throw new RuntimeException("id不存在");
+        }
+        // 创建临时目录
+        String dirName = "导出-" + System.currentTimeMillis();
+        Path tempDir = attachmentService.getTempPath().resolve(dirName);
+        tempDir = attachmentService.createDirectory(tempDir);
+        // 遍历生成 excel行，并拷贝附件
+        List<List<String>> rows = new ArrayList<>();
+        rows.add(List.of("单据编号", "状态", "项目名称", "项目地址", "总额", "备注"));
+        BigDecimal totalAmount  = BigDecimal.ZERO;
+        for (ServiceBill serviceBill : serviceBills) {
+            rows.add(List.of(
+                    serviceBill.getNumber(),
+                    serviceBill.getState().getLabel(),
+                    serviceBill.getProjectName(),
+                    serviceBill.getProjectAddress(),
+                    serviceBill.getTotalAmount().toString(),
+                    serviceBill.getDetails().stream().map((detail) ->
+                            detail.getDevice() + ": " + detail.getQuantity().stripTrailingZeros().toPlainString() + "; ").collect(Collectors.joining())
+            ));
+            totalAmount = totalAmount.add(serviceBill.getTotalAmount());
+            // 复制附件文件夹
+            for (Attachment ignored : serviceBill.getAttachments()) {
+                Path origin = attachmentService.getAbsolutePath(Path.of(serviceBill.getNumber()));
+                attachmentService.copy(origin, tempDir, true);
+            }
+        }
+        // 表合计
+        rows.add(List.of("", "", "", "合计", totalAmount.toString(), ""));
+
+        Path excel = tempDir.resolve("导出结果.xlsx");
+        excel = attachmentService.createFile(excel);
+        officeFileService.generateExcelFromList(rows, excel);
+        // 压缩
+        Path zip = attachmentService.getTempPath().resolve(dirName+".zip");
+        attachmentService.createFile(zip);
+
+        attachmentService.zip(tempDir, zip);
+        return zip;
     }
 }

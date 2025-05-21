@@ -54,6 +54,7 @@
       <template #append>
         <v-btn color="primary" @click="create" :disabled="loading">新增</v-btn>
         <v-btn @click="importFile" :disabled="loading">导入</v-btn>
+        <v-btn @click="exportToZip" :disabled="loading">导出</v-btn>
         <v-btn @click="process(selectedIds)" :disabled="loading">开始处理</v-btn>
         <v-btn @click="processed(selectedIds)" :disabled="loading">处理完成</v-btn>
         <v-btn @click="finish(selectedIds)" :disabled="loading">回款完成</v-btn>
@@ -92,6 +93,12 @@
           :content="typeMap[item.type].label"
           inline
         ></v-badge>
+      </template>
+      <template #[`item.orderDate`]="{ item }">
+        {{item.orderDate? date.format(item.orderDate,  'yyyy-MM-dd') : ''}}
+      </template>
+      <template #[`item.processedDate`]="{ item }">
+        {{item.processedDate? date.format(item.processedDate,  'yyyy-MM-dd') : ''}}
       </template>
     </v-data-table-server>
 
@@ -136,9 +143,9 @@ import { useFileSelector } from '@/composable/FileSelector.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
 import { storeToRefs } from 'pinia'
-
+import * as date from 'date-fns'
 const store = useUIStore()
-const { success } = store
+const { success, warning } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
 const { setData } = useRouterStore()
@@ -172,8 +179,8 @@ if (route.query.hasOwnProperty('query')) {
 // 创建日期范围
 const createdDateRange = ref([])
 watch(createdDateRange, (value) => {
-  queryParam.value.createdStartDate = value[0]
-  queryParam.value.createdEndDate = value[value.length - 1]
+  queryParam.value.orderStartDate = value[0]
+  queryParam.value.orderEndDate = value[value.length - 1]
 })
 // 完工日期范围
 const processedDateRange = ref([])
@@ -190,6 +197,7 @@ const headers = [
   { title: '类型', key: 'type', sortable: false },
   { title: '项目', key: 'projectName', sortable: false },
   { title: '地址', key: 'projectAddress', sortable: false },
+  { title: '创建时间', key: 'orderDate', sortable: false },
   { title: '完工时间', key: 'processedDate', sortable: false },
 ]
 // 列表状态显示映射
@@ -239,6 +247,25 @@ async function loadItems(options: {
   data.value = await ServiceBillApi.getByQueryParam(queryParam.value).catch(() => defaultData)
 }
 
+/**
+ * 导出
+ */
+async function exportToZip() {
+  if (!selectedIds.value || selectedIds.value.length === 0) {
+    warning('请选择要导出的项')
+    return
+  }
+  const blob = await ServiceBillApi.export(selectedIds.value).catch(() => undefined)
+
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '导出.zip'
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+}
 // 结果展示弹窗
 // Dialog 状态
 const resultDialog = ref<{

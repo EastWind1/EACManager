@@ -8,7 +8,7 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 /**
  * 审计实体
@@ -22,7 +22,7 @@ public class AuditEntity {
      * 创建时间
      */
     @CreatedDate
-    private LocalDate createdDate;
+    private Instant createdDate;
 
     /**
      * 创建人
@@ -36,7 +36,7 @@ public class AuditEntity {
      * 修改时间
      */
     @LastModifiedDate
-    private LocalDate lastModifiedDate;
+    private Instant lastModifiedDate;
 
     /**
      * 修改人
