@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.filter;
 
+import lombok.extern.slf4j.Slf4j;
 import pers.eastwind.billmanager.service.UserService;
 import pers.eastwind.billmanager.service.JWTService;
 import com.nimbusds.jwt.SignedJWT;
@@ -23,6 +24,7 @@ import java.text.ParseException;
  * JWT 过滤器
  * 替代 Spring Security 默认的 Session 认证
  */
+@Slf4j
 @Component
 public class JWTTokenFilter extends OncePerRequestFilter {
     private final JWTService jwtUtil;
@@ -38,32 +40,31 @@ public class JWTTokenFilter extends OncePerRequestFilter {
         // 获取 token
         String prefix = "Bearer ";
         String auth = request.getHeader("Authorization");
-        if (auth == null || !auth.startsWith(prefix)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = auth.substring(prefix.length());
-        if (jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
-            String userName;
-            try {
-                SignedJWT jwt = SignedJWT.parse(token);
-                userName = jwt.getJWTClaimsSet().getAudience().getFirst();
-            } catch (ParseException e) {
-                throw new RuntimeException("解析 token 失败", e);
-            }
-            if (userName != null) {
-                Authentication exist = SecurityContextHolder.getContext().getAuthentication();
-                if (exist == null || !exist.isAuthenticated() ||
-                        !(exist.getPrincipal() instanceof UserDetails userDetails &&
-                        userDetails.getUsername().equals(userName))) {
-                    UserDetails user = userService.loadUserByUsername(userName);
-                    if (user.isEnabled()) {
-                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                user, user.getPassword(), user.getAuthorities()
-                        );
-                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (auth != null && auth.startsWith(prefix)) {
+            String token = auth.substring(prefix.length());
+            if (jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
+                String userName;
+                try {
+                    SignedJWT jwt = SignedJWT.parse(token);
+                    userName = jwt.getJWTClaimsSet().getAudience().getFirst();
+                } catch (ParseException e) {
+                    log.error(e.getMessage(), e);
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "解析 token 失败");
+                    return;
+                }
+                if (userName != null) {
+                    Authentication exist = SecurityContextHolder.getContext().getAuthentication();
+                    if (exist == null || !exist.isAuthenticated() ||
+                            !(exist.getPrincipal() instanceof UserDetails userDetails &&
+                                    userDetails.getUsername().equals(userName))) {
+                        UserDetails user = userService.loadUserByUsername(userName);
+                        if (user.isEnabled()) {
+                            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                    user, user.getPassword(), user.getAuthorities()
+                            );
+                            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+                        }
                     }
                 }
             }

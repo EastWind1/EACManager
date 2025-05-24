@@ -37,30 +37,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/user/token").permitAll()
-                        .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/api/**").denyAll()
                         .anyRequest().permitAll()
                 )
                 // 禁用 Session
                 .sessionManagement(configurer -> configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 添加JWT验证过滤器
-                .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
-                // 自定义认证失败处理器
-                .exceptionHandling(configurer -> {
-                    // 未认证
-                    configurer.authenticationEntryPoint((request, response, authException) -> {
-                        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.setCharacterEncoding("UTF-8");
-                        response.getWriter().write(objectMapper.writeValueAsString(Result.error("未认证")));
-                    });
-                    // 权限不足
-                    configurer.accessDeniedHandler((request, response, accessDeniedException) -> {
-                        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.setCharacterEncoding("UTF-8");
-                        response.getWriter().write(objectMapper.writeValueAsString(Result.error("权限不足")));
-                    });
-                });
+                .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

@@ -1,6 +1,5 @@
 package pers.eastwind.billmanager.service;
 
-import org.springframework.core.io.Resource;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
 import pers.eastwind.billmanager.model.dto.ActionsResult;
@@ -32,10 +31,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.zip.ZipFile;
 
 /**
  * 服务单服务
@@ -375,10 +372,8 @@ public class ServiceBillService {
             ));
             totalAmount = totalAmount.add(serviceBill.getTotalAmount());
             // 复制附件文件夹
-            for (Attachment ignored : serviceBill.getAttachments()) {
-                Path origin = attachmentService.getAbsolutePath(Path.of(serviceBill.getNumber()));
-                attachmentService.copy(origin, tempDir, true);
-            }
+            Path origin = attachmentService.getAbsolutePath(Path.of(serviceBill.getNumber()));
+            attachmentService.copy(origin, tempDir, true);
         }
         // 表合计
         rows.add(List.of("", "", "", "合计", totalAmount.toString(), ""));
