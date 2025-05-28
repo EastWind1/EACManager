@@ -40,13 +40,34 @@
             </template>
             仪表盘
           </v-list-item>
-          <!-- 基本信息维护 TODO -->
-<!--          <v-list-item to="/basic">-->
-<!--            <template #prepend>-->
-<!--              <v-icon :icon="mdiListBox"></v-icon>-->
-<!--            </template>-->
-<!--            基本信息-->
-<!--          </v-list-item>-->
+          <!-- 基本信息维护 -->
+          <v-list-item>
+            <template #prepend>
+              <v-icon :icon="mdiListBox"></v-icon>
+            </template>
+            <template>
+              <v-list density="compact" nav>
+                <v-list-item>
+                  <template #prepend>
+                    <v-icon :icon="mdiAccount"></v-icon>
+                  </template>
+                  用户管理
+                </v-list-item>
+                <v-list-item>
+                  <template #prepend>
+                    <v-icon :icon="mdiAccount"></v-icon>
+                  </template>
+                  公司管理
+                </v-list-item>
+                <v-list-item>
+                  <template #prepend>
+                    <v-icon :icon="mdiAccount"></v-icon>
+                  </template>
+                  附件管理
+                </v-list-item>
+              </v-list>
+            </template>
+          </v-list-item>
           <!-- 单据列表 -->
           <v-list-item to="/list">
             <template #prepend>
@@ -66,7 +87,7 @@
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
-import { mdiMenu, mdiAccount, mdiMonitorDashboard } from '@mdi/js'
+import { mdiMenu, mdiAccount, mdiMonitorDashboard, mdiListBox } from '@mdi/js'
 import { useUserStore } from '@/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
 
