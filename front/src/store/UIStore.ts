@@ -132,7 +132,7 @@ export const useUIStore = defineStore('uiStore', () => {
     info,
     warning,
     dialogData,
-    showConfirmDialog: confirm
+    confirm
   }
 
 

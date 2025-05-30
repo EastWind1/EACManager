@@ -1,6 +1,16 @@
 import type { Attachment } from '@/model/Attachment.ts'
 import { useAxios } from '@/api/AxiosConfig.ts'
-const prefix = 'attachment'
+import type { AxiosInstance } from 'axios'
+let axiosInstance: AxiosInstance
+function getAxios() {
+  if (!axiosInstance) {
+    axiosInstance = useAxios('/api/attachment')
+  }
+  return axiosInstance
+}
+/**
+ * 附件 API
+ */
 const AttachmentApi = {
   /**
    * 上传文件
@@ -8,8 +18,8 @@ const AttachmentApi = {
    * @param path 路径，必须为相对路径
    */
   upload: (file: File, path: string) =>
-    useAxios()
-      .postForm(`${prefix}?path=${path}`, {
+    getAxios()
+      .postForm(`?path=${path}`, {
         file,
       })
       .then((res) => res.data as Attachment),
@@ -18,8 +28,8 @@ const AttachmentApi = {
    * @param file 文件
    */
   uploadTemp: (file: File) =>
-    useAxios()
-      .postForm(`${prefix}/temp`, {
+    getAxios()
+      .postForm(`/temp`, {
         file,
       })
       .then((res) => res.data as Attachment),
@@ -29,6 +39,6 @@ const AttachmentApi = {
    * @param path 文件路径
    */
   download: (path: string) =>
-    useAxios().get(`${prefix}/${path}`, { responseType: 'blob' }).then((res) => res as never as Blob),
+    getAxios().get(`/${path}`, { responseType: 'blob' }).then((res) => res as never as Blob),
 }
 export default AttachmentApi

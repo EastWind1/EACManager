@@ -10,7 +10,7 @@ import { appContext } from '@/main.ts'
  * @param processResult 处理结果回调
  */
 export function useBillActions(processResult: (result: ActionsResult<number, void>) => void) {
-  const { warning, showConfirmDialog } = useUIStore()
+  const { warning, confirm } = useUIStore()
 
   /**
    * 开始处理
@@ -119,7 +119,7 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    const confirmResult = await showConfirmDialog('确认删除', `确认删除 ${ids.length} 条单据？`)
+    const confirmResult = await confirm('确认删除', `确认删除 ${ids.length} 条单据？`)
     if (!confirmResult) {
       return
     }

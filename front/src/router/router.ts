@@ -17,19 +17,30 @@ const router = createRouter({
           path: '/dashboard',
           component: () => import('@/view/DashboardView.vue'),
         },
-        // 订单列表
+        // 用户管理
         {
-          path: '/list',
-          component: () => import('@/view/BillListView.vue'),
-        },
-        {
-          path: '/bill',
-          component: () => import('@/view/BillFormView.vue'),
+          path: '/user',
+          component: () => import('@/view/UserView.vue'),
         },
         {
           path: '/bill/:id',
           component: () => import('@/view/BillFormView.vue'),
         },
+        // 服务按列表
+        {
+          path: '/list',
+          component: () => import('@/view/BillListView.vue'),
+        },
+        // 服务单卡片，新增用
+        {
+          path: '/bill',
+          component: () => import('@/view/BillFormView.vue'),
+        },
+        // 服务单卡片，非新增用
+        {
+          path: '/bill/:id',
+          component: () => import('@/view/BillFormView.vue'),
+        }
       ],
     },
     {

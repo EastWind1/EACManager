@@ -12,7 +12,7 @@
                 <!-- 单号 -->
                 <v-col>
                   <v-text-field
-                    v-if="serviceBill.state === ServiceBillState.CREATED"
+                    v-if="serviceBill.state === ServiceBillState.CREATED.value"
                     v-model="serviceBill.number"
                     label="单号"
                     placeholder="为空时生成自动"
@@ -24,8 +24,8 @@
                   <h3>
                     状态:
                     <v-badge
-                      :color="stateMap[serviceBill.state].color"
-                      :content="stateMap[serviceBill.state].label"
+                      :color="ServiceBillState[serviceBill.state].color"
+                      :content="ServiceBillState[serviceBill.state].title"
                       inline
                     ></v-badge>
                   </h3>
@@ -50,31 +50,31 @@
                 <!-- 非完成状态都可以编辑 -->
                 <v-btn
                   color="primary"
-                  v-if="serviceBill.id && (serviceBill.state !== ServiceBillState.FINISHED)"
+                  v-if="serviceBill.id && (serviceBill.state !== ServiceBillState.FINISHED.value)"
                   :disabled="isEditState"
                   @click="isEditState = true"
                   >编辑
                 </v-btn>
                 <v-btn
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED"
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
                   @click="process([serviceBill.id!])"
                   :loading="loading"
                   >开始处理
                 </v-btn>
                 <v-btn
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING"
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
                   @click="processed([serviceBill.id!])"
                   :loading="loading"
                   >处理完成
                 </v-btn>
                 <v-btn
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED"
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
                   @click="finish([serviceBill.id!])"
                   :loading="loading"
                   >回款完成
                 </v-btn>
                 <v-btn
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED"
+                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
                   @click="remove([serviceBill.id!])"
                   :loading="loading"
                   >删除
@@ -94,9 +94,7 @@
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
               <v-select
                 v-model="serviceBill.type"
-                :items="serviceBillTypes"
-                item-title="title"
-                item-value="value"
+                :items="billTypeOption"
                 label="单据类型"
               ></v-select>
             </v-col>
@@ -191,7 +189,7 @@
             </v-col>
             <!-- 创建时间 -->
             <v-col cols="12" sm="12" md="6" lg="4" xl="3">
-              <label class="text-subtitle-1" v-if="serviceBill.state !== ServiceBillState.CREATED"
+              <label class="text-subtitle-1" v-if="serviceBill.state !== ServiceBillState.CREATED.value"
                 >创建时间
                 {{
                   serviceBill.orderDate ? date.format(serviceBill.orderDate, 'yyyy-MM-dd') : ''
@@ -244,11 +242,13 @@ const { warning, success } = store
 const route = useRoute()
 // 页面是否编辑状态
 const isEditState = ref(false)
+// 单据类型选项
+const billTypeOption = Object.values(ServiceBillType)
 
 // 初始化表单数据
 const serviceBill = ref<ServiceBill>({
-  type: ServiceBillType.INSTALL,
-  state: ServiceBillState.CREATED,
+  type: ServiceBillType.INSTALL.value,
+  state: ServiceBillState.CREATED.value,
   projectName: '',
   projectAddress: '',
   projectContact: '',
@@ -258,26 +258,6 @@ const serviceBill = ref<ServiceBill>({
   totalAmount: 0,
   orderDate: new Date()
 })
-
-// 枚举值映射
-const serviceBillTypes = [
-  {
-    value: ServiceBillType.INSTALL,
-    title: '安装单',
-  },
-  {
-    value: ServiceBillType.FIX,
-    title: '维修单',
-  },
-]
-
-// 状态映射
-const stateMap = {
-  [ServiceBillState.CREATED]: { label: '新建', color: 'light-blue' },
-  [ServiceBillState.PROCESSING]: { label: '处理中', color: 'amber' },
-  [ServiceBillState.PROCESSED]: { label: '处理完成', color: 'light-green' },
-  [ServiceBillState.FINISHED]: { label: '完成', color: 'green' },
-}
 
 onMounted(async () => {
   // 链接查看

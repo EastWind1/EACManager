@@ -2,23 +2,15 @@ import axios, { type AxiosInstance } from 'axios'
 import router from '@/router/router.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
-
-// 实例化缓存
-let existInstance: AxiosInstance | undefined = undefined
-
 /**
  * 获取 axios 实例
  */
-function useAxios(): AxiosInstance {
-  if (existInstance) {
-    return existInstance
-  }
+function useAxios(baseURL: string): AxiosInstance {
+  const instance = axios.create({
+    baseURL
+  })
   const { showLoading, hideLoading, warning } = useUIStore()
   const { getToken } = useUserStore()
-  const instance = axios.create({
-    baseURL: '/api',
-  })
-
   const requestMap = new Map<string, AbortController>()
   // 请求前拦截器
   instance.interceptors.request.use(
@@ -91,7 +83,6 @@ function useAxios(): AxiosInstance {
     },
   )
 
-  existInstance = instance
   return instance
 }
 

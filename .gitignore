@@ -1,7 +1,6 @@
 .idea
 .vscode
 *.iml
-.VSCodeCounter
 
 .mvn
 attachment

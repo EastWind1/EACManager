@@ -1,28 +1,55 @@
+import { mdiFile, mdiFileExcel, mdiFilePdfBox, mdiFileWord, mdiImage } from '@mdi/js'
+
 /**
  * 服务单类型
  */
-export const enum AttachmentType {
+export const AttachmentType = {
   /**
    * 图像
    */
-  IMAGE = 'IMAGE',
+  IMAGE: {
+    value: 'IMAGE',
+    label: '图像',
+    icon: mdiImage
+  },
   /**
    * PDF
    */
-  PDF = 'PDF',
+  PDF: {
+    value: 'PDF',
+    label: 'PDF',
+    icon: mdiFilePdfBox
+  },
   /**
    * Word
    */
-  WORD = 'WORD',
+  WORD: {
+    value: 'WORD',
+    label: 'Word',
+    icon: mdiFileWord
+  },
   /**
    * Excel
    */
-  EXCEL = 'EXCEL',
+  EXCEL: {
+    value: 'EXCEL',
+    label: 'Excel',
+    icon: mdiFileExcel
+  },
   /**
    * 其他
    */
-  OTHER = 'OTHER'
+  OTHER: {
+    value: 'OTHER',
+    label: '其他',
+    icon: mdiFile
+  }
 }
+// 附件类型值
+export type AttachmentTypeValue = typeof AttachmentType[keyof typeof AttachmentType]['value']
+// 附件类型选项
+export type AttachmentTypeOption = typeof AttachmentType[keyof typeof AttachmentType]
+
 export interface Attachment {
   id?: number
   /**
@@ -36,5 +63,5 @@ export interface Attachment {
   /**
    * 文件类型
    */
-  type: AttachmentType
+  type: AttachmentTypeValue
 }

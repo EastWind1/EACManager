@@ -32,11 +32,13 @@ import UserApi from '@/api/UserApi.ts'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/store/UIStore.ts'
+import { useUserStore } from '@/store/UserStore.ts'
 
 const store = useUIStore()
 const { success } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
+const {setToken, setUser} = useUserStore()
 
 // 用户名
 const username = ref('')
@@ -54,7 +56,9 @@ async function login() {
   if (!valid.value) {
     return
   }
-  await UserApi.login(username.value, password.value)
+  const loginResult = await UserApi.login(username.value, password.value)
+  setToken(loginResult.token)
+  setUser(loginResult.user)
   success('登录成功')
   await router.push('/')
 }

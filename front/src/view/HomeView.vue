@@ -5,8 +5,10 @@
     <v-app-bar>
       <!-- 标题 -->
       <h1 class="ml-3 mr-3">服务单管理</h1>
+      <!-- 左侧导航抽屉 -->
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>
+      <!-- 暗色模式切换 -->
       <v-switch
         v-model="isDark"
         label="暗色模式"
@@ -17,9 +19,7 @@
       <!-- 登录用户图标 -->
       <v-menu open-on-hover class="ml-3">
         <template #activator="{ props }">
-          <v-avatar v-bind="props">
-            <v-icon :icon="mdiAccount"></v-icon>
-          </v-avatar>
+          <v-avatar v-bind="props" :icon="mdiAccount"> </v-avatar>
         </template>
 
         <v-list>
@@ -32,62 +32,19 @@
     <v-main>
       <!-- 左侧导航栏 -->
       <v-navigation-drawer v-model="drawer">
-        <v-list density="compact" nav>
-          <!-- 仪表盘 -->
-          <v-list-item to="/dashboard" exact>
-            <template #prepend>
-              <v-icon :icon="mdiMonitorDashboard"></v-icon>
-            </template>
-            仪表盘
-          </v-list-item>
-          <!-- 基本信息维护 -->
-          <v-list-item>
-            <template #prepend>
-              <v-icon :icon="mdiListBox"></v-icon>
-            </template>
-            <template>
-              <v-list density="compact" nav>
-                <v-list-item>
-                  <template #prepend>
-                    <v-icon :icon="mdiAccount"></v-icon>
-                  </template>
-                  用户管理
-                </v-list-item>
-                <v-list-item>
-                  <template #prepend>
-                    <v-icon :icon="mdiAccount"></v-icon>
-                  </template>
-                  公司管理
-                </v-list-item>
-                <v-list-item>
-                  <template #prepend>
-                    <v-icon :icon="mdiAccount"></v-icon>
-                  </template>
-                  附件管理
-                </v-list-item>
-              </v-list>
-            </template>
-          </v-list-item>
-          <!-- 单据列表 -->
-          <v-list-item to="/list">
-            <template #prepend>
-              <v-icon :icon="mdiMenu"></v-icon>
-            </template>
-            单据列表
-          </v-list-item>
+        <v-list density="compact" nav :items="menuItems" slim>
         </v-list>
       </v-navigation-drawer>
       <!-- 右侧内容区域 -->
       <RouterView />
     </v-main>
-
   </v-app>
 </template>
 
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
-import { mdiMenu, mdiAccount, mdiMonitorDashboard, mdiListBox } from '@mdi/js'
+import { mdiMenu, mdiAccount, mdiMonitorDashboard } from '@mdi/js'
 import { useUserStore } from '@/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
 
@@ -103,8 +60,33 @@ const isDark = computed({
     theme.global.name.value = value ? 'dark' : 'light'
   },
 })
+
+const menuItems = [
+  {
+    title: '仪表盘',
+    props: {
+      prependIcon: mdiMonitorDashboard,
+      to: '/dashboard',
+    },
+  },
+  {
+    title: '用户管理',
+    props: {
+      prependIcon: mdiAccount,
+      to: '/user'
+    },
+  },
+  {
+    title: '单据列表',
+    props: {
+      prependIcon: mdiMenu,
+      to: '/list'
+    },
+  }
+]
+
 // 移除 token
-const {removeToken} = useUserStore()
+const { removeToken } = useUserStore()
 
 // 退出登录
 function logout() {

@@ -82,23 +82,23 @@
       </template>
       <template #[`item.state`]="{ item }">
         <v-badge
-          :color="stateMap[item.state].color"
-          :content="stateMap[item.state].label"
+          :color="ServiceBillState[item.state].color"
+          :content="ServiceBillState[item.state].title"
           inline
         ></v-badge>
       </template>
       <template #[`item.type`]="{ item }">
         <v-badge
-          :color="typeMap[item.type].color"
-          :content="typeMap[item.type].label"
+          :color="ServiceBillType[item.type].color"
+          :content="ServiceBillType[item.type].title"
           inline
         ></v-badge>
       </template>
       <template #[`item.orderDate`]="{ item }">
-        {{item.orderDate? date.format(item.orderDate,  'yyyy-MM-dd') : ''}}
+        {{ item.orderDate ? date.format(item.orderDate, 'yyyy-MM-dd') : '' }}
       </template>
       <template #[`item.processedDate`]="{ item }">
-        {{item.processedDate? date.format(item.processedDate,  'yyyy-MM-dd') : ''}}
+        {{ item.processedDate ? date.format(item.processedDate, 'yyyy-MM-dd') : '' }}
       </template>
     </v-data-table-server>
 
@@ -131,7 +131,7 @@ import {
   type ServiceBill,
   type ServiceBillQueryParam,
   ServiceBillState,
-  ServiceBillType,
+  ServiceBillType
 } from '@/model/ServiceBill.ts'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { PageResult } from '@/model/PageResult.ts'
@@ -144,6 +144,7 @@ import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
 import { storeToRefs } from 'pinia'
 import * as date from 'date-fns'
+
 const store = useUIStore()
 const { success, warning } = store
 const { loading } = storeToRefs(store)
@@ -152,23 +153,18 @@ const { setData } = useRouterStore()
 
 // 筛选条件区域
 // 查询状态下拉框
-const stateOptions = [
-  { title: '新建', value: ServiceBillState.CREATED },
-  { title: '处理中', value: ServiceBillState.PROCESSING },
-  { title: '处理完成', value: ServiceBillState.PROCESSED },
-  { title: '完成', value: ServiceBillState.FINISHED },
-]
+const stateOptions = Object.values(ServiceBillState)
 // 查询参数
 const queryParam = ref<ServiceBillQueryParam>({
-  state: [ServiceBillState.CREATED],
+  state: [ServiceBillState.CREATED.value],
   pageSize: 20,
   pageIndex: 0,
   sorts: [
     {
       field: 'createdDate',
-      direction: 'DESC',
-    },
-  ],
+      direction: 'DESC'
+    }
+  ]
 })
 // 处理查询情况
 const route = useRoute()
@@ -198,27 +194,15 @@ const headers = [
   { title: '项目', key: 'projectName', sortable: false },
   { title: '地址', key: 'projectAddress', sortable: false },
   { title: '创建时间', key: 'orderDate', sortable: false },
-  { title: '完工时间', key: 'processedDate', sortable: false },
+  { title: '完工时间', key: 'processedDate', sortable: false }
 ]
-// 列表状态显示映射
-const stateMap = {
-  [ServiceBillState.CREATED]: { label: '新建', color: 'light-blue' },
-  [ServiceBillState.PROCESSING]: { label: '处理中', color: 'amber' },
-  [ServiceBillState.PROCESSED]: { label: '处理完成', color: 'light-green' },
-  [ServiceBillState.FINISHED]: { label: '完成', color: 'green' },
-}
-// 类型映射
-const typeMap = {
-  [ServiceBillType.FIX]: { label: '维修', color: 'light-blue' },
-  [ServiceBillType.INSTALL]: { label: '安装', color: 'light-green' },
-}
 // 默认数据
 const defaultData = {
   items: [],
   totalCount: 0,
   totalPages: 0,
   pageSize: 20,
-  pageIndex: 0,
+  pageIndex: 0
 }
 // 数据
 const data = ref<PageResult<ServiceBill>>(defaultData)
@@ -241,7 +225,7 @@ async function loadItems(options: {
   queryParam.value.pageSize = options.itemsPerPage
   queryParam.value.sorts = options.sortBy.map((sort) => ({
     field: sort.key,
-    direction: sort.order === 'asc' ? 'ASC' : 'DESC',
+    direction: sort.order === 'asc' ? 'ASC' : 'DESC'
   }))
 
   data.value = await ServiceBillApi.getByQueryParam(queryParam.value).catch(() => defaultData)
@@ -266,6 +250,7 @@ async function exportToZip() {
     window.URL.revokeObjectURL(url)
   }
 }
+
 // 结果展示弹窗
 // Dialog 状态
 const resultDialog = ref<{
@@ -280,7 +265,7 @@ const resultDialog = ref<{
   show: false,
   successCount: 0,
   failedCount: 0,
-  rows: [],
+  rows: []
 })
 
 // 按钮回调
@@ -292,8 +277,8 @@ function create() {
   router.push({
     path: '/bill',
     query: {
-      action: 'create',
-    },
+      action: 'create'
+    }
   })
 }
 
@@ -310,8 +295,8 @@ async function importFile() {
   await router.push({
     path: '/bill',
     query: {
-      action: 'import',
-    },
+      action: 'import'
+    }
   })
 }
 
@@ -327,7 +312,7 @@ function setResultDialogData(result: ActionsResult<number, void>) {
     if (!res.success) {
       rows.push({
         number: data.value.items.find((item) => item.id === res.param)?.number,
-        message: res.message,
+        message: res.message
       })
     }
   }

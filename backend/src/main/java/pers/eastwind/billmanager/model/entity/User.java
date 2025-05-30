@@ -4,12 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * 用户实体
@@ -27,20 +26,17 @@ public class User extends AuditEntity implements UserDetails {
     /**
      * 用户名
      */
-    @NotBlank(message = "用户名不能为空或空格")
     @Column(unique = true)
     private String username;
 
     /**
      * 密码
      */
-    @NotBlank(message = "密码不能为空或空格")
     private String password;
 
     /**
      * 姓名
      */
-    @NotBlank(message = "密码不能为空或空格")
     private String name;
 
     /**
@@ -56,10 +52,8 @@ public class User extends AuditEntity implements UserDetails {
     /**
      * 授权
      */
-    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    @Fetch(FetchMode.SUBSELECT)
-    private Collection<Authority> authorities;
+    @Enumerated(EnumType.STRING)
+    private AuthorityRole authority = AuthorityRole.ROLE_USER;
 
     /**
      * 是否启用
@@ -68,7 +62,7 @@ public class User extends AuditEntity implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
+        return Collections.singleton(authority);
     }
 
     @Override

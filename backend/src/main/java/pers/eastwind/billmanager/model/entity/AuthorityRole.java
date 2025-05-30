@@ -1,15 +1,25 @@
 package pers.eastwind.billmanager.model.entity;
+import org.springframework.security.core.GrantedAuthority;
 
 /**
- * 授权角色
+ * 权限实体
  */
-public enum AuthorityRole {
+public enum AuthorityRole implements GrantedAuthority {
     /**
      * 管理员
      */
-    ADMIN,
+    ROLE_ADMIN,
     /**
      * 普通用户
      */
-    USER
+    ROLE_USER,
+    /**
+     * 游客
+     */
+    ROLE_GUEST;
+
+    @Override
+    public String getAuthority() {
+        return name(); // 返回 "ROLE_ADMIN" 这样的字符串
+    }
 }

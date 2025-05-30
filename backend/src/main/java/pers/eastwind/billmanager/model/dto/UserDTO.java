@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.model.dto;
 
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
+import pers.eastwind.billmanager.model.entity.AuthorityRole;
 
 import java.util.Collection;
 
@@ -38,5 +39,5 @@ public class UserDTO {
     /**
      * 授权
      */
-    private Collection<? extends GrantedAuthority> authorities;
+    private AuthorityRole authority;
 }

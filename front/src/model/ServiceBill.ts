@@ -4,39 +4,65 @@ import type { QueryParam } from '@/model/QueryParam.ts'
 /**
  * 服务单类型
  */
-export const enum ServiceBillType {
+export const ServiceBillType = {
   /**
    * 安装单
    */
-  INSTALL = 'INSTALL',
+  INSTALL: {
+    value: 'INSTALL',
+    title: '安装单',
+    color: 'blue'
+  },
   /**
    * 维护单
    */
-  FIX = 'FIX',
-}
-
+  FIX: {
+    value: 'FIX',
+    title: '维护单',
+    color: 'orange'
+  },
+} as const
+// 服务单枚举值
+export type ServiceBillTypeValue = typeof ServiceBillType[keyof typeof ServiceBillType]['value']
 /**
  * 服务单据状态
  */
-export const enum ServiceBillState {
+export const ServiceBillState = {
   /**
    * 新建
    */
-  CREATED = 'CREATED',
+  CREATED: {
+    value: 'CREATED',
+    title: '新建',
+    color: 'blue'
+  },
   /**
    * 进行中
    */
-  PROCESSING = 'PROCESSING',
+  PROCESSING: {
+    value: 'PROCESSING',
+    title: '进行中',
+    color: 'orange'
+  },
   /**
    * 处理完成
    */
-  PROCESSED = 'PROCESSED',
+  PROCESSED: {
+    value: 'PROCESSED',
+    title: '处理完成',
+    color: 'light-green'
+  },
   /**
    * 完成
    */
-  FINISHED = 'FINISHED',
-}
-
+  FINISHED: {
+    value: 'FINISHED',
+    title: '完成',
+    color: 'green'
+  },
+} as const
+// 服务单状态枚举
+export type ServiceBillStateValue = typeof ServiceBillState[keyof typeof ServiceBillState]['value']
 /**
  * 服务单实体
  */
@@ -49,11 +75,11 @@ export interface ServiceBill {
   /**
    * 单据类型
    */
-  type: ServiceBillType
+  type: ServiceBillTypeValue
   /**
    * 单据状态
    */
-  state: ServiceBillState
+  state: ServiceBillStateValue
   /**
    * 项目名称
    */
@@ -147,7 +173,7 @@ export interface ServiceBillQueryParam extends QueryParam {
   /**
    * 状态
    */
-  state?: ServiceBillState[]
+  state?: ServiceBillStateValue[]
 
   /**
    * 项目名称

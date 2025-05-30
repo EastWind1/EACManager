@@ -1,11 +1,12 @@
 package pers.eastwind.billmanager.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import pers.eastwind.billmanager.model.dto.LoginResult;
+import pers.eastwind.billmanager.model.dto.UserDTO;
 import pers.eastwind.billmanager.service.UserService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * 用户控制器
@@ -28,12 +29,41 @@ public class UserController {
 
     /**
      * 登录
+     * 设置 token 至响应头
      * @param param 登录参数
-     * @return token
+     * @return 用户信息
      */
     @PostMapping("/token")
-    public ResponseEntity<Void> login(@RequestBody LoginParam param) {
-        String token = userService.login(param.username, param.password);
-        return ResponseEntity.ok().header("X-Auth-Token", token).build();
+    public ResponseEntity<UserDTO> login(@RequestBody LoginParam param) {
+        LoginResult loginResult = userService.login(param.username, param.password);
+        return ResponseEntity.ok().header("X-Auth-Token", loginResult.token()).body(loginResult.user());
+    }
+    /**
+     * 查询
+     */
+    @GetMapping
+    public List<UserDTO> getAll() {
+        return userService.getAll();
+    }
+    /**
+     * 创建
+     */
+    @PostMapping
+    public UserDTO create(@RequestBody UserDTO user) {
+        return userService.create(user);
+    }
+    /**
+     * 修改
+     */
+    @PutMapping
+    public UserDTO update(@RequestBody UserDTO user) {
+        return userService.update(user);
+    }
+    /**
+     * 禁用
+     */
+    @DeleteMapping("/{id}")
+    public void disable(@PathVariable Integer id) {
+        userService.disable(id);
     }
 }
