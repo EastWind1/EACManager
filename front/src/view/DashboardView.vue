@@ -12,7 +12,7 @@
                 <v-col
                   cols="6"
                   v-if="countByState.CREATED"
-                  @click="stateClick(ServiceBillState.CREATED)"
+                  @click="stateClick(ServiceBillState.CREATED.value)"
                   class="v-card--hover"
                 >
                   <div class="text-h6 text-center">待处理单据</div>
@@ -21,7 +21,7 @@
                 <v-col
                   cols="6"
                   v-if="countByState.PROCESSING"
-                  @click="stateClick(ServiceBillState.PROCESSING)"
+                  @click="stateClick(ServiceBillState.PROCESSING.value)"
                   class="v-card--hover"
                 >
                   <div class="text-h6 text-center">处理中单据</div>
@@ -31,7 +31,7 @@
                 <v-col
                   cols="6"
                   v-if="countByState.PROCESSED"
-                  @click="stateClick(ServiceBillState.PROCESSED)"
+                  @click="stateClick(ServiceBillState.PROCESSED.value)"
                   class="v-card--hover"
                 >
                   <div class="text-h6 text-center">处理完成单据</div>
@@ -70,7 +70,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ServiceBillState } from '@/model/ServiceBill.ts'
+import { ServiceBillState, type ServiceBillStateValue } from '@/model/ServiceBill.ts'
 import { StatisticApi } from '@/api/StatisticApi.ts'
 import { useRouterStore } from '@/store/RouterStore.ts'
 import { useRouter } from 'vue-router'
@@ -78,7 +78,7 @@ import { useRouter } from 'vue-router'
 const { setData } = useRouterStore()
 const router = useRouter()
 // 单据数量
-const countByState = ref<{ [key in ServiceBillState]?: number }>({})
+const countByState = ref<{ [key in ServiceBillStateValue]?: number }>({})
 // 金额统计
 const amountGroupByMonth = ref<{month: string, amount: number}[]>([])
 
@@ -99,7 +99,7 @@ onMounted(async () => {
 })
 
 // 统计数量点击跳转
-async function stateClick(state: ServiceBillState) {
+async function stateClick(state: ServiceBillStateValue) {
   setData({
     state: [state],
   })

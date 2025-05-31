@@ -24,7 +24,7 @@ public class AttachmentController {
      * 下载文件
      * @param path 相对路径
      */
-    @GetMapping("/{*path}")
+    @GetMapping(value = "/{*path}",  produces = "application/octet-stream")
     public Resource download(@PathVariable String path) {
         if (path == null) {
             throw new RuntimeException("路径不能为空");

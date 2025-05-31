@@ -10,7 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -40,35 +39,36 @@ public class JWTTokenFilter extends OncePerRequestFilter {
         // 获取 token
         String prefix = "Bearer ";
         String auth = request.getHeader("Authorization");
-        if (auth != null && auth.startsWith(prefix)) {
-            String token = auth.substring(prefix.length());
-            if (jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
-                String userName;
-                try {
-                    SignedJWT jwt = SignedJWT.parse(token);
-                    userName = jwt.getJWTClaimsSet().getAudience().getFirst();
-                } catch (ParseException e) {
-                    log.error(e.getMessage(), e);
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "解析 token 失败");
-                    return;
-                }
-                if (userName != null) {
-                    Authentication exist = SecurityContextHolder.getContext().getAuthentication();
-                    if (exist == null || !exist.isAuthenticated() ||
-                            !(exist.getPrincipal() instanceof UserDetails userDetails &&
-                                    userDetails.getUsername().equals(userName))) {
-                        UserDetails user = userService.loadUserByUsername(userName);
-                        if (user.isEnabled()) {
-                            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                    user, user.getPassword(), user.getAuthorities()
-                            );
-                            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                            SecurityContextHolder.getContext().setAuthentication(authentication);
-                        }
-                    }
-                }
+        if (auth == null || !auth.startsWith(prefix)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = auth.substring(prefix.length());
+        if (!jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "token 无效");
+            return;
+        }
+        String userName;
+        try {
+            SignedJWT jwt = SignedJWT.parse(token);
+            userName = jwt.getJWTClaimsSet().getAudience().getFirst();
+        } catch (ParseException e) {
+            log.error(e.getMessage(), e);
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "解析 token 失败");
+            return;
+        }
+        if (userName != null) {
+            UserDetails user = userService.loadUserByUsername(userName);
+            if (user.isEnabled()) {
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        user, user.getPassword(), user.getAuthorities()
+                );
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }

@@ -8,7 +8,7 @@
             <template #text v-if="!isHovering">
               <div class="d-flex justify-center ga-2">
                 <div>
-                  <v-icon :icon="typeIcons[attach.type]"></v-icon>
+                  <v-icon :icon="AttachmentType[attach.type].icon"></v-icon>
                 </div>
                 <div>{{ attach.name }}</div>
               </div>
@@ -30,21 +30,15 @@
       </v-col>
     </v-row>
   </v-container>
-  <v-dialog v-model="previewDialog" class="w-75 h-75">
+  <v-dialog v-model="previewDialog"  height="85vh">
     <v-card>
       <template #title>
         {{ previewInfo.attachment.name }}
       </template>
-      <template #text>
-        <!-- 预览图片 -->
-        <div v-if="previewInfo.attachment.type === AttachmentType.IMAGE">
-          <img :src="previewInfo.objectUrl" class="w-100 h-100" :alt="previewInfo.objectUrl" />
-        </div>
-        <!-- 使用 iframe 预览 PDF 文件 -->
-        <div v-else-if="previewInfo.attachment.type === AttachmentType.PDF">
-          <iframe :src="previewInfo.objectUrl" class="w-100 h-100"></iframe>
-        </div>
-      </template>
+      <v-card-text class="overflow-auto d-flex">
+        <embed :src="previewInfo.objectUrl" v-if="previewInfo.attachment.type === AttachmentType.PDF.value" class="w-100 h-100"/>
+        <img :src="previewInfo.objectUrl" v-if="previewInfo.attachment.type === AttachmentType.IMAGE.value" style="object-fit: contain; max-width: 100%" :alt="previewInfo.attachment.name"/>
+      </v-card-text>
       <v-card-actions>
         <v-btn @click="download(previewInfo.attachment)">下载</v-btn>
         <v-btn @click="previewDialog = false">关闭</v-btn>
@@ -55,7 +49,7 @@
 
 <script setup lang="ts">
 import { type Attachment, AttachmentType } from '@/model/Attachment.ts'
-import { mdiFile, mdiFileExcel, mdiFileImage, mdiFilePdfBox, mdiFileWord, mdiPlus } from '@mdi/js'
+import { mdiPlus } from '@mdi/js'
 import { ref, toRefs } from 'vue'
 import AttachmentApi from '@/api/AttachmentApi.ts'
 import type { ServiceBill } from '@/model/ServiceBill.ts'
@@ -69,7 +63,7 @@ const { warning } = useUIStore()
 const props = defineProps<{
   readonly: boolean
 }>()
-const {readonly} = toRefs(props)
+const { readonly } = toRefs(props)
 // 预览窗口
 const previewDialog = ref(false)
 // 预览信息
@@ -79,17 +73,9 @@ const previewInfo = ref<{
   // 对象 URL
   objectUrl: string
 }>({
-  attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER },
+  attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER.value },
   objectUrl: '',
 })
-// 图标映射
-const typeIcons = {
-  [AttachmentType.IMAGE]: mdiFileImage,
-  [AttachmentType.PDF]: mdiFilePdfBox,
-  [AttachmentType.WORD]: mdiFileWord,
-  [AttachmentType.EXCEL]: mdiFileExcel,
-  [AttachmentType.OTHER]: mdiFile,
-}
 
 /**
  * 下载附件
@@ -116,7 +102,7 @@ async function preview(attach: Attachment) {
     warning('文件为空')
     return
   }
-  if (attach.type !== AttachmentType.IMAGE && attach.type !== AttachmentType.PDF) {
+  if (attach.type !== AttachmentType.IMAGE.value && attach.type !== AttachmentType.PDF.value) {
     warning('暂不支持预览该文件')
     return
   }
@@ -132,13 +118,13 @@ async function preview(attach: Attachment) {
  * 上传附件
  */
 async function upload() {
-
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx', false)
-  let attach;
+  let attach
   // 编辑状态上传的文件，存至临时目录
   if (!readonly.value) {
     attach = await AttachmentApi.uploadTemp(fileList[0])
-  } else { // 非编辑状态，直接上传至当前单据
+  } else {
+    // 非编辑状态，直接上传至当前单据
     if (!bill.value?.id) {
       warning('单据 ID 不存在')
       return

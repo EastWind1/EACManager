@@ -14,8 +14,7 @@
 	<name>Elevator AC After-Sale Bill Manager</name>
 	<description>Elevator AC After-Sale Bill Manager</description>
 	<properties>
-		<maven.compiler.source>21</maven.compiler.source>
-		<maven.compiler.target>21</maven.compiler.target>
+		<java.version>21</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<org.mapstruct.version>1.6.3</org.mapstruct.version>
 		<jose.jwt.version>10.2</jose.jwt.version>
@@ -100,7 +99,17 @@
 			<artifactId>rapidocr-onnx-platform</artifactId>
 			<version>${rapidocr.version}</version>
 		</dependency>
-		<!-- 文件处理 -->
+		<dependency>
+			<groupId>io.github.mymonstercat</groupId>
+			<artifactId>rapidocr-onnx-linux-x86_64</artifactId>
+			<version>1.2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>io.github.mymonstercat</groupId>
+			<artifactId>rapidocr-onnx-windows-x86_64</artifactId>
+			<version>1.2.2</version>
+		</dependency>
+		<!-- 文件类型处理 -->
 		<dependency>
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-core</artifactId>
@@ -141,14 +150,6 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>process-aot</id>
-						<goals>
-							<goal>process-aot</goal>
-						</goals>
-					</execution>
-				</executions>
 				<configuration>
 					<excludes>
 						<exclude>
@@ -170,6 +171,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>

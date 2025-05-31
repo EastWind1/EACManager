@@ -3,13 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    // 首页
     {
       path: '/',
-      redirect: '/home',
-    },
-    {
-      path: '/home',
       component: () => import('@/view/HomeView.vue'),
       children: [
         // 仪表盘

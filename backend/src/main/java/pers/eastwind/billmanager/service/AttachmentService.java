@@ -67,9 +67,6 @@ public class AttachmentService implements InitializingBean {
     @Override
     public void afterPropertiesSet() {
         rootPath = properties.getAttachment().getPath().normalize().toAbsolutePath();
-        /**
-         * 临时路径
-         */
         String TEMP_DIR = properties.getAttachment().getTemp();
         tempPath = rootPath.resolve(TEMP_DIR).normalize().toAbsolutePath();
         if (rootPath.startsWith(tempPath)) {
@@ -103,7 +100,10 @@ public class AttachmentService implements InitializingBean {
             throw new RuntimeException("路径不能为空");
         }
         // 去除头部的斜杠
-        relativePath = relativePath.startsWith("/") ? relativePath.subpath(1, relativePath.getNameCount()) : relativePath;
+        if (relativePath.startsWith("/")) {
+            String pathStr =  relativePath.toString().substring(1);
+            relativePath = Path.of(pathStr);
+        }
         return rootPath.resolve(relativePath).normalize().toAbsolutePath();
     }
 
