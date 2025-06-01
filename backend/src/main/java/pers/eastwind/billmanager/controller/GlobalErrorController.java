@@ -24,7 +24,12 @@ public class GlobalErrorController extends AbstractErrorController {
     public ResponseEntity<Result<Object>> error(HttpServletRequest request) {
         HttpStatus status = this.getStatus(request);
         Throwable throwable = (Throwable) request.getAttribute("jakarta.servlet.error.exception");
+        String errorMessage = (String) request.getAttribute("jakarta.servlet.error.message");
+
         if (status == HttpStatus.NO_CONTENT || throwable == null || throwable.getCause() == null) {
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                return new ResponseEntity<>(Result.error(errorMessage), status);
+            }
             return new ResponseEntity<>(Result.error("服务器异常"), status);
         } else {
             return new ResponseEntity<>(Result.error(throwable.getCause().getMessage()), status);
