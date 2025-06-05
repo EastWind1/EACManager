@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import pers.eastwind.billmanager.filter.JWTTokenFilter;
 import pers.eastwind.billmanager.service.UserService;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +35,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").hasAnyRole("ADMIN", "USER")
                         .anyRequest().permitAll()
                 )
+                .exceptionHandling((handing) -> {
+                    // hasAnyRole 在处理未登录时返回 403，单独改为 401
+                    handing.authenticationEntryPoint((request, response, authException) -> {
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "未认证");
+                    });
+                })
                 // 禁用 Session
                 .sessionManagement(configurer -> configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 添加JWT验证过滤器

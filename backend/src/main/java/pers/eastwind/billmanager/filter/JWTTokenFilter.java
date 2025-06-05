@@ -33,11 +33,6 @@ public class JWTTokenFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        return request.getRequestURI().startsWith("/api/user/token");
-    }
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 获取 token
@@ -50,7 +45,7 @@ public class JWTTokenFilter extends OncePerRequestFilter {
 
         String token = auth.substring(prefix.length());
         if (!jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "token 无效");
+            filterChain.doFilter(request, response);
             return;
         }
         String userName;
@@ -58,8 +53,7 @@ public class JWTTokenFilter extends OncePerRequestFilter {
             SignedJWT jwt = SignedJWT.parse(token);
             userName = jwt.getJWTClaimsSet().getAudience().getFirst();
         } catch (ParseException e) {
-            log.error(e.getMessage(), e);
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "解析 token 失败");
+            filterChain.doFilter(request, response);
             return;
         }
         if (userName != null) {

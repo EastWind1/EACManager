@@ -17,7 +17,7 @@
         hide-details
       />
       <!-- 登录用户图标 -->
-      <v-menu open-on-hover class="ml-3">
+      <v-menu open-on-hover open-on-click class="ml-3">
         <template #activator="{ props }">
           <v-avatar v-bind="props" :icon="mdiAccount"> </v-avatar>
         </template>
@@ -86,11 +86,12 @@ const menuItems = [
 ]
 
 // 移除 token
-const { removeToken } = useUserStore()
+const { removeToken, removeUser } = useUserStore()
 
 // 退出登录
 function logout() {
   removeToken()
+  removeUser()
   router.push('/login')
 }
 </script>

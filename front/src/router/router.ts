@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/store/UserStore.ts'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -6,6 +7,16 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/view/HomeView.vue'),
+      beforeEnter: (to) => {
+        const hasLogin = useUserStore().getUser();
+        if (!hasLogin) {
+          return {
+            path: '/login',
+            query: { redirect: to.fullPath },
+          }
+        }
+        return true
+      },
       children: [
         // 仪表盘
         {

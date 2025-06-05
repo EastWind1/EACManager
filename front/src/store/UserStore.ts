@@ -13,7 +13,7 @@ export const useUserStore = defineStore('userStore', () => {
   // 用户
   const secretUser = localStorage.getItem('user')
   const token = ref(secretToken ? CryptoJS.AES.decrypt(secretToken, SECRET_KEY).toString(CryptoJS.enc.Utf8) : null)
-  const user = ref<User>(secretUser ? JSON.parse(CryptoJS.AES.decrypt(secretUser, SECRET_KEY).toString(CryptoJS.enc.Utf8)) : null)
+  const user = ref<User | undefined>(secretUser ? JSON.parse(CryptoJS.AES.decrypt(secretUser, SECRET_KEY).toString(CryptoJS.enc.Utf8)) : undefined)
 
   /**
    * 设置当前用户
@@ -30,6 +30,15 @@ export const useUserStore = defineStore('userStore', () => {
    */
   function getUser() {
     return user.value
+  }
+
+  /**
+   * 移除当前用户
+   */
+  function removeUser() {
+    user.value = undefined
+    localStorage.removeItem('user')
+
   }
   /**
    * 设置用户 token
@@ -60,6 +69,7 @@ export const useUserStore = defineStore('userStore', () => {
     getToken,
     removeToken,
     setUser,
-    getUser
+    getUser,
+    removeUser
   }
 })

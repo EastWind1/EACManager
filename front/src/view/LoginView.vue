@@ -29,7 +29,7 @@
 import { ref } from 'vue'
 import { mdiAccount, mdiLock, mdiEye, mdiEyeOff } from '@mdi/js'
 import UserApi from '@/api/UserApi.ts'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
@@ -38,6 +38,7 @@ const store = useUIStore()
 const { success } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
+const route = useRoute()
 const {setToken, setUser} = useUserStore()
 
 // 用户名
@@ -60,6 +61,10 @@ async function login() {
   setToken(loginResult.token)
   setUser(loginResult.user)
   success('登录成功')
-  await router.push('/')
+  if (route.query.redirect) {
+    await router.push(route.query.redirect as string)
+  } else {
+    await router.push('/')
+  }
 }
 </script>

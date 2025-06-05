@@ -1,5 +1,4 @@
 import axios, { type AxiosInstance } from 'axios'
-import router from '@/router/router.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
 /**
@@ -53,10 +52,6 @@ function useAxios(baseURL: string): AxiosInstance {
         warning('网络异常')
       } else {
         switch (err.status) {
-          case 401:
-            warning('请重新登录')
-            router.push('/login').then()
-            break
           case 403:
             warning('权限不足')
             break

@@ -148,23 +148,16 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
 				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-					<includes>
-						<include>
-							<groupId>null</groupId>
-							<artifactId>null</artifactId>
-						</include>
-					</includes>
-					<layout>ZIP</layout>
-					<includeSystemScope>true</includeSystemScope>
+					<archive>
+						<manifest>
+							<mainClass>pers.eastwind.billmanager.EACAfterSaleMgrApplication</mainClass>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>lib/</classpathPrefix>
+						</manifest>
+					</archive>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -208,11 +201,11 @@
 							<excludeTransitive>false</excludeTransitive>
 							<stripVersion>false</stripVersion>
 							<silent>true</silent>
+							<includeScope>runtime</includeScope>
 						</configuration>
 					</execution>
 				</executions>
 			</plugin>
 		</plugins>
 	</build>
-
 </project>
