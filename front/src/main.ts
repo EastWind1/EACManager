@@ -56,13 +56,14 @@ const vuetify = createVuetify({
     },
   },
 })
-
+// 导出以供非 setup 函数内使用
+const pinia = createPinia()
 const app = createApp(App)
-  app.use(createPinia())
+  app.use(pinia)
   .use(router)
   .use(vuetify)
   .mount('#app')
 
 // 导出上下文以供动态创建 vnode 使用
 const appContext = app._context
-export {appContext}
+export {appContext, pinia}

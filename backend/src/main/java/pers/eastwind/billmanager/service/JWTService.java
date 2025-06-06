@@ -46,8 +46,7 @@ public class JWTService {
                 .subject(subject)
                 .issueTime(now)
                 // 24 小时后过期
-                // .expirationTime(new Date(now.getTime() + 24 * 60 * 60 * 1000))
-                .expirationTime(new Date(now.getTime() + 1000))
+                .expirationTime(new Date(now.getTime() + 24 * 60 * 60 * 1000))
                 .build();
         SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
         try {

@@ -1,8 +1,11 @@
 package pers.eastwind.billmanager.model.common;
 
+import lombok.Getter;
+
 /**
  * 服务单据状态
  */
+@Getter
 public enum ServiceBillState {
     /**
      * 新建
@@ -27,7 +30,4 @@ public enum ServiceBillState {
         this.label = label;
     }
 
-    public String getLabel() {
-        return label;
-    }
 }

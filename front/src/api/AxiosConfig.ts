@@ -1,6 +1,8 @@
 import axios, { type AxiosInstance } from 'axios'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
+import router from '@/router/router.ts'
+import { pinia } from '@/main.ts'
 /**
  * 获取 axios 实例
  */
@@ -8,8 +10,8 @@ function useAxios(baseURL: string): AxiosInstance {
   const instance = axios.create({
     baseURL
   })
-  const { showLoading, hideLoading, warning } = useUIStore()
-  const { getToken } = useUserStore()
+  const { showLoading, hideLoading, warning } = useUIStore(pinia)
+  const { getToken } = useUserStore(pinia)
   const requestMap = new Map<string, AbortController>()
   // 请求前拦截器
   instance.interceptors.request.use(
@@ -46,12 +48,21 @@ function useAxios(baseURL: string): AxiosInstance {
       return res.data
     },
     // 全局异常处理
-    (err) => {
+     (err) => {
       hideLoading()
       if (err.code === 'ERR_NETWORK') {
         warning('网络异常')
       } else {
         switch (err.status) {
+          case 401:
+            warning('未登录或登录过期')
+            router.push({
+              path: '/login',
+              query: {
+                redirect: location.pathname + location.search
+              }
+            }).then()
+            break
           case 403:
             warning('权限不足')
             break
@@ -63,7 +74,7 @@ function useAxios(baseURL: string): AxiosInstance {
               const reader = new FileReader()
               reader.onload = () => {
                 const json = JSON.parse(reader.result as string)
-                warning(json.message? json.message: err.response.statusText)
+                warning(json.message ? json.message : err.response.statusText)
               }
               reader.readAsText(err.response.data)
             } else {

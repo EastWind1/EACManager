@@ -2,9 +2,9 @@
 <template>
   <v-app>
     <!-- 标题栏 -->
-    <v-app-bar>
+    <v-app-bar scroll-behavior="hide" height="48" >
       <!-- 标题 -->
-      <h1 class="ml-3 mr-3">服务单管理</h1>
+      <h2 class="ml-3 mr-3">服务单管理</h2>
       <!-- 左侧导航抽屉 -->
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>

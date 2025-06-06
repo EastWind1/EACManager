@@ -106,7 +106,7 @@ public class MapRuleService {
             Path rulePath = properties.getMapRulePath().normalize().toAbsolutePath();
             Path mapPath = rulePath.resolve(prefix + "-" + className + ".json");
             InputStream mapStream;
-            if (Files.exists(rulePath)) {
+            if (Files.exists(mapPath)) {
                 mapStream = Files.newInputStream(mapPath);
             } else {
                 // jar 包内扫描

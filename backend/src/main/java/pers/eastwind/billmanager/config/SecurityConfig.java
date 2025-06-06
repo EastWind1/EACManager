@@ -25,6 +25,7 @@ public class SecurityConfig {
     public SecurityConfig(JWTTokenFilter jwtTokenFilter) {
         this.jwtTokenFilter = jwtTokenFilter;
     }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -37,9 +38,8 @@ public class SecurityConfig {
                 )
                 .exceptionHandling((handing) -> {
                     // hasAnyRole 在处理未登录时返回 403，单独改为 401
-                    handing.authenticationEntryPoint((request, response, authException) -> {
-                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "未认证");
-                    });
+                    handing.authenticationEntryPoint((request, response, authException) ->
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "未认证"));
                 })
                 // 禁用 Session
                 .sessionManagement(configurer -> configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

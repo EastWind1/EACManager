@@ -12,12 +12,20 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - eac-network
-
+#  ocr-server:
+#    build:
+#      context: ./ocr-server
+#    image: ocr-server:latest
+#    ports:
+#      - "9003:9003"
+#    networks:
+#      - eac-network
   backend:
     image: eclipse-temurin:21
     container_name: eac-backend
     depends_on:
       - postgres
+#      - ocr-server
     ports:
       - "8080:8080"
       - "5005:5005"
