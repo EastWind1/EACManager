@@ -29,7 +29,9 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
      */
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
-        return returnType.getMethod() != null && returnType.getMethod().getReturnType() != Resource.class;
+        String packageName = returnType.getContainingClass().getPackage().getName();
+        boolean isBusController = packageName.startsWith("pers.eastwind.billmanager.controller");
+        return isBusController && returnType.getMethod() != null && returnType.getMethod().getReturnType() != Resource.class;
     }
 
     /**

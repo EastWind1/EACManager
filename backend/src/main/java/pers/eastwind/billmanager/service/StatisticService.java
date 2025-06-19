@@ -1,13 +1,16 @@
 package pers.eastwind.billmanager.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
 import pers.eastwind.billmanager.model.dto.MonthSumAmount;
 import pers.eastwind.billmanager.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -24,6 +27,7 @@ public class StatisticService {
      *
      * @return 包含各状态数量的 Map
      */
+    @Cacheable(value = "statistic", key = "'countBillsByState'")
     public Map<ServiceBillState, Long> countBillsByState() {
         List<Object[]> results = serviceBillRepository.countByState();
         Map<ServiceBillState, Long> stateCountMap = new HashMap<>();
@@ -43,9 +47,11 @@ public class StatisticService {
      *
      * @return 每个月份与对应金额的 Map
      */
+    @Cacheable(value = "statistic", key = "'sumTotalAmountByMonth'")
     public List<MonthSumAmount> sumTotalAmountByMonth() {
 
-        List<Object[]> results = serviceBillRepository.sumTotalAmountByMonth();
+        Instant preYear = Instant.now().minus(365, ChronoUnit.DAYS);
+        List<Object[]> results = serviceBillRepository.sumTotalAmountByMonth(preYear, Instant.now());
         List<MonthSumAmount> rows = new ArrayList<>();
 
         for (Object[] result : results) {

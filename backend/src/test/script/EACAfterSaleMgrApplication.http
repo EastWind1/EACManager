@@ -11,26 +11,13 @@ Content-Type: application/json
     client.global.set("authorization", "Bearer " + token)
 %}
 
-<> 2025-05-18T221757.200.json
-<> 2025-05-18T221731.200.json
-<> 2025-05-18T221618.200.json
-<> 2025-05-18T221557.200.json
-<> 2025-05-18T221527.200.json
-<> 2025-05-18T221416.200.json
-<> 2025-05-18T221323.200.json
-<> 2025-05-18T221206.200.json
 
 ###
 
 
-GET http://localhost:8080/api/statistics/billTotalAmountGroupMonth
+GET http://localhost:8080/api/statistic/billCountByState
 Authorization: {{authorization}}
 
-<> 2025-05-18T222333.200.json
-<> 2025-05-18T222314.200.json
-<> 2025-05-18T221823.500.json
-<> 2025-05-18T221800.401.json
-<> 2025-05-18T221211.500.json
 
 ###
 

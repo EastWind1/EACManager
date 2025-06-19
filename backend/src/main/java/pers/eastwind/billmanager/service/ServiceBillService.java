@@ -1,5 +1,7 @@
 package pers.eastwind.billmanager.service;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
 import pers.eastwind.billmanager.model.dto.ActionsResult;
@@ -98,6 +100,7 @@ public class ServiceBillService {
      * @param serviceBillDTO 单据
      * @return 保存后的单据
      */
+    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
     @Transactional
     public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
         if (serviceBillDTO.getId() != null && serviceBillRepository.existsById(serviceBillDTO.getId())) {
@@ -125,6 +128,7 @@ public class ServiceBillService {
      * @param file 文件
      * @return 单据
      */
+    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
     public ServiceBillDTO generateByFile(MultipartFile file) {
         AttachmentDTO attachment = attachmentService.uploadTemp(file);
         ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
@@ -149,6 +153,7 @@ public class ServiceBillService {
      * @param serviceBillDTO 单据
      * @return 更新后的单据
      */
+    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
     @Transactional
     public ServiceBillDTO update(ServiceBillDTO serviceBillDTO) {
         if (serviceBillDTO.getId() == null) {
@@ -174,6 +179,7 @@ public class ServiceBillService {
      * @param param 查询参数
      * @return 分页结果
      */
+    @Cacheable(value = "serviceBill", key = "'findByParam' + #param")
     public Page<ServiceBillDTO> findByParam(ServiceBillQueryParam param) {
         if (param == null) {
             throw new RuntimeException("查询参数为空");
@@ -222,6 +228,7 @@ public class ServiceBillService {
      * @param ids 单据 ID 列表
      * @return 批量操作结果
      */
+    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
     public ActionsResult<Integer, Void> delete(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
@@ -247,6 +254,7 @@ public class ServiceBillService {
      * @param ids 单据 ID 列表
      * @return 批量操作结果
      */
+    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
     public ActionsResult<Integer, Void> process(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
@@ -273,6 +281,7 @@ public class ServiceBillService {
      * @param ids           单据 ID
      * @param processedDate 完成日期，默认为当前时间
      */
+    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
     public ActionsResult<Integer, Void> processed(List<Integer> ids, Instant processedDate) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
@@ -298,6 +307,7 @@ public class ServiceBillService {
     /**
      * 批量更改为完成
      */
+    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
     public ActionsResult<Integer, Void> finish(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");

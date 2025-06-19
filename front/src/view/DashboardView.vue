@@ -11,31 +11,28 @@
               <v-row>
                 <v-col
                   cols="6"
-                  v-if="countByState.CREATED"
                   @click="stateClick(ServiceBillState.CREATED.value)"
                   class="v-card--hover"
                 >
                   <div class="text-h6 text-center">待处理单据</div>
-                  <div class="text-h4 text-center" >{{ countByState.CREATED }}</div>
+                  <div class="text-h4 text-center" >{{ countByState.CREATED ? countByState.CREATED : 0 }}</div>
                 </v-col>
                 <v-col
                   cols="6"
-                  v-if="countByState.PROCESSING"
                   @click="stateClick(ServiceBillState.PROCESSING.value)"
                   class="v-card--hover"
                 >
                   <div class="text-h6 text-center">处理中单据</div>
-                  <div class="text-h4 text-center">{{ countByState.PROCESSING }}</div>
+                  <div class="text-h4 text-center">{{ countByState.PROCESSING ? countByState.PROCESSING : 0 }}</div>
                 </v-col>
 
                 <v-col
                   cols="6"
-                  v-if="countByState.PROCESSED"
                   @click="stateClick(ServiceBillState.PROCESSED.value)"
                   class="v-card--hover"
                 >
                   <div class="text-h6 text-center">处理完成单据</div>
-                  <div class="text-h4 text-center">{{ countByState.PROCESSED }}</div>
+                  <div class="text-h4 text-center">{{ countByState.PROCESSED? countByState.PROCESSED : 0 }}</div>
                 </v-col>
               </v-row>
             </v-container>

@@ -68,7 +68,7 @@ public class ActionsResult<P, R> {
                 rows.add(Row.<P, R>builder().param(param).success(true).result(r).build());
                 result.setSuccessCount(result.getSuccessCount() + 1);
             } catch (Exception e) {
-                log.error("执行操作失败: {} {}", param.toString(), e.getMessage());
+                log.error("执行操作失败: {} {}", param.toString(), e.getMessage(), e);
                 rows.add(Row.<P, R>builder().param(param).success(false).message(e.getMessage()).build());
                 result.setFailCount(result.getFailCount() + 1);
             }

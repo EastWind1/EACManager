@@ -6,6 +6,9 @@ import org.springframework.context.annotation.Configuration;
 
 import java.nio.file.Path;
 
+/**
+ * 读取配置文件
+ */
 @Configuration
 @ConfigurationProperties(prefix = "config")
 @Data

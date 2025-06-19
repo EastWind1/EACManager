@@ -6,4 +6,4 @@ cd /d "%DEPLOY_DIR%front\nginx"
 start "" .\nginx.exe
 
 cd /d "%DEPLOY_DIR%backend"
-start "Java App" cmd /c  java -jar -Dfile.encoding=UTF-8 -Dloader.path=.\lib app.jar
+start "Java App" cmd /c  java -Dfile.encoding=UTF-8 -Dloader.path=./lib -jar  app.jar
