@@ -1,26 +1,28 @@
-import { useUIStore } from '@/store/UIStore.ts'
-import ServiceBillApi from '@/api/ServiceBillApi.ts'
-import type { ActionsResult } from '@/model/ActionsResult.ts'
-import { h, ref, render } from 'vue'
-import { VBtn, VCard, VDatePicker, VDialog } from 'vuetify/components'
-import { appContext } from '@/main.ts'
+import { useUIStore } from "@/store/UIStore.ts";
+import ServiceBillApi from "@/api/ServiceBillApi.ts";
+import type { ActionsResult } from "@/model/ActionsResult.ts";
+import { h, ref, render } from "vue";
+import { VBtn, VCard, VDatePicker, VDialog } from "vuetify/components";
+import { appContext } from "@/main.ts";
 
 /**
  * 单据操作
  * @param processResult 处理结果回调
  */
-export function useBillActions(processResult: (result: ActionsResult<number, void>) => void) {
-  const { warning, confirm } = useUIStore()
+export function useBillActions(
+  processResult: (result: ActionsResult<number, void>) => void,
+) {
+  const { warning, confirm } = useUIStore();
 
   /**
    * 开始处理
    */
   async function process(ids: number[]) {
     if (ids.length === 0) {
-      warning('请选择要操作的单据')
-      return
+      warning("请选择要操作的单据");
+      return;
     }
-    processResult(await ServiceBillApi.process(ids))
+    processResult(await ServiceBillApi.process(ids));
   }
 
   /**
@@ -35,13 +37,13 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
     maxDate?: Date,
   ): Promise<Date | undefined> {
     return new Promise<Date | undefined>((resolve) => {
-      const date = ref<Date>()
+      const date = ref<Date>();
       const node = h(
         VDialog,
         {
           modelValue: true,
           persistent: true,
-          width: 'auto'
+          width: "auto",
         },
         () =>
           h(VCard, null, {
@@ -49,7 +51,7 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
             text: () =>
               h(VDatePicker, {
                 modelValue: date.value,
-                'onUpdate:modelValue':  (value) => date.value = value as Date,
+                "onUpdate:modelValue": (value) => (date.value = value as Date),
                 min: minDate,
                 max: maxDate,
               }),
@@ -57,32 +59,33 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
               h(
                 VBtn,
                 {
-                  color: 'primary',
+                  color: "primary",
                   text: true,
                   onClick: () => {
-                    resolve(date.value)
-                    render(null, document.body)
+                    resolve(date.value);
+                    render(null, document.body);
                   },
                 },
-                () => '确定',
+                () => "确定",
               ),
               h(
                 VBtn,
                 {
                   text: true,
                   onClick: () => {
-                    resolve(undefined)
-                    render(null, document.body)
+                    resolve(undefined);
+                    render(null, document.body);
                   },
                 },
-                () => '取消',
+                () => "取消",
               ),
             ],
           }),
-      )
-      node.appContext = appContext
-      render(node, document.body)
-    })
+      );
+
+      node.appContext = appContext;
+      render(node, document.body);
+    });
   }
 
   /**
@@ -90,14 +93,14 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
    */
   async function processed(ids: number[]) {
     if (ids.length === 0) {
-      warning('请选择要操作的单据')
-      return
+      warning("请选择要操作的单据");
+      return;
     }
-    const date = await showDatePicker('请选择处理完成日期')
+    const date = await showDatePicker("请选择处理完成日期");
     if (!date) {
-      return
+      return;
     }
-    processResult(await ServiceBillApi.processed(ids, date))
+    processResult(await ServiceBillApi.processed(ids, date));
   }
 
   /**
@@ -105,10 +108,10 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
    */
   async function finish(ids: number[]) {
     if (ids.length === 0) {
-      warning('请选择要操作的单据')
-      return
+      warning("请选择要操作的单据");
+      return;
     }
-    processResult(await ServiceBillApi.finish(ids))
+    processResult(await ServiceBillApi.finish(ids));
   }
 
   /**
@@ -116,14 +119,17 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
    */
   async function remove(ids: number[]) {
     if (ids.length === 0) {
-      warning('请选择要操作的单据')
-      return
+      warning("请选择要操作的单据");
+      return;
     }
-    const confirmResult = await confirm('确认删除', `确认删除 ${ids.length} 条单据？`)
+    const confirmResult = await confirm(
+      "确认删除",
+      `确认删除 ${ids.length} 条单据？`,
+    );
     if (!confirmResult) {
-      return
+      return;
     }
-    processResult(await ServiceBillApi.delete(ids))
+    processResult(await ServiceBillApi.delete(ids));
   }
 
   return {
@@ -131,5 +137,5 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
     processed,
     finish,
     remove,
-  }
+  };
 }

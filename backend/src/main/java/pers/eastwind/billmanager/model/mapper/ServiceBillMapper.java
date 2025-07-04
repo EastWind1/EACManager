@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.model.mapper;
 
+import org.mapstruct.Mapping;
 import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
 import pers.eastwind.billmanager.model.entity.ServiceBill;
 import org.mapstruct.Mapper;
@@ -17,7 +18,12 @@ public interface ServiceBillMapper {
 
     ServiceBillDTO toServiceBillDTO(ServiceBill serviceBill);
 
-    List<ServiceBillDTO> toServiceBillDTOs(List<ServiceBill> serviceBills);
+    /**
+     * 返回不包含关联子实体的 DTO
+     */
+    @Mapping(target = "details", ignore = true)
+    @Mapping(target = "attachments", ignore = true)
+    ServiceBillDTO toBasicServiceBillDTO(ServiceBill serviceBill);
 
     /**
      * 根据 DTO 更新实体

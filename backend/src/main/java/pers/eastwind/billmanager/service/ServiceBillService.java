@@ -219,7 +219,7 @@ public class ServiceBillService {
         List<Sort.Order> orders = param.getSorts() == null ? List.of(Sort.Order.desc("createdDate")) : param.getSorts().stream().map(sortParam -> Sort.Order.by(sortParam.getField()).with(Sort.Direction.fromString(sortParam.getDirection()))).toList();
         Pageable pageable = PageRequest.of(pageIndex, pageSize, Sort.by(orders));
         Page<ServiceBill> pageResult = serviceBillRepository.findAll(specification, pageable);
-        return pageResult.map(serviceBillMapper::toServiceBillDTO);
+        return pageResult.map(serviceBillMapper::toBasicServiceBillDTO);
     }
 
     /**

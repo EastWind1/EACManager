@@ -13,5 +13,5 @@ node_modules
 
 deploy/backend/lib
 deploy/backend/app.jar
-deploy/front/nginx
-!deploy/front/nginx/conf/nginx.conf
+deploy/frontend/nginx
+!deploy/frontend/nginx/conf/nginx.conf
