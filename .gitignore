@@ -11,7 +11,5 @@ dist
 node_modules
 .env
 
-deploy/backend/lib
-deploy/backend/app.jar
-deploy/frontend/nginx
-!deploy/frontend/nginx/conf/nginx.conf
+deploy/backend
+deploy/frontend/html

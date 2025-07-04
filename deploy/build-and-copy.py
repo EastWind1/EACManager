@@ -29,7 +29,7 @@ def main():
     # 后端交付物目录
     backend_deploy_dir = os.path.join(deploy_dir, "backend")
     # 前端 html 交付物目录
-    frontend_deploy_dir = os.path.join(deploy_dir, "frontend", "nginx", "html")
+    frontend_deploy_dir = os.path.join(deploy_dir, "frontend", "html")
 
     # 打包后端
     print("打包后端...")
