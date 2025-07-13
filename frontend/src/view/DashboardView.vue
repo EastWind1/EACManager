@@ -55,7 +55,6 @@
               padding="8"
               smooth
               auto-draw
-              item-value=""
             >
             </v-sparkline>
           </template>

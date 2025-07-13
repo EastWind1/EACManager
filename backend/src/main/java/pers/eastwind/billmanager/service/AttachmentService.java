@@ -101,7 +101,7 @@ public class AttachmentService implements InitializingBean {
         }
         // 去除头部的斜杠
         if (relativePath.startsWith("/")) {
-            String pathStr =  relativePath.toString().substring(1);
+            String pathStr = relativePath.toString().substring(1);
             relativePath = Path.of(pathStr);
         }
         return rootPath.resolve(relativePath).normalize().toAbsolutePath();
@@ -168,7 +168,7 @@ public class AttachmentService implements InitializingBean {
      * @param bytes 文件字节
      * @return 文件类型
      */
-    private AttachmentType getFileType(byte[] bytes) {
+    private AttachmentType getFileType(byte[] bytes, String fileName) {
         Tika tika = new Tika();
         String mimeType = tika.detect(bytes);
         return switch (mimeType) {
@@ -178,27 +178,17 @@ public class AttachmentService implements InitializingBean {
                     AttachmentType.WORD;
             case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
                     AttachmentType.EXCEL;
-            default -> throw new RuntimeException("不支持的文件类型: " + mimeType);
-        };
-    }
-
-
-    /**
-     * 判断 PDF 是否是扫描件
-     */
-    public boolean isScannedPdf(Path path) {
-        validPath(path);
-        try (PDDocument document = Loader.loadPDF(path.toFile())) {
-            for (PDPage page : document.getPages()) {
-                String text = new PDFTextStripper().getText(document);
-                if (text.trim().isEmpty()) {
-                    return true;
+            case "application/zip" -> {
+                if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
+                    yield AttachmentType.EXCEL;
+                } else if (fileName.endsWith(".doc") || fileName.endsWith(".docx")) {
+                    yield AttachmentType.WORD;
+                } else {
+                    yield AttachmentType.OTHER;
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException("读取 PDF 失败", e);
-        }
-        return false;
+            default -> throw new RuntimeException("不支持的文件类型: " + mimeType);
+        };
     }
 
     /**
@@ -213,7 +203,7 @@ public class AttachmentService implements InitializingBean {
                 BufferedImage image = renderer.renderImage(page);
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
                 ImageIO.write(image, "png", os);
-                imagePath = tempPath.resolve("PDFImage-"+ System.currentTimeMillis() + ".png");
+                imagePath = tempPath.resolve("PDFImage-" + System.currentTimeMillis() + ".png");
                 Files.copy(new ByteArrayInputStream(os.toByteArray()), imagePath, StandardCopyOption.REPLACE_EXISTING);
             }
             if (imagePath != null) {
@@ -272,7 +262,7 @@ public class AttachmentService implements InitializingBean {
         validPath(targetPath);
         AttachmentType type;
         try {
-            type = getFileType(bytes);
+            type = getFileType(bytes, fileName);
             if (!Files.exists(targetPath)) {
                 Files.createDirectories(targetPath);
             }
@@ -334,8 +324,8 @@ public class AttachmentService implements InitializingBean {
     /**
      * 移动文件或文件夹
      *
-     * @param origin 原始文件相对路径
-     * @param target 目标文件相对路径
+     * @param origin 原始文件或文件夹相对路径
+     * @param target 目标文件夹相对路径
      */
     public void move(Path origin, Path target) {
         copy(origin, target, true);

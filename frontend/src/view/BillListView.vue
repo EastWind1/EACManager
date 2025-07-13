@@ -156,7 +156,7 @@ const { setData } = useRouterStore()
 const stateOptions = Object.values(ServiceBillState)
 // 查询参数
 const queryParam = ref<ServiceBillQueryParam>({
-  state: [ServiceBillState.CREATED.value],
+  state: [ServiceBillState.CREATED.value, ServiceBillState.PROCESSING.value, ServiceBillState.PROCESSED.value],
   pageSize: 20,
   pageIndex: 0,
   sorts: [
@@ -286,7 +286,7 @@ function create() {
  * 导入
  */
 async function importFile() {
-  const fileList = await useFileSelector('.pdf,.jpg,.jpeg', false)
+  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.xls,.xlsx', false)
   const bill = await ServiceBillApi.import(fileList[0]).catch(() => undefined)
   if (!bill) {
     return

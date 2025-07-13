@@ -18,19 +18,19 @@
     "pinia": "^3.0.3",
     "vue": "^3.5.17",
     "vue-router": "^4.5.1",
-    "vuetify": "^3.8.12"
+    "vuetify": "^3.9.0"
   },
   "devDependencies": {
     "@mdi/js": "^7.4.47",
     "@tsconfig/node22": "^22.0.2",
     "@types/crypto-js": "^4.2.2",
-    "@types/node": "^24.0.10",
+    "@types/node": "^24.0.13",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/tsconfig": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.6.2",
     "typescript": "~5.8.3",
-    "vite": "npm:rolldown-vite@latest",
+    "vite": "npm:rolldown-vite@^7.0.8",
     "vite-plugin-vue-devtools": "^7.7.7",
     "vite-plugin-vuetify": "^2.1.1",
     "vue-tsc": "^3.0.1"

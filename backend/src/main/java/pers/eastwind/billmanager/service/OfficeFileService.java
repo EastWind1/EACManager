@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.service;
 
+import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.model.dto.ImportMapRule;
@@ -27,13 +28,17 @@ public class OfficeFileService {
     /**
      * 将 Excel 转换至对象
      *
-     * @param path 文件相对路径
-     * @param target           目标对象
+     * @param path   文件相对路径
+     * @param target 目标对象
      */
     public void parseExcel(Path path, Object target) {
         List<ImportMapRule> mapRules = mapRuleService.getMapRule("Excel", target.getClass().getSimpleName());
 
         List<String> texts = new ArrayList<>();
+        // WPS 编辑后的文档会产生大量无用对象，关闭安全限制
+        ZipSecureFile.setMinInflateRatio(0);
+        ZipSecureFile.setMaxFileCount(1000000);
+        ZipSecureFile.setMaxEntrySize(1000000);
         try (Workbook workbook = WorkbookFactory.create(path.toFile())) {
             // 只读取第一个 sheet
             Sheet sheet = workbook.getSheetAt(0);
@@ -42,7 +47,11 @@ public class OfficeFileService {
             }
             for (Row row : sheet) {
                 for (Cell cell : row) {
-                    texts.add(cell.getStringCellValue());
+                    // 只处理字符串和数字
+                    switch (cell.getCellType()) {
+                        case STRING -> texts.add(cell.getStringCellValue());
+                        case NUMERIC -> texts.add(String.valueOf(cell.getNumericCellValue()));
+                    }
                 }
             }
         } catch (IOException e) {
@@ -53,12 +62,12 @@ public class OfficeFileService {
 
     /**
      * 生成Excel文件
-     * @param rows 数据
-     * @param targetFile 目标文件
      *
+     * @param rows       数据
+     * @param targetFile 目标文件
      */
     public Path generateExcelFromList(List<List<String>> rows, Path targetFile) {
-        if ( rows == null || rows.isEmpty()) {
+        if (rows == null || rows.isEmpty()) {
             throw new RuntimeException("数据不能为空");
         }
 
@@ -100,8 +109,8 @@ public class OfficeFileService {
 
     /**
      * 生成Excel文件
-     * @param rows 数据
      *
+     * @param rows 数据
      */
     public Path generateExcelFromList(List<List<String>> rows) {
         Path path = attachmentService.createFile(attachmentService.getTempPath().resolve("Generate-" + System.currentTimeMillis() + ".xlsx"));

@@ -85,9 +85,9 @@ public class ServiceBillService {
         for (AttachmentDTO attachment : dto.getAttachments()) {
             Path origin = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
             if (attachmentService.isTempFile(origin)) {
-                Path targetRelativePath = Path.of(dto.getNumber()).resolve(origin.getFileName());
-                Path target = attachmentService.getAbsolutePath(targetRelativePath);
-                attachment.setRelativePath(targetRelativePath.toString());
+                Path targetDirRelativePath = Path.of(dto.getNumber());
+                Path target = attachmentService.getAbsolutePath(targetDirRelativePath);
+                attachment.setRelativePath(targetDirRelativePath.resolve(origin.getFileName()).toString());
                 moveRunnable.add(() -> attachmentService.move(origin, target));
             }
         }
@@ -133,7 +133,7 @@ public class ServiceBillService {
         AttachmentDTO attachment = attachmentService.uploadTemp(file);
         ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
         Path absolutePath = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
-        if (attachment.getType() == AttachmentType.PDF && attachmentService.isScannedPdf(absolutePath)) {
+        if (attachment.getType() == AttachmentType.PDF) {
             Path tempImage = attachmentService.renderPDFToImage(absolutePath);
             ocrService.parseImage(tempImage, serviceBillDTO);
         } else if (attachment.getType() == AttachmentType.IMAGE) {
