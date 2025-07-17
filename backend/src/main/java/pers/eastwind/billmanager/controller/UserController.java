@@ -21,15 +21,9 @@ public class UserController {
     }
 
     /**
-     * 登录参数
-     * @param username 用户名
-     * @param password 密码
-     */
-    public record LoginParam(String username, String password) {}
-
-    /**
      * 登录
      * 设置 token 至响应头
+     *
      * @param param 登录参数
      * @return 用户信息
      */
@@ -38,6 +32,7 @@ public class UserController {
         LoginResult loginResult = userService.login(param.username, param.password);
         return ResponseEntity.ok().header("X-Auth-Token", loginResult.token()).body(loginResult.user());
     }
+
     /**
      * 查询
      */
@@ -45,6 +40,7 @@ public class UserController {
     public List<UserDTO> getAll() {
         return userService.getAll();
     }
+
     /**
      * 创建
      */
@@ -52,6 +48,7 @@ public class UserController {
     public UserDTO create(@RequestBody UserDTO user) {
         return userService.create(user);
     }
+
     /**
      * 修改
      */
@@ -59,11 +56,21 @@ public class UserController {
     public UserDTO update(@RequestBody UserDTO user) {
         return userService.update(user);
     }
+
     /**
      * 禁用
      */
     @DeleteMapping("/{id}")
     public void disable(@PathVariable Integer id) {
         userService.disable(id);
+    }
+
+    /**
+     * 登录参数
+     *
+     * @param username 用户名
+     * @param password 密码
+     */
+    public record LoginParam(String username, String password) {
     }
 }

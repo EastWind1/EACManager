@@ -1,13 +1,13 @@
 package pers.eastwind.billmanager.controller;
 
-import org.springframework.core.io.Resource;
-import pers.eastwind.billmanager.model.dto.*;
-import pers.eastwind.billmanager.service.AttachmentService;
-import pers.eastwind.billmanager.service.ServiceBillService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import pers.eastwind.billmanager.model.dto.*;
+import pers.eastwind.billmanager.service.AttachmentService;
+import pers.eastwind.billmanager.service.ServiceBillService;
 
 import java.time.Instant;
 import java.util.List;
@@ -58,6 +58,7 @@ public class ServiceBillController {
     public ServiceBillDTO create(@RequestBody ServiceBillDTO serviceBillDTO) {
         return serviceBillService.create(serviceBillDTO);
     }
+
     /**
      * 保存服务单
      *
@@ -68,6 +69,7 @@ public class ServiceBillController {
     public ServiceBillDTO save(@RequestBody ServiceBillDTO serviceBillDTO) {
         return serviceBillService.update(serviceBillDTO);
     }
+
     /**
      * 通过文件创建
      */
@@ -75,6 +77,7 @@ public class ServiceBillController {
     public ServiceBillDTO importByFile(MultipartFile file) {
         return serviceBillService.generateByFile(file);
     }
+
     /**
      * 删除服务单
      */
@@ -82,6 +85,7 @@ public class ServiceBillController {
     public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
         return serviceBillService.delete(ids);
     }
+
     /**
      * 处理服务单
      */
@@ -91,16 +95,13 @@ public class ServiceBillController {
     }
 
     /**
-     * 处理完成参数
-     */
-    public record ProcessedParam(List<Integer> ids, Instant processedDate) {}
-    /**
      * 处理完成服务单
      */
     @PutMapping("/processed")
     public ActionsResult<Integer, Void> processed(@RequestBody ProcessedParam param) {
         return serviceBillService.processed(param.ids, param.processedDate);
     }
+
     /**
      * 完成服务单
      */
@@ -108,6 +109,7 @@ public class ServiceBillController {
     public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
         return serviceBillService.finish(ids);
     }
+
     /**
      * 添加附件
      */
@@ -122,5 +124,11 @@ public class ServiceBillController {
     @PostMapping("/export")
     public Resource export(@RequestBody List<Integer> ids) {
         return attachmentService.loadByPath(serviceBillService.export(ids));
+    }
+
+    /**
+     * 处理完成参数
+     */
+    public record ProcessedParam(List<Integer> ids, Instant processedDate) {
     }
 }

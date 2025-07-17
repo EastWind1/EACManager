@@ -1,33 +1,33 @@
 <template>
   <div class="text-h3 d-flex justify-center mt-4">服务单管理系统</div>
   <v-container class="d-flex align-center justify-center">
-    <v-card elevation="6" width="400" class="pa-6">
+    <v-card class="pa-6" elevation="6" width="400">
       <v-card-title class="text-h5 text-center mb-6">登录</v-card-title>
       <v-form v-model="valid" @submit.prevent="login">
         <v-text-field
           v-model="username"
-          label="用户名"
           :prepend-inner-icon="mdiAccount"
           :rules="[required]"
+          label="用户名"
         />
         <v-text-field
           v-model="password"
-          label="密码"
-          :type="showPassword ? 'text' : 'password'"
-          :prepend-inner-icon="mdiLock"
           :append-inner-icon="showPassword ? mdiEye : mdiEyeOff"
-          @click:append-inner="showPassword = !showPassword"
+          :prepend-inner-icon="mdiLock"
           :rules="[required]"
+          :type="showPassword ? 'text' : 'password'"
+          label="密码"
+          @click:append-inner="showPassword = !showPassword"
         />
-        <v-btn type="submit" color="primary" block class="mt-4" :loading="loading">登录</v-btn>
+        <v-btn :loading="loading" block class="mt-4" color="primary" type="submit">登录</v-btn>
       </v-form>
     </v-card>
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref } from 'vue'
-import { mdiAccount, mdiLock, mdiEye, mdiEyeOff } from '@mdi/js'
+import { mdiAccount, mdiEye, mdiEyeOff, mdiLock } from '@mdi/js'
 import UserApi from '@/api/UserApi.ts'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -39,7 +39,7 @@ const { success } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
-const {setToken, setUser} = useUserStore()
+const { setToken, setUser } = useUserStore()
 
 // 用户名
 const username = ref('')

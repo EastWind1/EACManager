@@ -8,7 +8,9 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --build",
+    "lint": "eslint . --fix",
+    "format": "prettier --write src/"
   },
   "dependencies": {
     "@date-io/date-fns": "^3.2.1",
@@ -26,11 +28,16 @@
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^24.0.13",
     "@vitejs/plugin-vue": "^6.0.0",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.5.1",
     "@vue/tsconfig": "^0.7.0",
+    "eslint": "^9.29.0",
+    "eslint-plugin-vue": "~10.2.0",
     "npm-run-all2": "^8.0.4",
-    "prettier": "^3.6.2",
+    "jiti": "^2.4.2",
+    "prettier": "3.5.3",
     "typescript": "~5.8.3",
-    "vite": "npm:rolldown-vite@^7.0.8",
+    "vite": "^7.0.0",
     "vite-plugin-vue-devtools": "^7.7.7",
     "vite-plugin-vuetify": "^2.1.1",
     "vue-tsc": "^3.0.1"

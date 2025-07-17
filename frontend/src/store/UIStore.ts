@@ -95,9 +95,8 @@ export const useUIStore = defineStore('uiStore', () => {
     /**
      * 取消回调
      */
-    cancel: ()=> {}
+    cancel: () => {},
   })
-
 
   /**
    * 显示确认框
@@ -109,7 +108,7 @@ export const useUIStore = defineStore('uiStore', () => {
     dialogData.value.show = true
     dialogData.value.title = title
     dialogData.value.text = content
-    return new Promise<boolean>(resolve => {
+    return new Promise<boolean>((resolve) => {
       dialogData.value.confirm = () => {
         dialogData.value.show = false
         resolve(true)
@@ -121,7 +120,6 @@ export const useUIStore = defineStore('uiStore', () => {
     })
   }
 
-
   return {
     loading,
     showLoading,
@@ -132,8 +130,6 @@ export const useUIStore = defineStore('uiStore', () => {
     info,
     warning,
     dialogData,
-    confirm
+    confirm,
   }
-
-
 })

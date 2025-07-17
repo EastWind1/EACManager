@@ -35,8 +35,8 @@ export interface User {
 export const AuthorityRole = {
   ROLE_ADMIN: { value: 'ROLE_ADMIN', title: '管理员' },
   ROLE_USER: { value: 'ROLE_USER', title: '普通用户' },
-  ROLE_GUEST: { value: 'ROLE_GUEST', title: '游客' }
-} as const;
+  ROLE_GUEST: { value: 'ROLE_GUEST', title: '游客' },
+} as const
 
 // 权限 value 联合类型，用于类型定义
-export type AuthorityRoleValue = typeof AuthorityRole[keyof typeof AuthorityRole]['value'];
+export type AuthorityRoleValue = (typeof AuthorityRole)[keyof typeof AuthorityRole]['value']

@@ -21,8 +21,9 @@ export const useRouterStore = defineStore('routerStore', () => {
   function getData() {
     return data.value
   }
+
   return {
     getData,
-    setData
+    setData,
   }
 })

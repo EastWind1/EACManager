@@ -11,7 +11,7 @@ export const ServiceBillType = {
   INSTALL: {
     value: 'INSTALL',
     title: '安装单',
-    color: 'blue'
+    color: 'blue',
   },
   /**
    * 维护单
@@ -19,11 +19,11 @@ export const ServiceBillType = {
   FIX: {
     value: 'FIX',
     title: '维护单',
-    color: 'orange'
+    color: 'orange',
   },
 } as const
 // 服务单枚举值
-export type ServiceBillTypeValue = typeof ServiceBillType[keyof typeof ServiceBillType]['value']
+export type ServiceBillTypeValue = (typeof ServiceBillType)[keyof typeof ServiceBillType]['value']
 /**
  * 服务单据状态
  */
@@ -34,7 +34,7 @@ export const ServiceBillState = {
   CREATED: {
     value: 'CREATED',
     title: '新建',
-    color: 'blue'
+    color: 'blue',
   },
   /**
    * 进行中
@@ -42,7 +42,7 @@ export const ServiceBillState = {
   PROCESSING: {
     value: 'PROCESSING',
     title: '进行中',
-    color: 'orange'
+    color: 'orange',
   },
   /**
    * 处理完成
@@ -50,7 +50,7 @@ export const ServiceBillState = {
   PROCESSED: {
     value: 'PROCESSED',
     title: '处理完成',
-    color: 'light-green'
+    color: 'light-green',
   },
   /**
    * 完成
@@ -58,11 +58,13 @@ export const ServiceBillState = {
   FINISHED: {
     value: 'FINISHED',
     title: '完成',
-    color: 'green'
+    color: 'green',
   },
 } as const
 // 服务单状态枚举
-export type ServiceBillStateValue = typeof ServiceBillState[keyof typeof ServiceBillState]['value']
+export type ServiceBillStateValue =
+  (typeof ServiceBillState)[keyof typeof ServiceBillState]['value']
+
 /**
  * 服务单实体
  */

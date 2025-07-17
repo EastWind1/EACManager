@@ -1,8 +1,8 @@
 package pers.eastwind.billmanager.model.dto;
 
+import lombok.Data;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
 import pers.eastwind.billmanager.model.common.ServiceBillType;
-import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.Instant;

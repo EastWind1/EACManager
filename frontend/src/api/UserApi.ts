@@ -1,13 +1,16 @@
 import { useAxios } from '@/api/AxiosConfig.ts'
 import type { User } from '@/model/User.ts'
 import type { AxiosInstance } from 'axios'
+
 let axiosInstance: AxiosInstance
+
 function getAxios() {
   if (!axiosInstance) {
     axiosInstance = useAxios('/api/user')
   }
   return axiosInstance
 }
+
 /**
  * 用户 API
  */
@@ -31,19 +34,28 @@ const UserApi = {
   /**
    * 获取所有用户
    */
-  getAll: () => getAxios().get('').then((res) => res.data as User[]),
+  getAll: () =>
+    getAxios()
+      .get('')
+      .then((res) => res.data as User[]),
 
   /**
    * 创建用户
    * @param user 用户数据
    */
-  create: (user: User) => getAxios().post('', user).then((res) => res.data as User),
+  create: (user: User) =>
+    getAxios()
+      .post('', user)
+      .then((res) => res.data as User),
 
   /**
    * 更新用户
    * @param user 用户数据
    */
-  update: (user: User) => getAxios().put('', user).then((res) => res.data as User),
+  update: (user: User) =>
+    getAxios()
+      .put('', user)
+      .then((res) => res.data as User),
 
   /**
    * 禁用用户（删除）

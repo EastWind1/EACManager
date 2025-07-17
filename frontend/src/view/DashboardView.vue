@@ -10,29 +10,35 @@
             <v-container>
               <v-row>
                 <v-col
+                  class="v-card--hover"
                   cols="6"
                   @click="stateClick(ServiceBillState.CREATED.value)"
-                  class="v-card--hover"
                 >
                   <div class="text-h6 text-center">待处理单据</div>
-                  <div class="text-h4 text-center" >{{ countByState.CREATED ? countByState.CREATED : 0 }}</div>
+                  <div class="text-h4 text-center">
+                    {{ countByState.CREATED ? countByState.CREATED : 0 }}
+                  </div>
                 </v-col>
                 <v-col
+                  class="v-card--hover"
                   cols="6"
                   @click="stateClick(ServiceBillState.PROCESSING.value)"
-                  class="v-card--hover"
                 >
                   <div class="text-h6 text-center">处理中单据</div>
-                  <div class="text-h4 text-center">{{ countByState.PROCESSING ? countByState.PROCESSING : 0 }}</div>
+                  <div class="text-h4 text-center">
+                    {{ countByState.PROCESSING ? countByState.PROCESSING : 0 }}
+                  </div>
                 </v-col>
 
                 <v-col
+                  class="v-card--hover"
                   cols="6"
                   @click="stateClick(ServiceBillState.PROCESSED.value)"
-                  class="v-card--hover"
                 >
                   <div class="text-h6 text-center">处理完成单据</div>
-                  <div class="text-h4 text-center">{{ countByState.PROCESSED? countByState.PROCESSED : 0 }}</div>
+                  <div class="text-h4 text-center">
+                    {{ countByState.PROCESSED ? countByState.PROCESSED : 0 }}
+                  </div>
                 </v-col>
               </v-row>
             </v-container>
@@ -43,18 +49,16 @@
       <!-- 当年收入趋势 -->
       <v-col cols="12" md="6">
         <v-card>
-          <template #title>
-            近一年收入
-          </template>
+          <template #title> 近一年收入 </template>
           <template #text>
             <v-sparkline
               :labels="amountLabel"
               :model-value="amountValue"
+              auto-draw
               color="blue"
               line-width="2"
               padding="8"
               smooth
-              auto-draw
             >
             </v-sparkline>
           </template>
@@ -64,7 +68,7 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { ServiceBillState, type ServiceBillStateValue } from '@/model/ServiceBill.ts'
 import { StatisticApi } from '@/api/StatisticApi.ts'
@@ -76,7 +80,7 @@ const router = useRouter()
 // 单据数量
 const countByState = ref<{ [key in ServiceBillStateValue]?: number }>({})
 // 金额统计
-const amountGroupByMonth = ref<{month: string, amount: number}[]>([])
+const amountGroupByMonth = ref<{ month: string; amount: number }[]>([])
 
 // 图表标签
 const amountLabel = computed(() => {
@@ -90,8 +94,8 @@ const amountValue = computed(() => {
 })
 
 onMounted(async () => {
-    countByState.value = await StatisticApi.countBillsByState().catch(() => ({}))
-    amountGroupByMonth.value = await StatisticApi.sumTotalAmountByMonth().catch(() => ([]))
+  countByState.value = await StatisticApi.countBillsByState().catch(() => ({}))
+  amountGroupByMonth.value = await StatisticApi.sumTotalAmountByMonth().catch(() => [])
 })
 
 // 统计数量点击跳转
@@ -103,5 +107,4 @@ async function stateClick(state: ServiceBillStateValue) {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

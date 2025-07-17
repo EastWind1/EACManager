@@ -2,7 +2,7 @@
 <template>
   <v-app>
     <!-- 标题栏 -->
-    <v-app-bar scroll-behavior="hide" height="48" >
+    <v-app-bar height="48" scroll-behavior="hide">
       <!-- 标题 -->
       <h2 class="ml-3 mr-3">服务单管理</h2>
       <!-- 左侧导航抽屉 -->
@@ -11,15 +11,15 @@
       <!-- 暗色模式切换 -->
       <v-switch
         v-model="isDark"
-        label="暗色模式"
         color="primary"
-        @click="isDark = !isDark"
         hide-details
+        label="暗色模式"
+        @click="isDark = !isDark"
       />
       <!-- 登录用户图标 -->
-      <v-menu open-on-hover open-on-click class="ml-3">
+      <v-menu class="ml-3" open-on-click open-on-hover>
         <template #activator="{ props }">
-          <v-avatar v-bind="props" :icon="mdiAccount"> </v-avatar>
+          <v-avatar :icon="mdiAccount" v-bind="props"></v-avatar>
         </template>
 
         <v-list>
@@ -32,8 +32,7 @@
     <v-main>
       <!-- 左侧导航栏 -->
       <v-navigation-drawer v-model="drawer">
-        <v-list density="compact" nav :items="menuItems" slim>
-        </v-list>
+        <v-list :items="menuItems" density="compact" nav slim> </v-list>
       </v-navigation-drawer>
       <!-- 右侧内容区域 -->
       <RouterView />
@@ -41,10 +40,10 @@
   </v-app>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { RouterView, useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
-import { mdiMenu, mdiAccount, mdiMonitorDashboard } from '@mdi/js'
+import { mdiAccount, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
 import { useUserStore } from '@/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
 
@@ -73,16 +72,16 @@ const menuItems = [
     title: '用户管理',
     props: {
       prependIcon: mdiAccount,
-      to: '/user'
+      to: '/user',
     },
   },
   {
     title: '单据列表',
     props: {
       prependIcon: mdiMenu,
-      to: '/list'
+      to: '/list',
     },
-  }
+  },
 ]
 
 // 移除 token

@@ -8,7 +8,7 @@ const router = createRouter({
       path: '/',
       component: () => import('@/view/HomeView.vue'),
       beforeEnter: (to) => {
-        const hasLogin = useUserStore().getUser();
+        const hasLogin = useUserStore().getUser()
         if (!hasLogin) {
           return {
             path: '/login',
@@ -46,7 +46,7 @@ const router = createRouter({
         {
           path: '/bill/:id',
           component: () => import('@/view/BillFormView.vue'),
-        }
+        },
       ],
     },
     {
@@ -56,7 +56,7 @@ const router = createRouter({
     {
       path: '/:pathMatch(.*)*',
       component: () => import('@/view/NotFoundView.vue'),
-    }
+    },
   ],
 })
 

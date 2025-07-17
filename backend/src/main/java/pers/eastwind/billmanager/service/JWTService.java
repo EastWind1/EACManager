@@ -18,9 +18,9 @@ import java.util.Objects;
  */
 @Service
 public class JWTService {
+    private final ConfigProperties properties;
     private JWSSigner signer;
     private JWSVerifier verifier;
-    private final ConfigProperties properties;
 
     public JWTService(ConfigProperties properties) {
         this.properties = properties;
@@ -73,7 +73,7 @@ public class JWTService {
             // 校验签名加密、过期时间、摘要
             return jwt.verify(verifier)
                     && claimsSet.getExpirationTime().after(new Date())
-                    && Objects.equals(claimsSet.getSubject(),subject);
+                    && Objects.equals(claimsSet.getSubject(), subject);
         } catch (JOSEException e) {
             throw new RuntimeException("验证 JWT 异常");
         }

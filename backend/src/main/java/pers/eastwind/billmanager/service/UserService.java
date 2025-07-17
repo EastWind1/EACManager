@@ -1,18 +1,18 @@
 package pers.eastwind.billmanager.service;
 
-import org.springframework.transaction.annotation.Transactional;
-import pers.eastwind.billmanager.model.dto.LoginResult;
-import pers.eastwind.billmanager.model.dto.UserDTO;
-import pers.eastwind.billmanager.model.entity.User;
-import pers.eastwind.billmanager.model.mapper.UserMapper;
-import pers.eastwind.billmanager.repository.UserRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import pers.eastwind.billmanager.model.dto.LoginResult;
+import pers.eastwind.billmanager.model.dto.UserDTO;
+import pers.eastwind.billmanager.model.entity.User;
+import pers.eastwind.billmanager.model.mapper.UserMapper;
+import pers.eastwind.billmanager.repository.UserRepository;
 
 import java.util.List;
 import java.util.Objects;
@@ -25,6 +25,7 @@ public class UserService implements UserDetailsService {
     private final JWTService jwtUtil;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+
     public UserService(JWTService jwtUtil, UserRepository userRepository, UserMapper userMapper) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
@@ -37,8 +38,10 @@ public class UserService implements UserDetailsService {
     public List<UserDTO> getAll() {
         return userMapper.toUserDTOs(userRepository.findAllEnabled());
     }
+
     /**
      * 创建用户
+     *
      * @param user 用户
      * @return 创建后的用户
      */
@@ -60,6 +63,7 @@ public class UserService implements UserDetailsService {
 
     /**
      * 更新用户
+     *
      * @param user 用户
      * @return 更新后的用户
      */
@@ -84,8 +88,10 @@ public class UserService implements UserDetailsService {
         userMapper.updateFromUserDTO(user, oldUser);
         return userMapper.toUserDTO(userRepository.save(oldUser));
     }
+
     /**
      * 禁用用户
+     *
      * @param id 用户id
      */
     @Transactional
@@ -97,6 +103,7 @@ public class UserService implements UserDetailsService {
         user.setEnabled(false);
         userRepository.save(user);
     }
+
     @Override
     public User loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username);
@@ -108,6 +115,7 @@ public class UserService implements UserDetailsService {
 
     /**
      * 登录，生成 token
+     *
      * @param username 用户名
      * @param password 密码
      * @return 登录结果

@@ -1,7 +1,7 @@
 package pers.eastwind.billmanager.model.dto;
 
-import pers.eastwind.billmanager.model.common.AttachmentType;
 import lombok.Data;
+import pers.eastwind.billmanager.model.common.AttachmentType;
 
 /**
  * 附件 DTO

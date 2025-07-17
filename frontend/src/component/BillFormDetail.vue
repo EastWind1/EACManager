@@ -4,24 +4,34 @@
     <!-- 条数大于 10 时才显示分页 -->
     <v-data-table
       :headers="detailHeaders"
+      :hide-default-footer="serviceBill!.details.length <= 10"
       :items="serviceBill!.details"
       item-key="id"
-      :hide-default-footer="serviceBill!.details.length <= 10"
     >
       <!-- 最后一列显示操作按钮 -->
       <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
-      <template #[`item.actions`]="{ item }" v-if="!readonly">
+      <template v-if="!readonly" #[`item.actions`]="{ item }">
         <div class="d-flex ga-3">
-          <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)" :disabled="readonly"></v-icon>
-          <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)" :disabled="readonly"></v-icon>
+          <v-icon
+            :disabled="readonly"
+            :icon="mdiPencil"
+            size="small"
+            @click="editDetail(item)"
+          ></v-icon>
+          <v-icon
+            :disabled="readonly"
+            :icon="mdiDelete"
+            size="small"
+            @click="deleteDetail(item)"
+          ></v-icon>
         </div>
       </template>
 
       <!-- 最后一行添加加号按钮 -->
-      <template #[`body.append`] v-if="!readonly">
+      <template v-if="!readonly" #[`body.append`]>
         <tr>
           <td :colspan="detailHeaders.length" class="align-center">
-            <v-btn block @click="addDetail" variant="plain" :disabled="readonly">
+            <v-btn :disabled="readonly" block variant="plain" @click="addDetail">
               <v-icon :icon="mdiPlus"></v-icon>
             </v-btn>
           </td>
@@ -33,27 +43,27 @@
       <v-card title="明细">
         <template #text>
           <v-row>
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
               <v-text-field
                 v-model="dialogData.device"
-                label="设备类型"
                 :rules="[requiredRule]"
+                label="设备类型"
               ></v-text-field>
             </v-col>
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
               <v-number-input v-model="dialogData.unitPrice" label="单价"></v-number-input>
             </v-col>
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
               <v-number-input v-model="dialogData.quantity" label="数量"></v-number-input>
             </v-col>
 
-            <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
               <v-text-field v-model="dialogData.remark" label="备注"></v-text-field>
             </v-col>
           </v-row>
         </template>
         <template #actions>
-          <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+          <v-col cols="12" lg="4" md="6" sm="12" xl="3">
             <v-number-input v-model="dialogData.subtotal" label="小计"></v-number-input>
           </v-col>
           <v-btn text="保存" @click="saveDialog"></v-btn>
@@ -63,7 +73,7 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import { type ServiceBill, type ServiceBillDetail } from '@/model/ServiceBill.ts'
 import { ref, toRefs, watchEffect } from 'vue'
@@ -83,12 +93,11 @@ const serviceBill = defineModel<ServiceBill>()
 const props = defineProps<{
   readonly: boolean
 }>()
-const {readonly} = toRefs(props)
+const { readonly } = toRefs(props)
 
 // 是否显示模态框
 const showDialog = ref(false)
-// 是否是新增动作
-const isAddAction = ref(true)
+
 // 模态框默认值
 const DEFAULT_VALUE = {
   device: '',
@@ -98,10 +107,11 @@ const DEFAULT_VALUE = {
   remark: '',
 }
 // 模态框当前数据
-const dialogData = ref<ServiceBillDetail>(DEFAULT_VALUE)
+const dialogData = ref<ServiceBillDetail>({ ...DEFAULT_VALUE })
 // 必填验证
 const requiredRule = (v: unknown) => !!v || '此项为必填项'
-
+// 当前编辑项，用于 save 时判断是否是新增项
+let curEditItem: ServiceBillDetail | undefined = undefined
 // 监听模态框单价数量变化，计算小计以及总金额
 watchEffect(() => {
   dialogData.value.subtotal = dialogData.value.quantity * dialogData.value.unitPrice
@@ -109,16 +119,23 @@ watchEffect(() => {
 
 // 添加明细
 function addDetail() {
-  isAddAction.value = true
-  dialogData.value = DEFAULT_VALUE
+  curEditItem = undefined
+  dialogData.value = { ...DEFAULT_VALUE }
   showDialog.value = true
 }
 
 // 编辑明细
 function editDetail(item: ServiceBillDetail) {
-  isAddAction.value = false
-  dialogData.value = item
+  curEditItem = item
+  dialogData.value = { ...item }
   showDialog.value = true
+}
+
+// 重新计算总金额
+function calTotalAmount() {
+  let totalAmount = 0
+  serviceBill.value!.details.forEach((detail) => (totalAmount += detail.subtotal))
+  serviceBill.value!.totalAmount = totalAmount
 }
 
 // 删除明细
@@ -127,32 +144,23 @@ function deleteDetail(item: ServiceBillDetail) {
     serviceBill.value.details.findIndex((i) => i === item),
     1,
   )
-  // 重新计算总金额
-  let totalAmount = 0
-
-  serviceBill.value!.details.forEach((detail) => (totalAmount += detail.subtotal))
-  serviceBill.value!.totalAmount = totalAmount
+  calTotalAmount()
 }
 
 // 保存
 function saveDialog() {
   // 单独处理新增
-  if (isAddAction.value) {
+  if (!curEditItem) {
     serviceBill.value!.details.push({
-      device: dialogData.value.device,
-      quantity: dialogData.value.quantity,
-      unitPrice: dialogData.value.unitPrice,
-      subtotal: dialogData.value.subtotal,
-      remark: dialogData.value.remark,
+      ...dialogData.value,
     })
+  } else {
+    Object.assign(curEditItem, dialogData.value)
   }
 
   showDialog.value = false
-  // 重新计算总金额
-  let totalAmount = 0
 
-  serviceBill.value!.details.forEach((detail) => (totalAmount += detail.subtotal))
-  serviceBill.value!.totalAmount = totalAmount
+  calTotalAmount()
 }
 </script>
 

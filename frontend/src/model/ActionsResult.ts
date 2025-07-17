@@ -9,15 +9,15 @@ export interface ActionsResult<P, R> {
     /**
      * 参数
      */
-    param: P,
+    param: P
     /**
      * 结果
      */
-    result: R,
+    result: R
     /**
      * 是否成功
      */
-    success: boolean,
+    success: boolean
     /**
      * 消息
      */

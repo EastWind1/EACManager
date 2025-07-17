@@ -1,8 +1,8 @@
 package pers.eastwind.billmanager.model.dto;
 
-import pers.eastwind.billmanager.model.common.ServiceBillState;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import pers.eastwind.billmanager.model.common.ServiceBillState;
 
 import java.time.Instant;
 import java.util.List;

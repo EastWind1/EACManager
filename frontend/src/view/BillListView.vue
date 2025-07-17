@@ -5,44 +5,44 @@
         <template #text>
           <v-container>
             <v-row>
-              <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-text-field v-model="queryParam.number" clearable label="单号" />
               </v-col>
-              <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-select
                   v-model="queryParam.state"
                   :items="stateOptions"
+                  chips
+                  clearable
+                  closable-chips
                   label="状态"
                   multiple
-                  chips
-                  closable-chips
-                  clearable
                 />
               </v-col>
-              <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
               </v-col>
-              <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-date-input
                   v-model="createdDateRange"
-                  multiple="range"
+                  clearable
                   label="创建日期"
+                  multiple="range"
                   prepend-icon=""
                   prepend-inner-icon="$calendar"
-                  clearable
                 ></v-date-input>
               </v-col>
-              <v-col cols="12" sm="12" md="6" lg="4" xl="3">
+              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-date-input
                   v-model="processedDateRange"
-                  multiple="range"
+                  clearable
                   label="完工日期"
+                  multiple="range"
                   prepend-icon=""
                   prepend-inner-icon="$calendar"
-                  clearable
                 ></v-date-input>
               </v-col>
-              <v-col cols="12" class="text-right">
+              <v-col class="text-right" cols="12">
                 <v-btn @click="search = new Date().toString()">查询</v-btn>
               </v-col>
             </v-row>
@@ -50,15 +50,15 @@
         </template>
       </v-expansion-panel>
     </v-expansion-panels>
-    <v-toolbar density="compact" class="mt-2">
+    <v-toolbar class="mt-2" density="compact">
       <template #append>
-        <v-btn color="primary" @click="create" :disabled="loading">新增</v-btn>
-        <v-btn @click="importFile" :disabled="loading">导入</v-btn>
-        <v-btn @click="exportToZip" :disabled="loading">导出</v-btn>
-        <v-btn @click="process(selectedIds)" :disabled="loading">开始处理</v-btn>
-        <v-btn @click="processed(selectedIds)" :disabled="loading">处理完成</v-btn>
-        <v-btn @click="finish(selectedIds)" :disabled="loading">回款完成</v-btn>
-        <v-btn color="red" @click="remove(selectedIds)" :disabled="loading">删除</v-btn>
+        <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
+        <v-btn :disabled="loading" @click="importFile">导入</v-btn>
+        <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
+        <v-btn :disabled="loading" @click="process(selectedIds)">开始处理</v-btn>
+        <v-btn :disabled="loading" @click="processed(selectedIds)">处理完成</v-btn>
+        <v-btn :disabled="loading" @click="finish(selectedIds)">回款完成</v-btn>
+        <v-btn :disabled="loading" color="red" @click="remove(selectedIds)">删除</v-btn>
 
         <v-spacer></v-spacer>
         <div v-if="selectedIds.length > 0" class="text-caption mr-4">
@@ -67,15 +67,16 @@
       </template>
     </v-toolbar>
     <v-data-table-server
+      v-model="selectedIds"
       :headers="headers"
       :items="data.items"
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 20"
-      @update:options="loadItems"
-      class="mt-2 flex-grow-1"
       :search="search"
+      class="mt-2 flex-grow-1"
+      mobile-breakpoint="sm"
       show-select
-      v-model="selectedIds"
+      @update:options="loadItems"
     >
       <template #[`item.number`]="{ item }">
         <RouterLink :to="`/bill/${item.id}`">{{ item.number }}</RouterLink>
@@ -125,13 +126,13 @@
   </v-container>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref, watch } from 'vue'
 import {
   type ServiceBill,
   type ServiceBillQueryParam,
   ServiceBillState,
-  ServiceBillType
+  ServiceBillType,
 } from '@/model/ServiceBill.ts'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { PageResult } from '@/model/PageResult.ts'
@@ -156,15 +157,23 @@ const { setData } = useRouterStore()
 const stateOptions = Object.values(ServiceBillState)
 // 查询参数
 const queryParam = ref<ServiceBillQueryParam>({
-  state: [ServiceBillState.CREATED.value, ServiceBillState.PROCESSING.value, ServiceBillState.PROCESSED.value],
+  state: [
+    ServiceBillState.CREATED.value,
+    ServiceBillState.PROCESSING.value,
+    ServiceBillState.PROCESSED.value,
+  ],
   pageSize: 20,
   pageIndex: 0,
   sorts: [
     {
-      field: 'createdDate',
-      direction: 'DESC'
-    }
-  ]
+      field: 'state',
+      direction: 'ASC',
+    },
+    {
+      field: 'orderDate',
+      direction: 'DESC',
+    },
+  ],
 })
 // 处理查询情况
 const route = useRoute()
@@ -194,7 +203,7 @@ const headers = [
   { title: '项目', key: 'projectName', sortable: false },
   { title: '地址', key: 'projectAddress', sortable: false },
   { title: '创建时间', key: 'orderDate', sortable: false },
-  { title: '完工时间', key: 'processedDate', sortable: false }
+  { title: '完工时间', key: 'processedDate', sortable: false },
 ]
 // 默认数据
 const defaultData = {
@@ -202,7 +211,7 @@ const defaultData = {
   totalCount: 0,
   totalPages: 0,
   pageSize: 20,
-  pageIndex: 0
+  pageIndex: 0,
 }
 // 数据
 const data = ref<PageResult<ServiceBill>>(defaultData)
@@ -225,7 +234,7 @@ async function loadItems(options: {
   queryParam.value.pageSize = options.itemsPerPage
   queryParam.value.sorts = options.sortBy.map((sort) => ({
     field: sort.key,
-    direction: sort.order === 'asc' ? 'ASC' : 'DESC'
+    direction: sort.order === 'asc' ? 'ASC' : 'DESC',
   }))
 
   data.value = await ServiceBillApi.getByQueryParam(queryParam.value).catch(() => defaultData)
@@ -265,7 +274,7 @@ const resultDialog = ref<{
   show: false,
   successCount: 0,
   failedCount: 0,
-  rows: []
+  rows: [],
 })
 
 // 按钮回调
@@ -277,8 +286,8 @@ function create() {
   router.push({
     path: '/bill',
     query: {
-      action: 'create'
-    }
+      action: 'create',
+    },
   })
 }
 
@@ -295,8 +304,8 @@ async function importFile() {
   await router.push({
     path: '/bill',
     query: {
-      action: 'import'
-    }
+      action: 'import',
+    },
   })
 }
 
@@ -312,7 +321,7 @@ function setResultDialogData(result: ActionsResult<number, void>) {
     if (!res.success) {
       rows.push({
         number: data.value.items.find((item) => item.id === res.param)?.number,
-        message: res.message
+        message: res.message,
       })
     }
   }

@@ -1,6 +1,9 @@
 package pers.eastwind.billmanager.model.mapper;
 
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
 import pers.eastwind.billmanager.model.dto.UserDTO;
 import pers.eastwind.billmanager.model.entity.User;
 

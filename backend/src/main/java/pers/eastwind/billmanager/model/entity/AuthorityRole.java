@@ -1,4 +1,5 @@
 package pers.eastwind.billmanager.model.entity;
+
 import org.springframework.security.core.GrantedAuthority;
 
 /**

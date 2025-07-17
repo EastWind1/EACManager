@@ -1,13 +1,11 @@
 package pers.eastwind.billmanager.filter;
 
-import lombok.extern.slf4j.Slf4j;
-import pers.eastwind.billmanager.service.UserService;
-import pers.eastwind.billmanager.service.JWTService;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +13,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import pers.eastwind.billmanager.service.JWTService;
+import pers.eastwind.billmanager.service.UserService;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -33,6 +33,7 @@ public class JWTTokenFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 获取 token

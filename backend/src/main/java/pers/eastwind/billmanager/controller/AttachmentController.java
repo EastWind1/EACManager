@@ -1,10 +1,10 @@
 package pers.eastwind.billmanager.controller;
 
-import pers.eastwind.billmanager.model.dto.AttachmentDTO;
-import pers.eastwind.billmanager.service.AttachmentService;
 import org.springframework.core.io.Resource;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import pers.eastwind.billmanager.model.dto.AttachmentDTO;
+import pers.eastwind.billmanager.service.AttachmentService;
 
 import java.nio.file.Path;
 
@@ -22,9 +22,10 @@ public class AttachmentController {
 
     /**
      * 下载文件
+     *
      * @param path 相对路径
      */
-    @GetMapping(value = "/{*path}",  produces = "application/octet-stream")
+    @GetMapping(value = "/{*path}", produces = "application/octet-stream")
     public Resource download(@PathVariable String path) {
         if (path == null) {
             throw new RuntimeException("路径不能为空");
@@ -34,6 +35,7 @@ public class AttachmentController {
 
     /**
      * 上传文件
+     *
      * @param file 文件
      * @param path 相对路径
      * @return 文件信息
@@ -42,8 +44,10 @@ public class AttachmentController {
     public AttachmentDTO upload(@RequestParam MultipartFile file, @RequestParam String path) {
         return attachmentService.upload(file, attachmentService.getAbsolutePath(Path.of(path)));
     }
+
     /**
      * 上传文件至临时路径
+     *
      * @param file 文件
      * @return 文件信息
      */

@@ -1,8 +1,8 @@
 package pers.eastwind.billmanager.service;
 
+import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.model.entity.Company;
 import pers.eastwind.billmanager.repository.CompanyRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 

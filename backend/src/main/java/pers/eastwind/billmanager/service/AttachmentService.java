@@ -1,19 +1,11 @@
 package pers.eastwind.billmanager.service;
 
+import jakarta.annotation.PreDestroy;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.rendering.PDFRenderer;
-import org.apache.pdfbox.text.PDFTextStripper;
-import pers.eastwind.billmanager.config.ConfigProperties;
-import pers.eastwind.billmanager.model.common.AttachmentType;
-import pers.eastwind.billmanager.model.dto.AttachmentDTO;
-import pers.eastwind.billmanager.model.entity.Attachment;
-import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
-import pers.eastwind.billmanager.repository.AttachmentRepository;
-import jakarta.annotation.PreDestroy;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.Resource;
@@ -21,10 +13,19 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import pers.eastwind.billmanager.config.ConfigProperties;
+import pers.eastwind.billmanager.model.common.AttachmentType;
+import pers.eastwind.billmanager.model.dto.AttachmentDTO;
+import pers.eastwind.billmanager.model.entity.Attachment;
+import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
+import pers.eastwind.billmanager.repository.AttachmentRepository;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,6 +41,9 @@ import java.util.zip.ZipOutputStream;
 @Slf4j
 @Service
 public class AttachmentService implements InitializingBean {
+    private final ConfigProperties properties;
+    private final AttachmentRepository attachmentRepository;
+    private final AttachmentMapper attachmentMapper;
     /**
      * 根目录
      */
@@ -50,9 +54,6 @@ public class AttachmentService implements InitializingBean {
      */
     @Getter
     private Path tempPath;
-    private final ConfigProperties properties;
-    private final AttachmentRepository attachmentRepository;
-    private final AttachmentMapper attachmentMapper;
 
     public AttachmentService(ConfigProperties properties, AttachmentRepository attachmentRepository, AttachmentMapper attachmentMapper) {
         this.properties = properties;
@@ -187,7 +188,17 @@ public class AttachmentService implements InitializingBean {
                     yield AttachmentType.OTHER;
                 }
             }
-            default -> throw new RuntimeException("不支持的文件类型: " + mimeType);
+            // 禁止可执行文件
+            case "application/x-msdownload", "application/x-executable", "application/x-sh", "application/x-bat" ->
+                    throw new RuntimeException("不支持的文件类型: " + mimeType);
+            default -> {
+                if (fileName.endsWith(".exe") || fileName.endsWith(".dll") || fileName.endsWith(".sh") ||
+                        fileName.endsWith(".bat") || fileName.endsWith(".cmd") || fileName.endsWith(".ps1") ||
+                        fileName.endsWith(".py") || fileName.endsWith(".pl") || fileName.endsWith(".rb")) {
+                    throw new RuntimeException("不支持的文件类型: " + fileName);
+                }
+                yield AttachmentType.OTHER;
+            }
         };
     }
 

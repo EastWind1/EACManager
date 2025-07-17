@@ -9,15 +9,15 @@
         <template
           v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value || curUser?.id === item.id"
         >
-          <v-btn @click="edit(item)" :icon="mdiPencil"></v-btn>
-          <v-btn @click="disable(item)" :icon="mdiClose"></v-btn>
+          <v-btn :icon="mdiPencil" @click="edit(item)"></v-btn>
+          <v-btn :icon="mdiClose" @click="disable(item)"></v-btn>
         </template>
       </template>
       <!-- 最后一行添加加号按钮 -->
-      <template #[`body.append`] v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value">
+      <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value" #[`body.append`]>
         <tr>
           <td :colspan="headers.length" class="align-center">
-            <v-btn block @click="add" variant="plain">
+            <v-btn block variant="plain" @click="add">
               <v-icon :icon="mdiPlus"></v-icon>
             </v-btn>
           </td>
@@ -34,35 +34,36 @@
             <v-label>基本信息</v-label>
             <v-divider class="pb-4"></v-divider>
 
-            <v-text-field label="名称" v-model="dialogData.user.name"></v-text-field>
-            <v-text-field label="电话" v-model="dialogData.user.phone"></v-text-field>
-            <v-text-field label="邮箱" v-model="dialogData.user.email"></v-text-field>
-            <v-select label="角色" v-model="dialogData.user.authority" :items="options"></v-select>
+            <v-text-field v-model="dialogData.user.name" label="名称"></v-text-field>
+            <v-text-field v-model="dialogData.user.phone" label="电话"></v-text-field>
+            <v-text-field v-model="dialogData.user.email" label="邮箱"></v-text-field>
+            <v-select v-model="dialogData.user.authority" :items="options" label="角色"></v-select>
 
             <v-label>登录信息</v-label>
             <v-divider class="pb-4"></v-divider>
 
             <v-text-field
-              label="用户名"
               v-model="dialogData.user.username"
               :rules="[required]"
+              label="用户名"
             ></v-text-field>
             <v-text-field
-              label="密码"
               v-model="dialogData.user.password"
-              type="password"
               :rules="[required]"
+              label="密码"
+              type="password"
             ></v-text-field>
             <v-text-field
-              label="再次输入密码"
               v-model="dialogData.user.passwordAgain"
-              type="password"
               :rules="[passwordAgainEqual]"
+              label="再次输入密码"
+              type="password"
             >
             </v-text-field>
 
             <div class="text-right mt-4">
               <v-btn color="primary" @click="saveUser">保存</v-btn>
+              <v-btn @click="dialogData.show = false">取消</v-btn>
             </div>
           </v-form>
         </template>
@@ -70,7 +71,7 @@
     </v-dialog>
   </v-container>
 </template>
-<script setup lang="ts">
+<script lang="ts" setup>
 import { onMounted, ref } from 'vue'
 import { AuthorityRole, type User } from '@/model/User.ts'
 import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
@@ -143,7 +144,7 @@ function add() {
 
 // 编辑
 function edit(user: User) {
-  dialogData.value.user = user
+  dialogData.value.user = { ...user }
   dialogData.value.show = true
 }
 

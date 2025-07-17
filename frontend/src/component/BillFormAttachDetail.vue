@@ -2,10 +2,10 @@
 <template>
   <v-container>
     <v-row>
-      <v-col cols="3" v-for="attach in bill?.attachments" :key="attach.name">
+      <v-col v-for="attach in bill?.attachments" :key="attach.name" cols="12" lg="3" md="4" sm="6">
         <v-hover v-slot="{ isHovering, props }">
           <v-card v-bind="props">
-            <template #text v-if="!isHovering">
+            <template v-if="!isHovering" #text>
               <div class="d-flex justify-center ga-2">
                 <div>
                   <v-icon :icon="AttachmentType[attach.type].icon"></v-icon>
@@ -13,10 +13,10 @@
                 <div>{{ attach.name }}</div>
               </div>
             </template>
-            <template #actions v-if="isHovering">
+            <template v-if="isHovering" #actions>
               <v-btn @click="preview(attach)">预览</v-btn>
               <v-btn @click="download(attach)">下载</v-btn>
-              <v-btn color="red" :disabled="readonly" @click="deleteAttach(attach)">删除</v-btn>
+              <v-btn :disabled="readonly" color="red" @click="deleteAttach(attach)">删除</v-btn>
             </template>
           </v-card>
         </v-hover>
@@ -30,14 +30,23 @@
       </v-col>
     </v-row>
   </v-container>
-  <v-dialog v-model="previewDialog"  height="85vh">
+  <v-dialog v-model="previewDialog" height="85vh">
     <v-card>
       <template #title>
         {{ previewInfo.attachment.name }}
       </template>
       <v-card-text class="overflow-auto d-flex">
-        <embed :src="previewInfo.objectUrl" v-if="previewInfo.attachment.type === AttachmentType.PDF.value" class="w-100 h-100"/>
-        <img :src="previewInfo.objectUrl" v-if="previewInfo.attachment.type === AttachmentType.IMAGE.value" style="object-fit: contain; max-width: 100%" :alt="previewInfo.attachment.name"/>
+        <embed
+          v-if="previewInfo.attachment.type === AttachmentType.PDF.value"
+          :src="previewInfo.objectUrl"
+          class="w-100 h-100"
+        />
+        <img
+          v-if="previewInfo.attachment.type === AttachmentType.IMAGE.value"
+          :alt="previewInfo.attachment.name"
+          :src="previewInfo.objectUrl"
+          style="object-fit: contain; max-width: 100%"
+        />
       </v-card-text>
       <v-card-actions>
         <v-btn @click="download(previewInfo.attachment)">下载</v-btn>
@@ -47,10 +56,10 @@
   </v-dialog>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { type Attachment, AttachmentType } from '@/model/Attachment.ts'
 import { mdiPlus } from '@mdi/js'
-import { ref, toRefs } from 'vue'
+import { onUnmounted, ref, toRefs } from 'vue'
 import AttachmentApi from '@/api/AttachmentApi.ts'
 import type { ServiceBill } from '@/model/ServiceBill.ts'
 import { useUIStore } from '@/store/UIStore.ts'
@@ -76,6 +85,15 @@ const previewInfo = ref<{
   attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER.value },
   objectUrl: '',
 })
+// 文件缓存，避免多次从服务器获取同一文件
+const fileCache = new Map<string, string>()
+// 销毁时释放缓存
+onUnmounted(() => {
+  fileCache.forEach((value) => {
+    URL.revokeObjectURL(value)
+  })
+  fileCache.clear()
+})
 
 /**
  * 下载附件
@@ -85,10 +103,16 @@ async function download(attach: Attachment) {
     warning('文件为空')
     return
   }
-  const data = await AttachmentApi.download(attach.relativePath)
-  const url = URL.createObjectURL(data)
+
   const a = document.createElement('a')
-  a.href = url
+  if (fileCache.has(attach.relativePath)) {
+    a.href = fileCache.get(attach.relativePath)!
+  } else {
+    const data = await AttachmentApi.download(attach.relativePath)
+    const url = URL.createObjectURL(data)
+    fileCache.set(attach.relativePath, url)
+  }
+
   a.download = attach.name
   a.click()
   a.remove()
@@ -106,11 +130,16 @@ async function preview(attach: Attachment) {
     warning('暂不支持预览该文件')
     return
   }
-  const data = await AttachmentApi.download(attach.relativePath)
 
-  const url = URL.createObjectURL(data)
+  if (fileCache.has(attach.relativePath)) {
+    previewInfo.value.objectUrl = fileCache.get(attach.relativePath)!
+  } else {
+    const data = await AttachmentApi.download(attach.relativePath)
+    const url = URL.createObjectURL(data)
+    fileCache.set(attach.relativePath, url)
+    previewInfo.value.objectUrl = url
+  }
   previewInfo.value.attachment = attach
-  previewInfo.value.objectUrl = url
   previewDialog.value = true
 }
 

@@ -24,11 +24,12 @@ public class OcrService {
         this.mapRuleService = mapRuleService;
         engine = InferenceEngine.getInstance(Model.ONNX_PPOCR_V4);
     }
+
     /**
      * 转换图像为对象
      *
-     * @param path 图像相对路径
-     * @param target       目标对象
+     * @param path   图像相对路径
+     * @param target 目标对象
      */
     public void parseImage(Path path, Object target) {
         OcrResult ocrResult = engine.runOcr(path.toString());

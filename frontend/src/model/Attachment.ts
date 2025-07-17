@@ -10,7 +10,7 @@ export const AttachmentType = {
   IMAGE: {
     value: 'IMAGE',
     title: '图像',
-    icon: mdiImage
+    icon: mdiImage,
   },
   /**
    * PDF
@@ -18,7 +18,7 @@ export const AttachmentType = {
   PDF: {
     value: 'PDF',
     title: 'PDF',
-    icon: mdiFilePdfBox
+    icon: mdiFilePdfBox,
   },
   /**
    * Word
@@ -26,7 +26,7 @@ export const AttachmentType = {
   WORD: {
     value: 'WORD',
     title: 'Word',
-    icon: mdiFileWord
+    icon: mdiFileWord,
   },
   /**
    * Excel
@@ -34,7 +34,7 @@ export const AttachmentType = {
   EXCEL: {
     value: 'EXCEL',
     title: 'Excel',
-    icon: mdiFileExcel
+    icon: mdiFileExcel,
   },
   /**
    * 其他
@@ -42,11 +42,11 @@ export const AttachmentType = {
   OTHER: {
     value: 'OTHER',
     title: '其他',
-    icon: mdiFile
-  }
-} as  const
+    icon: mdiFile,
+  },
+} as const
 // 附件类型值
-export type AttachmentTypeValue = typeof AttachmentType[keyof typeof AttachmentType]['value']
+export type AttachmentTypeValue = (typeof AttachmentType)[keyof typeof AttachmentType]['value']
 
 export interface Attachment {
   id?: number

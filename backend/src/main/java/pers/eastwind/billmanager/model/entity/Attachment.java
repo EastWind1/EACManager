@@ -1,8 +1,8 @@
 package pers.eastwind.billmanager.model.entity;
 
-import pers.eastwind.billmanager.model.common.AttachmentType;
 import jakarta.persistence.*;
 import lombok.Data;
+import pers.eastwind.billmanager.model.common.AttachmentType;
 
 /**
  * 附件

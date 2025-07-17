@@ -1,13 +1,16 @@
 import type { Attachment } from '@/model/Attachment.ts'
 import { useAxios } from '@/api/AxiosConfig.ts'
 import type { AxiosInstance } from 'axios'
+
 let axiosInstance: AxiosInstance
+
 function getAxios() {
   if (!axiosInstance) {
     axiosInstance = useAxios('/api/attachment')
   }
   return axiosInstance
 }
+
 /**
  * 附件 API
  */
@@ -39,6 +42,8 @@ const AttachmentApi = {
    * @param path 文件路径
    */
   download: (path: string) =>
-    getAxios().get(`/${path}`, { responseType: 'blob' }).then((res) => res as never as Blob),
+    getAxios()
+      .get(`/${path}`, { responseType: 'blob' })
+      .then((res) => res as never as Blob),
 }
 export default AttachmentApi

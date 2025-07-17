@@ -1,21 +1,9 @@
 package pers.eastwind.billmanager.service;
 
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import pers.eastwind.billmanager.model.common.AttachmentType;
-import pers.eastwind.billmanager.model.common.ServiceBillState;
-import pers.eastwind.billmanager.model.dto.ActionsResult;
-import pers.eastwind.billmanager.model.dto.AttachmentDTO;
-import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
-import pers.eastwind.billmanager.model.dto.ServiceBillQueryParam;
-import pers.eastwind.billmanager.model.entity.Attachment;
-import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
-import pers.eastwind.billmanager.model.mapper.ServiceBillMapper;
-import pers.eastwind.billmanager.model.entity.ServiceBill;
-import pers.eastwind.billmanager.repository.AttachmentRepository;
-import pers.eastwind.billmanager.repository.ServiceBillRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +13,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import pers.eastwind.billmanager.model.common.AttachmentType;
+import pers.eastwind.billmanager.model.common.ServiceBillState;
+import pers.eastwind.billmanager.model.dto.ActionsResult;
+import pers.eastwind.billmanager.model.dto.AttachmentDTO;
+import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
+import pers.eastwind.billmanager.model.dto.ServiceBillQueryParam;
+import pers.eastwind.billmanager.model.entity.Attachment;
+import pers.eastwind.billmanager.model.entity.ServiceBill;
+import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
+import pers.eastwind.billmanager.model.mapper.ServiceBillMapper;
+import pers.eastwind.billmanager.repository.AttachmentRepository;
+import pers.eastwind.billmanager.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -64,12 +64,14 @@ public class ServiceBillService {
 
     /**
      * 根据id查询
+     *
      * @param id ID
      * @return ServiceBillDTO
      */
     public ServiceBillDTO findById(int id) {
         return serviceBillMapper.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
     }
+
     /**
      * 获取移动临时文件线程,
      * 用于保存时处理临时文件
@@ -351,6 +353,7 @@ public class ServiceBillService {
 
     /**
      * 导出单据
+     *
      * @param ids 单据列表
      * @return 压缩文件路径
      */
@@ -369,7 +372,7 @@ public class ServiceBillService {
         // 遍历生成 excel行，并拷贝附件
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("单据编号", "状态", "项目名称", "项目地址", "总额", "备注"));
-        BigDecimal totalAmount  = BigDecimal.ZERO;
+        BigDecimal totalAmount = BigDecimal.ZERO;
         for (ServiceBill serviceBill : serviceBills) {
             rows.add(List.of(
                     serviceBill.getNumber(),
@@ -392,7 +395,7 @@ public class ServiceBillService {
         excel = attachmentService.createFile(excel);
         officeFileService.generateExcelFromList(rows, excel);
         // 压缩
-        Path zip = attachmentService.getTempPath().resolve(dirName+".zip");
+        Path zip = attachmentService.getTempPath().resolve(dirName + ".zip");
         attachmentService.createFile(zip);
 
         attachmentService.zip(tempDir, zip);

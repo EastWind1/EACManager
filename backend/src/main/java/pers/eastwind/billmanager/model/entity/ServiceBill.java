@@ -3,14 +3,13 @@ package pers.eastwind.billmanager.model.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import pers.eastwind.billmanager.model.common.ServiceBillState;
+import pers.eastwind.billmanager.model.common.ServiceBillType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-
-import pers.eastwind.billmanager.model.common.ServiceBillType;
-import pers.eastwind.billmanager.model.common.ServiceBillState;
 
 /**
  * 服务单据实体类

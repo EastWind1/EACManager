@@ -6,12 +6,14 @@ import type { Attachment } from '@/model/Attachment.ts'
 import type { AxiosInstance } from 'axios'
 
 let axiosInstance: AxiosInstance
+
 function getAxios() {
   if (!axiosInstance) {
     axiosInstance = useAxios('/api/serviceBill')
   }
   return axiosInstance
 }
+
 /**
  * 服务单 API
  */

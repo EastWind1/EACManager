@@ -36,8 +36,10 @@ public class MapRuleService {
         this.properties = properties;
         this.objectMapper = objectMapper;
     }
+
     /**
      * 解析日期字符串
+     *
      * @param text 字符串
      * @return 时间戳, null 表示解析失败
      */
@@ -60,7 +62,8 @@ public class MapRuleService {
                     LocalDate date = LocalDate.from(accessor);
                     return date.atStartOfDay(ZoneId.systemDefault()).toInstant();
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
         log.error("无法解析日期字符串: {}", text);
         return null;
@@ -68,9 +71,10 @@ public class MapRuleService {
 
     /**
      * 向对象设置 String 值
-     * @param target 目标对象
+     *
+     * @param target    目标对象
      * @param fieldName 字段名称
-     * @param value 值
+     * @param value     值
      */
     private void setStringValue(Object target, String fieldName, String value) {
         try {
@@ -97,6 +101,7 @@ public class MapRuleService {
         } catch (NoSuchFieldException | IllegalAccessException ignored) {
         }
     }
+
     /**
      * 获取映射规则
      */
@@ -151,8 +156,10 @@ public class MapRuleService {
             }
         }
     }
+
     /**
      * 执行映射规则
+     *
      * @param prefix 映射规则前缀，目前包含 OCR、Excel
      * @param texts  文本列表
      * @param target 目标对象

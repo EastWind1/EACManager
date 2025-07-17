@@ -1,13 +1,11 @@
 package pers.eastwind.billmanager.model.mapper;
 
-import org.mapstruct.Mapping;
-import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
-import pers.eastwind.billmanager.model.entity.ServiceBill;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
-
-import java.util.List;
+import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
+import pers.eastwind.billmanager.model.entity.ServiceBill;
 
 /**
  * 服务单 Mapper
@@ -27,8 +25,9 @@ public interface ServiceBillMapper {
 
     /**
      * 根据 DTO 更新实体
+     *
      * @param serviceBillDTO dto
-     * @param serviceBill 实体
+     * @param serviceBill    实体
      */
     void updateEntityFromDTO(ServiceBillDTO serviceBillDTO, @MappingTarget ServiceBill serviceBill);
 }

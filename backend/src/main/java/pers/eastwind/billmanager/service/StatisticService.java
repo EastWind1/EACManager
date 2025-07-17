@@ -55,8 +55,8 @@ public class StatisticService {
         List<MonthSumAmount> rows = new ArrayList<>();
 
         for (Object[] result : results) {
-            int rowYear = ((Number)result[0]).intValue();
-            int month = ((Number)result[1]).intValue();
+            int rowYear = ((Number) result[0]).intValue();
+            int month = ((Number) result[1]).intValue();
             BigDecimal totalAmount = new BigDecimal(result[2].toString());
 
             rows.add(new MonthSumAmount(YearMonth.of(rowYear, month).toString(), totalAmount));

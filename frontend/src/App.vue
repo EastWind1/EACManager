@@ -1,18 +1,28 @@
 <template>
   <!-- 全局进度条 -->
-  <v-progress-linear indeterminate absolute :active="loading" style="z-index: 9999"></v-progress-linear>
+  <v-progress-linear
+    :active="loading"
+    absolute
+    indeterminate
+    style="z-index: 9999"
+  ></v-progress-linear>
   <!-- 全局通知 -->
-  <v-snackbar :color="notify.color" :text="notify.text" :timeout="notify.timeout" v-model="notify.show"
-    location="top right">
+  <v-snackbar
+    v-model="notify.show"
+    :color="notify.color"
+    :text="notify.text"
+    :timeout="notify.timeout"
+    location="top right"
+  >
   </v-snackbar>
   <!-- 全局确认框 -->
-  <v-dialog v-model="dialogData.show" width="auto" persistent>
+  <v-dialog v-model="dialogData.show" persistent width="auto">
     <v-card>
       <template #title>
-        {{dialogData.title}}
+        {{ dialogData.title }}
       </template>
       <template #text>
-        {{dialogData.text}}
+        {{ dialogData.text }}
       </template>
       <template #actions>
         <v-spacer></v-spacer>
@@ -24,7 +34,7 @@
   <RouterView />
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 // 全局进度条、通知
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/store/UIStore.ts'
