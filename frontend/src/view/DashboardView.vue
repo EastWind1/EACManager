@@ -72,10 +72,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { ServiceBillState, type ServiceBillStateValue } from '@/model/ServiceBill.ts'
 import { StatisticApi } from '@/api/StatisticApi.ts'
-import { useRouterStore } from '@/store/RouterStore.ts'
 import { useRouter } from 'vue-router'
 
-const { setData } = useRouterStore()
 const router = useRouter()
 // 单据数量
 const countByState = ref<{ [key in ServiceBillStateValue]?: number }>({})
@@ -100,10 +98,10 @@ onMounted(async () => {
 
 // 统计数量点击跳转
 async function stateClick(state: ServiceBillStateValue) {
-  setData({
-    state: [state],
+  const queryParam = JSON.stringify({
+    state: [state]
   })
-  await router.push('/list?query')
+  await router.push(`/list?query=${queryParam}`)
 }
 </script>
 

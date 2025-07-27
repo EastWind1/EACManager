@@ -321,7 +321,7 @@ public class AttachmentService implements InitializingBean {
     public Resource loadByPath(Path path) {
         validPath(path);
         if (!Files.exists(path) || Files.isDirectory(path)) {
-            throw new RuntimeException("文件不存在");
+            throw new RuntimeException("文件不存在" + path);
         }
         Resource resource;
         try {
@@ -354,7 +354,7 @@ public class AttachmentService implements InitializingBean {
         validPath(origin);
         validPath(target);
         if (!Files.exists(origin)) {
-            throw new RuntimeException("找不到文件或文件夹");
+            throw new RuntimeException("找不到文件或文件夹" + origin);
         }
         if (!Files.exists(target)) {
             createDirectory(target);

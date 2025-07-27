@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 /**
  * 路由数据存储
+ * 用于放在 URL 中过长的数据
  */
 export const useRouterStore = defineStore('routerStore', () => {
   const data = ref<unknown>()

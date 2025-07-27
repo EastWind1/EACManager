@@ -24,7 +24,7 @@
               </v-col>
               <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-date-input
-                  v-model="createdDateRange"
+                  v-model="queryParam.orderDateRange"
                   clearable
                   label="创建日期"
                   multiple="range"
@@ -34,7 +34,7 @@
               </v-col>
               <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-date-input
-                  v-model="processedDateRange"
+                  v-model="queryParam.processedDateRange"
                   clearable
                   label="完工日期"
                   multiple="range"
@@ -75,6 +75,7 @@
       :search="search"
       class="mt-2 flex-grow-1"
       mobile-breakpoint="sm"
+      :sort-by="queryParam.sorts"
       show-select
       @update:options="loadItems"
     >
@@ -127,24 +128,23 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import {
-  type ServiceBill,
-  type ServiceBillQueryParam,
-  ServiceBillState,
-  ServiceBillType,
+  type ServiceBill, type ServiceBillQueryParam,
+  ServiceBillState, type ServiceBillStateValue,
+  ServiceBillType
 } from '@/model/ServiceBill.ts'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { PageResult } from '@/model/PageResult.ts'
 import { VDateInput } from 'vuetify/labs/components'
 import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/store/UIStore.ts'
-import { useRouterStore } from '@/store/RouterStore.ts'
 import { useFileSelector } from '@/composable/FileSelector.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
 import { storeToRefs } from 'pinia'
 import * as date from 'date-fns'
+import { useRouterStore } from '@/store/RouterStore.ts'
 
 const store = useUIStore()
 const { success, warning } = store
@@ -155,44 +155,66 @@ const { setData } = useRouterStore()
 // 筛选条件区域
 // 查询状态下拉框
 const stateOptions = Object.values(ServiceBillState)
+// 查询参数类型
+type QueryParam = {
+  // 单据编号
+  number?: string,
+  // 项目名称
+  projectName?: string,
+  // 单据状态
+  state: ServiceBillStateValue[],
+  // 创建日期范围
+  orderDateRange: Date[],
+  // 处理完成日期范围
+  processedDateRange: Date[],
+  // 每页大小
+  pageSize: number,
+  // 页索引
+  pageIndex: number,
+  // 排序规则
+  sorts: {
+    key: string;
+    order?: boolean | 'asc' | 'desc';
+  }[],
+}
 // 查询参数
-const queryParam = ref<ServiceBillQueryParam>({
+const QUERY_PARAM_CACHE_KEY = 'BillListQueryParam'
+const queryParam = ref<QueryParam>({
+  number: '',
+  projectName: '',
   state: [
     ServiceBillState.CREATED.value,
     ServiceBillState.PROCESSING.value,
     ServiceBillState.PROCESSED.value,
   ],
+  orderDateRange: [],
+  processedDateRange: [],
   pageSize: 20,
   pageIndex: 0,
   sorts: [
     {
-      field: 'state',
-      direction: 'ASC',
+      key: 'state',
+      order: 'asc',
     },
     {
-      field: 'orderDate',
-      direction: 'DESC',
+      key: 'orderDate',
+      order: 'desc',
     },
   ],
-})
-// 处理查询情况
+});
+
+// 处理路由参数
 const route = useRoute()
 if (route.query.hasOwnProperty('query')) {
-  const data = useRouterStore().getData() as ServiceBillQueryParam
-  Object.assign(queryParam.value, data)
+  const data = JSON.parse(route.query['query'] as string) as QueryParam
+  Object.assign(queryParam, data)
+} else {
+  // 尝试从缓存恢复
+  const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
+  if (cache) {
+    Object.assign(queryParam.value, JSON.parse(cache))
+  }
 }
-// 创建日期范围
-const createdDateRange = ref([])
-watch(createdDateRange, (value) => {
-  queryParam.value.orderStartDate = value[0]
-  queryParam.value.orderEndDate = value[value.length - 1]
-})
-// 完工日期范围
-const processedDateRange = ref([])
-watch(processedDateRange, (value) => {
-  queryParam.value.processedStartDate = value[0]
-  queryParam.value.processedEndDate = value[value.length - 1]
-})
 
 // 数据表格区域
 // 表头
@@ -205,16 +227,15 @@ const headers = [
   { title: '创建时间', key: 'orderDate', sortable: false },
   { title: '完工时间', key: 'processedDate', sortable: false },
 ]
-// 默认数据
-const defaultData = {
+
+// 列表数据
+const data = ref<PageResult<ServiceBill>>({
   items: [],
   totalCount: 0,
   totalPages: 0,
   pageSize: 20,
   pageIndex: 0,
-}
-// 数据
-const data = ref<PageResult<ServiceBill>>(defaultData)
+})
 
 // 触发数据搜索
 const search = ref('')
@@ -230,14 +251,50 @@ async function loadItems(options: {
   itemsPerPage: number
   sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
 }) {
+  queryParam.value.pageSize = options.itemsPerPage
+  queryParam.value.pageIndex = options.page - 1
+  queryParam.value.sorts = options.sortBy
+
+  // 缓存查询参数
+  sessionStorage.setItem(QUERY_PARAM_CACHE_KEY, JSON.stringify(queryParam.value))
+  // 组装查询参数
+  const param: ServiceBillQueryParam = {}
+  if (queryParam.value.number) {
+    param.number = queryParam.value.number
+  }
+  if (queryParam.value.projectName) {
+    param.projectName = queryParam.value.projectName
+  }
+  if (queryParam.value.state && queryParam.value.state.length) {
+    param.state = queryParam.value.state
+  }
   queryParam.value.pageIndex = options.page - 1
   queryParam.value.pageSize = options.itemsPerPage
-  queryParam.value.sorts = options.sortBy.map((sort) => ({
-    field: sort.key,
-    direction: sort.order === 'asc' ? 'ASC' : 'DESC',
-  }))
-
-  data.value = await ServiceBillApi.getByQueryParam(queryParam.value).catch(() => defaultData)
+  if (queryParam.value.orderDateRange) {
+    if (queryParam.value.orderDateRange.length >= 1) {
+      param.orderStartDate = queryParam.value.orderDateRange[0]
+    }
+    if (queryParam.value.orderDateRange.length >= 2) {
+      param.orderEndDate = queryParam.value.orderDateRange[1]
+    }
+  }
+  if (queryParam.value.processedDateRange) {
+    if (queryParam.value.processedDateRange.length >= 1) {
+      param.processedStartDate = queryParam.value.processedDateRange[0]
+    }
+    if (queryParam.value.processedDateRange.length >= 2) {
+      param.processedEndDate = queryParam.value.processedDateRange[1]
+    }
+  }
+  if (queryParam.value.sorts && queryParam.value.sorts.length) {
+    param.sorts = queryParam.value.sorts.map((item) => {
+      return {
+        field: item.key,
+        direction: item.order === true || item.order === 'asc' ? 'ASC' : 'DESC'
+      }
+    })
+  }
+  data.value = await ServiceBillApi.getByQueryParam(param)
 }
 
 /**

@@ -27,6 +27,7 @@ import pers.eastwind.billmanager.repository.AttachmentRepository;
 import pers.eastwind.billmanager.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -371,8 +372,9 @@ public class ServiceBillService {
         tempDir = attachmentService.createDirectory(tempDir);
         // 遍历生成 excel行，并拷贝附件
         List<List<String>> rows = new ArrayList<>();
-        rows.add(List.of("单据编号", "状态", "项目名称", "项目地址", "总额", "备注"));
+        rows.add(List.of("单据编号", "状态", "项目名称", "项目地址", "总额", "安装完成日期", "备注"));
         BigDecimal totalAmount = BigDecimal.ZERO;
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         for (ServiceBill serviceBill : serviceBills) {
             rows.add(List.of(
                     serviceBill.getNumber(),
@@ -380,13 +382,16 @@ public class ServiceBillService {
                     serviceBill.getProjectName(),
                     serviceBill.getProjectAddress(),
                     serviceBill.getTotalAmount().toString(),
+                    dateTimeFormatter.format(serviceBill.getProcessedDate().atZone(ZoneId.systemDefault())),
                     serviceBill.getDetails().stream().map((detail) ->
                             detail.getDevice() + ": " + detail.getQuantity().stripTrailingZeros().toPlainString() + "; ").collect(Collectors.joining())
             ));
             totalAmount = totalAmount.add(serviceBill.getTotalAmount());
             // 复制附件文件夹
             Path origin = attachmentService.getAbsolutePath(Path.of(serviceBill.getNumber()));
-            attachmentService.copy(origin, tempDir, true);
+            if (Files.exists(origin)) {
+                attachmentService.copy(origin, tempDir, true);
+            }
         }
         // 表合计
         rows.add(List.of("", "", "", "合计", totalAmount.toString(), ""));
