@@ -1,7 +1,5 @@
 package pers.eastwind.billmanager.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import pers.eastwind.billmanager.model.entity.ServiceBill;
@@ -10,10 +8,10 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * 服务单 DAO
+ * 服务单 Repository
  */
 @Repository
-public interface ServiceBillRepository extends JpaRepository<ServiceBill, Integer>, JpaSpecificationExecutor<ServiceBill> {
+public interface ServiceBillRepository extends BaseRepository<ServiceBill> {
     boolean existsByNumber(String number);
 
     /**

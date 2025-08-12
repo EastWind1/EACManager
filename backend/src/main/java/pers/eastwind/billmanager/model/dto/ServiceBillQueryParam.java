@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.model.dto;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
 
 import java.time.Instant;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class ServiceBillQueryParam extends QueryParam {
     /**
      * 单号

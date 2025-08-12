@@ -12,7 +12,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.multipart.MultipartFile;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
 import pers.eastwind.billmanager.model.dto.ActionsResult;
@@ -23,7 +22,6 @@ import pers.eastwind.billmanager.model.entity.Attachment;
 import pers.eastwind.billmanager.model.entity.ServiceBill;
 import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
 import pers.eastwind.billmanager.model.mapper.ServiceBillMapper;
-import pers.eastwind.billmanager.repository.AttachmentRepository;
 import pers.eastwind.billmanager.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
@@ -34,7 +32,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -47,19 +47,17 @@ public class ServiceBillService {
     private final ServiceBillMapper serviceBillMapper;
     private final OcrService ocrService;
     private final AttachmentService attachmentService;
-    private final TransactionTemplate transactionTemplate;
     private final AttachmentMapper attachmentMapper;
-    private final AttachmentRepository attachmentRepository;
+    private final TransactionTemplate transactionTemplate;
     private final OfficeFileService officeFileService;
 
-    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, OcrService ocrService, AttachmentService attachmentService, TransactionTemplate transactionTemplate, AttachmentMapper attachmentMapper, AttachmentRepository attachmentRepository, OfficeFileService officeFileService) {
+    public ServiceBillService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, OcrService ocrService, AttachmentService attachmentService, AttachmentMapper attachmentMapper, TransactionTemplate transactionTemplate, OfficeFileService officeFileService) {
         this.serviceBillRepository = serviceBillRepository;
         this.serviceBillMapper = serviceBillMapper;
         this.ocrService = ocrService;
         this.attachmentService = attachmentService;
-        this.transactionTemplate = transactionTemplate;
         this.attachmentMapper = attachmentMapper;
-        this.attachmentRepository = attachmentRepository;
+        this.transactionTemplate = transactionTemplate;
         this.officeFileService = officeFileService;
     }
 
@@ -69,32 +67,44 @@ public class ServiceBillService {
      * @param id ID
      * @return ServiceBillDTO
      */
-    public ServiceBillDTO findById(int id) {
-        return serviceBillMapper.toServiceBillDTO(serviceBillRepository.findById(id).orElse(null));
+    public ServiceBillDTO findById(Integer id) {
+        if (id == null) {
+            throw new RuntimeException("ID不能为空");
+        }
+        return serviceBillMapper.toDTO(serviceBillRepository.findById(id).orElse(null));
     }
 
     /**
-     * 获取移动临时文件线程,
-     * 用于保存时处理临时文件
+     * 处理附件
      *
-     * @param dto 单据
-     * @return Runnable 列表
+     * @param origins 原始附件集合
+     * @param dto     传入 DTO
+     * @return db操作后，移动或删除文件的动作
      */
-    private List<Runnable> getMoveTempRunnable(ServiceBillDTO dto) {
-        List<Runnable> moveRunnable = new ArrayList<>();
-        if (dto.getAttachments() == null || dto.getAttachments().isEmpty()) {
-            return moveRunnable;
-        }
+    private List<Runnable> processAttach(List<Attachment> origins, ServiceBillDTO dto) {
+        Set<Integer> targets = new HashSet<>();
+        List<Runnable> actions = new ArrayList<>();
+
         for (AttachmentDTO attachment : dto.getAttachments()) {
+            if (attachment.getId() != null) {
+                targets.add(attachment.getId());
+            }
             Path origin = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
             if (attachmentService.isTempFile(origin)) {
                 Path targetDirRelativePath = Path.of(dto.getNumber());
                 Path target = attachmentService.getAbsolutePath(targetDirRelativePath);
                 attachment.setRelativePath(targetDirRelativePath.resolve(origin.getFileName()).toString());
-                moveRunnable.add(() -> attachmentService.move(origin, target));
+                actions.add(() -> attachmentService.move(origin, target));
             }
         }
-        return moveRunnable;
+
+        for (Attachment origin : origins) {
+            if (!targets.contains(origin.getId())) {
+                actions.add(() -> attachmentService.delete(attachmentService.getAbsolutePath(Path.of(origin.getRelativePath()))));
+            }
+        }
+
+        return actions;
     }
 
     /**
@@ -110,30 +120,30 @@ public class ServiceBillService {
             throw new RuntimeException("单据已存在");
         }
         if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {
-            serviceBillDTO.setNumber(DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + new SecureRandom().nextInt(1000));
+            serviceBillDTO.setNumber("S" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + new SecureRandom().nextInt(1000));
         } else {
             if (serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())) {
                 throw new RuntimeException("单据编号已存在");
             }
         }
-        // 移动临时文件
-        List<Runnable> moves = getMoveTempRunnable(serviceBillDTO);
-        ServiceBill bill = serviceBillRepository.save(serviceBillMapper.toServiceBill(serviceBillDTO));
-        for (Runnable move : moves) {
-            Thread.startVirtualThread(move);
+        List<Runnable> actions = processAttach(new ArrayList<>(), serviceBillDTO);
+        ServiceBill bill = serviceBillRepository.save(serviceBillMapper.toEntity(serviceBillDTO));
+        for (Runnable action : actions) {
+            Thread.startVirtualThread(action);
         }
-        return serviceBillMapper.toServiceBillDTO(bill);
+        return serviceBillMapper.toDTO(bill);
     }
 
     /**
      * 根据文件生成单据
      *
-     * @param file 文件
+     * @param bytes    字节
+     * @param fileName 文件名
      * @return 单据
      */
     @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
-    public ServiceBillDTO generateByFile(MultipartFile file) {
-        AttachmentDTO attachment = attachmentService.uploadTemp(file);
+    public ServiceBillDTO generateByFile(byte[] bytes, String fileName) {
+        Attachment attachment = attachmentService.uploadTemp(bytes, fileName);
         ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
         Path absolutePath = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
         if (attachment.getType() == AttachmentType.PDF) {
@@ -146,7 +156,7 @@ public class ServiceBillService {
         } else {
             throw new RuntimeException("不支持的文件类型");
         }
-        serviceBillDTO.setAttachments(List.of(attachment));
+        serviceBillDTO.setAttachments(List.of(attachmentMapper.toDTO(attachment)));
         return serviceBillDTO;
     }
 
@@ -167,14 +177,15 @@ public class ServiceBillService {
             throw new RuntimeException("单据不存在");
         }
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
-        // 移动临时文件
-        List<Runnable> moves = getMoveTempRunnable(serviceBillDTO);
-        ServiceBill savedBill = serviceBillRepository.save(serviceBillMapper.toServiceBill(serviceBillDTO));
-        for (Runnable move : moves) {
-            Thread.startVirtualThread(move);
+
+        List<Runnable> actions = processAttach(bill.getAttachments(), serviceBillDTO);
+        ServiceBill savedBill = serviceBillRepository.save(serviceBillMapper.toEntity(serviceBillDTO));
+        for (Runnable action : actions) {
+            Thread.startVirtualThread(action);
         }
-        return serviceBillMapper.toServiceBillDTO(savedBill);
+        return serviceBillMapper.toDTO(savedBill);
     }
+
 
     /**
      * 根据条件查询
@@ -182,7 +193,7 @@ public class ServiceBillService {
      * @param param 查询参数
      * @return 分页结果
      */
-    @Cacheable(value = "serviceBill", key = "'findByParam' + #param")
+    @Cacheable(value = "serviceBill", key = "'findByParam' + #param.hashCode()")
     public Page<ServiceBillDTO> findByParam(ServiceBillQueryParam param) {
         if (param == null) {
             throw new RuntimeException("查询参数为空");
@@ -219,10 +230,12 @@ public class ServiceBillService {
         // 默认取前 20 行，创建时间降序排序
         int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
         int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
-        List<Sort.Order> orders = param.getSorts() == null ? List.of(Sort.Order.desc("createdDate")) : param.getSorts().stream().map(sortParam -> Sort.Order.by(sortParam.getField()).with(Sort.Direction.fromString(sortParam.getDirection()))).toList();
+        List<Sort.Order> orders = param.getSorts() == null ? List.of(Sort.Order.desc("orderDate")) :
+                param.getSorts().stream().map(sortParam -> Sort.Order.by(sortParam.getField())
+                        .with(Sort.Direction.fromString(sortParam.getDirection()))).toList();
         Pageable pageable = PageRequest.of(pageIndex, pageSize, Sort.by(orders));
         Page<ServiceBill> pageResult = serviceBillRepository.findAll(specification, pageable);
-        return pageResult.map(serviceBillMapper::toBasicServiceBillDTO);
+        return pageResult.map(serviceBillMapper::toBaseDTO);
     }
 
     /**
@@ -332,27 +345,6 @@ public class ServiceBillService {
     }
 
     /**
-     * 单独添加附件
-     */
-    public AttachmentDTO addAttachment(Integer id, MultipartFile file) {
-        if (id == null) {
-            throw new RuntimeException("id不能为空");
-        }
-        ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
-        if (bill == null) {
-            throw new RuntimeException("单据不存在");
-        }
-        AttachmentDTO attachment = attachmentService.upload(file, attachmentService.getAbsolutePath(Path.of(bill.getNumber())));
-        return transactionTemplate.execute((status) -> {
-            Attachment newAttachment = new Attachment();
-            attachmentMapper.updateEntityFromDTO(attachment, newAttachment);
-            newAttachment.setServiceBill(bill);
-            attachmentRepository.save(newAttachment);
-            return attachmentMapper.toAttachmentDTO(attachmentRepository.save(newAttachment));
-        });
-    }
-
-    /**
      * 导出单据
      *
      * @param ids 单据列表
@@ -384,7 +376,9 @@ public class ServiceBillService {
                     serviceBill.getTotalAmount().toString(),
                     dateTimeFormatter.format(serviceBill.getProcessedDate().atZone(ZoneId.systemDefault())),
                     serviceBill.getDetails().stream().map((detail) ->
-                            detail.getDevice() + ": " + detail.getQuantity().stripTrailingZeros().toPlainString() + "; ").collect(Collectors.joining())
+                                    detail.getDevice() + " : " + detail.getUnitPrice().stripTrailingZeros().toPlainString()
+                                            + " * " + detail.getQuantity().stripTrailingZeros().toPlainString() + " ; ")
+                            .collect(Collectors.joining())
             ));
             totalAmount = totalAmount.add(serviceBill.getTotalAmount());
             // 复制附件文件夹

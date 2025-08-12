@@ -3,17 +3,17 @@ package pers.eastwind.billmanager.model.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
-import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
-import pers.eastwind.billmanager.model.entity.ServiceBill;
+import pers.eastwind.billmanager.model.dto.ReimbursementDTO;
+import pers.eastwind.billmanager.model.entity.Reimbursement;
 
 /**
- * 服务单 Mapper
+ * 报销单 Mapper
  */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
-public interface ServiceBillMapper extends BaseMapper<ServiceBill, ServiceBillDTO> {
+public interface ReimburseMapper extends BaseMapper<Reimbursement, ReimbursementDTO> {
 
     @Override
     @Mapping(target = "details", ignore = true)
     @Mapping(target = "attachments", ignore = true)
-    ServiceBillDTO toBaseDTO(ServiceBill serviceBill);
+    ReimbursementDTO toBaseDTO(Reimbursement reimbursement);
 }

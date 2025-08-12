@@ -2,14 +2,16 @@ package pers.eastwind.billmanager.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 
 /**
  * 附件
  */
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Data
-public class Attachment {
+public class Attachment extends AuditEntity {
     @Id
     @GeneratedValue
     private Integer id;
@@ -32,4 +34,10 @@ public class Attachment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private ServiceBill serviceBill;
+    /**
+     * 关联报销单
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private Reimbursement reimbursement;
 }

@@ -2,7 +2,6 @@ package pers.eastwind.billmanager.model.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
-import org.mapstruct.MappingTarget;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.entity.Attachment;
 
@@ -10,13 +9,5 @@ import pers.eastwind.billmanager.model.entity.Attachment;
  * 附件 Mapper
  */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
-public interface AttachmentMapper {
-    AttachmentDTO toAttachmentDTO(Attachment attachment);
-
-    Attachment toAttachment(AttachmentDTO attachmentDTO);
-
-    /**
-     * 根据 DTO 更新实体
-     */
-    void updateEntityFromDTO(AttachmentDTO attachmentDTO, @MappingTarget Attachment attachment);
+public interface AttachmentMapper extends BaseMapper<Attachment, AttachmentDTO> {
 }

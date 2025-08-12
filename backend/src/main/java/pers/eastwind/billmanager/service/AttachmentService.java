@@ -12,7 +12,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 import pers.eastwind.billmanager.config.ConfigProperties;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
@@ -228,38 +227,14 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
-     * 保存文件
-     *
-     * @param file 文件
-     * @param path 目录路径
-     * @return 附件实体
-     */
-    private Attachment saveFile(MultipartFile file, Path path) {
-        validPath(path);
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("禁止上传空文件");
-        }
-
-        if (file.getOriginalFilename() == null) {
-            throw new RuntimeException("文件名不能为空");
-        }
-
-        try {
-            return saveFile(file.getBytes(), file.getOriginalFilename(), path);
-        } catch (IOException e) {
-            throw new RuntimeException("获取文件流失败", e);
-        }
-    }
-
-    /**
-     * 保存文件
+     * 上传文件
      *
      * @param bytes    文件字节
      * @param fileName 文件名称
      * @param path     相对附件目录路径
      * @return 附件实体
      */
-    private Attachment saveFile(byte[] bytes, String fileName, Path path) {
+    public Attachment upload(byte[] bytes, String fileName, Path path) {
         validPath(path);
         if (bytes == null) {
             throw new IllegalArgumentException("禁止上传空文件");
@@ -291,25 +266,21 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
-     * 上传文件
-     *
-     * @param file 文件
-     * @param path 目录路径
-     * @return 附件实体
+     * 上传临时文件
      */
-    @Transactional
-    public AttachmentDTO upload(MultipartFile file, Path path) {
-        return attachmentMapper.toAttachmentDTO(attachmentRepository.save(saveFile(file, path)));
+    public Attachment uploadTemp(byte[] bytes, String fileName) {
+        return upload(bytes, fileName, tempPath);
     }
 
     /**
-     * 上传至临时文件目录
+     * 保存附件
      *
-     * @param file 文件
-     * @return 附件实体
+     * @param attachment 附件
+     * @return 附件 DTO
      */
-    public AttachmentDTO uploadTemp(MultipartFile file) {
-        return attachmentMapper.toAttachmentDTO(saveFile(file, tempPath));
+    @Transactional
+    public AttachmentDTO save(Attachment attachment) {
+        return attachmentMapper.toDTO(attachmentRepository.save(attachment));
     }
 
     /**

@@ -36,7 +36,7 @@ public class UserService implements UserDetailsService {
      * 获取用户
      */
     public List<UserDTO> getAll() {
-        return userMapper.toUserDTOs(userRepository.findAllEnabled());
+        return userRepository.findAllEnabled().stream().map(userMapper::toBaseDTO).toList();
     }
 
     /**
@@ -56,9 +56,9 @@ public class UserService implements UserDetailsService {
         if (user.getPassword() == null || user.getPassword().isEmpty()) {
             throw new RuntimeException("密码不能为空");
         }
-        User newUser = userMapper.toUser(user);
+        User newUser = userMapper.toEntity(user);
         newUser.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
-        return userMapper.toUserDTO(userRepository.save(newUser));
+        return userMapper.toDTO(userRepository.save(newUser));
     }
 
     /**
@@ -85,8 +85,8 @@ public class UserService implements UserDetailsService {
             }
             oldUser.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
         }
-        userMapper.updateFromUserDTO(user, oldUser);
-        return userMapper.toUserDTO(userRepository.save(oldUser));
+        userMapper.updateEntityFromDTO(user, oldUser);
+        return userMapper.toDTO(userRepository.save(oldUser));
     }
 
     /**
@@ -130,7 +130,7 @@ public class UserService implements UserDetailsService {
         }
         String subject = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.HOST);
         String token = jwtUtil.generateToken(username, subject);
-        return new LoginResult(token, userMapper.toUserDTO(user));
+        return new LoginResult(token, userMapper.toDTO(user));
     }
 
 }

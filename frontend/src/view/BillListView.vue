@@ -96,6 +96,9 @@
           inline
         ></v-badge>
       </template>
+      <template #[`item.totalAmount`]="{ item }">
+        {{ item.totalAmount.toFixed(2) }}
+      </template>
       <template #[`item.orderDate`]="{ item }">
         {{ item.orderDate ? date.format(item.orderDate, 'yyyy-MM-dd') : '' }}
       </template>
@@ -223,7 +226,7 @@ const headers = [
   { title: '状态', key: 'state', sortable: false },
   { title: '类型', key: 'type', sortable: false },
   { title: '项目', key: 'projectName', sortable: false },
-  { title: '地址', key: 'projectAddress', sortable: false },
+  { title: '总金额', key: 'totalAmount', sortable: false },
   { title: '创建时间', key: 'orderDate', sortable: false },
   { title: '完工时间', key: 'processedDate', sortable: false },
 ]
@@ -251,6 +254,7 @@ async function loadItems(options: {
   itemsPerPage: number
   sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
 }) {
+  // 同步列表属性至本地查询参数
   queryParam.value.pageSize = options.itemsPerPage
   queryParam.value.pageIndex = options.page - 1
   queryParam.value.sorts = options.sortBy
@@ -268,8 +272,8 @@ async function loadItems(options: {
   if (queryParam.value.state && queryParam.value.state.length) {
     param.state = queryParam.value.state
   }
-  queryParam.value.pageIndex = options.page - 1
-  queryParam.value.pageSize = options.itemsPerPage
+  param.pageIndex = options.page - 1
+  param.pageSize = options.itemsPerPage
   if (queryParam.value.orderDateRange) {
     if (queryParam.value.orderDateRange.length >= 1) {
       param.orderStartDate = queryParam.value.orderDateRange[0]

@@ -4,8 +4,10 @@ import org.springframework.core.io.Resource;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
+import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
 import pers.eastwind.billmanager.service.AttachmentService;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 /**
@@ -15,9 +17,11 @@ import java.nio.file.Path;
 @RestController
 public class AttachmentController {
     private final AttachmentService attachmentService;
+    private final AttachmentMapper attachmentMapper;
 
-    public AttachmentController(AttachmentService attachmentService) {
+    public AttachmentController(AttachmentService attachmentService, AttachmentMapper attachmentMapper) {
         this.attachmentService = attachmentService;
+        this.attachmentMapper = attachmentMapper;
     }
 
     /**
@@ -41,8 +45,8 @@ public class AttachmentController {
      * @return 文件信息
      */
     @PostMapping
-    public AttachmentDTO upload(@RequestParam MultipartFile file, @RequestParam String path) {
-        return attachmentService.upload(file, attachmentService.getAbsolutePath(Path.of(path)));
+    public AttachmentDTO upload(@RequestParam MultipartFile file, @RequestParam String path) throws IOException {
+        return attachmentMapper.toDTO(attachmentService.upload(file.getBytes(), file.getOriginalFilename(), attachmentService.getAbsolutePath(Path.of(path))));
     }
 
     /**
@@ -52,10 +56,10 @@ public class AttachmentController {
      * @return 文件信息
      */
     @PostMapping("/temp")
-    public AttachmentDTO uploadTemp(@RequestParam MultipartFile file) {
+    public AttachmentDTO uploadTemp(@RequestParam MultipartFile file) throws IOException {
         if (file == null) {
             throw new RuntimeException("文件为空");
         }
-        return attachmentService.uploadTemp(file);
+        return attachmentMapper.toDTO(attachmentService.uploadTemp(file.getBytes(), file.getOriginalFilename()));
     }
 }

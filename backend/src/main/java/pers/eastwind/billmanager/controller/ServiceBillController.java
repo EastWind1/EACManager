@@ -5,10 +5,14 @@ import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import pers.eastwind.billmanager.model.dto.*;
+import pers.eastwind.billmanager.model.dto.ActionsResult;
+import pers.eastwind.billmanager.model.dto.PageResult;
+import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
+import pers.eastwind.billmanager.model.dto.ServiceBillQueryParam;
 import pers.eastwind.billmanager.service.AttachmentService;
 import pers.eastwind.billmanager.service.ServiceBillService;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
@@ -74,8 +78,8 @@ public class ServiceBillController {
      * 通过文件创建
      */
     @PostMapping("/import")
-    public ServiceBillDTO importByFile(MultipartFile file) {
-        return serviceBillService.generateByFile(file);
+    public ServiceBillDTO importByFile(MultipartFile file) throws IOException {
+        return serviceBillService.generateByFile(file.getBytes(), file.getOriginalFilename());
     }
 
     /**
@@ -108,14 +112,6 @@ public class ServiceBillController {
     @PutMapping("/finish")
     public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
         return serviceBillService.finish(ids);
-    }
-
-    /**
-     * 添加附件
-     */
-    @PostMapping("{id}/attachment")
-    public AttachmentDTO addAttachment(@PathVariable Integer id, @RequestParam MultipartFile file) {
-        return serviceBillService.addAttachment(id, file);
     }
 
     /**
