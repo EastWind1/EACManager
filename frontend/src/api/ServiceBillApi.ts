@@ -44,15 +44,6 @@ const ServiceBillApi = {
       })
       .then((res) => res.data as ServiceBill),
   /**
-   * 添加附件
-   */
-  addAttachment: (id: number, file: File) =>
-    getAxios()
-      .postForm(`/${id}/attachment`, {
-        file,
-      })
-      .then((res) => res.data as Attachment),
-  /**
    * 新建
    * @param serviceBill 订单
    */

@@ -69,7 +69,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ServiceBillState, type ServiceBillStateValue } from '@/model/ServiceBill.ts'
 import { StatisticApi } from '@/api/StatisticApi.ts'
 import { useRouter } from 'vue-router'
@@ -91,11 +91,6 @@ const amountValue = computed(() => {
   return values ? values.map((item) => item.amount) : []
 })
 
-onMounted(async () => {
-  countByState.value = await StatisticApi.countBillsByState().catch(() => ({}))
-  amountGroupByMonth.value = await StatisticApi.sumTotalAmountByMonth().catch(() => [])
-})
-
 // 统计数量点击跳转
 async function stateClick(state: ServiceBillStateValue) {
   const queryParam = JSON.stringify({
@@ -103,6 +98,18 @@ async function stateClick(state: ServiceBillStateValue) {
   })
   await router.push(`/list?query=${queryParam}`)
 }
+
+// 初始化
+async function init() {
+  StatisticApi.countBillsByState().then((res) => {
+    countByState.value = res
+  })
+  StatisticApi.sumTotalAmountByMonth().then((res) => {
+    amountGroupByMonth.value = res
+  })
+}
+
+init()
 </script>
 
 <style scoped></style>

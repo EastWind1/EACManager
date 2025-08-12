@@ -15,7 +15,7 @@
                     v-if="serviceBill.state === ServiceBillState.CREATED.value"
                     v-model="serviceBill.number"
                     label="单号"
-                    placeholder="为空时生成自动"
+                    placeholder="可生成自动"
                   ></v-text-field>
                   <h3 v-else>单号: {{ serviceBill.number }}</h3>
                 </v-col>
@@ -218,7 +218,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/model/ServiceBill.ts'
 import BillFormDetail from '@/component/BillFormDetail.vue'
 import * as date from 'date-fns'
@@ -255,40 +255,6 @@ const serviceBill = ref<ServiceBill>({
   orderDate: new Date(),
 })
 
-onMounted(async () => {
-  // 链接查看
-  if (route.params.id) {
-    const bill = await ServiceBillApi.getById(parseInt(route.params.id as string)).catch(
-      () => undefined,
-    )
-    if (bill) {
-      serviceBill.value = bill
-    } else {
-      warning('未找到该单据')
-    }
-  } else {
-    const actionQuery = route.query.action
-    switch (actionQuery) {
-      // 新建
-      case 'create':
-        isEditState.value = true
-        break
-      // 导入
-      case 'import':
-        const { getData } = useRouterStore()
-        const data = getData() as ServiceBill
-        if (!data) {
-          warning('未获取到识别结果')
-          return
-        }
-        serviceBill.value = data
-        isEditState.value = true
-        break
-      default:
-        warning('不支持的操作: ' + actionQuery)
-    }
-  }
-})
 
 // 表单验证状态
 const valid = ref(false)
@@ -330,6 +296,44 @@ async function processResult(result: ActionsResult<number, void>) {
 }
 
 const { process, processed, finish, remove } = useBillActions(processResult)
+
+// 初始化
+async function init() {
+  // 链接查看
+  if (route.params.id) {
+    const bill = await ServiceBillApi.getById(parseInt(route.params.id as string)).catch(
+      () => undefined,
+    )
+    if (bill) {
+      serviceBill.value = bill
+    } else {
+      warning('未找到该单据')
+    }
+  } else {
+    const actionQuery = route.query.action
+    switch (actionQuery) {
+      // 新建
+      case 'create':
+        isEditState.value = true
+        break
+      // 导入
+      case 'import':
+        const { getData } = useRouterStore()
+        const data = getData() as ServiceBill
+        if (!data) {
+          warning('未获取到识别结果')
+          return
+        }
+        serviceBill.value = data
+        isEditState.value = true
+        break
+      default:
+        warning('不支持的操作: ' + actionQuery)
+    }
+  }
+}
+
+init()
 </script>
 
 <style scoped></style>

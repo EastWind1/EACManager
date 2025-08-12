@@ -72,7 +72,7 @@
   </v-container>
 </template>
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { AuthorityRole, type User } from '@/model/User.ts'
 import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
 import UserApi from '@/api/UserApi.ts'
@@ -100,10 +100,6 @@ const options = Object.values(AuthorityRole).map((item) => ({
 }))
 // 当前登录用户，用于权限控制
 const curUser = useUserStore().getUser()
-
-onMounted(async () => {
-  users.value = await UserApi.getAll()
-})
 // 弹窗内容
 const dialogData = ref<{
   show: boolean
@@ -175,4 +171,11 @@ async function saveUser() {
 
   dialogData.value.show = false
 }
+
+// 初始化
+async function init() {
+  users.value = await UserApi.getAll()
+}
+
+init()
 </script>

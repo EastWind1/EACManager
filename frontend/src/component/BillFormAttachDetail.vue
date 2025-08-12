@@ -21,7 +21,7 @@
           </v-card>
         </v-hover>
       </v-col>
-      <v-col cols="1">
+      <v-col cols="1" v-if="!readonly">
         <v-card width="53">
           <template #text>
             <v-icon :icon="mdiPlus" @click="upload"></v-icon>
@@ -64,7 +64,6 @@ import AttachmentApi from '@/api/AttachmentApi.ts'
 import type { ServiceBill } from '@/model/ServiceBill.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useFileSelector } from '@/composable/FileSelector.ts'
-import ServiceBillApi from '@/api/ServiceBillApi.ts'
 
 const bill = defineModel<ServiceBill>()
 const { warning } = useUIStore()
@@ -148,18 +147,8 @@ async function preview(attach: Attachment) {
  */
 async function upload() {
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx', false)
-  let attach
-  // 编辑状态上传的文件，存至临时目录
-  if (!readonly.value) {
-    attach = await AttachmentApi.uploadTemp(fileList[0])
-  } else {
-    // 非编辑状态，直接上传至当前单据
-    if (!bill.value?.id) {
-      warning('单据 ID 不存在')
-      return
-    }
-    attach = await ServiceBillApi.addAttachment(bill.value.id, fileList[0])
-  }
+  // 上传至临时目录
+  const attach = await AttachmentApi.uploadTemp(fileList[0])
   bill.value?.attachments.push(attach)
 }
 

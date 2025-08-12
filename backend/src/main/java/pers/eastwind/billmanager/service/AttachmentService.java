@@ -11,10 +11,8 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.config.ConfigProperties;
 import pers.eastwind.billmanager.model.common.AttachmentType;
-import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.entity.Attachment;
 import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
 import pers.eastwind.billmanager.repository.AttachmentRepository;
@@ -41,8 +39,6 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class AttachmentService implements InitializingBean {
     private final ConfigProperties properties;
-    private final AttachmentRepository attachmentRepository;
-    private final AttachmentMapper attachmentMapper;
     /**
      * 根目录
      */
@@ -56,8 +52,6 @@ public class AttachmentService implements InitializingBean {
 
     public AttachmentService(ConfigProperties properties, AttachmentRepository attachmentRepository, AttachmentMapper attachmentMapper) {
         this.properties = properties;
-        this.attachmentRepository = attachmentRepository;
-        this.attachmentMapper = attachmentMapper;
     }
 
 
@@ -271,18 +265,6 @@ public class AttachmentService implements InitializingBean {
     public Attachment uploadTemp(byte[] bytes, String fileName) {
         return upload(bytes, fileName, tempPath);
     }
-
-    /**
-     * 保存附件
-     *
-     * @param attachment 附件
-     * @return 附件 DTO
-     */
-    @Transactional
-    public AttachmentDTO save(Attachment attachment) {
-        return attachmentMapper.toDTO(attachmentRepository.save(attachment));
-    }
-
     /**
      * 读取文件
      *
@@ -393,7 +375,7 @@ public class AttachmentService implements InitializingBean {
      * @param sourceDirPath 源路径
      * @param zipFilePath   目标路径
      */
-    public Path zip(Path sourceDirPath, Path zipFilePath) {
+    public void zip(Path sourceDirPath, Path zipFilePath) {
         validPath(sourceDirPath);
         validPath(zipFilePath);
 
@@ -426,7 +408,6 @@ public class AttachmentService implements InitializingBean {
         } catch (IOException e) {
             throw new RuntimeException("压缩文件失败", e);
         }
-        return zipFilePath;
     }
 
     /**
