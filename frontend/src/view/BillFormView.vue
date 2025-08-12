@@ -168,10 +168,10 @@
             </v-tabs-window-item>
             <!-- 附件 -->
             <v-tabs-window-item value="attachment">
-              <BillFormAttachDetail
-                v-model="serviceBill"
+              <FormAttachDetail
+                v-model="serviceBill.attachments"
                 :readonly="!isEditState"
-              ></BillFormAttachDetail>
+              ></FormAttachDetail>
             </v-tabs-window-item>
           </v-tabs-window>
         </template>
@@ -224,7 +224,7 @@ import BillFormDetail from '@/component/BillFormDetail.vue'
 import * as date from 'date-fns'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import { storeToRefs } from 'pinia'
-import BillFormAttachDetail from '@/component/BillFormAttachDetail.vue'
+import FormAttachDetail from '@/component/FormAttachDetail.vue'
 import { useRoute } from 'vue-router'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useRouterStore } from '@/store/RouterStore.ts'

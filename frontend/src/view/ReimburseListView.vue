@@ -20,23 +20,10 @@
                 />
               </v-col>
               <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-                <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
-              </v-col>
-              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-date-input
-                  v-model="queryParam.orderDateRange"
+                  v-model="queryParam.reimburseDateRange"
                   clearable
-                  label="创建日期"
-                  multiple="range"
-                  prepend-icon=""
-                  prepend-inner-icon="$calendar"
-                ></v-date-input>
-              </v-col>
-              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-                <v-date-input
-                  v-model="queryParam.processedDateRange"
-                  clearable
-                  label="完工日期"
+                  label="报销日期"
                   multiple="range"
                   prepend-icon=""
                   prepend-inner-icon="$calendar"
@@ -53,11 +40,9 @@
     <v-toolbar class="mt-2" density="compact">
       <template #append>
         <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
-        <v-btn :disabled="loading" @click="importFile">导入</v-btn>
         <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
         <v-btn :disabled="loading" @click="process(selectedIds)">开始处理</v-btn>
-        <v-btn :disabled="loading" @click="processed(selectedIds)">处理完成</v-btn>
-        <v-btn :disabled="loading" @click="finish(selectedIds)">回款完成</v-btn>
+        <v-btn :disabled="loading" @click="finish(selectedIds)">处理完成</v-btn>
         <v-btn :disabled="loading" color="red" @click="remove(selectedIds)">删除</v-btn>
 
         <v-spacer></v-spacer>
@@ -80,30 +65,20 @@
       @update:options="loadItems"
     >
       <template #[`item.number`]="{ item }">
-        <RouterLink :to="`/service/${item.id}`">{{ item.number }}</RouterLink>
+        <RouterLink :to="`/reimburse/${item.id}`">{{ item.number }}</RouterLink>
       </template>
       <template #[`item.state`]="{ item }">
         <v-badge
-          :color="ServiceBillState[item.state].color"
-          :content="ServiceBillState[item.state].title"
-          inline
-        ></v-badge>
-      </template>
-      <template #[`item.type`]="{ item }">
-        <v-badge
-          :color="ServiceBillType[item.type].color"
-          :content="ServiceBillType[item.type].title"
+          :color="ReimburseState[item.state].color"
+          :content="ReimburseState[item.state].title"
           inline
         ></v-badge>
       </template>
       <template #[`item.totalAmount`]="{ item }">
-        {{ item.totalAmount.toFixed(2) }}
+        {{ item.totalAmount ? item.totalAmount.toFixed(2) : '0.00' }}
       </template>
-      <template #[`item.orderDate`]="{ item }">
-        {{ item.orderDate ? date.format(item.orderDate, 'yyyy-MM-dd') : '' }}
-      </template>
-      <template #[`item.processedDate`]="{ item }">
-        {{ item.processedDate ? date.format(item.processedDate, 'yyyy-MM-dd') : '' }}
+      <template #[`item.reimburseDate`]="{ item }">
+        {{ item.reimburseDate ? date.format(item.reimburseDate, 'yyyy-MM-dd') : '' }}
       </template>
     </v-data-table-server>
 
@@ -133,65 +108,57 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import {
-  type ServiceBill, type ServiceBillQueryParam,
-  ServiceBillState, type ServiceBillStateValue,
-  ServiceBillType
-} from '@/model/ServiceBill.ts'
-import ServiceBillApi from '@/api/ServiceBillApi.ts'
+  type Reimbursement,
+  type ReimburseQueryParam,
+  ReimburseState,
+  type ReimburseStateValue,
+} from '@/model/Reimbursement.ts'
+import ReimburseApi from '@/api/ReimburseApi.ts'
 import type { PageResult } from '@/model/PageResult.ts'
 import { VDateInput } from 'vuetify/labs/components'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useUIStore } from '@/store/UIStore.ts'
-import { useFileSelector } from '@/composable/FileSelector.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
-import { useBillActions } from '@/composable/BillActions.ts'
 import { storeToRefs } from 'pinia'
 import * as date from 'date-fns'
-import { useRouterStore } from '@/store/RouterStore.ts'
+import { useReimburseActions } from '@/composable/ReimburseActions.ts'
 
 const store = useUIStore()
 const { success, warning } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
-const { setData } = useRouterStore()
 
 // 筛选条件区域
 // 查询状态下拉框
-const stateOptions = Object.values(ServiceBillState)
+const stateOptions = Object.values(ReimburseState)
 // 查询参数类型
 type QueryParam = {
   // 单据编号
-  number?: string,
-  // 项目名称
-  projectName?: string,
+  number?: string
   // 单据状态
-  state: ServiceBillStateValue[],
-  // 创建日期范围
-  orderDateRange: Date[],
-  // 处理完成日期范围
-  processedDateRange: Date[],
+  state: ReimburseStateValue[]
+  // 报销日期范围
+  reimburseDateRange: Date[]
   // 每页大小
-  pageSize: number,
+  pageSize: number
   // 页索引
-  pageIndex: number,
+  pageIndex: number
   // 排序规则
   sorts: {
-    key: string;
-    order?: boolean | 'asc' | 'desc';
-  }[],
+    key: string
+    order?: boolean | 'asc' | 'desc'
+  }[]
 }
 // 查询参数
-const QUERY_PARAM_CACHE_KEY = 'BillListQueryParam'
+const QUERY_PARAM_CACHE_KEY = 'ReimburseListQueryParam'
 const queryParam = ref<QueryParam>({
   number: '',
-  projectName: '',
   state: [
-    ServiceBillState.CREATED.value,
-    ServiceBillState.PROCESSING.value,
-    ServiceBillState.PROCESSED.value,
+    ReimburseState.CREATED.value,
+    ReimburseState.PROCESSING.value,
+    ReimburseState.FINISHED.value,
   ],
-  orderDateRange: [],
-  processedDateRange: [],
+  reimburseDateRange: [],
   pageSize: 20,
   pageIndex: 0,
   sorts: [
@@ -200,23 +167,16 @@ const queryParam = ref<QueryParam>({
       order: 'asc',
     },
     {
-      key: 'orderDate',
+      key: 'reimburseDate',
       order: 'desc',
     },
   ],
-});
+})
 
-// 处理路由参数
-const route = useRoute()
-if (route.query.hasOwnProperty('query')) {
-  const data = JSON.parse(route.query['query'] as string) as QueryParam
-  Object.assign(queryParam, data)
-} else {
-  // 尝试从缓存恢复
-  const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
-  if (cache) {
-    Object.assign(queryParam.value, JSON.parse(cache))
-  }
+// 尝试从缓存恢复查询条件
+const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
+if (cache) {
+  Object.assign(queryParam.value, JSON.parse(cache))
 }
 
 // 数据表格区域
@@ -224,15 +184,13 @@ if (route.query.hasOwnProperty('query')) {
 const headers = [
   { title: '单号', key: 'number', sortable: false },
   { title: '状态', key: 'state', sortable: false },
-  { title: '类型', key: 'type', sortable: false },
-  { title: '项目', key: 'projectName', sortable: false },
+  { title: '摘要', key: 'summary', sortable: false },
   { title: '总金额', key: 'totalAmount', sortable: false },
-  { title: '创建时间', key: 'orderDate', sortable: false },
-  { title: '完工时间', key: 'processedDate', sortable: false },
+  { title: '报销日期', key: 'reimburseDate', sortable: false },
 ]
 
 // 列表数据
-const data = ref<PageResult<ServiceBill>>({
+const data = ref<PageResult<Reimbursement>>({
   items: [],
   totalCount: 0,
   totalPages: 0,
@@ -262,43 +220,32 @@ async function loadItems(options: {
   // 缓存查询参数
   sessionStorage.setItem(QUERY_PARAM_CACHE_KEY, JSON.stringify(queryParam.value))
   // 组装查询参数
-  const param: ServiceBillQueryParam = {}
+  const param: ReimburseQueryParam = {}
   if (queryParam.value.number) {
     param.number = queryParam.value.number
-  }
-  if (queryParam.value.projectName) {
-    param.projectName = queryParam.value.projectName
   }
   if (queryParam.value.state && queryParam.value.state.length) {
     param.state = queryParam.value.state
   }
   param.pageIndex = options.page - 1
   param.pageSize = options.itemsPerPage
-  if (queryParam.value.orderDateRange) {
-    if (queryParam.value.orderDateRange.length >= 1) {
-      param.orderStartDate = queryParam.value.orderDateRange[0]
+  if (queryParam.value.reimburseDateRange) {
+    if (queryParam.value.reimburseDateRange.length >= 1) {
+      param.reimburseStartDate = queryParam.value.reimburseDateRange[0]
     }
-    if (queryParam.value.orderDateRange.length >= 2) {
-      param.orderEndDate = queryParam.value.orderDateRange[1]
-    }
-  }
-  if (queryParam.value.processedDateRange) {
-    if (queryParam.value.processedDateRange.length >= 1) {
-      param.processedStartDate = queryParam.value.processedDateRange[0]
-    }
-    if (queryParam.value.processedDateRange.length >= 2) {
-      param.processedEndDate = queryParam.value.processedDateRange[1]
+    if (queryParam.value.reimburseDateRange.length >= 2) {
+      param.reimburseEndDate = queryParam.value.reimburseDateRange[1]
     }
   }
   if (queryParam.value.sorts && queryParam.value.sorts.length) {
     param.sorts = queryParam.value.sorts.map((item) => {
       return {
         field: item.key,
-        direction: item.order === true || item.order === 'asc' ? 'ASC' : 'DESC'
+        direction: item.order === true || item.order === 'asc' ? 'ASC' : 'DESC',
       }
     })
   }
-  data.value = await ServiceBillApi.getByQueryParam(param)
+  data.value = await ReimburseApi.getByQueryParam(param)
 }
 
 /**
@@ -309,13 +256,13 @@ async function exportToZip() {
     warning('请选择要导出的项')
     return
   }
-  const blob = await ServiceBillApi.export(selectedIds.value).catch(() => undefined)
+  const blob = await ReimburseApi.export(selectedIds.value).catch(() => undefined)
 
   if (blob) {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = '导出.zip'
+    a.download = '报销单导出.zip'
     a.click()
     window.URL.revokeObjectURL(url)
   }
@@ -338,34 +285,14 @@ const resultDialog = ref<{
   rows: [],
 })
 
-// 按钮回调
-
 /**
  * 新建
  */
 function create() {
   router.push({
-    path: '/service',
+    path: '/reimburse',
     query: {
       action: 'create',
-    },
-  })
-}
-
-/**
- * 导入
- */
-async function importFile() {
-  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.xls,.xlsx', false)
-  const bill = await ServiceBillApi.import(fileList[0]).catch(() => undefined)
-  if (!bill) {
-    return
-  }
-  setData(bill)
-  await router.push({
-    path: '/service',
-    query: {
-      action: 'import',
     },
   })
 }
@@ -404,5 +331,5 @@ function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const { process, processed, finish, remove } = useBillActions(processResult)
+const { process, finish, remove } = useReimburseActions(processResult)
 </script>

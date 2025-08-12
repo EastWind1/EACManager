@@ -395,7 +395,6 @@ public class ServiceBillService {
         officeFileService.generateExcelFromList(rows, excel);
         // 压缩
         Path zip = attachmentService.getTempPath().resolve(dirName + ".zip");
-        attachmentService.createFile(zip);
 
         attachmentService.zip(tempDir, zip);
         return zip;

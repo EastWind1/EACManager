@@ -19,9 +19,9 @@ public class ReimburseQueryParam extends QueryParam {
      */
     private String number;
     /**
-     * 备注
+     * 摘要
      */
-    private String remark;
+    private String summary;
     /**
      * 报销起始日期
      */

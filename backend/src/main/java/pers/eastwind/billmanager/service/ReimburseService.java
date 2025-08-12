@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import pers.eastwind.billmanager.model.common.ReimburseState;
 import pers.eastwind.billmanager.model.dto.ActionsResult;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.dto.ReimburseQueryParam;
@@ -165,8 +166,8 @@ public class ReimburseService {
             if (param.getNumber() != null) {
                 predicates.add(cb.like(root.get("number"), param.getNumber() + "%"));
             }
-            if (param.getRemark() != null) {
-                predicates.add(cb.like(root.get("remark"), "%" + param.getRemark() + "%"));
+            if (param.getSummary() != null) {
+                predicates.add(cb.like(root.get("summary"), "%" + param.getSummary() + "%"));
             }
             if (param.getReimburseStartDate() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("reimburseDate"), param.getReimburseStartDate()));
@@ -201,12 +202,60 @@ public class ReimburseService {
                 if (bill == null) {
                     throw new RuntimeException("单据不存在");
                 }
+                if (bill.getState() != ReimburseState.CREATED) {
+                    throw new RuntimeException("非创建状态不能删除");
+                }
                 reimburseRepository.deleteById(id);
             });
             return null;
         });
     }
 
+    /**
+     * 提交处理
+     */
+    public ActionsResult<Integer, Void> process(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new RuntimeException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            transactionTemplate.executeWithoutResult(status -> {
+                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                if (bill == null) {
+                    throw new RuntimeException("单据不存在");
+                }
+                if (bill.getState() != ReimburseState.CREATED) {
+                    throw new RuntimeException("非创建状态不能提交");
+                }
+                bill.setState(ReimburseState.PROCESSING);
+                reimburseRepository.save(bill);
+            });
+            return null;
+        });
+    }
+
+    /**
+     * 完成
+     */
+    public ActionsResult<Integer, Void> finish(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new RuntimeException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            transactionTemplate.executeWithoutResult(status -> {
+                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                if (bill == null) {
+                    throw new RuntimeException("单据不存在");
+                }
+                if (bill.getState() != ReimburseState.PROCESSING) {
+                    throw new RuntimeException("非处理状态不能完成");
+                }
+                bill.setState(ReimburseState.FINISHED);
+                reimburseRepository.save(bill);
+            });
+            return null;
+        });
+    }
     /**
      * 导出单据
      *
@@ -255,8 +304,6 @@ public class ReimburseService {
         officeFileService.generateExcelFromList(rows, excel);
         // 压缩
         Path zip = attachmentService.getTempPath().resolve(dirName + ".zip");
-        attachmentService.createFile(zip);
-
         attachmentService.zip(tempDir, zip);
         return zip;
     }

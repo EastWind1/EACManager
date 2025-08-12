@@ -1,30 +1,30 @@
-import type { ServiceBill, ServiceBillQueryParam } from '@/model/ServiceBill.ts'
 import type { PageResult } from '@/model/PageResult.ts'
 import { useAxios } from '@/api/AxiosConfig.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import type { AxiosInstance } from 'axios'
+import type { Reimbursement, ReimburseQueryParam } from '@/model/Reimbursement.ts'
 
 let axiosInstance: AxiosInstance
 
 function getAxios() {
   if (!axiosInstance) {
-    axiosInstance = useAxios('/api/serviceBill')
+    axiosInstance = useAxios('/api/reimburse')
   }
   return axiosInstance
 }
 
 /**
- * 服务单 API
+ * 报销单 API
  */
-const ServiceBillApi = {
+const ReimburseApi = {
   /**
    * 条件查询
    * @param queryParam 查询参数
    */
-  getByQueryParam: (queryParam: ServiceBillQueryParam) =>
+  getByQueryParam: (queryParam: ReimburseQueryParam) =>
     getAxios()
       .post(`/query`, queryParam)
-      .then((res) => res.data as PageResult<ServiceBill>),
+      .then((res) => res.data as PageResult<Reimbursement>),
   /**
    * 根据 id 获取
    * @param id 单据 ID
@@ -32,32 +32,23 @@ const ServiceBillApi = {
   getById: (id: number) =>
     getAxios()
       .get(`/${id}`)
-      .then((res) => res.data as ServiceBill),
-  /**
-   * 导入
-   */
-  import: (file: File) =>
-    getAxios()
-      .postForm(`/import`, {
-        file,
-      })
-      .then((res) => res.data as ServiceBill),
+      .then((res) => res.data as Reimbursement),
   /**
    * 新建
-   * @param serviceBill 单据
+   * @param reimbursement 单据
    */
-  create: (serviceBill: ServiceBill) =>
+  create: (reimbursement: Reimbursement) =>
     getAxios()
-      .post('', serviceBill)
-      .then((res) => res.data as ServiceBill),
+      .post('', reimbursement)
+      .then((res) => res.data as Reimbursement),
   /**
    * 保存
-   * @param serviceBill 单据
+   * @param reimbursement 单据
    */
-  save: (serviceBill: ServiceBill) =>
+  save: (reimbursement: Reimbursement) =>
     getAxios()
-      .put('', serviceBill)
-      .then((res) => res.data as ServiceBill),
+      .put('', reimbursement)
+      .then((res) => res.data as Reimbursement),
   /**
    * 删除
    * @param ids 单据 ID 列表
@@ -73,15 +64,6 @@ const ServiceBillApi = {
   process: (ids: number[]) =>
     getAxios()
       .put(`/process`, ids)
-      .then((res) => res.data as ActionsResult<number, void>),
-  /**
-   * 处理完成
-   * @param ids 单据 ID 列表
-   * @param processedDate 处理完成时间
-   */
-  processed: (ids: number[], processedDate: Date) =>
-    getAxios()
-      .put(`/processed`, { ids, processedDate })
       .then((res) => res.data as ActionsResult<number, void>),
   /**
    * 完成
@@ -100,4 +82,4 @@ const ServiceBillApi = {
       .post(`/export`, ids, { responseType: 'blob' })
       .then((res) => res as never as Blob),
 }
-export default ServiceBillApi
+export default ReimburseApi

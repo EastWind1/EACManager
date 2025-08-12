@@ -1,6 +1,7 @@
 package pers.eastwind.billmanager.model.dto;
 
 import lombok.Data;
+import pers.eastwind.billmanager.model.common.ReimburseState;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,6 +18,10 @@ public class ReimbursementDTO {
      * 编号
      */
     private String number;
+    /**
+     * 状态
+     */
+    private ReimburseState state = ReimburseState.CREATED;
     /**
      * 摘要
      */

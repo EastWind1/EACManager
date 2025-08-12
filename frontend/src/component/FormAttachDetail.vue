@@ -1,8 +1,8 @@
 <!-- 附件明细 -->
 <template>
   <v-container>
-    <v-row>
-      <v-col v-for="attach in bill?.attachments" :key="attach.name" cols="12" lg="3" md="4" sm="6">
+    <v-row class="overflow-auto">
+      <v-col v-for="attach in attachments" :key="attach.name" cols="12" lg="3" md="4" sm="6">
         <v-hover v-slot="{ isHovering, props }">
           <v-card v-bind="props">
             <template v-if="!isHovering" #text>
@@ -30,7 +30,7 @@
       </v-col>
     </v-row>
   </v-container>
-  <v-dialog v-model="previewDialog" height="85vh">
+  <v-dialog v-model="previewDialog" height="85vh" width="auto" min-width="50vw">
     <v-card>
       <template #title>
         {{ previewInfo.attachment.name }}
@@ -61,11 +61,10 @@ import { type Attachment, AttachmentType } from '@/model/Attachment.ts'
 import { mdiPlus } from '@mdi/js'
 import { onUnmounted, ref, toRefs } from 'vue'
 import AttachmentApi from '@/api/AttachmentApi.ts'
-import type { ServiceBill } from '@/model/ServiceBill.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useFileSelector } from '@/composable/FileSelector.ts'
 
-const bill = defineModel<ServiceBill>()
+const attachments = defineModel<Attachment[]>()
 const { warning } = useUIStore()
 // 是否可编辑
 const props = defineProps<{
@@ -149,15 +148,15 @@ async function upload() {
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx', false)
   // 上传至临时目录
   const attach = await AttachmentApi.uploadTemp(fileList[0])
-  bill.value?.attachments.push(attach)
+  attachments.value?.push(attach)
 }
 
 /**
  * 删除附件
  */
 function deleteAttach(attach: Attachment) {
-  bill.value?.attachments.splice(
-    bill.value.attachments.findIndex((i) => i === attach),
+  attachments.value?.splice(
+    attachments.value.findIndex((i) => i === attach),
     1,
   )
 }

@@ -373,7 +373,7 @@ public class AttachmentService implements InitializingBean {
      * 压缩文件或文件夹
      *
      * @param sourceDirPath 源路径
-     * @param zipFilePath   目标路径
+     * @param zipFilePath   生成压缩包目标路径
      */
     public void zip(Path sourceDirPath, Path zipFilePath) {
         validPath(sourceDirPath);

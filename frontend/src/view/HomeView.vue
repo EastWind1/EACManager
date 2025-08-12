@@ -43,7 +43,7 @@
 <script lang="ts" setup>
 import { RouterView, useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
-import { mdiAccount, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
+import { mdiAccount, mdiCash, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
 import { useUserStore } from '@/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
 
@@ -76,10 +76,17 @@ const menuItems = [
     },
   },
   {
-    title: '单据列表',
+    title: '服务单',
     props: {
       prependIcon: mdiMenu,
-      to: '/list',
+      to: '/service',
+    },
+  },
+  {
+    title: '报销单',
+    props: {
+      prependIcon: mdiCash,
+      to: '/reimburse',
     },
   },
 ]

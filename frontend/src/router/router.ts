@@ -28,24 +28,25 @@ const router = createRouter({
           path: '/user',
           component: () => import('@/view/UserView.vue'),
         },
+        // 服务单列表
         {
-          path: '/bill/:id',
-          component: () => import('@/view/BillFormView.vue'),
-        },
-        // 服务按列表
-        {
-          path: '/list',
+          path: '/service',
           component: () => import('@/view/BillListView.vue'),
         },
-        // 服务单卡片，新增用
+        // 服务单卡片
         {
-          path: '/bill',
+          path: '/service/:id?',
           component: () => import('@/view/BillFormView.vue'),
         },
-        // 服务单卡片，非新增用
+        // 报销单列表
         {
-          path: '/bill/:id',
-          component: () => import('@/view/BillFormView.vue'),
+          path: '/reimburse',
+          component: () => import('@/view/ReimburseListView.vue'),
+        },
+        // 报销单卡片
+        {
+          path: '/reimburs/:id?',
+          component: () => import('@/view/ReimburseFormVIew.vue'),
         },
       ],
     },

@@ -3,6 +3,7 @@ package pers.eastwind.billmanager.model.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import pers.eastwind.billmanager.model.common.ReimburseState;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,6 +27,10 @@ public class Reimbursement extends AuditEntity {
      */
     private String number;
     /**
+     * 状态
+     */
+    private ReimburseState state;
+    /**
      * 摘要
      */
     private String summary;
@@ -34,7 +39,7 @@ public class Reimbursement extends AuditEntity {
      */
     private BigDecimal totalAmount;
     /**
-     * 发生日期
+     * 报销日期
      */
     private Instant reimburseDate;
     /**
