@@ -79,14 +79,14 @@ const menuItems = [
     title: '服务单',
     props: {
       prependIcon: mdiMenu,
-      to: '/service',
+      to: '/services',
     },
   },
   {
     title: '报销单',
     props: {
       prependIcon: mdiCash,
-      to: '/reimburse',
+      to: '/reimburses',
     },
   },
 ]

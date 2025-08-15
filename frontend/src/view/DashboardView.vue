@@ -95,7 +95,7 @@ async function stateClick(state: ServiceBillStateValue) {
   const queryParam = JSON.stringify({
     state: [state]
   })
-  await router.push(`/list?query=${queryParam}`)
+  await router.push(`/services?query=${queryParam}`)
 }
 
 // 初始化

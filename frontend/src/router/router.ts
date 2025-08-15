@@ -30,7 +30,7 @@ const router = createRouter({
         },
         // 服务单列表
         {
-          path: '/service',
+          path: '/services',
           component: () => import('@/view/BillListView.vue'),
         },
         // 服务单卡片
@@ -40,12 +40,12 @@ const router = createRouter({
         },
         // 报销单列表
         {
-          path: '/reimburse',
+          path: '/reimburses',
           component: () => import('@/view/ReimburseListView.vue'),
         },
         // 报销单卡片
         {
-          path: '/reimburs/:id?',
+          path: '/reimburse/:id?',
           component: () => import('@/view/ReimburseFormVIew.vue'),
         },
       ],

@@ -41,8 +41,8 @@
       <template #append>
         <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
         <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
-        <v-btn :disabled="loading" @click="process(selectedIds)">开始处理</v-btn>
-        <v-btn :disabled="loading" @click="finish(selectedIds)">处理完成</v-btn>
+        <v-btn :disabled="loading" @click="process(selectedIds)">提交</v-btn>
+        <v-btn :disabled="loading" @click="finish(selectedIds)">完成</v-btn>
         <v-btn :disabled="loading" color="red" @click="remove(selectedIds)">删除</v-btn>
 
         <v-spacer></v-spacer>
