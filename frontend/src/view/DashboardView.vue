@@ -54,7 +54,6 @@
             <v-sparkline
               :labels="amountLabel"
               :model-value="amountValue"
-              auto-draw
               color="blue"
               line-width="2"
               padding="8"
