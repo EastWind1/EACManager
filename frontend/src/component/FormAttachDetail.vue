@@ -109,6 +109,7 @@ async function download(attach: Attachment) {
     const data = await AttachmentApi.download(attach.relativePath)
     const url = URL.createObjectURL(data)
     fileCache.set(attach.relativePath, url)
+    a.href = url
   }
 
   a.download = attach.name

@@ -14,10 +14,6 @@ spring:
   servlet:
     multipart:
       max-file-size: 50MB
-logging:
-  level:
-    org.hibernate.SQL: debug
-    org.hibernate.orm.jdbc.bind: trace
 # 自定义配置
 config:
   # JWT 密钥 base64
