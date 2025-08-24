@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.repository;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import pers.eastwind.billmanager.model.common.ServiceBillState;
 import pers.eastwind.billmanager.model.entity.ServiceBill;
 
 import java.time.Instant;
@@ -21,12 +22,12 @@ public interface ServiceBillRepository extends BaseRepository<ServiceBill> {
     List<Object[]> countByState();
 
     /**
-     * 按完工日期（processedDate）的年月分组，统计非新建状态的单据金额总和
+     * 按状态条件、按完工日期（processedDate）的年月分组，统计单据金额总和
      */
     @Query(value = "select year(s.processedDate), month(s.processedDate), sum(s.totalAmount) " +
             "from ServiceBill s " +
-            "where (s.state = 2 or s.state = 3) and s.processedDate is not null " +
+            "where s.state in :states and s.processedDate is not null " +
             "and s.processedDate between :start and :end " +
             "group by year(s.processedDate), month(s.processedDate)")
-    List<Object[]> sumTotalAmountByMonth(Instant start, Instant end);
+    List<Object[]> sumAmountByStateGroupByMonth(List<ServiceBillState> states, Instant start, Instant end);
 }

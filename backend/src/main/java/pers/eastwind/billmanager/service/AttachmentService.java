@@ -265,6 +265,7 @@ public class AttachmentService implements InitializingBean {
     public Attachment uploadTemp(byte[] bytes, String fileName) {
         return upload(bytes, fileName, tempPath);
     }
+
     /**
      * 读取文件
      *

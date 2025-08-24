@@ -4,6 +4,7 @@ import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,10 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
-import pers.eastwind.billmanager.model.dto.ActionsResult;
-import pers.eastwind.billmanager.model.dto.AttachmentDTO;
-import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
-import pers.eastwind.billmanager.model.dto.ServiceBillQueryParam;
+import pers.eastwind.billmanager.model.dto.*;
 import pers.eastwind.billmanager.model.entity.Attachment;
 import pers.eastwind.billmanager.model.entity.ServiceBill;
 import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
@@ -29,12 +27,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -113,7 +110,10 @@ public class ServiceBillService {
      * @param serviceBillDTO 单据
      * @return 保存后的单据
      */
-    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
+            @CacheEvict(value = "serviceBill", key = "'countBillsByState'")
+    })
     @Transactional
     public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
         if (serviceBillDTO.getId() != null && serviceBillRepository.existsById(serviceBillDTO.getId())) {
@@ -141,7 +141,6 @@ public class ServiceBillService {
      * @param fileName 文件名
      * @return 单据
      */
-    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
     public ServiceBillDTO generateByFile(byte[] bytes, String fileName) {
         Attachment attachment = attachmentService.uploadTemp(bytes, fileName);
         ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
@@ -166,7 +165,10 @@ public class ServiceBillService {
      * @param serviceBillDTO 单据
      * @return 更新后的单据
      */
-    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
+            @CacheEvict(value = "serviceBill", key = "'sumTotalAmountByMonth'")
+    })
     @Transactional
     public ServiceBillDTO update(ServiceBillDTO serviceBillDTO) {
         if (serviceBillDTO.getId() == null) {
@@ -193,7 +195,7 @@ public class ServiceBillService {
      * @param param 查询参数
      * @return 分页结果
      */
-    @Cacheable(value = "serviceBill", key = "'findByParam' + #param.hashCode()")
+    @Cacheable(value = "serviceBill", key = "'findByParam_' + #param.hashCode()")
     public Page<ServiceBillDTO> findByParam(ServiceBillQueryParam param) {
         if (param == null) {
             throw new RuntimeException("查询参数为空");
@@ -244,7 +246,10 @@ public class ServiceBillService {
      * @param ids 单据 ID 列表
      * @return 批量操作结果
      */
-    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
+            @CacheEvict(value = "serviceBill", key = "'countBillsByState'")
+    })
     public ActionsResult<Integer, Void> delete(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
@@ -270,7 +275,10 @@ public class ServiceBillService {
      * @param ids 单据 ID 列表
      * @return 批量操作结果
      */
-    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
+            @CacheEvict(value = "serviceBill", key = "'countBillsByState'")
+    })
     public ActionsResult<Integer, Void> process(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
@@ -297,7 +305,11 @@ public class ServiceBillService {
      * @param ids           单据 ID
      * @param processedDate 完成日期，默认为当前时间
      */
-    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
+            @CacheEvict(value = "serviceBill", key = "'countBillsByState'"),
+            @CacheEvict(value = "serviceBill", key = "'sumReceiveAmountByMonth'")
+    })
     public ActionsResult<Integer, Void> processed(List<Integer> ids, Instant processedDate) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
@@ -323,7 +335,10 @@ public class ServiceBillService {
     /**
      * 批量更改为完成
      */
-    @CacheEvict(value = {"statistic", "serviceBill"}, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
+            @CacheEvict(value = "serviceBill", key = "'countBillsByState'")
+    })
     public ActionsResult<Integer, Void> finish(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new RuntimeException("id不能为空");
@@ -398,5 +413,50 @@ public class ServiceBillService {
 
         attachmentService.zip(tempDir, zip);
         return zip;
+    }
+
+    /**
+     * 统计不同状态的服务单据数量
+     *
+     * @return 包含各状态数量的 Map
+     */
+    @Cacheable(value = "serviceBill", key = "'countBillsByState'")
+    public Map<ServiceBillState, Long> countBillsByState() {
+        List<Object[]> results = serviceBillRepository.countByState();
+        Map<ServiceBillState, Long> stateCountMap = new HashMap<>();
+
+        for (Object[] result : results) {
+            ServiceBillState state = (ServiceBillState) result[0];
+            Long count = (Long) result[1];
+            stateCountMap.put(state, count);
+        }
+
+        return stateCountMap;
+    }
+
+
+    /**
+     * 按月份统计应收和已收服务单据金额总和
+     *
+     * @return 每个月份与对应金额的 Map
+     */
+    @Cacheable(value = "serviceBill", key = "'sumReceiveAmountByMonth'")
+    public List<MonthSumAmount> sumReceiveAmountByMonth() {
+
+        Instant preYear = Instant.now().minus(365, ChronoUnit.DAYS);
+        List<Object[]> results = serviceBillRepository.sumAmountByStateGroupByMonth(
+                List.of(ServiceBillState.PROCESSED, ServiceBillState.FINISHED),
+                preYear, Instant.now());
+        List<MonthSumAmount> rows = new ArrayList<>();
+
+        for (Object[] result : results) {
+            int rowYear = ((Number) result[0]).intValue();
+            int month = ((Number) result[1]).intValue();
+            BigDecimal totalAmount = new BigDecimal(result[2].toString());
+
+            rows.add(new MonthSumAmount(YearMonth.of(rowYear, month).toString(), totalAmount));
+        }
+        rows.sort(Comparator.comparing(MonthSumAmount::month));
+        return rows;
     }
 }

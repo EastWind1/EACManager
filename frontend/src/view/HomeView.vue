@@ -8,23 +8,31 @@
       <!-- 左侧导航抽屉 -->
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <v-spacer></v-spacer>
-      <!-- 暗色模式切换 -->
-      <v-switch
-        v-model="isDark"
-        color="primary"
-        hide-details
-        label="暗色模式"
-        @click="isDark = !isDark"
-      />
+
       <!-- 登录用户图标 -->
-      <v-menu class="ml-3" open-on-click open-on-hover>
+      <v-menu class="ml-3" >
         <template #activator="{ props }">
           <v-avatar :icon="mdiAccount" v-bind="props"></v-avatar>
         </template>
 
         <v-list>
+          <v-list-item>
+            {{userStore.getUser()?.name}}
+          </v-list-item>
+          <v-list-item>
+            <!-- 暗色模式切换 -->
+            <v-switch
+              v-model="isDark"
+              color="primary"
+              hide-details
+              @click="isDark = !isDark">
+              <template #prepend>
+                暗色模式
+              </template>
+            </v-switch>
+          </v-list-item>
           <v-list-item @click="logout">
-            <v-list-item-title>退出登录</v-list-item-title>
+              <v-list-item-title>退出登录</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -53,6 +61,8 @@ const drawer = ref(true)
 const router = useRouter()
 // 主题切换
 const theme = useTheme()
+// 当前用户
+const userStore = useUserStore()
 const isDark = computed({
   get: () => theme.global.name.value === 'dark',
   set: (value) => {
