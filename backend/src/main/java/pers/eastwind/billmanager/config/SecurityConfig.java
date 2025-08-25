@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +19,7 @@ import pers.eastwind.billmanager.service.UserService;
  * <p>自定义UserDetailService由 {@link UserService} 实现
  */
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JWTTokenFilter jwtTokenFilter;
@@ -36,7 +38,7 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/user/token").permitAll()
-                        .requestMatchers("/api/**").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .exceptionHandling((handing) -> {

@@ -1,6 +1,8 @@
 package pers.eastwind.billmanager.service;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -10,6 +12,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import pers.eastwind.billmanager.model.dto.LoginResult;
 import pers.eastwind.billmanager.model.dto.UserDTO;
+import pers.eastwind.billmanager.model.entity.AuthorityRole;
 import pers.eastwind.billmanager.model.entity.User;
 import pers.eastwind.billmanager.model.mapper.UserMapper;
 import pers.eastwind.billmanager.repository.UserRepository;
@@ -72,6 +75,11 @@ public class UserService implements UserDetailsService {
         if (user.getId() == null) {
             throw new RuntimeException("id不能为空");
         }
+        User curUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (curUser.getAuthority() != AuthorityRole.ROLE_ADMIN && !curUser.getId().equals(user.getId())) {
+            throw new AccessDeniedException("无权限修改其他用户信息");
+        }
+
         User oldUser = userRepository.findById(user.getId()).orElse(null);
         if (oldUser == null) {
             throw new RuntimeException("用户不存在");

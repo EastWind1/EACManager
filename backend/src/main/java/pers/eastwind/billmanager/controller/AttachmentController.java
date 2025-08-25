@@ -1,6 +1,7 @@
 package pers.eastwind.billmanager.controller;
 
 import org.springframework.core.io.Resource;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pers.eastwind.billmanager.model.dto.AttachmentDTO;
@@ -44,6 +45,7 @@ public class AttachmentController {
      * @param path 相对路径
      * @return 文件信息
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
     @PostMapping
     public AttachmentDTO upload(@RequestParam MultipartFile file, @RequestParam String path) throws IOException {
         return attachmentMapper.toDTO(attachmentService.upload(file.getBytes(), file.getOriginalFilename(), attachmentService.getAbsolutePath(Path.of(path))));
@@ -55,6 +57,7 @@ public class AttachmentController {
      * @param file 文件
      * @return 文件信息
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping("/temp")
     public AttachmentDTO uploadTemp(@RequestParam MultipartFile file) throws IOException {
         if (file == null) {

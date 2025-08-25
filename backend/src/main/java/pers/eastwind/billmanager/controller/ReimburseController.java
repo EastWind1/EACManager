@@ -3,6 +3,7 @@ package pers.eastwind.billmanager.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.model.dto.ActionsResult;
 import pers.eastwind.billmanager.model.dto.PageResult;
@@ -19,6 +20,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/reimburse")
+@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class ReimburseController {
     private final ReimburseService reimburseService;
     private final AttachmentService attachmentService;
