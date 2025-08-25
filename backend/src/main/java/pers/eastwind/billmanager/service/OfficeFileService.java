@@ -17,12 +17,9 @@ import java.util.List;
 @Service
 public class OfficeFileService {
     private final MapRuleService mapRuleService;
-    private final AttachmentService attachmentService;
 
-    public OfficeFileService(MapRuleService mapRuleService, AttachmentService attachmentService) {
+    public OfficeFileService(MapRuleService mapRuleService) {
         this.mapRuleService = mapRuleService;
-        this.attachmentService = attachmentService;
-
     }
 
     /**
@@ -66,7 +63,7 @@ public class OfficeFileService {
      * @param rows       数据
      * @param targetFile 目标文件
      */
-    public Path generateExcelFromList(List<List<String>> rows, Path targetFile) {
+    public void generateExcelFromList(List<List<String>> rows, Path targetFile) {
         if (rows == null || rows.isEmpty()) {
             throw new RuntimeException("数据不能为空");
         }
@@ -104,17 +101,5 @@ public class OfficeFileService {
         } catch (IOException e) {
             throw new RuntimeException("生成Excel失败", e);
         }
-        return targetFile;
-    }
-
-    /**
-     * 生成Excel文件
-     *
-     * @param rows 数据
-     */
-    public Path generateExcelFromList(List<List<String>> rows) {
-        Path path = attachmentService.createFile(attachmentService.getTempPath().resolve("Generate-" + System.currentTimeMillis() + ".xlsx"));
-        generateExcelFromList(rows, path);
-        return path;
     }
 }

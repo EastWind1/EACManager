@@ -37,16 +37,18 @@ public class JWTService {
      * 生成 TOKEN
      *
      * @param userName 用户名
+     * @param subject 摘要
+     * @param expiresSeconds 过期秒数
      * @return TOKEN
      */
-    public String generateToken(String userName, String subject) {
+    public String generateToken(String userName, String subject, long expiresSeconds) {
         Date now = new Date();
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .audience(userName)
                 .subject(subject)
                 .issueTime(now)
                 // 24 小时后过期
-                .expirationTime(new Date(now.getTime() + 24 * 60 * 60 * 1000))
+                .expirationTime(new Date(now.getTime() + expiresSeconds * 1000))
                 .build();
         SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
         try {

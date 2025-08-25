@@ -46,10 +46,11 @@
               v-model="dialogData.user.username"
               :rules="[required]"
               label="用户名"
+              :disabled="!!dialogData.user.id"
             ></v-text-field>
             <v-text-field
               v-model="dialogData.user.password"
-              :rules="[required]"
+              :rules="[requiredNew]"
               label="密码"
               type="password"
             ></v-text-field>
@@ -78,6 +79,7 @@ import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
 import UserApi from '@/api/UserApi.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
+import { CryptoTool } from '@/util/Crypto.ts'
 
 // 表头
 const headers = [
@@ -100,6 +102,13 @@ const options = Object.values(AuthorityRole).map((item) => ({
 }))
 // 当前登录用户，用于权限控制
 const curUser = useUserStore().getUser()
+// 新增默认值
+const USER_DEFAULT = {
+  username: '',
+  name: '',
+  email: '',
+  authority: AuthorityRole.ROLE_USER.value,
+}
 // 弹窗内容
 const dialogData = ref<{
   show: boolean
@@ -114,27 +123,24 @@ const dialogData = ref<{
   // 表单是否合法
   valid: true,
   // 表单当前用户
-  user: {
-    username: '',
-    name: '',
-    email: '',
-    authority: AuthorityRole.ROLE_USER.value,
-  },
+  user: { ...USER_DEFAULT },
 })
 // 必填
 const required = (v: string) => !!v || '必填'
+// 新增必填
+const requiredNew = (v: string) => {
+  if (dialogData.value.user.id) {
+    return true
+  }
+  return required(v)
+}
 // 二次密码校验
 const passwordAgainEqual = (v: string) =>
   v === dialogData.value?.user.password || '两次输入的密码不一致'
 
 // 添加
 function add() {
-  dialogData.value.user = {
-    username: '',
-    name: '',
-    email: '',
-    authority: AuthorityRole.ROLE_USER.value,
-  }
+  dialogData.value.user = { ...USER_DEFAULT }
   dialogData.value.show = true
 }
 
@@ -159,14 +165,25 @@ async function saveUser() {
   if (!dialogData.value.valid) {
     return
   }
-  let newUser
+  // 密码 hash 混淆
+  if (dialogData.value.user.password) {
+    dialogData.value.user.password = await CryptoTool.SHA256(
+      dialogData.value.user.password,
+      dialogData.value.user.username,
+    )
+  }
+  // 修改
   if (dialogData.value.user.id) {
-    newUser = await UserApi.update(dialogData.value.user)
+    // 当用户不更改密码时，删除密码字段
+    if (!dialogData.value.user.password && !dialogData.value.user.passwordAgain) {
+      delete dialogData.value.user.password
+      delete dialogData.value.user.passwordAgain
+    }
     const index = users.value.findIndex((u) => u.id === dialogData.value.user.id)
-    users.value[index] = newUser
+    users.value[index] = await UserApi.update(dialogData.value.user)
   } else {
-    newUser = await UserApi.create(dialogData.value.user)
-    users.value.push(newUser)
+    // 创建
+    users.value.push(await UserApi.create(dialogData.value.user))
   }
 
   dialogData.value.show = false

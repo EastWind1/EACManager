@@ -126,9 +126,10 @@ public class UserService implements UserDetailsService {
      *
      * @param username 用户名
      * @param password 密码
+     * @param expiresSeconds token 过期秒数
      * @return 登录结果
      */
-    public LoginResult login(String username, String password) {
+    public LoginResult login(String username, String password, long expiresSeconds) {
         User user = userRepository.findByUsername(username);
         if (user == null || !user.isEnabled()) {
             throw new RuntimeException("用户不存在");
@@ -137,7 +138,7 @@ public class UserService implements UserDetailsService {
             throw new RuntimeException("用户名或密码错误");
         }
         String subject = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.HOST);
-        String token = jwtUtil.generateToken(username, subject);
+        String token = jwtUtil.generateToken(username, subject, expiresSeconds);
         return new LoginResult(token, userMapper.toDTO(user));
     }
 

@@ -33,13 +33,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
+import { CryptoTool } from '@/util/Crypto.ts'
 
 const store = useUIStore()
 const { success } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
-const { setToken, setUser } = useUserStore()
+const { setUser } = useUserStore()
 
 // 用户名
 const username = ref('')
@@ -57,9 +58,8 @@ async function login() {
   if (!valid.value) {
     return
   }
-  const loginResult = await UserApi.login(username.value, password.value)
-  setToken(loginResult.token)
-  setUser(loginResult.user)
+  const user = await UserApi.login(username.value, await CryptoTool.SHA256(password.value, username.value))
+  setUser(user)
   success('登录成功')
   if (route.query.redirect) {
     await router.push(route.query.redirect as string)

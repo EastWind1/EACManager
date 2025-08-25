@@ -3,6 +3,7 @@ package pers.eastwind.billmanager.filter;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -37,14 +38,20 @@ public class JWTTokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 获取 token
-        String prefix = "Bearer ";
-        String auth = request.getHeader("Authorization");
-        if (auth == null || !auth.startsWith(prefix)) {
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (cookie.getName().equals("X-Auth-Token")) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = auth.substring(prefix.length());
         if (!jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
             filterChain.doFilter(request, response);
             return;

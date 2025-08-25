@@ -210,7 +210,7 @@ const queryParam = ref<QueryParam>({
 const route = useRoute()
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
-  Object.assign(queryParam, data)
+  Object.assign(queryParam.value, data)
 } else {
   // 尝试从缓存恢复
   const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)

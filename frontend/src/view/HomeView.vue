@@ -101,12 +101,11 @@ const menuItems = [
   },
 ]
 
-// 移除 token
-const { removeToken, removeUser } = useUserStore()
+// 移除
+const { removeUser } = useUserStore()
 
 // 退出登录
 function logout() {
-  removeToken()
   removeUser()
   router.push('/login')
 }

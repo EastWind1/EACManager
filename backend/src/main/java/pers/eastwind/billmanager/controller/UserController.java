@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.controller;
 
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +31,15 @@ public class UserController {
      */
     @PostMapping("/token")
     public ResponseEntity<UserDTO> login(@RequestBody LoginParam param) {
-        LoginResult loginResult = userService.login(param.username, param.password);
-        return ResponseEntity.ok().header("X-Auth-Token", loginResult.token()).body(loginResult.user());
+        LoginResult res = userService.login(param.username, param.password, 24 * 60 * 60);
+        return ResponseEntity.ok().header("Set-Cookie",
+                ResponseCookie.from("X-Auth-Token", res.token())
+                        .path("/")
+                        .httpOnly(true)
+                        .secure(true)
+                        .maxAge(3600)
+                        .sameSite("Strict").build().toString())
+                .body(res.user());
     }
 
     /**

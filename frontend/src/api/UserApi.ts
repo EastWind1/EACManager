@@ -27,10 +27,7 @@ const UserApi = {
         username,
         password,
       })
-      .then((res) => ({
-        token: res.headers['x-auth-token'],
-        user: res.data.data as User,
-      })),
+      .then((res) => res.data as User),
   /**
    * 获取所有用户
    */

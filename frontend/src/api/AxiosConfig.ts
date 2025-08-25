@@ -1,6 +1,5 @@
 import axios, { type AxiosInstance } from 'axios'
 import { useUIStore } from '@/store/UIStore.ts'
-import { useUserStore } from '@/store/UserStore.ts'
 import router from '@/router/router.ts'
 import { pinia } from '@/main.ts'
 
@@ -9,10 +8,9 @@ import { pinia } from '@/main.ts'
  */
 function useAxios(baseURL: string): AxiosInstance {
   const instance = axios.create({
-    baseURL,
+    baseURL
   })
   const { showLoading, hideLoading, warning } = useUIStore(pinia)
-  const { getToken } = useUserStore(pinia)
   const requestMap = new Map<string, AbortController>()
   // 请求前拦截器
   instance.interceptors.request.use(
@@ -26,11 +24,6 @@ function useAxios(baseURL: string): AxiosInstance {
       const abortController = new AbortController()
       config.signal = abortController.signal
       requestMap.set(key, abortController)
-      // 设置 token
-      const token = getToken()
-      if (token) {
-        config.headers.Authorization = `Bearer ${getToken()}`
-      }
       // 设置加载条
       showLoading()
       return config
