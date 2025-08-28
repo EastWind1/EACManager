@@ -16,9 +16,6 @@ spring:
       max-file-size: 50MB
 # 自定义配置
 config:
-  # JWT 密钥 base64
-  jwt:
-    key: ${JWT_KEY}
   # 附件路径
   attachment:
     # 必须为绝对路径，否则 OCR 会无法读取文件
@@ -27,3 +24,6 @@ config:
     temp: temp
   # ocr 映射规则路径, 必须为绝对路径
   map-rule-path: ${user.dir}${file.separator}rule
+  # JWT 密钥
+  jwt:
+    key: ${JWT_KEY:-test}
