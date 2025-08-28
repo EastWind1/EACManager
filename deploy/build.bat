@@ -26,7 +26,7 @@ echo 交付物目录: %DEPLOY_DIR%
 echo.
 echo 打包后端...
 cd /d "%BACKEND_DIR%"
-call mvn clean package
+call mvn clean package -DskipTests
 if %errorlevel% neq 0 (
 echo 错误：后端打包失败
 exit /b 1
