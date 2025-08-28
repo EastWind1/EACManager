@@ -34,10 +34,6 @@ function useAxios(baseURL: string): AxiosInstance {
     (res) => {
       // 隐藏进度条
       hideLoading()
-      // 获取 Token 的请求不处理响应
-      if (res.headers['x-auth-token']) {
-        return res
-      }
       // 直接获取 data
       return res.data
     },
@@ -63,22 +59,11 @@ function useAxios(baseURL: string): AxiosInstance {
             warning('权限不足')
             break
           case 404:
-            warning('请求地址错误')
-            break
-          case 500:
-            if (err.response.data instanceof Blob) {
-              const reader = new FileReader()
-              reader.onload = () => {
-                const json = JSON.parse(reader.result as string)
-                warning(json.message ? json.message : err.response.statusText)
-              }
-              reader.readAsText(err.response.data)
-            } else {
-              warning(err.response.data ? err.response.data.message : err.response.statusText)
-            }
+            warning('请求地址不存在')
             break
           default:
-            warning('未处理异常')
+            warning(err.response.data ? err.response.data.message : err.response.statusText)
+            break
         }
       }
       return Promise.reject(err)

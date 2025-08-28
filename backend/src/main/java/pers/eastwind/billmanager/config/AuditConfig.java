@@ -21,7 +21,7 @@ public class AuditConfig {
      * 审计用户配置
      */
     @Bean
-    public AuditorAware<User> auditorProvider() {
+    public AuditorAware<Integer> auditorProvider() {
         return () -> Optional.ofNullable(SecurityContextHolder.getContext())
                 .map(SecurityContext::getAuthentication)
                 .filter(Authentication::isAuthenticated)
@@ -31,7 +31,7 @@ public class AuditConfig {
                     if ("anonymousUser".equals(user)) {
                         return null;
                     }
-                    return (User) user;
+                    return ((User) user).getId();
                 });
     }
 }

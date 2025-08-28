@@ -3,27 +3,25 @@ Content-Type: application/json
 
 {
   "username": "root",
-  "password": "admin"
+  "password": "b867e4d87037b340c1490f78b05d9d1d102adf164223a571d5cd8027afaff1ce"
 }
 
 > {%
-    const token = response.headers.valueOf('x-auth-token')
-    client.global.set("authorization", "Bearer " + token)
-%}
-
+    client.global.set("my_cookie", response.headers.valuesOf("Set-Cookie")[0]);
+    console.log(client.global.get("my_cookie"))
+ %}
 
 ###
 
 
 GET http://localhost:8080/api/statistic/billCountByState
-Authorization: {{authorization}}
-
+Cookie: {{my_cookie}}
 
 ###
 
 PUT http://localhost:8080/api/serviceBill/processed
-Authorization: {{authorization}}
 Content-Type: application/json
+Cookie: {{my_cookie}}
 
 {
   "ids": [

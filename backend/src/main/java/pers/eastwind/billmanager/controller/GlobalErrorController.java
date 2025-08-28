@@ -4,13 +4,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.web.servlet.error.AbstractErrorController;
 import org.springframework.boot.web.servlet.error.ErrorAttributes;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import pers.eastwind.billmanager.model.dto.Result;
 
 /**
- * 全局异常处理，包括 Filter，401，404
+ * 全局异常处理，包括 Filter
  */
 @Controller
 @RequestMapping("${server.error.path:${error.path:/error}}")
@@ -23,16 +25,27 @@ public class GlobalErrorController extends AbstractErrorController {
     @RequestMapping
     public ResponseEntity<Result<Object>> error(HttpServletRequest request) {
         HttpStatus status = this.getStatus(request);
-        Throwable throwable = (Throwable) request.getAttribute("jakarta.servlet.error.exception");
+        Throwable throwable = ((Throwable) request.getAttribute("jakarta.servlet.error.exception"));
         String errorMessage = (String) request.getAttribute("jakarta.servlet.error.message");
 
-        if (status == HttpStatus.NO_CONTENT || throwable == null || throwable.getCause() == null) {
-            if (errorMessage != null && !errorMessage.isEmpty()) {
-                return new ResponseEntity<>(Result.error(errorMessage), status);
-            }
-            return new ResponseEntity<>(Result.error("服务器异常"), status);
-        } else {
-            return new ResponseEntity<>(Result.error(throwable.getCause().getMessage()), status);
+        // 拿到内层实际异常
+        if (throwable != null && throwable.getCause() != null) {
+            throwable = throwable.getCause();
         }
+
+        // filter 中抛出的异常默认处理为 500，此处对登录异常单独改为 401
+        if (throwable instanceof AuthenticationException) {
+            status = HttpStatus.UNAUTHORIZED;
+        }
+
+        String message = "服务器异常";
+        if (errorMessage != null && !errorMessage.isEmpty()) {
+            message = errorMessage;
+        } else if (throwable != null && throwable.getMessage() != null && !throwable.getMessage().isEmpty()) {
+            message = throwable.getMessage();
+        }
+        return ResponseEntity.status(status)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Result.error(message));
     }
 }

@@ -136,7 +136,7 @@ public class AttachmentService implements InitializingBean {
         try {
             Files.createFile(path);
         } catch (IOException e) {
-            throw new RuntimeException("创建文件失败" + path, e);
+            throw new RuntimeException("创建文件失败", e);
         }
         return path;
     }
@@ -150,7 +150,7 @@ public class AttachmentService implements InitializingBean {
             try {
                 Files.createDirectories(path);
             } catch (IOException e) {
-                throw new RuntimeException("创建文件夹失败: " + path, e);
+                throw new RuntimeException("创建文件夹失败", e);
             }
         }
         return path;
@@ -188,7 +188,7 @@ public class AttachmentService implements InitializingBean {
                 if (fileName.endsWith(".exe") || fileName.endsWith(".dll") || fileName.endsWith(".sh") ||
                         fileName.endsWith(".bat") || fileName.endsWith(".cmd") || fileName.endsWith(".ps1") ||
                         fileName.endsWith(".py") || fileName.endsWith(".pl") || fileName.endsWith(".rb")) {
-                    throw new RuntimeException("不支持的文件类型: " + fileName);
+                    throw new RuntimeException("不支持的文件类型");
                 }
                 yield AttachmentType.OTHER;
             }
@@ -275,7 +275,7 @@ public class AttachmentService implements InitializingBean {
     public Resource loadByPath(Path path) {
         validPath(path);
         if (!Files.exists(path) || Files.isDirectory(path)) {
-            throw new RuntimeException("文件不存在" + path);
+            throw new RuntimeException("文件不存在");
         }
         Resource resource;
         try {
@@ -329,7 +329,7 @@ public class AttachmentService implements InitializingBean {
                             Files.copy(path, targetPath, StandardCopyOption.REPLACE_EXISTING);
                         }
                     } catch (IOException e) {
-                        throw new RuntimeException("复制文件失败: " + path, e);
+                        throw new RuntimeException("复制文件失败", e);
                     }
                 });
             } catch (IOException e) {
@@ -362,7 +362,7 @@ public class AttachmentService implements InitializingBean {
                         try {
                             Files.delete(curPath);
                         } catch (IOException e) {
-                            throw new RuntimeException("删除文件失败: " + path, e);
+                            throw new RuntimeException("删除文件失败", e);
                         }
                     });
         } catch (IOException e) {
@@ -395,7 +395,7 @@ public class AttachmentService implements InitializingBean {
                                     Files.copy(path, zipOut);
                                     zipOut.closeEntry();
                                 } catch (IOException e) {
-                                    throw new RuntimeException("压缩文件失败: " + path, e);
+                                    throw new RuntimeException("压缩文件失败", e);
                                 }
                             });
                 }

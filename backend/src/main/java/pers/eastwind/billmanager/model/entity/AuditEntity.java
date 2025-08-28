@@ -25,12 +25,10 @@ public class AuditEntity {
     private Instant createdDate;
 
     /**
-     * 创建人
+     * 创建人 ID
      */
     @CreatedBy
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private User createdBy;
+    private Integer createdById;
 
     /**
      * 修改时间
@@ -39,10 +37,8 @@ public class AuditEntity {
     private Instant lastModifiedDate;
 
     /**
-     * 修改人
+     * 修改人 ID
      */
     @LastModifiedBy
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private User lastModifiedBy;
+    private Integer lastModifiedById;
 }

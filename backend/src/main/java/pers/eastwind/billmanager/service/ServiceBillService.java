@@ -111,8 +111,7 @@ public class ServiceBillService {
      * @return 保存后的单据
      */
     @Caching(evict = {
-            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
-            @CacheEvict(value = "serviceBill", key = "'countBillsByState'")
+            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
     })
     @Transactional
     public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
@@ -166,8 +165,8 @@ public class ServiceBillService {
      * @return 更新后的单据
      */
     @Caching(evict = {
-            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
-            @CacheEvict(value = "serviceBill", key = "'sumTotalAmountByMonth'")
+            @CacheEvict(value = "serviceBill_query", allEntries = true),
+            @CacheEvict(value = "serviceBill_statistic", key = "'sumTotalAmountByMonth'")
     })
     @Transactional
     public ServiceBillDTO update(ServiceBillDTO serviceBillDTO) {
@@ -195,7 +194,7 @@ public class ServiceBillService {
      * @param param 查询参数
      * @return 分页结果
      */
-    @Cacheable(value = "serviceBill", key = "'findByParam_' + #param.hashCode()")
+    @Cacheable(value = "serviceBill_query", key = "'findByParam_' + #param.hashCode()")
     public Page<ServiceBillDTO> findByParam(ServiceBillQueryParam param) {
         if (param == null) {
             throw new RuntimeException("查询参数为空");
@@ -247,8 +246,8 @@ public class ServiceBillService {
      * @return 批量操作结果
      */
     @Caching(evict = {
-            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
-            @CacheEvict(value = "serviceBill", key = "'countBillsByState'")
+            @CacheEvict(value = "serviceBill_query", allEntries = true),
+            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
     })
     public ActionsResult<Integer, Void> delete(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
@@ -276,8 +275,8 @@ public class ServiceBillService {
      * @return 批量操作结果
      */
     @Caching(evict = {
-            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
-            @CacheEvict(value = "serviceBill", key = "'countBillsByState'")
+            @CacheEvict(value = "serviceBill_query", allEntries = true),
+            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
     })
     public ActionsResult<Integer, Void> process(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
@@ -306,9 +305,9 @@ public class ServiceBillService {
      * @param processedDate 完成日期，默认为当前时间
      */
     @Caching(evict = {
-            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
-            @CacheEvict(value = "serviceBill", key = "'countBillsByState'"),
-            @CacheEvict(value = "serviceBill", key = "'sumReceiveAmountByMonth'")
+            @CacheEvict(value = "serviceBill_query", allEntries = true),
+            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'"),
+            @CacheEvict(value = "serviceBill_statistic", key = "'sumReceiveAmountByMonth'")
     })
     public ActionsResult<Integer, Void> processed(List<Integer> ids, Instant processedDate) {
         if (ids == null || ids.isEmpty()) {
@@ -336,8 +335,8 @@ public class ServiceBillService {
      * 批量更改为完成
      */
     @Caching(evict = {
-            @CacheEvict(value = "serviceBill", key = "'findByParam_*'"),
-            @CacheEvict(value = "serviceBill", key = "'countBillsByState'")
+            @CacheEvict(value = "serviceBill_query", allEntries = true),
+            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
     })
     public ActionsResult<Integer, Void> finish(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
@@ -420,7 +419,7 @@ public class ServiceBillService {
      *
      * @return 包含各状态数量的 Map
      */
-    @Cacheable(value = "serviceBill", key = "'countBillsByState'")
+    @Cacheable(value = "serviceBill_statistic", key = "'countBillsByState'")
     public Map<ServiceBillState, Long> countBillsByState() {
         List<Object[]> results = serviceBillRepository.countByState();
         Map<ServiceBillState, Long> stateCountMap = new HashMap<>();
@@ -440,7 +439,7 @@ public class ServiceBillService {
      *
      * @return 每个月份与对应金额的 Map
      */
-    @Cacheable(value = "serviceBill", key = "'sumReceiveAmountByMonth'")
+    @Cacheable(value = "serviceBill_statistic", key = "'sumReceiveAmountByMonth'")
     public List<MonthSumAmount> sumReceiveAmountByMonth() {
 
         Instant preYear = Instant.now().minus(365, ChronoUnit.DAYS);

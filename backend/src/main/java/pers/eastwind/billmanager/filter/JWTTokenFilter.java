@@ -8,6 +8,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -37,6 +40,11 @@ public class JWTTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // 跳过登录请求
+        if (request.getRequestURI().startsWith("/api/user/token")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         // 获取 token
         String token = null;
         if (request.getCookies() != null) {
@@ -48,13 +56,11 @@ public class JWTTokenFilter extends OncePerRequestFilter {
             }
         }
         if (token == null) {
-            filterChain.doFilter(request, response);
-            return;
+            throw new AuthenticationCredentialsNotFoundException("token 为空");
         }
 
         if (!jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
-            filterChain.doFilter(request, response);
-            return;
+            throw new BadCredentialsException("token 无效");
         }
         String userName;
         try {
@@ -72,6 +78,8 @@ public class JWTTokenFilter extends OncePerRequestFilter {
                 );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                throw new DisabledException("用户被禁用");
             }
         }
 
