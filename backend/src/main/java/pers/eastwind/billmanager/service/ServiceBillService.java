@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.model.common.AttachmentType;
+import pers.eastwind.billmanager.model.common.BillType;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
 import pers.eastwind.billmanager.model.dto.*;
 import pers.eastwind.billmanager.model.entity.Attachment;
@@ -68,40 +69,12 @@ public class ServiceBillService {
         if (id == null) {
             throw new RuntimeException("ID不能为空");
         }
-        return serviceBillMapper.toDTO(serviceBillRepository.findById(id).orElse(null));
-    }
-
-    /**
-     * 处理附件
-     *
-     * @param origins 原始附件集合
-     * @param dto     传入 DTO
-     * @return db操作后，移动或删除文件的动作
-     */
-    private List<Runnable> processAttach(List<Attachment> origins, ServiceBillDTO dto) {
-        Set<Integer> targets = new HashSet<>();
-        List<Runnable> actions = new ArrayList<>();
-
-        for (AttachmentDTO attachment : dto.getAttachments()) {
-            if (attachment.getId() != null) {
-                targets.add(attachment.getId());
-            }
-            Path origin = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
-            if (attachmentService.isTempFile(origin)) {
-                Path targetDirRelativePath = Path.of(dto.getNumber());
-                Path target = attachmentService.getAbsolutePath(targetDirRelativePath);
-                attachment.setRelativePath(targetDirRelativePath.resolve(origin.getFileName()).toString());
-                actions.add(() -> attachmentService.move(origin, target));
-            }
+        ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+        if (bill == null) {
+            throw new RuntimeException("单据不存在");
         }
-
-        for (Attachment origin : origins) {
-            if (!targets.contains(origin.getId())) {
-                actions.add(() -> attachmentService.delete(attachmentService.getAbsolutePath(Path.of(origin.getRelativePath()))));
-            }
-        }
-
-        return actions;
+        List<Attachment> attachments = attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL);
+        return serviceBillMapper.toDTO(bill, attachments);
     }
 
     /**
@@ -111,6 +84,7 @@ public class ServiceBillService {
      * @return 保存后的单据
      */
     @Caching(evict = {
+            @CacheEvict(value = "serviceBill_query", allEntries = true),
             @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
     })
     @Transactional
@@ -125,12 +99,9 @@ public class ServiceBillService {
                 throw new RuntimeException("单据编号已存在");
             }
         }
-        List<Runnable> actions = processAttach(new ArrayList<>(), serviceBillDTO);
         ServiceBill bill = serviceBillRepository.save(serviceBillMapper.toEntity(serviceBillDTO));
-        for (Runnable action : actions) {
-            Thread.startVirtualThread(action);
-        }
-        return serviceBillMapper.toDTO(bill);
+        List<Attachment> attachments = attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
+        return serviceBillMapper.toDTO(bill, attachments);
     }
 
     /**
@@ -178,13 +149,11 @@ public class ServiceBillService {
             throw new RuntimeException("单据不存在");
         }
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
+        bill = serviceBillRepository.save(bill);
 
-        List<Runnable> actions = processAttach(bill.getAttachments(), serviceBillDTO);
-        ServiceBill savedBill = serviceBillRepository.save(serviceBillMapper.toEntity(serviceBillDTO));
-        for (Runnable action : actions) {
-            Thread.startVirtualThread(action);
-        }
-        return serviceBillMapper.toDTO(savedBill);
+        List<Attachment> attachments = attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
+
+        return serviceBillMapper.toDTO(bill, attachments);
     }
 
 
@@ -263,6 +232,7 @@ public class ServiceBillService {
                     throw new RuntimeException("非创建状态的单据不能删除");
                 }
                 serviceBillRepository.deleteById(id);
+                attachmentService.updateRelativeAttach(id, bill.getNumber(), BillType.SERVICE_BILL, new ArrayList<>());
             });
             return null;
         });

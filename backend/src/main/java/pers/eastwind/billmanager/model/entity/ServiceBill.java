@@ -91,11 +91,5 @@ public class ServiceBill extends AuditEntity {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private List<ServiceBillDetail> details = new ArrayList<>();
-    /**
-     * 附件列表
-     */
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private List<Attachment> attachments = new ArrayList<>();
 }
 

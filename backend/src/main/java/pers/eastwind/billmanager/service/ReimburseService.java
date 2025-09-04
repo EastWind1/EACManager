@@ -10,9 +10,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import pers.eastwind.billmanager.model.common.BillType;
 import pers.eastwind.billmanager.model.common.ReimburseState;
 import pers.eastwind.billmanager.model.dto.ActionsResult;
-import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.dto.ReimburseQueryParam;
 import pers.eastwind.billmanager.model.dto.ReimbursementDTO;
 import pers.eastwind.billmanager.model.entity.Attachment;
@@ -28,9 +28,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -63,40 +61,12 @@ public class ReimburseService {
         if (id == null) {
             throw new RuntimeException("id不能为空");
         }
-        return reimburseMapper.toDTO(reimburseRepository.findById(id).orElse(null));
-    }
-
-    /**
-     * 处理附件
-     *
-     * @param origins 原始附件集合
-     * @param dto     传入 DTO
-     * @return db操作后，移动或删除文件的动作
-     */
-    private List<Runnable> processAttach(List<Attachment> origins, ReimbursementDTO dto) {
-        Set<Integer> targets = new HashSet<>();
-        List<Runnable> actions = new ArrayList<>();
-
-        for (AttachmentDTO attachment : dto.getAttachments()) {
-            if (attachment.getId() != null) {
-                targets.add(attachment.getId());
-            }
-            Path origin = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
-            if (attachmentService.isTempFile(origin)) {
-                Path targetDirRelativePath = Path.of(dto.getNumber());
-                Path target = attachmentService.getAbsolutePath(targetDirRelativePath);
-                attachment.setRelativePath(targetDirRelativePath.resolve(origin.getFileName()).toString());
-                actions.add(() -> attachmentService.move(origin, target));
-            }
+        Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+        if (bill == null) {
+            throw new RuntimeException("单据不存在");
         }
-
-        for (Attachment origin : origins) {
-            if (!targets.contains(origin.getId())) {
-                actions.add(() -> attachmentService.delete(attachmentService.getAbsolutePath(Path.of(origin.getRelativePath()))));
-            }
-        }
-
-        return actions;
+        List<Attachment> attachments = attachmentService.getByBill(id, BillType.REIMBURSEMENT);
+        return reimburseMapper.toDTO(bill, attachments);
     }
 
     /**
@@ -117,13 +87,9 @@ public class ReimburseService {
                 throw new RuntimeException("单据编号已存在");
             }
         }
-        // 移动临时文件
-        List<Runnable> moves = processAttach(new ArrayList<>(), reimbursementDTO);
         Reimbursement bill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
-        for (Runnable move : moves) {
-            Thread.startVirtualThread(move);
-        }
-        return reimburseMapper.toDTO(bill);
+        List<Attachment> attachments = attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
+        return reimburseMapper.toDTO(bill, attachments);
     }
 
 
@@ -143,12 +109,9 @@ public class ReimburseService {
             throw new RuntimeException("单据不存在");
         }
         reimburseMapper.updateEntityFromDTO(reimbursementDTO, bill);
-        List<Runnable> moves = processAttach(bill.getAttachments(), reimbursementDTO);
-        Reimbursement savedBill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
-        for (Runnable move : moves) {
-            Thread.startVirtualThread(move);
-        }
-        return reimburseMapper.toDTO(savedBill);
+        bill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
+        List<Attachment> attachments = attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
+        return reimburseMapper.toDTO(bill, attachments);
     }
 
     /**
@@ -206,6 +169,7 @@ public class ReimburseService {
                     throw new RuntimeException("非创建状态不能删除");
                 }
                 reimburseRepository.deleteById(id);
+                attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, new ArrayList<>());
             });
             return null;
         });

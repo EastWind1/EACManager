@@ -53,11 +53,4 @@ public class Reimbursement extends AuditEntity {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "reimbursement_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private List<ReimburseDetail> details = new ArrayList<>();
-
-    /**
-     * 附件
-     */
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "reimbursement_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private List<Attachment> attachments = new ArrayList<>();
 }

@@ -11,10 +11,16 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.config.ConfigProperties;
 import pers.eastwind.billmanager.model.common.AttachmentType;
+import pers.eastwind.billmanager.model.common.BillType;
+import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.entity.Attachment;
+import pers.eastwind.billmanager.model.entity.BillAttachRelation;
 import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
+import pers.eastwind.billmanager.repository.BillAttachRelationRepository;
 import pers.eastwind.billmanager.repository.AttachmentRepository;
 
 import javax.imageio.ImageIO;
@@ -27,7 +33,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Comparator;
+import java.util.*;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -39,6 +45,10 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class AttachmentService implements InitializingBean {
     private final ConfigProperties properties;
+    private final AttachmentRepository attachmentRepository;
+    private final BillAttachRelationRepository  billAttachRelationRepository;
+    private final AttachmentMapper attachmentMapper;
+    private final TransactionTemplate transactionTemplate;
     /**
      * 根目录
      */
@@ -50,8 +60,12 @@ public class AttachmentService implements InitializingBean {
     @Getter
     private Path tempPath;
 
-    public AttachmentService(ConfigProperties properties, AttachmentRepository attachmentRepository, AttachmentMapper attachmentMapper) {
+    public AttachmentService(ConfigProperties properties, AttachmentRepository attachmentRepository, BillAttachRelationRepository billAttachRelationRepository, AttachmentMapper attachmentMapper, TransactionTemplate transactionTemplate) {
         this.properties = properties;
+        this.attachmentRepository = attachmentRepository;
+        this.billAttachRelationRepository = billAttachRelationRepository;
+        this.attachmentMapper = attachmentMapper;
+        this.transactionTemplate = transactionTemplate;
     }
 
 
@@ -105,7 +119,7 @@ public class AttachmentService implements InitializingBean {
      * 校验路径
      * 禁止使用根路径外的路径
      */
-    void validPath(Path path) {
+    private void validPath(Path path) {
         if (path == null) {
             throw new RuntimeException("路径为空");
         }
@@ -410,12 +424,94 @@ public class AttachmentService implements InitializingBean {
             throw new RuntimeException("压缩文件失败", e);
         }
     }
+    /**
+     * 获取业务单据附件
+     * @param billId 单据ID
+     * @param billType 单据类型
+     * @return 业务单据附件
+     */
+    public List<Attachment> getByBill(Integer billId, BillType billType) {
+        if (billType == null) {
+            throw new RuntimeException("单据类型不能为空");
+        }
+        if (billId == null) {
+            throw new RuntimeException("单据 ID 不能为空");
+        }
+        return attachmentRepository.findByBill(billId, billType);
+    }
 
     /**
-     * 清理临时文件
+     * 根据目标附件集合更新业务单据关联附件
+     * @param billId 单据ID
+     * @param billNumber 单据编号
+     * @param billType 单据类型
+     * @param attachmentDTOs 目标附件集合
+     *
+     * @return 更新后的附件集合
+     */
+    @Transactional
+    public List<Attachment> updateRelativeAttach(Integer billId, String billNumber, BillType billType, List<AttachmentDTO> attachmentDTOs) {
+
+        List<BillAttachRelation> billAttachRelations = billAttachRelationRepository.findByBillIdAndBillType(billId, billType);
+        Set<Integer> removeIds = new HashSet<>();
+        for (BillAttachRelation billAttachRelation : billAttachRelations) {
+            removeIds.add(billAttachRelation.getAttachId());
+        }
+
+        for (AttachmentDTO attachmentDTO : attachmentDTOs) {
+            // 新增
+            if (attachmentDTO.getId() == null) {
+                Attachment newAttachment = attachmentMapper.toEntity(attachmentDTO);
+                // 移动临时文件
+                Path origin = getAbsolutePath(Path.of(newAttachment.getRelativePath()));
+                if (isTempFile(origin)) {
+                    Path targetDirRelativePath = Path.of(billNumber);
+                    Path target = getAbsolutePath(targetDirRelativePath);
+                    newAttachment.setRelativePath(targetDirRelativePath.resolve(origin.getFileName()).toString());
+                    move(origin, target);
+                }
+                // 设置业务单据关联关系
+                newAttachment = attachmentRepository.save(newAttachment);
+                BillAttachRelation billAttachRelation = new BillAttachRelation();
+                billAttachRelation.setBillId(billId);
+                billAttachRelation.setBillType(billType);
+                billAttachRelation.setAttachId(newAttachment.getId());
+                billAttachRelationRepository.save(billAttachRelation);
+            } else {
+                // 未变化
+                removeIds.remove(attachmentDTO.getId());
+            }
+        }
+        // 删除
+        for (BillAttachRelation billAttachRelation : billAttachRelations) {
+            if (removeIds.contains(billAttachRelation.getAttachId())) {
+                billAttachRelationRepository.delete(billAttachRelation);
+            }
+        }
+
+        return attachmentRepository.findByBill(billId, billType);
+    }
+    /**
+     * 删除没有业务关联的附件
+     */
+    void cleanUnattach() {
+        List<Attachment> attachments = attachmentRepository.findByBillIsNull();
+        for (Attachment attachment : attachments) {
+            delete(getAbsolutePath(Path.of(attachment.getRelativePath())));
+            transactionTemplate.executeWithoutResult(status -> {
+                attachmentRepository.delete(attachment);
+            });
+        }
+    }
+
+    /**
+     * 清理文件
      */
     @PreDestroy
     public void cleanTemp() {
+        // 删除临时文件
         delete(tempPath);
+        // 删除没有业务关联的附件
+        cleanUnattach();
     }
 }

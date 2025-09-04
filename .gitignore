@@ -13,9 +13,14 @@ node_modules
 
 application-*.yml
 
+# deploy 排除中的配置文件
 /deploy/**
-!/deploy/frontend/conf/nginx.conf
-!/deploy/backend/init_user.sql
-!/deploy/ocr-server/Dockerfile
 !/deploy/build.bat
 !/deploy/docker-compose.yml
+!/deploy/frontend/
+!/deploy/frontend/conf/
+!/deploy/frontend/conf/nginx.conf
+!/deploy/backend/
+!/deploy/backend/init_user.sql
+!/deploy/ocr-server/
+!/deploy/ocr-server/Dockerfile

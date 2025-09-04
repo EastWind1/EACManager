@@ -63,10 +63,14 @@
           </v-row>
         </template>
         <template #actions>
-          <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-            <v-number-input v-model="dialogData.subtotal" label="小计"></v-number-input>
-          </v-col>
-          <v-btn text="保存" @click="saveDialog"></v-btn>
+          <v-row justify="end">
+            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+              <v-number-input v-model="dialogData.subtotal" label="小计"></v-number-input>
+            </v-col>
+            <v-col cols="2">
+              <v-btn text="保存" @click="saveDialog"></v-btn>
+            </v-col>
+          </v-row>
         </template>
       </v-card>
     </v-dialog>
