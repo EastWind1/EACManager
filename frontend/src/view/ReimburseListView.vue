@@ -156,7 +156,6 @@ const queryParam = ref<QueryParam>({
   state: [
     ReimburseState.CREATED.value,
     ReimburseState.PROCESSING.value,
-    ReimburseState.FINISHED.value,
   ],
   reimburseDateRange: [],
   pageSize: 20,

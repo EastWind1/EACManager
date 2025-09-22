@@ -100,7 +100,7 @@ public class ReimburseController {
     /**
      * 导出
      */
-    @PostMapping("/export")
+    @PostMapping(value = "/export", produces = "application/octet-stream")
     public Resource export(@RequestBody List<Integer> ids) {
         return attachmentService.loadByPath(reimburseService.export(ids));
     }
