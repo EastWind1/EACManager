@@ -23,7 +23,7 @@ public class ServiceBillQueryParam extends QueryParam {
     /**
      * 状态
      */
-    private List<ServiceBillState> state;
+    private List<ServiceBillState> states;
     /**
      * 项目名称
      */

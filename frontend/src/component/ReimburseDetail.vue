@@ -69,14 +69,14 @@
 
 <script lang="ts" setup>
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
-import { type Reimbursement, type ReimburseDetail } from '@/model/Reimbursement.ts'
+import { type ReimburseDetail, type Reimbursement } from '@/model/Reimbursement.ts'
 import { ref, toRefs } from 'vue'
 
 // 表单标题
 const detailHeaders = [
   { title: '项目名称', key: 'name' },
   { title: '金额', key: 'amount' },
-  { title: '操作', key: 'actions', sortable: false }
+  { title: '操作', key: 'actions', sortable: false },
 ]
 // 当前订单数据
 const reimbursement = defineModel<Reimbursement>()

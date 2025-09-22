@@ -10,7 +10,7 @@
               </v-col>
               <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-select
-                  v-model="queryParam.state"
+                  v-model="queryParam.states"
                   :items="stateOptions"
                   chips
                   clearable
@@ -28,6 +28,9 @@
                   prepend-icon=""
                   prepend-inner-icon="$calendar"
                 ></v-date-input>
+              </v-col>
+              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+                <v-text-field v-model="queryParam.summary" clearable label="摘要" />
               </v-col>
               <v-col class="text-right" cols="12">
                 <v-btn @click="search = new Date().toString()">查询</v-btn>
@@ -58,9 +61,9 @@
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 20"
       :search="search"
+      :sort-by="queryParam.sorts"
       class="mt-2 flex-grow-1"
       mobile-breakpoint="sm"
-      :sort-by="queryParam.sorts"
       show-select
       @update:options="loadItems"
     >
@@ -136,9 +139,11 @@ type QueryParam = {
   // 单据编号
   number?: string
   // 单据状态
-  state: ReimburseStateValue[]
+  states: ReimburseStateValue[]
   // 报销日期范围
   reimburseDateRange: Date[]
+  // 摘要
+  summary?: string
   // 每页大小
   pageSize: number
   // 页索引
@@ -153,10 +158,7 @@ type QueryParam = {
 const QUERY_PARAM_CACHE_KEY = 'ReimburseListQueryParam'
 const queryParam = ref<QueryParam>({
   number: '',
-  state: [
-    ReimburseState.CREATED.value,
-    ReimburseState.PROCESSING.value,
-  ],
+  states: [ReimburseState.CREATED.value, ReimburseState.PROCESSING.value],
   reimburseDateRange: [],
   pageSize: 20,
   pageIndex: 0,
@@ -223,11 +225,14 @@ async function loadItems(options: {
   if (queryParam.value.number) {
     param.number = queryParam.value.number
   }
-  if (queryParam.value.state && queryParam.value.state.length) {
-    param.state = queryParam.value.state
+  if (queryParam.value.states && queryParam.value.states.length) {
+    param.states = queryParam.value.states
   }
   param.pageIndex = options.page - 1
   param.pageSize = options.itemsPerPage
+  if (queryParam.value.summary) {
+    param.summary = queryParam.value.summary
+  }
   if (queryParam.value.reimburseDateRange) {
     if (queryParam.value.reimburseDateRange.length >= 1) {
       param.reimburseStartDate = queryParam.value.reimburseDateRange[0]

@@ -16,7 +16,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.model.common.AttachmentType;
 import pers.eastwind.billmanager.model.common.BillType;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
-import pers.eastwind.billmanager.model.dto.*;
+import pers.eastwind.billmanager.model.dto.ActionsResult;
+import pers.eastwind.billmanager.model.dto.MonthSumAmount;
+import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
+import pers.eastwind.billmanager.model.dto.ServiceBillQueryParam;
 import pers.eastwind.billmanager.model.entity.Attachment;
 import pers.eastwind.billmanager.model.entity.ServiceBill;
 import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
@@ -173,11 +176,11 @@ public class ServiceBillService {
             if (param.getNumber() != null) {
                 predicates.add(cb.like(root.get("number"), param.getNumber() + "%"));
             }
-            if (param.getState() != null && !param.getState().isEmpty()) {
-                if (param.getState().size() == 1) {
-                    predicates.add(cb.equal(root.get("state"), param.getState().getFirst()));
+            if (param.getStates() != null && !param.getStates().isEmpty()) {
+                if (param.getStates().size() == 1) {
+                    predicates.add(cb.equal(root.get("state"), param.getStates().getFirst()));
                 } else {
-                    predicates.add(root.get("state").in(param.getState()));
+                    predicates.add(root.get("state").in(param.getStates()));
                 }
             }
             if (param.getProjectName() != null) {

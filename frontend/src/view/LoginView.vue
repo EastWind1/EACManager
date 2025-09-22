@@ -58,7 +58,10 @@ async function login() {
   if (!valid.value) {
     return
   }
-  const user = await UserApi.login(username.value, await CryptoTool.SHA256(password.value, username.value))
+  const user = await UserApi.login(
+    username.value,
+    await CryptoTool.SHA256(password.value, username.value),
+  )
   setUser(user)
   success('登录成功')
   if (route.query.redirect) {

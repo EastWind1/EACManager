@@ -1,13 +1,18 @@
 package pers.eastwind.billmanager.service;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.model.common.ServiceBillState;
-import pers.eastwind.billmanager.model.dto.*;
+import pers.eastwind.billmanager.model.dto.ActionsResult;
+import pers.eastwind.billmanager.model.dto.ServiceBillDTO;
+import pers.eastwind.billmanager.model.dto.ServiceBillDetailDTO;
+import pers.eastwind.billmanager.model.dto.ServiceBillQueryParam;
 import pers.eastwind.billmanager.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
@@ -237,7 +242,7 @@ class ServiceBillServiceTest {
 
         // When - 查询多种状态的单据
         ServiceBillQueryParam param = new ServiceBillQueryParam();
-        param.setState(Arrays.asList(ServiceBillState.CREATED, ServiceBillState.PROCESSING));
+        param.setStates(Arrays.asList(ServiceBillState.CREATED, ServiceBillState.PROCESSING));
         Page<ServiceBillDTO> result = serviceBillService.findByParam(param);
 
         // Then

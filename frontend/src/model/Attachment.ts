@@ -1,4 +1,4 @@
-import { mdiFile, mdiFileExcel, mdiFilePdfBox, mdiFileWord, mdiImage } from '@mdi/js'
+import {mdiFile, mdiFileExcel, mdiFilePdfBox, mdiFileWord, mdiImage} from '@mdi/js'
 
 /**
  * 服务单类型

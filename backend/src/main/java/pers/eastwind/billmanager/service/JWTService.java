@@ -36,8 +36,8 @@ public class JWTService {
     /**
      * 生成 TOKEN
      *
-     * @param userName 用户名
-     * @param subject 摘要
+     * @param userName       用户名
+     * @param subject        摘要
      * @param expiresSeconds 过期秒数
      * @return TOKEN
      */

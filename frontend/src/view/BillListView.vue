@@ -10,7 +10,7 @@
               </v-col>
               <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-select
-                  v-model="queryParam.state"
+                  v-model="queryParam.states"
                   :items="stateOptions"
                   chips
                   clearable
@@ -73,9 +73,9 @@
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 20"
       :search="search"
+      :sort-by="queryParam.sorts"
       class="mt-2 flex-grow-1"
       mobile-breakpoint="sm"
-      :sort-by="queryParam.sorts"
       show-select
       @update:options="loadItems"
     >
@@ -133,8 +133,10 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import {
-  type ServiceBill, type ServiceBillQueryParam,
-  ServiceBillState, type ServiceBillStateValue,
+  type ServiceBill,
+  type ServiceBillQueryParam,
+  ServiceBillState,
+  type ServiceBillStateValue,
   ServiceBillType
 } from '@/model/ServiceBill.ts'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
@@ -161,31 +163,31 @@ const stateOptions = Object.values(ServiceBillState)
 // 查询参数类型
 type QueryParam = {
   // 单据编号
-  number?: string,
+  number?: string
   // 项目名称
-  projectName?: string,
+  projectName?: string
   // 单据状态
-  state: ServiceBillStateValue[],
+  states: ServiceBillStateValue[]
   // 创建日期范围
-  orderDateRange: Date[],
+  orderDateRange: Date[]
   // 处理完成日期范围
-  processedDateRange: Date[],
+  processedDateRange: Date[]
   // 每页大小
-  pageSize: number,
+  pageSize: number
   // 页索引
-  pageIndex: number,
+  pageIndex: number
   // 排序规则
   sorts: {
-    key: string;
-    order?: boolean | 'asc' | 'desc';
-  }[],
+    key: string
+    order?: boolean | 'asc' | 'desc'
+  }[]
 }
 // 查询参数
 const QUERY_PARAM_CACHE_KEY = 'BillListQueryParam'
 const queryParam = ref<QueryParam>({
   number: '',
   projectName: '',
-  state: [
+  states: [
     ServiceBillState.CREATED.value,
     ServiceBillState.PROCESSING.value,
     ServiceBillState.PROCESSED.value,
@@ -204,7 +206,7 @@ const queryParam = ref<QueryParam>({
       order: 'desc',
     },
   ],
-});
+})
 
 // 处理路由参数
 const route = useRoute()
@@ -269,8 +271,8 @@ async function loadItems(options: {
   if (queryParam.value.projectName) {
     param.projectName = queryParam.value.projectName
   }
-  if (queryParam.value.state && queryParam.value.state.length) {
-    param.state = queryParam.value.state
+  if (queryParam.value.states && queryParam.value.states.length) {
+    param.states = queryParam.value.states
   }
   param.pageIndex = options.page - 1
   param.pageSize = options.itemsPerPage
@@ -294,7 +296,7 @@ async function loadItems(options: {
     param.sorts = queryParam.value.sorts.map((item) => {
       return {
         field: item.key,
-        direction: item.order === true || item.order === 'asc' ? 'ASC' : 'DESC'
+        direction: item.order === true || item.order === 'asc' ? 'ASC' : 'DESC',
       }
     })
   }

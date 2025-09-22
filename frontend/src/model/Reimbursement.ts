@@ -31,8 +31,7 @@ export const ReimburseState = {
   },
 } as const
 // 服务单状态枚举
-export type ReimburseStateValue =
-  (typeof ReimburseState)[keyof typeof ReimburseState]['value']
+export type ReimburseStateValue = (typeof ReimburseState)[keyof typeof ReimburseState]['value']
 
 /**
  * 服务单实体
@@ -81,11 +80,11 @@ export interface ReimburseDetail {
   /**
    * 明细名称
    */
-  name?: string;
+  name?: string
   /**
    * 金额
    */
-  amount?: number;
+  amount?: number
 }
 
 /**
@@ -100,9 +99,11 @@ export interface ReimburseQueryParam extends QueryParam {
   /**
    * 状态
    */
-  state?: ReimburseStateValue[]
-
-
+  states?: ReimburseStateValue[]
+  /**
+   * 摘要
+   */
+  summary?: string
   /**
    * 报销起始日期
    */

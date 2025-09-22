@@ -34,12 +34,12 @@ public class UserController {
         long expiresSeconds = 24 * 60 * 60;
         LoginResult res = userService.login(param.username, param.password, expiresSeconds);
         return ResponseEntity.ok().header("Set-Cookie",
-                ResponseCookie.from("X-Auth-Token", res.token())
-                        .path("/")
-                        .httpOnly(true)
-                        .secure(true)
-                        .maxAge(expiresSeconds)
-                        .sameSite("Strict").build().toString())
+                        ResponseCookie.from("X-Auth-Token", res.token())
+                                .path("/")
+                                .httpOnly(true)
+                                .secure(true)
+                                .maxAge(expiresSeconds)
+                                .sameSite("Strict").build().toString())
                 .body(res.user());
     }
 

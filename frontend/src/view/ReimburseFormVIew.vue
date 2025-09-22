@@ -34,7 +34,7 @@
                   <h3>
                     总金额:
                     <span class="text-red"
-                    >￥
+                      >￥
                       {{
                         reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00'
                       }}</span
@@ -52,25 +52,25 @@
                   :disabled="isEditState"
                   color="primary"
                   @click="isEditState = true"
-                >编辑
+                  >编辑
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                   :loading="loading"
                   @click="process([reimbursement.id!])"
-                >提交
+                  >提交
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
                   :loading="loading"
                   @click="finish([reimbursement.id!])"
-                >处理完成
+                  >处理完成
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                   :loading="loading"
                   @click="remove([reimbursement.id!])"
-                >删除
+                  >删除
                 </v-btn>
                 <v-btn v-if="isEditState" :loading="loading" type="submit">保存</v-btn>
               </v-row>
@@ -100,9 +100,11 @@
               <label
                 v-if="reimbursement.state !== ReimburseState.CREATED.value"
                 class="text-subtitle-1"
-              >报销日期
+                >报销日期
                 {{
-                  reimbursement.reimburseDate ? date.format(reimbursement.reimburseDate, 'yyyy-MM-dd') : ''
+                  reimbursement.reimburseDate
+                    ? date.format(reimbursement.reimburseDate, 'yyyy-MM-dd')
+                    : ''
                 }}</label
               >
               <v-date-input

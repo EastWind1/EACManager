@@ -9,7 +9,7 @@ Content-Type: application/json
 > {%
     client.global.set("my_cookie", response.headers.valuesOf("Set-Cookie")[0]);
     console.log(client.global.get("my_cookie"))
- %}
+%}
 
 ###
 

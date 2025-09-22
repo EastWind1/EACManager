@@ -124,8 +124,8 @@ public class UserService implements UserDetailsService {
     /**
      * 登录，生成 token
      *
-     * @param username 用户名
-     * @param password 密码
+     * @param username       用户名
+     * @param password       密码
      * @param expiresSeconds token 过期秒数
      * @return 登录结果
      */

@@ -44,9 +44,9 @@
 
             <v-text-field
               v-model="dialogData.user.username"
+              :disabled="!!dialogData.user.id"
               :rules="[required]"
               label="用户名"
-              :disabled="!!dialogData.user.id"
             ></v-text-field>
             <v-text-field
               v-model="dialogData.user.password"

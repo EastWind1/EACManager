@@ -21,7 +21,7 @@
           </v-card>
         </v-hover>
       </v-col>
-      <v-col cols="1" v-if="!readonly">
+      <v-col v-if="!readonly" cols="1">
         <v-card width="53">
           <template #text>
             <v-icon :icon="mdiPlus" @click="upload"></v-icon>
@@ -30,7 +30,7 @@
       </v-col>
     </v-row>
   </v-container>
-  <v-dialog v-model="previewDialog" height="85vh" width="auto" min-width="50vw">
+  <v-dialog v-model="previewDialog" height="85vh" min-width="50vw" width="auto">
     <v-card>
       <template #title>
         {{ previewInfo.attachment.name }}

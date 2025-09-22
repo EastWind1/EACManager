@@ -132,6 +132,13 @@ public class ReimburseService {
             if (param.getSummary() != null) {
                 predicates.add(cb.like(root.get("summary"), "%" + param.getSummary() + "%"));
             }
+            if (param.getStates() != null && !param.getStates().isEmpty()) {
+                if (param.getStates().size() == 1) {
+                    predicates.add(cb.equal(root.get("state"), param.getStates().getFirst()));
+                } else {
+                    predicates.add(root.get("state").in(param.getStates()));
+                }
+            }
             if (param.getReimburseStartDate() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("reimburseDate"), param.getReimburseStartDate()));
             }

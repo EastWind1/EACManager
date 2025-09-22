@@ -14,14 +14,16 @@ import java.util.List;
 public interface AttachmentRepository extends BaseRepository<Attachment> {
     /**
      * 根据业务单ID和业务单类型获取附件
-     * @param billId 业务单ID
+     *
+     * @param billId   业务单ID
      * @param billType 业务单类型
-     * @return  附件
+     * @return 附件
      */
     @Query("select a from Attachment a, BillAttachRelation r " +
             "where a.id = r.attachId " +
             "and r.billId = :billId and r.billType = :billType")
     List<Attachment> findByBill(Integer billId, BillType billType);
+
     /**
      * 查找没有业务单据引用的附件
      */

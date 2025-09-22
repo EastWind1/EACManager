@@ -21,19 +21,19 @@
 - 使用 Docker-Compose 管理容器集群
 - 交付物使用挂载目录管理，便于动态替换
 - 容器
-  - eac-frontend 
-    - 使用 nginx 镜像
-    - 挂载静态资源目录、配置及 SSL 证书
-  - eac-backend 
-    - 使用 eclipse-temurin 镜像
-    - 挂载 JAR 包目录及配置文件
-    - 默认情况下在挂载目录生成附件文件夹
-  - eac-postgres
-    - 使用 postgres 镜像
-    - 使用 volume 挂载数据目录
-  - ocr-server
-    - 基于 rapidocr 官方 Dockerfile
-    - 由于 rapidocr 官方支持 Java 运行时，默认不启用该容器
+    - eac-frontend
+        - 使用 nginx 镜像
+        - 挂载静态资源目录、配置及 SSL 证书
+    - eac-backend
+        - 使用 eclipse-temurin 镜像
+        - 挂载 JAR 包目录及配置文件
+        - 默认情况下在挂载目录生成附件文件夹
+    - eac-postgres
+        - 使用 postgres 镜像
+        - 使用 volume 挂载数据目录
+    - ocr-server
+        - 基于 rapidocr 官方 Dockerfile
+        - 由于 rapidocr 官方支持 Java 运行时，默认不启用该容器
 
 ### 环境配置
 

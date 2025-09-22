@@ -10,29 +10,23 @@
       <v-spacer></v-spacer>
 
       <!-- 登录用户图标 -->
-      <v-menu class="ml-3" >
+      <v-menu class="ml-3">
         <template #activator="{ props }">
           <v-avatar :icon="mdiAccount" v-bind="props"></v-avatar>
         </template>
 
         <v-list>
           <v-list-item>
-            {{userStore.getUser()?.name}}
+            {{ userStore.getUser()?.name }}
           </v-list-item>
           <v-list-item>
             <!-- 暗色模式切换 -->
-            <v-switch
-              v-model="isDark"
-              color="primary"
-              hide-details
-              @click="isDark = !isDark">
-              <template #prepend>
-                暗色模式
-              </template>
+            <v-switch v-model="isDark" color="primary" hide-details @click="isDark = !isDark">
+              <template #prepend> 暗色模式 </template>
             </v-switch>
           </v-list-item>
           <v-list-item @click="logout">
-              <v-list-item-title>退出登录</v-list-item-title>
+            <v-list-item-title>退出登录</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>

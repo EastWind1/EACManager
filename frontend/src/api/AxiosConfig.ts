@@ -8,7 +8,7 @@ import { pinia } from '@/main.ts'
  */
 function useAxios(baseURL: string): AxiosInstance {
   const instance = axios.create({
-    baseURL
+    baseURL,
   })
   const { showLoading, hideLoading, warning } = useUIStore(pinia)
   const requestMap = new Map<string, AbortController>()

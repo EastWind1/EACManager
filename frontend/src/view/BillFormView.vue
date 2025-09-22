@@ -255,7 +255,6 @@ const serviceBill = ref<ServiceBill>({
   orderDate: new Date(),
 })
 
-
 // 表单验证状态
 const valid = ref(false)
 // 必填验证

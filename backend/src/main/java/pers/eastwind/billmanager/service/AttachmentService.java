@@ -20,8 +20,8 @@ import pers.eastwind.billmanager.model.dto.AttachmentDTO;
 import pers.eastwind.billmanager.model.entity.Attachment;
 import pers.eastwind.billmanager.model.entity.BillAttachRelation;
 import pers.eastwind.billmanager.model.mapper.AttachmentMapper;
-import pers.eastwind.billmanager.repository.BillAttachRelationRepository;
 import pers.eastwind.billmanager.repository.AttachmentRepository;
+import pers.eastwind.billmanager.repository.BillAttachRelationRepository;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -33,7 +33,10 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -46,7 +49,7 @@ import java.util.zip.ZipOutputStream;
 public class AttachmentService implements InitializingBean {
     private final ConfigProperties properties;
     private final AttachmentRepository attachmentRepository;
-    private final BillAttachRelationRepository  billAttachRelationRepository;
+    private final BillAttachRelationRepository billAttachRelationRepository;
     private final AttachmentMapper attachmentMapper;
     private final TransactionTemplate transactionTemplate;
     /**
@@ -424,9 +427,11 @@ public class AttachmentService implements InitializingBean {
             throw new RuntimeException("压缩文件失败", e);
         }
     }
+
     /**
      * 获取业务单据附件
-     * @param billId 单据ID
+     *
+     * @param billId   单据ID
      * @param billType 单据类型
      * @return 业务单据附件
      */
@@ -442,11 +447,11 @@ public class AttachmentService implements InitializingBean {
 
     /**
      * 根据目标附件集合更新业务单据关联附件
-     * @param billId 单据ID
-     * @param billNumber 单据编号
-     * @param billType 单据类型
-     * @param attachmentDTOs 目标附件集合
      *
+     * @param billId         单据ID
+     * @param billNumber     单据编号
+     * @param billType       单据类型
+     * @param attachmentDTOs 目标附件集合
      * @return 更新后的附件集合
      */
     @Transactional
@@ -491,6 +496,7 @@ public class AttachmentService implements InitializingBean {
 
         return attachmentRepository.findByBill(billId, billType);
     }
+
     /**
      * 删除没有业务关联的附件
      */

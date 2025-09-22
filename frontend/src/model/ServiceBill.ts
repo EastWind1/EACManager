@@ -175,7 +175,7 @@ export interface ServiceBillQueryParam extends QueryParam {
   /**
    * 状态
    */
-  state?: ServiceBillStateValue[]
+  states?: ServiceBillStateValue[]
 
   /**
    * 项目名称
