@@ -112,7 +112,12 @@
                 v-model="serviceBill.projectAddress"
                 :rules="[requiredRule]"
                 label="项目地址"
-              ></v-text-field>
+              >
+                <template #append>
+                  <v-icon :icon="mdiNavigation" @click="openMap(serviceBill.projectAddress)">
+                  </v-icon>
+                </template>
+              </v-text-field>
             </v-col>
             <!-- 项目联系人 -->
             <v-col cols="12" lg="4" md="6" sm="12" xl="3">
@@ -120,10 +125,12 @@
             </v-col>
             <!-- 项目联系人电话 -->
             <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-              <v-text-field
-                v-model="serviceBill.projectContactPhone"
-                label="项目联系人电话"
-              ></v-text-field>
+              <v-text-field v-model="serviceBill.projectContactPhone" label="项目联系人电话">
+                <template #append v-if="mobile">
+                  <v-icon :icon="mdiPhone" @click="callPhone(serviceBill.projectContactPhone)">
+                  </v-icon>
+                </template>
+              </v-text-field>
             </v-col>
           </v-row>
         </template>
@@ -139,7 +146,11 @@
             </v-col>
             <!-- 现场联系人电话 -->
             <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-              <v-text-field v-model="serviceBill.onSitePhone" label="现场联系人电话"></v-text-field>
+              <v-text-field v-model="serviceBill.onSitePhone" label="现场联系人电话">
+                <template #append v-if="mobile">
+                  <v-icon :icon="mdiPhone" @click="callPhone(serviceBill.onSitePhone)"> </v-icon>
+                </template>
+              </v-text-field>
             </v-col>
             <!-- 电梯信息 -->
             <v-col cols="12" lg="8" md="12" sm="12" xl="6">
@@ -231,11 +242,14 @@ import { useRouterStore } from '@/store/RouterStore.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
+import { mdiNavigation, mdiPhone } from '@mdi/js'
+import { useDisplay } from 'vuetify/framework'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
 const { warning, success } = store
 const route = useRoute()
+const { mobile } = useDisplay()
 // 页面是否编辑状态
 const isEditState = ref(false)
 // 单据类型选项
@@ -292,6 +306,42 @@ async function processResult(result: ActionsResult<number, void>) {
   } else {
     warning(`操作失败：${res.message}`)
   }
+}
+
+/**
+ * 打开地图
+ * @param address 地址
+ */
+function openMap(address: string) {
+  if (!address) {
+    return
+  }
+  if (mobile.value) {
+    // 创建隐藏 iframe 避免有空白页
+    const iframe = document.createElement('iframe')
+    iframe.style.display = 'none'
+    iframe.src = `androidamap://keywordNavi?sourceApplication=appname&keyword=${encodeURIComponent(address)}&style=2`
+    document.body.appendChild(iframe)
+    setTimeout(() => {
+      document.body.removeChild(iframe)
+    }, 1000)
+  } else {
+    open(`https://ditu.amap.com/search?query=${encodeURI(address)}`)
+  }
+}
+
+/**
+ * 拨打电话
+ * @param phone 电话
+ */
+function callPhone(phone?: string) {
+  if (!phone) {
+    return
+  }
+  const { confirm } = useUIStore()
+  confirm('拨打电话', `是否拨打电话 ${phone}`).then(async () => {
+    open(`tel:${phone}`)
+  })
 }
 
 const { process, processed, finish, remove } = useBillActions(processResult)
