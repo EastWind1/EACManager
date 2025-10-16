@@ -339,7 +339,10 @@ function callPhone(phone?: string) {
     return
   }
   const { confirm } = useUIStore()
-  confirm('拨打电话', `是否拨打电话 ${phone}`).then(async () => {
+  confirm('拨打电话', `是否拨打电话 ${phone}`).then(res => {
+    if (!res) {
+      return
+    }
     open(`tel:${phone}`)
   })
 }

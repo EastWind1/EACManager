@@ -20,7 +20,6 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/reimburse")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class ReimburseController {
     private final ReimburseService reimburseService;
     private final AttachmentService attachmentService;
@@ -58,6 +57,7 @@ public class ReimburseController {
      * @return 保存后的报销单
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ReimbursementDTO create(@RequestBody ReimbursementDTO reimbursementDTO) {
         return reimburseService.create(reimbursementDTO);
     }
@@ -69,6 +69,7 @@ public class ReimburseController {
      * @return 保存后的报销单
      */
     @PutMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ReimbursementDTO save(@RequestBody ReimbursementDTO reimbursementDTO) {
         return reimburseService.update(reimbursementDTO);
     }
@@ -77,6 +78,7 @@ public class ReimburseController {
      * 删除报销单
      */
     @DeleteMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
         return reimburseService.delete(ids);
     }
@@ -85,6 +87,7 @@ public class ReimburseController {
      * 处理报销单
      */
     @PutMapping("/process")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
         return reimburseService.process(ids);
     }
@@ -93,6 +96,7 @@ public class ReimburseController {
      * 处理完成报销单
      */
     @PutMapping("/finish")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
         return reimburseService.finish(ids);
     }

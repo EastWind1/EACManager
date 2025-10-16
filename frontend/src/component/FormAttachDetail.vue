@@ -126,7 +126,7 @@ async function preview(attach: Attachment) {
     return
   }
   if (attach.type !== AttachmentType.IMAGE.value && attach.type !== AttachmentType.PDF.value) {
-    warning('暂不支持预览该文件')
+    warning('暂不支持预览该文件, 请直接下载')
     return
   }
 
