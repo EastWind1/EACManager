@@ -68,7 +68,7 @@ app
   // 权限指令，控制元素渲染
   .directive('role', (el, binding) => {
     const userStore = useUserStore()
-    if (binding.value && !userStore.hasRole(binding.value)) {
+    if (binding.value && !userStore.hasAnyRole(binding.value)) {
       el.style.display = 'none'
     } else {
       el.style.display = ''

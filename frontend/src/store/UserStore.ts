@@ -42,9 +42,9 @@ export const useUserStore = defineStore('userStore', () => {
   }
 
   /**
-   * 是否有身份
+   * 是否有任何身份
    */
-  function hasRole(...roles: AuthorityRoleValue[]) {
+  function hasAnyRole(roles: AuthorityRoleValue[]) {
     return user.value && roles && roles.includes(user.value.authority)
   }
 
@@ -52,6 +52,6 @@ export const useUserStore = defineStore('userStore', () => {
     setUser,
     getUser,
     removeUser,
-    hasRole
+    hasAnyRole
   }
 })
