@@ -17,6 +17,7 @@ import pers.eastwind.billmanager.model.entity.User;
 import pers.eastwind.billmanager.model.mapper.UserMapper;
 import pers.eastwind.billmanager.repository.UserRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,7 +40,16 @@ public class UserService implements UserDetailsService {
      * 获取用户
      */
     public List<UserDTO> getAll() {
-        return userRepository.findAllEnabled().stream().map(userMapper::toBaseDTO).toList();
+        User curUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (curUser.getAuthority() == AuthorityRole.ROLE_ADMIN) {
+            return userRepository.findAllEnabled().stream().map(userMapper::toBaseDTO).toList();
+        } else {
+            User user = userRepository.findById(curUser.getId()).orElse(null);
+            if (user == null) {
+                return new ArrayList<>();
+            }
+            return List.of(userMapper.toBaseDTO(user));
+        }
     }
 
     /**

@@ -19,7 +19,7 @@
         <jose.jwt.version>10.5</jose.jwt.version>
         <rapidocr.version>0.0.7</rapidocr.version>
         <tika.version>3.2.3</tika.version>
-        <pdfbox.version>3.0.5</pdfbox.version>
+        <pdfbox.version>3.0.6</pdfbox.version>
         <poi.version>5.4.1</poi.version>
     </properties>
     <dependencies>

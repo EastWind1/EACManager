@@ -23,6 +23,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/serviceBill")
+@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class ServiceBillController {
     private final ServiceBillService serviceBillService;
     private final AttachmentService attachmentService;
@@ -59,7 +60,6 @@ public class ServiceBillController {
      * @param serviceBillDTO 服务单
      * @return 保存后的服务单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping
     public ServiceBillDTO create(@RequestBody ServiceBillDTO serviceBillDTO) {
         return serviceBillService.create(serviceBillDTO);
@@ -71,7 +71,6 @@ public class ServiceBillController {
      * @param serviceBillDTO 服务单
      * @return 保存后的服务单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping
     public ServiceBillDTO save(@RequestBody ServiceBillDTO serviceBillDTO) {
         return serviceBillService.update(serviceBillDTO);
@@ -80,7 +79,6 @@ public class ServiceBillController {
     /**
      * 通过文件创建
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping("/import")
     public ServiceBillDTO importByFile(MultipartFile file) throws IOException {
         return serviceBillService.generateByFile(file.getBytes(), file.getOriginalFilename());
@@ -89,7 +87,6 @@ public class ServiceBillController {
     /**
      * 删除服务单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @DeleteMapping
     public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
         return serviceBillService.delete(ids);
@@ -98,7 +95,6 @@ public class ServiceBillController {
     /**
      * 处理服务单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping("/process")
     public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
         return serviceBillService.process(ids);
@@ -107,7 +103,6 @@ public class ServiceBillController {
     /**
      * 处理完成服务单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping("/processed")
     public ActionsResult<Integer, Void> processed(@RequestBody ProcessedParam param) {
         return serviceBillService.processed(param.ids, param.processedDate);
@@ -116,7 +111,6 @@ public class ServiceBillController {
     /**
      * 完成服务单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping("/finish")
     public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
         return serviceBillService.finish(ids);

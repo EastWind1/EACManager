@@ -17,7 +17,11 @@ public enum AuthorityRole implements GrantedAuthority {
     /**
      * 游客
      */
-    ROLE_GUEST;
+    ROLE_GUEST,
+    /**
+     * 财务
+     */
+    ROLE_FINANCE;
 
     @Override
     public String getAuthority() {

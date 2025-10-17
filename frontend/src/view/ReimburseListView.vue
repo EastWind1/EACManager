@@ -42,11 +42,11 @@
     </v-expansion-panels>
     <v-toolbar class="mt-2" density="compact">
       <template #append>
-        <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
+        <v-btn :disabled="loading" color="primary" @click="create" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">新增</v-btn>
         <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
-        <v-btn :disabled="loading" @click="process(selectedIds)">提交</v-btn>
-        <v-btn :disabled="loading" @click="finish(selectedIds)">完成</v-btn>
-        <v-btn :disabled="loading" color="red" @click="remove(selectedIds)">删除</v-btn>
+        <v-btn :disabled="loading" @click="process(selectedIds)" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">提交</v-btn>
+        <v-btn :disabled="loading" @click="finish(selectedIds)" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">完成</v-btn>
+        <v-btn :disabled="loading" color="red" @click="remove(selectedIds)" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">删除</v-btn>
 
         <v-spacer></v-spacer>
         <div v-if="selectedIds.length > 0" class="text-caption mr-4">
@@ -125,6 +125,7 @@ import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { storeToRefs } from 'pinia'
 import * as date from 'date-fns'
 import { useReimburseActions } from '@/composable/ReimburseActions.ts'
+import { AuthorityRole } from '@/model/User.ts'
 
 const store = useUIStore()
 const { success, warning } = store

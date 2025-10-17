@@ -141,12 +141,16 @@ const passwordAgainEqual = (v: string) =>
 // 添加
 function add() {
   dialogData.value.user = { ...USER_DEFAULT }
+  dialogData.value.title = '新增'
   dialogData.value.show = true
 }
 
 // 编辑
 function edit(user: User) {
   dialogData.value.user = { ...user }
+  dialogData.value.user.password = undefined
+  dialogData.value.user.passwordAgain = undefined
+  dialogData.value.title = '编辑'
   dialogData.value.show = true
 }
 
@@ -165,25 +169,25 @@ async function saveUser() {
   if (!dialogData.value.valid) {
     return
   }
+  // 上传用户信息，复制一份避免修改影响界面
+  const postUser = { ...dialogData.value.user }
+
   // 密码 hash 混淆
-  if (dialogData.value.user.password) {
-    dialogData.value.user.password = await CryptoTool.SHA256(
-      dialogData.value.user.password,
-      dialogData.value.user.username,
-    )
+  if (postUser.password) {
+    postUser.password = await CryptoTool.SHA256(postUser.password, postUser.username)
   }
   // 修改
-  if (dialogData.value.user.id) {
+  if (postUser.id) {
     // 当用户不更改密码时，删除密码字段
-    if (!dialogData.value.user.password && !dialogData.value.user.passwordAgain) {
-      delete dialogData.value.user.password
-      delete dialogData.value.user.passwordAgain
+    if (!postUser.password && !postUser.passwordAgain) {
+      delete postUser.password
+      delete postUser.passwordAgain
     }
-    const index = users.value.findIndex((u) => u.id === dialogData.value.user.id)
-    users.value[index] = await UserApi.update(dialogData.value.user)
+    const index = users.value.findIndex((u) => u.id === postUser.id)
+    users.value[index] = await UserApi.update(postUser)
   } else {
     // 创建
-    users.value.push(await UserApi.create(dialogData.value.user))
+    users.value.push(await UserApi.create(postUser))
   }
 
   dialogData.value.show = false

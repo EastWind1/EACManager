@@ -49,6 +49,7 @@
                 <!-- 非完成状态都可以编辑 -->
                 <v-btn
                   v-if="reimbursement.id && reimbursement.state !== ReimburseState.FINISHED.value"
+                  v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                   :disabled="isEditState"
                   color="primary"
                   @click="isEditState = true"
@@ -56,23 +57,26 @@
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
+                  v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                   :loading="loading"
                   @click="process([reimbursement.id!])"
                   >提交
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
+                  v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                   :loading="loading"
                   @click="finish([reimbursement.id!])"
                   >处理完成
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
+                  v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                   :loading="loading"
                   @click="remove([reimbursement.id!])"
                   >删除
                 </v-btn>
-                <v-btn v-if="isEditState" :loading="loading" type="submit">保存</v-btn>
+                <v-btn v-if="isEditState" :loading="loading" type="submit" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">保存</v-btn>
               </v-row>
             </v-col>
           </v-row>
@@ -161,6 +165,7 @@ import { useUIStore } from '@/store/UIStore.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useReimburseActions } from '@/composable/ReimburseActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
+import { AuthorityRole } from '@/model/User.ts'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)

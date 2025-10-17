@@ -46,7 +46,6 @@ public class UserController {
     /**
      * 查询
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping
     public List<UserDTO> getAll() {
         return userService.getAll();
@@ -64,7 +63,7 @@ public class UserController {
     /**
      * 修改
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @PutMapping
     public UserDTO update(@RequestBody UserDTO user) {
         return userService.update(user);

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { User } from '@/model/User.ts'
+import type { AuthorityRoleValue, User } from '@/model/User.ts'
 
 /**
  * 用户存储
@@ -41,9 +41,17 @@ export const useUserStore = defineStore('userStore', () => {
     localStorage.removeItem(USER_KEY)
   }
 
+  /**
+   * 是否有身份
+   */
+  function hasRole(...roles: AuthorityRoleValue[]) {
+    return user.value && roles && roles.includes(user.value.authority)
+  }
+
   return {
     setUser,
     getUser,
     removeUser,
+    hasRole
   }
 })

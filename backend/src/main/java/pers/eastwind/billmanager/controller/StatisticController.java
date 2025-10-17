@@ -16,6 +16,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/statistic")
+@PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
 public class StatisticController {
 
     private final ServiceBillService serviceBillService;
@@ -36,7 +37,6 @@ public class StatisticController {
     /**
      * 按月份统计应收和已收单据金额总和
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/billTotalAmountGroupByMonth")
     public List<MonthSumAmount> sumBillReceiveAmountByMonth() {
         return serviceBillService.sumReceiveAmountByMonth();

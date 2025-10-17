@@ -31,6 +31,7 @@ public class AttachmentController {
      * @param path 相对路径
      */
     @GetMapping(value = "/{*path}", produces = "application/octet-stream")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public Resource download(@PathVariable String path) {
         if (path == null) {
             throw new RuntimeException("路径不能为空");
@@ -45,7 +46,7 @@ public class AttachmentController {
      * @param path 相对路径
      * @return 文件信息
      */
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping
     public AttachmentDTO upload(@RequestParam MultipartFile file, @RequestParam String path) throws IOException {
         return attachmentMapper.toDTO(attachmentService.upload(file.getBytes(), file.getOriginalFilename(), attachmentService.getAbsolutePath(Path.of(path))));
