@@ -317,11 +317,11 @@ public class AttachmentService implements InitializingBean {
     /**
      * 复制文件或文件夹
      *
-     * @param origin      原始文件或文件夹路径，若为文件夹，则复制所有子文件
-     * @param target      目标文件夹路径
-     * @param includeSelf 若为文件夹时，是否复制自身
+     * @param origin   原始文件或文件夹路径，若为文件夹，则复制所有子文件
+     * @param target   目标文件夹路径
+     * @param copyRootDir 若为文件夹时，是否复制源文件夹，以保持目录结构。当源是文件时不生效
      */
-    public void copy(Path origin, Path target, boolean includeSelf) {
+    public void copy(Path origin, Path target, boolean copyRootDir) {
         validPath(origin);
         validPath(target);
         if (!Files.exists(origin)) {
@@ -332,11 +332,11 @@ public class AttachmentService implements InitializingBean {
         } else if (!Files.isDirectory(target)) {
             throw new RuntimeException("目标必须是文件夹");
         }
-
+        // 源为文件夹
         if (Files.isDirectory(origin)) {
             try (Stream<Path> stream = Files.walk(origin)) {
                 stream.forEach(path -> {
-                    Path targetPath = includeSelf ? target.resolve(origin.getParent().relativize(path)) : target.resolve(origin.relativize(path));
+                    Path targetPath = copyRootDir ? target.resolve(origin.getParent().relativize(path)) : target.resolve(origin.relativize(path));
                     try {
                         if (Files.isDirectory(path)) {
                             if (!Files.exists(targetPath)) {
@@ -350,7 +350,7 @@ public class AttachmentService implements InitializingBean {
                     }
                 });
             } catch (IOException e) {
-                throw new RuntimeException("复制文件失败", e);
+                throw new RuntimeException("读取源文件夹失败", e);
             }
         } else {
             try {

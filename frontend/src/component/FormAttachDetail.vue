@@ -30,12 +30,12 @@
       </v-col>
     </v-row>
   </v-container>
-  <v-dialog v-model="previewDialog" height="85vh" min-width="50vw" width="auto">
+  <v-dialog v-model="previewDialog" height="90vh" min-width="50vw" width="auto">
     <v-card>
       <template #title>
         {{ previewInfo.attachment.name }}
       </template>
-      <v-card-text class="overflow-auto d-flex">
+      <v-card-text class="overflow-auto d-flex justify-center">
         <embed
           v-if="previewInfo.attachment.type === AttachmentType.PDF.value"
           :src="previewInfo.objectUrl"

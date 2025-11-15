@@ -9,20 +9,10 @@
     >
       <!-- 最后一列显示操作按钮 -->
       <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
-      <template v-if="!readonly" #[`item.actions`]="{ item }">
+      <template #[`item.actions`]="{ item }">
         <div class="d-flex ga-3">
-          <v-icon
-            :disabled="readonly"
-            :icon="mdiPencil"
-            size="small"
-            @click="editDetail(item)"
-          ></v-icon>
-          <v-icon
-            :disabled="readonly"
-            :icon="mdiDelete"
-            size="small"
-            @click="deleteDetail(item)"
-          ></v-icon>
+          <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
+          <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
         </div>
       </template>
 
@@ -70,14 +60,20 @@
 <script lang="ts" setup>
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import { type ReimburseDetail, type Reimbursement } from '@/model/Reimbursement.ts'
-import { ref, toRefs } from 'vue'
+import { computed, ref, toRefs } from 'vue'
 
 // 表单标题
-const detailHeaders = [
-  { title: '项目名称', key: 'name' },
-  { title: '金额', key: 'amount' },
-  { title: '操作', key: 'actions', sortable: false },
-]
+const detailHeaders = computed(() => {
+  const base: {title:string, key: string, sortable?:boolean}[] = [
+    { title: '项目名称', key: 'name' },
+    { title: '金额', key: 'amount' },
+    { title: '操作', key: 'actions', sortable: false },
+  ]
+  if (!readonly.value) {
+    base.push({ title: '操作', key: 'actions', sortable: false })
+  }
+  return base
+})
 // 当前订单数据
 const reimbursement = defineModel<Reimbursement>()
 // 是否可编辑
