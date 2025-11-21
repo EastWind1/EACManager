@@ -39,7 +39,6 @@ class ServiceBillServiceTest {
     @BeforeEach
     void setUp() {
         testServiceBillDTO = new ServiceBillDTO();
-        testServiceBillDTO.setNumber("SIT-001");
         testServiceBillDTO.setState(ServiceBillState.CREATED);
         testServiceBillDTO.setProjectName("集成测试项目");
         testServiceBillDTO.setProjectAddress("测试地址");
@@ -163,8 +162,8 @@ class ServiceBillServiceTest {
         ActionsResult<Integer, Void> result = serviceBillService.delete(idsToDelete);
 
         // 验证数据库中已删除
-        assertNull(serviceBillService.findById(createdBill1.getId()));
-        assertNull(serviceBillService.findById(createdBill2.getId()));
+        assertThrows(RuntimeException.class, () -> serviceBillService.findById(createdBill1.getId()));
+        assertThrows(RuntimeException.class, () -> serviceBillService.findById(createdBill2.getId()));
     }
 
     @Test

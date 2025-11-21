@@ -1,11 +1,11 @@
 package pers.eastwind.billmanager.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.config.ConfigProperties;
 import pers.eastwind.billmanager.model.dto.ImportMapRule;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,11 +30,11 @@ import java.util.regex.Pattern;
 @Service
 public class MapRuleService {
     private final ConfigProperties properties;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
-    public MapRuleService(ConfigProperties properties, ObjectMapper objectMapper) {
+    public MapRuleService(ConfigProperties properties, JsonMapper jsonMapper) {
         this.properties = properties;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
     }
 
     /**
@@ -117,7 +117,7 @@ public class MapRuleService {
                 // jar 包内扫描
                 mapStream = getClass().getClassLoader().getResourceAsStream("rule/" + prefix + "-" + className + ".json");
             }
-            return objectMapper.readValue(mapStream, new TypeReference<>() {
+            return jsonMapper.readValue(mapStream, new TypeReference<>() {
             });
         } catch (IOException e) {
             throw new RuntimeException("获取映射规则失败", e);

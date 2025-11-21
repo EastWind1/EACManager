@@ -1,7 +1,5 @@
 package pers.eastwind.billmanager.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
@@ -11,6 +9,8 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 import pers.eastwind.billmanager.model.dto.Result;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * RestController 增强, 包装响应体
@@ -18,10 +18,10 @@ import pers.eastwind.billmanager.model.dto.Result;
 @Slf4j
 @RestControllerAdvice
 public class ControllerAdvice implements ResponseBodyAdvice<Object> {
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
-    public ControllerAdvice(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public ControllerAdvice(JsonMapper jsonMapper) {
+        this.jsonMapper = jsonMapper;
     }
 
     /**
@@ -47,8 +47,8 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         if (body instanceof String) {
             try {
                 response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                return objectMapper.writeValueAsString(Result.ok(body));
-            } catch (JsonProcessingException e) {
+                return jsonMapper.writeValueAsString(Result.ok(body));
+            } catch (JacksonException e) {
                 throw new RuntimeException("序列化失败");
             }
         }

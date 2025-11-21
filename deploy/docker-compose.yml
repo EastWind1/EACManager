@@ -23,7 +23,7 @@ services:
   #    networks:
   #      - eac-network
   backend:
-    image: eclipse-temurin:21
+    image: eclipse-temurin:25-jre-ubi10-minimal
     container_name: eac-backend
     depends_on:
       - postgres
