@@ -146,10 +146,10 @@ async function preview(attach: Attachment) {
  * 上传附件
  */
 async function upload() {
-  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx', false)
+  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx', true)
   // 上传至临时目录
-  const attach = await AttachmentApi.uploadTemp(fileList[0])
-  attachments.value?.push(attach)
+  const attach = await AttachmentApi.uploadTemp(Array.from(fileList))
+  attachments.value?.push(...attach)
 }
 
 /**

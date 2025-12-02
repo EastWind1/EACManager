@@ -16,26 +16,29 @@ function getAxios() {
  */
 const AttachmentApi = {
   /**
-   * 上传文件
-   * @param file 文件
-   * @param path 路径，必须为相对路径
-   */
-  upload: (file: File, path: string) =>
-    getAxios()
-      .postForm(`?path=${path}`, {
-        file,
-      })
-      .then((res) => res.data as Attachment),
-  /**
    * 上传临时文件
-   * @param file 文件
+   * @param files 文件
    */
-  uploadTemp: (file: File) =>
-    getAxios()
-      .postForm(`/temp`, {
-        file,
-      })
-      .then((res) => res.data as Attachment),
+  uploadTemp: (files: File[]) => {
+    if (!files || !files.length) {
+      return Promise.resolve([])
+    }
+    const formData = new FormData()
+    for (const file of files) {
+      formData.append('files', file)
+    }
+    return getAxios()
+      .post(
+        `/temp`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      )
+      .then((res) => res.data as Attachment[])
+  },
   /**
    * 下载文件
    * 由于已在拦截器中获取了 data, 此处实际返回类型为 Blob, 需要强转

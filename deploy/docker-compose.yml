@@ -39,7 +39,7 @@ services:
       - .env
     volumes:
       - ./backend:/app/backend
-    command: sh -c "cd /app/backend && java -jar -Dloader.path=./lib app.jar"
+    command: sh -c "cd /app/backend/app && java -Dspring.aot.enabled=true -jar app.jar"
     networks:
       - eac-network
   frontend:

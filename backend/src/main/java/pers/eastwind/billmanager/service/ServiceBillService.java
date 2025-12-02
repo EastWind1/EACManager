@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -110,12 +111,11 @@ public class ServiceBillService {
     /**
      * 根据文件生成单据
      *
-     * @param bytes    字节
-     * @param fileName 文件名
+     * @param resource    文件资源
      * @return 单据
      */
-    public ServiceBillDTO generateByFile(byte[] bytes, String fileName) {
-        Attachment attachment = attachmentService.uploadTemp(bytes, fileName);
+    public ServiceBillDTO generateByFile(Resource resource) {
+        Attachment attachment = attachmentService.uploadTemp(List.of(resource)).getFirst();
         ServiceBillDTO serviceBillDTO = new ServiceBillDTO();
         Path absolutePath = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
         if (attachment.getType() == AttachmentType.PDF) {

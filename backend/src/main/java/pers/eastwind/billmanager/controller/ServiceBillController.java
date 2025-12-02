@@ -81,7 +81,7 @@ public class ServiceBillController {
      */
     @PostMapping("/import")
     public ServiceBillDTO importByFile(MultipartFile file) throws IOException {
-        return serviceBillService.generateByFile(file.getBytes(), file.getOriginalFilename());
+        return serviceBillService.generateByFile(file.getResource());
     }
 
     /**

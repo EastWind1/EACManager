@@ -26,7 +26,7 @@ echo 交付物目录: %DEPLOY_DIR%
 echo.
 echo 打包后端...
 cd /d "%BACKEND_DIR%"
-call mvn clean package -DskipTests
+call mvn clean -Pnative package -DskipTests
 if %errorlevel% neq 0 (
 echo 错误：后端打包失败
 exit /b 1
@@ -47,9 +47,9 @@ echo.
 echo 拷贝交付物...
 
 :: 清理旧目录
-if exist "%BACKEND_DEPLOY_DIR%\lib" (
-echo 删除旧的后端lib目录...
-rd /s /q "%BACKEND_DEPLOY_DIR%\lib"
+if exist "%BACKEND_DEPLOY_DIR%\app" (
+echo 删除旧的后端app目录...
+rd /s /q "%BACKEND_DEPLOY_DIR%\app"
 )
 
 if exist "%FRONTEND_DEPLOY_DIR%" (
@@ -57,18 +57,16 @@ echo 删除旧的前端html目录...
 rd /s /q "%FRONTEND_DEPLOY_DIR%"
 )
 
-:: 拷贝 jar 和 lib
+:: 拷贝 jar
 if exist "%BACKEND_TARGET_DIR%" (
 echo 拷贝后端文件...
 for %%f in ("%BACKEND_TARGET_DIR%\*.jar") do (
 echo 拷贝 %%~nxf 到 %BACKEND_DEPLOY_DIR%\app.jar
 copy "%%f" "%BACKEND_DEPLOY_DIR%\app.jar" >nul
 )
-
-if exist "%BACKEND_TARGET_DIR%\lib" (
-echo 拷贝后端lib目录...
-xcopy "%BACKEND_TARGET_DIR%\lib" "%BACKEND_DEPLOY_DIR%\lib\" /E /I /H /Y >nul
-)
+:: 执行 jar 展开
+echo 展开 jar，分离 lib
+call java -Djarmode=tools -jar "%BACKEND_DEPLOY_DIR%\app.jar" extract --destination "%BACKEND_DEPLOY_DIR%\app"
 )
 
 :: 拷贝前端文件

@@ -25,18 +25,12 @@ import pers.eastwind.billmanager.repository.BillAttachRelationRepository;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -79,8 +73,8 @@ public class AttachmentService implements InitializingBean {
     public void afterPropertiesSet() {
         rootPath = properties.getAttachment().getPath().normalize().toAbsolutePath();
         String TEMP_DIR = properties.getAttachment().getTemp();
-        tempPath = rootPath.resolve(TEMP_DIR).normalize().toAbsolutePath();
-        if (rootPath.startsWith(tempPath)) {
+        this.tempPath = rootPath.resolve(TEMP_DIR).normalize().toAbsolutePath();
+        if (rootPath.startsWith(this.tempPath)) {
             throw new RuntimeException("附件目录不能在临时目录内");
         }
         if (!Files.exists(rootPath)) {
@@ -176,12 +170,12 @@ public class AttachmentService implements InitializingBean {
     /**
      * 获取文件类型
      *
-     * @param bytes 文件字节
+     * @param stream 文件流（务必保证传入的新的流）
      * @return 文件类型
      */
-    private AttachmentType getFileType(byte[] bytes, String fileName) {
+    private AttachmentType getFileType(InputStream stream, String fileName) throws IOException {
         Tika tika = new Tika();
-        String mimeType = tika.detect(bytes);
+        String mimeType = tika.detect(stream);
         return switch (mimeType) {
             case "application/pdf" -> AttachmentType.PDF;
             case "image/jpeg", "image/png", "image/gif" -> AttachmentType.IMAGE;
@@ -240,30 +234,47 @@ public class AttachmentService implements InitializingBean {
     /**
      * 上传文件
      *
-     * @param bytes    文件字节
-     * @param fileName 文件名称
+     * @param resources 文件资源
      * @param path     相对附件目录路径
-     * @return 附件实体
+     * @return 附件实体列表
      */
-    public Attachment upload(byte[] bytes, String fileName, Path path) {
+    public List<Attachment> upload(List<Resource> resources, Path path) {
         validPath(path);
-        if (bytes == null) {
+        if (resources == null || resources.isEmpty()) {
+            throw new IllegalArgumentException("禁止上传空文件");
+        }
+        List<Attachment> attachments = new ArrayList<>();
+        for (Resource resource : resources) {
+            attachments.add(uploadSingle(resource, path));
+        }
+        return attachments;
+    }
+
+    /**
+     * 上传单个文件
+     *
+     * @param resource 文件资源
+     * @param path     相对附件目录路径
+     */
+    private Attachment uploadSingle(Resource resource, Path path) {
+        if (resource == null || !resource.exists()) {
             throw new IllegalArgumentException("禁止上传空文件");
         }
 
+        String fileName = resource.getFilename();
         if (fileName == null || fileName.isEmpty()) {
-            throw new RuntimeException("文件名不能为空");
+            throw new IllegalArgumentException("文件名不能为空");
         }
 
         Path targetPath = path.resolve(fileName);
         validPath(targetPath);
         AttachmentType type;
         try {
-            type = getFileType(bytes, fileName);
+            type = getFileType(resource.getInputStream(), fileName);
             if (!Files.exists(targetPath)) {
                 Files.createDirectories(targetPath);
             }
-            Files.copy(new ByteArrayInputStream(bytes), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(resource.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException("保存文件失败", e);
         }
@@ -278,9 +289,19 @@ public class AttachmentService implements InitializingBean {
 
     /**
      * 上传临时文件
+     *
+     * @param resources 文件资源
+     * @return 附件实体列表
      */
-    public Attachment uploadTemp(byte[] bytes, String fileName) {
-        return upload(bytes, fileName, tempPath);
+    public List<Attachment> uploadTemp(List<Resource> resources) {
+        if (resources == null || resources.isEmpty()) {
+            throw new IllegalArgumentException("禁止上传空文件");
+        }
+        List<Attachment> attachments = new ArrayList<>();
+        for (Resource resource : resources) {
+            attachments.add(uploadSingle(resource, tempPath));
+        }
+        return attachments;
     }
 
     /**
@@ -317,8 +338,8 @@ public class AttachmentService implements InitializingBean {
     /**
      * 复制文件或文件夹
      *
-     * @param origin   原始文件或文件夹路径，若为文件夹，则复制所有子文件
-     * @param target   目标文件夹路径
+     * @param origin      原始文件或文件夹路径，若为文件夹，则复制所有子文件
+     * @param target      目标文件夹路径
      * @param copyRootDir 若为文件夹时，是否复制源文件夹，以保持目录结构。当源是文件时不生效
      */
     public void copy(Path origin, Path target, boolean copyRootDir) {

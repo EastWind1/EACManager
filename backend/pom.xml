@@ -18,6 +18,7 @@
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
         <jose.jwt.version>10.6</jose.jwt.version>
         <rapidocr.version>0.0.7</rapidocr.version>
+        <rapidocr.onnx.version>1.2.2</rapidocr.onnx.version>
         <tika.version>3.2.3</tika.version>
         <pdfbox.version>3.0.6</pdfbox.version>
         <poi.version>5.5.0</poi.version>
@@ -105,12 +106,12 @@
         <dependency>
             <groupId>io.github.mymonstercat</groupId>
             <artifactId>rapidocr-onnx-linux-x86_64</artifactId>
-            <version>1.2.2</version>
+            <version>${rapidocr.onnx.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.mymonstercat</groupId>
             <artifactId>rapidocr-onnx-windows-x86_64</artifactId>
-            <version>1.2.2</version>
+            <version>${rapidocr.onnx.version}</version>
         </dependency>
         <!-- 文件类型处理 -->
         <dependency>
@@ -150,27 +151,16 @@
 
     <build>
         <plugins>
-<!--            <plugin>-->
-<!--                <groupId>org.graalvm.buildtools</groupId>-->
-<!--                <artifactId>native-maven-plugin</artifactId>-->
-<!--            </plugin>-->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <includes>
-                        <include>
-                            <groupId>nothing</groupId>
-                            <artifactId>nothing</artifactId>
-                        </include>
-                    </includes>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
-                    <layout>ZIP</layout>
                 </configuration>
             </plugin>
             <plugin>
@@ -195,27 +185,6 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
-            </plugin>
-            <!-- 拷贝依赖 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-dependencies</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                            <excludeTransitive>false</excludeTransitive>
-                            <stripVersion>false</stripVersion>
-                            <silent>true</silent>
-                            <includeScope>runtime</includeScope>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
