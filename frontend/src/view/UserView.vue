@@ -195,7 +195,7 @@ async function saveUser() {
 
 // 初始化
 async function init() {
-  users.value = await UserApi.getAll()
+  users.value = await UserApi.getAll() ?? []
 }
 
 init()

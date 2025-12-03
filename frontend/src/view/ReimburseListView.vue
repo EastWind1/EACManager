@@ -250,7 +250,13 @@ async function loadItems(options: {
       }
     })
   }
-  data.value = await ReimburseApi.getByQueryParam(param)
+  data.value = await ReimburseApi.getByQueryParam(param) ?? {
+    items: [],
+    totalCount: 0,
+    totalPages: 0,
+    pageSize: 0,
+    pageIndex: 0,
+  }
 }
 
 /**

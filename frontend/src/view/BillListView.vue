@@ -300,7 +300,13 @@ async function loadItems(options: {
       }
     })
   }
-  data.value = await ServiceBillApi.getByQueryParam(param)
+  data.value = await ServiceBillApi.getByQueryParam(param) ?? {
+    items: [],
+    totalCount: 0,
+    totalPages: 0,
+    pageSize: 0,
+    pageIndex: 0,
+  }
 }
 
 /**
