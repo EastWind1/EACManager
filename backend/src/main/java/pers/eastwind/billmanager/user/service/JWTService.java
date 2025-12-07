@@ -6,9 +6,9 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.common.exception.BizException;
+import pers.eastwind.billmanager.user.config.UserConfigProperties;
 
 import java.text.ParseException;
 import java.util.Date;
@@ -19,17 +19,17 @@ import java.util.Objects;
  */
 @Service
 public class JWTService {
-    private final String jwtKey;
+    private final UserConfigProperties properties;
     private JWSSigner signer;
     private JWSVerifier verifier;
 
-    public JWTService(@Value("${config.jwt.key}") String jwtKey) {
-        this.jwtKey = jwtKey;
+    public JWTService(UserConfigProperties properties) {
+        this.properties = properties;
     }
 
     @PostConstruct
     public void init() throws JOSEException {
-        byte[] shareSecurity = jwtKey.getBytes();
+        byte[] shareSecurity = properties.getKey().getBytes();
         signer = new MACSigner(shareSecurity);
         verifier = new MACVerifier(shareSecurity);
     }
@@ -39,17 +39,15 @@ public class JWTService {
      *
      * @param userName       用户名
      * @param subject        摘要
-     * @param expiresSeconds 过期秒数
      * @return TOKEN
      */
-    public String generateToken(String userName, String subject, long expiresSeconds) {
+    public String generateToken(String userName, String subject) {
         Date now = new Date();
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .audience(userName)
                 .subject(subject)
                 .issueTime(now)
-                // 24 小时后过期
-                .expirationTime(new Date(now.getTime() + expiresSeconds * 1000))
+                .expirationTime(new Date(now.getTime() + properties.getExpire() * 1000))
                 .build();
         SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
         try {

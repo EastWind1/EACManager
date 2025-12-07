@@ -72,6 +72,7 @@
       :items="data.items"
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 20"
+      :items-per-page-options="[{value: 10, title: '10'}, {value: 25, title: '25'}, {value: 50, title: '50'}, {value: 100, title: '100'}]"
       :search="search"
       :sort-by="queryParam.sorts"
       class="mt-2 flex-grow-1"
@@ -281,7 +282,7 @@ async function loadItems(options: {
       param.orderStartDate = queryParam.value.orderDateRange[0]
     }
     if (queryParam.value.orderDateRange.length >= 2) {
-      param.orderEndDate = queryParam.value.orderDateRange[1]
+      param.orderEndDate = queryParam.value.orderDateRange[queryParam.value.orderDateRange.length - 1]
     }
   }
   if (queryParam.value.processedDateRange) {
@@ -289,7 +290,7 @@ async function loadItems(options: {
       param.processedStartDate = queryParam.value.processedDateRange[0]
     }
     if (queryParam.value.processedDateRange.length >= 2) {
-      param.processedEndDate = queryParam.value.processedDateRange[1]
+      param.processedEndDate = queryParam.value.processedDateRange[queryParam.value.processedDateRange.length - 1]
     }
   }
   if (queryParam.value.sorts && queryParam.value.sorts.length) {

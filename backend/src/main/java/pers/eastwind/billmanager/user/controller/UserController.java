@@ -31,8 +31,8 @@ public class UserController {
      */
     @PostMapping("/token")
     public ResponseEntity<UserDTO> login(@RequestBody LoginParam param) {
-        long expiresSeconds = 24 * 60 * 60;
-        LoginResult res = userService.login(param.username, param.password, expiresSeconds);
+        long expiresSeconds = 7 * 24 * 60 * 60;
+        LoginResult res = userService.login(param.username, param.password);
         return ResponseEntity.ok().header("Set-Cookie",
                         ResponseCookie.from("X-Auth-Token", res.token())
                                 .path("/")
@@ -71,11 +71,12 @@ public class UserController {
 
     /**
      * 禁用
+     * @param username 用户名
      */
     @PreAuthorize("hasAnyRole('ADMIN')")
-    @DeleteMapping("/{id}")
-    public void disable(@PathVariable Integer id) {
-        userService.disable(id);
+    @DeleteMapping("/{username}")
+    public void disable(@PathVariable String username) {
+        userService.disable(username);
     }
 
     /**

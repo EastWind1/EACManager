@@ -40,11 +40,6 @@ public class JWTTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        // 跳过登录请求
-        if (request.getRequestURI().startsWith("/api/user/token")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
         // 获取 token
         String token = null;
         if (request.getCookies() != null) {
@@ -55,34 +50,28 @@ public class JWTTokenFilter extends OncePerRequestFilter {
                 }
             }
         }
-        if (token == null) {
-            throw new AuthenticationCredentialsNotFoundException("token 为空");
-        }
-
-        if (!jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
-            throw new BadCredentialsException("token 无效");
-        }
-        String userName;
-        try {
-            SignedJWT jwt = SignedJWT.parse(token);
-            userName = jwt.getJWTClaimsSet().getAudience().getFirst();
-        } catch (ParseException e) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-        if (userName != null) {
-            UserDetails user = userService.loadUserByUsername(userName);
-            if (user.isEnabled()) {
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        user, user.getPassword(), user.getAuthorities()
-                );
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } else {
-                throw new DisabledException("用户被禁用");
+        if (token != null && jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
+            String userName = null;
+            try {
+                SignedJWT jwt = SignedJWT.parse(token);
+                userName = jwt.getJWTClaimsSet().getAudience().getFirst();
+            } catch (ParseException _) {
+                log.error("JWT 解析失败: {}", token);
+            }
+            if (userName != null) {
+                UserDetails user = userService.loadUserByUsername(userName);
+                if (user.isEnabled()) {
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            user, user.getPassword(), user.getAuthorities()
+                    );
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    // 登录时已验证，此处仅记录日志
+                    log.error("用户被禁用: {}", userName);
+                }
             }
         }
-
         filterChain.doFilter(request, response);
     }
 }

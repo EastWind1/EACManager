@@ -1,5 +1,7 @@
 package pers.eastwind.billmanager.user.service;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -78,6 +80,7 @@ public class UserService implements UserDetailsService {
      * @return 更新后的用户
      */
     @Transactional
+    @CacheEvict(value = "user", key = "#user.username")
     public UserDTO update(UserDTO user) {
         if (user.getId() == null) {
             throw new BizException("id不能为空");
@@ -107,11 +110,12 @@ public class UserService implements UserDetailsService {
     /**
      * 禁用用户
      *
-     * @param id 用户id
+     * @param username 用户名
      */
     @Transactional
-    public void disable(Integer id) {
-        User user = userRepository.findById(id).orElse(null);
+    @CacheEvict(value = "user", key = "#username")
+    public void disable(String username) {
+        User user = userRepository.findByUsername(username);
         if (user == null) {
             throw new BizException("用户不存在");
         }
@@ -120,6 +124,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Override
+    @Cacheable(value = "user", key = "#username")
     public User loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username);
         if (user == null) {
@@ -133,10 +138,9 @@ public class UserService implements UserDetailsService {
      *
      * @param username       用户名
      * @param password       密码
-     * @param expiresSeconds token 过期秒数
      * @return 登录结果
      */
-    public LoginResult login(String username, String password, long expiresSeconds) {
+    public LoginResult login(String username, String password) {
         User user = userRepository.findByUsername(username);
         if (user == null || !user.isEnabled()) {
             throw new BizException("用户不存在");
@@ -144,8 +148,11 @@ public class UserService implements UserDetailsService {
         if (!BCrypt.checkpw(password, user.getPassword())) {
             throw new BizException("用户名或密码错误");
         }
+        if (!user.isEnabled()) {
+            throw new BizException("用户已禁用");
+        }
         String subject = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.HOST);
-        String token = jwtUtil.generateToken(username, subject, expiresSeconds);
+        String token = jwtUtil.generateToken(username, subject);
         return new LoginResult(token, userMapper.toDTO(user));
     }
 

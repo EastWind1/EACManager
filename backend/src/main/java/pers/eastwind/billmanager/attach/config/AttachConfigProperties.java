@@ -6,10 +6,13 @@ import org.springframework.context.annotation.Configuration;
 
 import java.nio.file.Path;
 
+/**
+ * 附件模块配置
+ */
 @Configuration
 @Data
 @ConfigurationProperties(prefix = "config.attachment")
-public class ConfigProperties {
+public class AttachConfigProperties {
     /**
      * 存储附件的根目录（必须是绝对路径）
      */

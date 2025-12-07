@@ -158,7 +158,7 @@ function edit(user: User) {
 async function disable(user: User) {
   const { confirm } = useUIStore()
   if (user.id && (await confirm('确认', '确定要禁用该用户吗？'))) {
-    await UserApi.disable(user.id)
+    await UserApi.disable(user.username)
     const index = users.value.findIndex((u) => u.id === user.id)
     users.value.splice(index, 1)
   }

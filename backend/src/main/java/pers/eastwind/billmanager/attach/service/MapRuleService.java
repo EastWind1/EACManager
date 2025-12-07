@@ -2,7 +2,7 @@ package pers.eastwind.billmanager.attach.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.config.ConfigProperties;
+import pers.eastwind.billmanager.attach.config.AttachConfigProperties;
 import pers.eastwind.billmanager.attach.model.ImportMapRule;
 import pers.eastwind.billmanager.common.exception.BizException;
 import tools.jackson.core.type.TypeReference;
@@ -30,10 +30,10 @@ import java.util.regex.Pattern;
 @Slf4j
 @Service
 public class MapRuleService {
-    private final ConfigProperties properties;
+    private final AttachConfigProperties properties;
     private final JsonMapper jsonMapper;
 
-    public MapRuleService(ConfigProperties properties, JsonMapper jsonMapper) {
+    public MapRuleService(AttachConfigProperties properties, JsonMapper jsonMapper) {
         this.properties = properties;
         this.jsonMapper = jsonMapper;
     }

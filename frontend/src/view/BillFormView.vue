@@ -167,14 +167,14 @@
       <v-card class="mt-5">
         <template #title>
           <v-tabs v-model="tab">
-            <v-tab class="v-card-title" value="details">明细</v-tab>
+            <v-tab class="v-card-title" value="detail">明细</v-tab>
             <v-tab class="v-card-title" value="attachment">附件</v-tab>
           </v-tabs>
         </template>
         <template #text>
           <v-tabs-window v-model="tab">
             <!-- 服务单明细 -->
-            <v-tabs-window-item value="details">
+            <v-tabs-window-item value="detail">
               <BillFormDetail v-model="serviceBill" :readonly="!isEditState"></BillFormDetail>
             </v-tabs-window-item>
             <!-- 附件 -->
@@ -275,7 +275,7 @@ const valid = ref(false)
 const requiredRule = (v: unknown) => !!v || '必填项'
 
 // 当前 Tab 页
-const tab = ref('details')
+const tab = ref('detail')
 
 // 提交表单
 async function save() {

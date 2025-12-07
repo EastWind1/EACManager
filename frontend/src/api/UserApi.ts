@@ -56,8 +56,8 @@ const UserApi = {
 
   /**
    * 禁用用户（删除）
-   * @param id 用户 ID
+   * @param username 用户名
    */
-  disable: (id: number) => getAxios().delete(`/${id}`),
+  disable: (username: string) => getAxios().delete(`/${username}`),
 }
 export default UserApi

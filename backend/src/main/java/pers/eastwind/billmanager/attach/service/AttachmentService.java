@@ -13,7 +13,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import pers.eastwind.billmanager.attach.config.ConfigProperties;
+import pers.eastwind.billmanager.attach.config.AttachConfigProperties;
 import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.repository.AttachmentRepository;
 import pers.eastwind.billmanager.attach.repository.BillAttachRelationRepository;
@@ -37,7 +37,7 @@ import java.util.zip.ZipOutputStream;
 @Slf4j
 @Service
 public class AttachmentService implements InitializingBean {
-    private final ConfigProperties properties;
+    private final AttachConfigProperties properties;
     private final AttachmentRepository attachmentRepository;
     private final BillAttachRelationRepository billAttachRelationRepository;
     private final AttachmentMapper attachmentMapper;
@@ -53,7 +53,7 @@ public class AttachmentService implements InitializingBean {
     @Getter
     private Path tempPath;
 
-    public AttachmentService(ConfigProperties properties, AttachmentRepository attachmentRepository, BillAttachRelationRepository billAttachRelationRepository, AttachmentMapper attachmentMapper, TransactionTemplate transactionTemplate) {
+    public AttachmentService(AttachConfigProperties properties, AttachmentRepository attachmentRepository, BillAttachRelationRepository billAttachRelationRepository, AttachmentMapper attachmentMapper, TransactionTemplate transactionTemplate) {
         this.properties = properties;
         this.attachmentRepository = attachmentRepository;
         this.billAttachRelationRepository = billAttachRelationRepository;

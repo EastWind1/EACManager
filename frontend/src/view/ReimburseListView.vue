@@ -60,6 +60,7 @@
       :items="data.items"
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 20"
+      :items-per-page-options="[{value: 10, title: '10'}, {value: 25, title: '25'}, {value: 50, title: '50'}, {value: 100, title: '100'}]"
       :search="search"
       :sort-by="queryParam.sorts"
       class="mt-2 flex-grow-1"
@@ -239,7 +240,7 @@ async function loadItems(options: {
       param.reimburseStartDate = queryParam.value.reimburseDateRange[0]
     }
     if (queryParam.value.reimburseDateRange.length >= 2) {
-      param.reimburseEndDate = queryParam.value.reimburseDateRange[1]
+      param.reimburseEndDate = queryParam.value.reimburseDateRange[queryParam.value.reimburseDateRange.length - 1]
     }
   }
   if (queryParam.value.sorts && queryParam.value.sorts.length) {

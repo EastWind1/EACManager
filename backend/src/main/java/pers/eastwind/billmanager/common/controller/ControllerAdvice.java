@@ -45,7 +45,7 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         if (body instanceof Result) {
             return body;
         }
-        // 处理 String, 否则会报类型转换错误
+        // 处理 String, String 内部由特定转换器处理，期望返回为 String，若直接返回 Result 会报类型转换错误
         if (body instanceof String) {
             try {
                 response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -57,11 +57,16 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         return Result.ok(body);
     }
 
+    /**
+     * 包装错误响应
+     * @param e 错误
+     * @return 错误结果
+     */
+
     @ExceptionHandler(BizException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleBizException(BizException e) {
-        // 业务异常避免堆栈信息
-        log.error(e.getMessage());
+        // ExceptionHandlerExceptionResolver 会进行日志记录，无需重复记录
         return Result.error(e.getMessage());
     }
 }

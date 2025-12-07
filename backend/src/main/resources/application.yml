@@ -26,4 +26,7 @@ config:
     map-rule-path: ${user.dir}${file.separator}rule
   # JWT 密钥
   jwt:
-    key: ${JWT_KEY:-test}
+    # 过期时间，单位秒
+    expire: 604800
+    # 密钥，必须要256位以上,即至少32个ASCII字符
+    key: ${JWT_KEY:-the-security-key-must-be-256-bits-means-32-ASCII-characters}

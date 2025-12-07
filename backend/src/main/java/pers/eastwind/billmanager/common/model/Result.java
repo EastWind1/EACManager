@@ -21,12 +21,21 @@ public record Result<T>(String message, T data) {
     }
 
     /**
-     * 创建失败结果
+     * 创建失败结果，内容为 null
      *
      * @param message 错误信息
      * @return 结果
      */
     public static Result<Object> error(String message) {
         return new Result<>(message, null);
+    }
+    /**
+     * 创建失败结果, 含内容
+     *
+     * @param message 错误信息
+     * @return 结果
+     */
+    public static <T> Result<T> error(String message, T data) {
+        return new Result<>(message, data);
     }
 }
