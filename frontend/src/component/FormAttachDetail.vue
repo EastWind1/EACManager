@@ -1,7 +1,14 @@
 <!-- 附件明细 -->
 <template>
   <v-container>
-    <v-row class="overflow-auto">
+    <v-row
+      class="overflow-auto"
+      :class="{ 'border-xl': !readonly && isDragging }"
+      @dragenter.prevent="isDragging = true"
+      @dragleave.prevent="isDragging = false"
+      @dragover.prevent
+      @drop.prevent="!readonly && drop($event)"
+    >
       <v-col v-for="attach in attachments" :key="attach.name" cols="12" lg="3" md="4" sm="6">
         <v-hover v-slot="{ isHovering, props }">
           <v-card v-bind="props">
@@ -73,6 +80,8 @@ const props = defineProps<{
 const { readonly } = toRefs(props)
 // 预览窗口
 const previewDialog = ref(false)
+// 是否有拖拽
+const isDragging = ref(false)
 // 预览信息
 const previewInfo = ref<{
   // 附件
@@ -146,9 +155,38 @@ async function preview(attach: Attachment) {
  * 上传附件
  */
 async function upload() {
-  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx', true)
+  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt', true)
   // 上传至临时目录
   const attach = await AttachmentApi.uploadTemp(Array.from(fileList))
+  attachments.value?.push(...attach)
+}
+
+/**
+ * 拖拽上传
+ */
+async function drop(e: DragEvent) {
+  isDragging.value = false
+  const fileList = Array.from(e.dataTransfer!.files)
+  const validType = new Set<string>([
+    '.pdf',
+    '.jpg',
+    '.jpeg',
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.txt',
+  ])
+  const getFileType = (file: File) => {
+    const name = file.name
+    return name.substring(name.lastIndexOf('.'))
+  }
+  if (!fileList.every((file) => validType.has(getFileType(file)))) {
+    warning('请上传文档或图片')
+    return
+  }
+  // 上传至临时目录
+  const attach = await AttachmentApi.uploadTemp(fileList)
   attachments.value?.push(...attach)
 }
 

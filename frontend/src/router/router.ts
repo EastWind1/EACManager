@@ -7,6 +7,7 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/view/HomeView.vue'),
+      redirect: '/dashboard',
       beforeEnter: (to) => {
         const hasLogin = useUserStore().getUser()
         if (!hasLogin) {
