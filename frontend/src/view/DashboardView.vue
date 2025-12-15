@@ -93,7 +93,7 @@ const amountValue = computed(() => {
 // 统计数量点击跳转
 async function stateClick(state: ServiceBillStateValue) {
   const queryParam = JSON.stringify({
-    state: [state],
+    states: [state],
   })
   await router.push(`/services?query=${queryParam}`)
 }

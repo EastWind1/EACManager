@@ -19,7 +19,7 @@ application-*.yml
 !/deploy/docker-compose.yml
 !/deploy/frontend/
 !/deploy/frontend/conf/
-!/deploy/frontend/conf/nginx.conf
+!/deploy/frontend/conf/Caddyfile
 !/deploy/backend/
 !/deploy/backend/init_user.sql
 !/deploy/ocr-server/

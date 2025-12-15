@@ -1,0 +1,16 @@
+{
+    email {$CA_EMAIL}
+}
+{$DOMAIN} {
+    encode gzip
+    request_body {
+        max_size 50MB
+    }
+    @not_api {
+        not path /api/*
+    }
+    root @not_api /usr/share/caddy
+    reverse_proxy /api/* http://backend:8080
+    try_files {path} {path}/ /index.html
+    file_server
+}

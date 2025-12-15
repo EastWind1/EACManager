@@ -3,10 +3,10 @@
   <v-app>
     <!-- 标题栏 -->
     <v-app-bar height="48" scroll-behavior="hide">
-      <!-- 标题 -->
-      <h2 class="ml-3 mr-3">服务单管理</h2>
       <!-- 左侧导航抽屉 -->
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
+      <!-- 标题 -->
+      <h2 class="ml-3 mr-3">服务单管理</h2>
       <v-spacer></v-spacer>
 
       <!-- 登录用户图标 -->
