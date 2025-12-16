@@ -76,7 +76,13 @@
                   @click="remove([reimbursement.id!])"
                   >删除
                 </v-btn>
-                <v-btn v-if="isEditState" :loading="loading" type="submit" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">保存</v-btn>
+                <v-btn
+                  v-if="isEditState"
+                  :loading="loading"
+                  type="submit"
+                  v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+                  >保存</v-btn
+                >
               </v-row>
             </v-col>
           </v-row>
@@ -107,7 +113,7 @@
                 >报销日期
                 {{
                   reimbursement.reimburseDate
-                    ? date.format(reimbursement.reimburseDate, 'yyyy-MM-dd')
+                    ? dateUtil.format(reimbursement.reimburseDate, 'keyboardDate')
                     : ''
                 }}</label
               >
@@ -156,7 +162,6 @@
 import { ref } from 'vue'
 import { type Reimbursement, ReimburseState } from '@/model/Reimbursement.ts'
 import ReimburseDetail from '@/component/ReimburseDetail.vue'
-import * as date from 'date-fns'
 import ReimburseApi from '@/api/ReimburseApi.ts'
 import { storeToRefs } from 'pinia'
 import FormAttachDetail from '@/component/FormAttachDetail.vue'
@@ -166,11 +171,13 @@ import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useReimburseActions } from '@/composable/ReimburseActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
 import { AuthorityRole } from '@/model/User.ts'
+import { useDate } from 'vuetify/framework'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
 const { warning, success } = store
 const route = useRoute()
+const dateUtil = useDate()
 // 页面是否编辑状态
 const isEditState = ref(false)
 

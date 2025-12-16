@@ -112,8 +112,8 @@ public class ServiceBillController {
      * 完成服务单
      */
     @PutMapping("/finish")
-    public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
-        return serviceBillService.finish(ids);
+    public ActionsResult<Integer, Void> finish(@RequestBody FinishParam param) {
+        return serviceBillService.finish(param.ids, param.finishedDate);
     }
 
     /**
@@ -129,4 +129,8 @@ public class ServiceBillController {
      */
     public record ProcessedParam(List<Integer> ids, Instant processedDate) {
     }
+    /**
+     * 完成参数
+     */
+    public record FinishParam(List<Integer> ids, Instant finishedDate) {}
 }

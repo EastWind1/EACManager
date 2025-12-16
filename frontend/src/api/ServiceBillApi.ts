@@ -86,10 +86,11 @@ const ServiceBillApi = {
   /**
    * 完成
    * @param ids 单据 ID 列表
+   * @param finishedDate 完成时间
    */
-  finish: (ids: number[]) =>
+  finish: (ids: number[], finishedDate: Date) =>
     getAxios()
-      .put(`/finish`, ids)
+      .put(`/finish`, {ids, finishedDate})
       .then((res) => res.data as ActionsResult<number, void>),
   /**
    * 导出

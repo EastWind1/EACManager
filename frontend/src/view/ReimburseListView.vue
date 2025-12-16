@@ -42,11 +42,33 @@
     </v-expansion-panels>
     <v-toolbar class="mt-2" density="compact">
       <template #append>
-        <v-btn :disabled="loading" color="primary" @click="create" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">新增</v-btn>
+        <v-btn
+          :disabled="loading"
+          color="primary"
+          @click="create"
+          v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+          >新增</v-btn
+        >
         <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
-        <v-btn :disabled="loading" @click="process(selectedIds)" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">提交</v-btn>
-        <v-btn :disabled="loading" @click="finish(selectedIds)" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">完成</v-btn>
-        <v-btn :disabled="loading" color="red" @click="remove(selectedIds)" v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]">删除</v-btn>
+        <v-btn
+          :disabled="loading"
+          @click="process(selectedIds)"
+          v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+          >提交</v-btn
+        >
+        <v-btn
+          :disabled="loading"
+          @click="finish(selectedIds)"
+          v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+          >完成</v-btn
+        >
+        <v-btn
+          :disabled="loading"
+          color="red"
+          @click="remove(selectedIds)"
+          v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+          >删除</v-btn
+        >
 
         <v-spacer></v-spacer>
         <div v-if="selectedIds.length > 0" class="text-caption mr-4">
@@ -60,7 +82,12 @@
       :items="data.items"
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 20"
-      :items-per-page-options="[{value: 10, title: '10'}, {value: 25, title: '25'}, {value: 50, title: '50'}, {value: 100, title: '100'}]"
+      :items-per-page-options="[
+        { value: 10, title: '10' },
+        { value: 25, title: '25' },
+        { value: 50, title: '50' },
+        { value: 100, title: '100' },
+      ]"
       :search="search"
       :sort-by="queryParam.sorts"
       class="mt-2 flex-grow-1"
@@ -82,7 +109,7 @@
         {{ item.totalAmount ? item.totalAmount.toFixed(2) : '0.00' }}
       </template>
       <template #[`item.reimburseDate`]="{ item }">
-        {{ item.reimburseDate ? date.format(item.reimburseDate, 'yyyy-MM-dd') : '' }}
+        {{ item.reimburseDate ? dateUtil.format(item.reimburseDate, 'keyboardDate') : '' }}
       </template>
     </v-data-table-server>
 
@@ -124,14 +151,15 @@ import { useRouter } from 'vue-router'
 import { useUIStore } from '@/store/UIStore.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { storeToRefs } from 'pinia'
-import * as date from 'date-fns'
 import { useReimburseActions } from '@/composable/ReimburseActions.ts'
 import { AuthorityRole } from '@/model/User.ts'
+import { useDate } from 'vuetify/framework'
 
 const store = useUIStore()
 const { success, warning } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
+const dateUtil = useDate()
 
 // 筛选条件区域
 // 查询状态下拉框
@@ -240,7 +268,8 @@ async function loadItems(options: {
       param.reimburseStartDate = queryParam.value.reimburseDateRange[0]
     }
     if (queryParam.value.reimburseDateRange.length >= 2) {
-      param.reimburseEndDate = queryParam.value.reimburseDateRange[queryParam.value.reimburseDateRange.length - 1]
+      param.reimburseEndDate =
+        queryParam.value.reimburseDateRange[queryParam.value.reimburseDateRange.length - 1]
     }
   }
   if (queryParam.value.sorts && queryParam.value.sorts.length) {
@@ -251,7 +280,7 @@ async function loadItems(options: {
       }
     })
   }
-  data.value = await ReimburseApi.getByQueryParam(param) ?? {
+  data.value = (await ReimburseApi.getByQueryParam(param)) ?? {
     items: [],
     totalCount: 0,
     totalPages: 0,

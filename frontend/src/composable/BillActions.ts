@@ -109,7 +109,11 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    processResult(await ServiceBillApi.finish(ids))
+    const date = await showDatePicker('请选择处理完成日期')
+    if (!date) {
+      return
+    }
+    processResult(await ServiceBillApi.finish(ids,  date))
   }
 
   /**

@@ -131,6 +131,10 @@ export interface ServiceBill {
    */
   processedDate?: Date
   /**
+   * 完成时间
+   */
+  finishedDate?: Date
+  /**
    * 备注
    */
   remark?: string

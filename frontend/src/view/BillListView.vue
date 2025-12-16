@@ -72,7 +72,12 @@
       :items="data.items"
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 20"
-      :items-per-page-options="[{value: 10, title: '10'}, {value: 25, title: '25'}, {value: 50, title: '50'}, {value: 100, title: '100'}]"
+      :items-per-page-options="[
+        { value: 10, title: '10' },
+        { value: 25, title: '25' },
+        { value: 50, title: '50' },
+        { value: 100, title: '100' },
+      ]"
       :search="search"
       :sort-by="queryParam.sorts"
       class="mt-2 flex-grow-1"
@@ -101,10 +106,10 @@
         {{ item.totalAmount.toFixed(2) }}
       </template>
       <template #[`item.orderDate`]="{ item }">
-        {{ item.orderDate ? date.format(item.orderDate, 'yyyy-MM-dd') : '' }}
+        {{ item.orderDate ? dateUtil.format(item.orderDate, 'keyboardDate') : '' }}
       </template>
       <template #[`item.processedDate`]="{ item }">
-        {{ item.processedDate ? date.format(item.processedDate, 'yyyy-MM-dd') : '' }}
+        {{ item.processedDate ? dateUtil.format(item.processedDate, 'keyboardDate') : '' }}
       </template>
     </v-data-table-server>
 
@@ -138,7 +143,7 @@ import {
   type ServiceBillQueryParam,
   ServiceBillState,
   type ServiceBillStateValue,
-  ServiceBillType
+  ServiceBillType,
 } from '@/model/ServiceBill.ts'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { PageResult } from '@/model/PageResult.ts'
@@ -149,14 +154,15 @@ import { useFileSelector } from '@/composable/FileSelector.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
 import { storeToRefs } from 'pinia'
-import * as date from 'date-fns'
 import { useRouterStore } from '@/store/RouterStore.ts'
+import { useDate } from 'vuetify/framework'
 
 const store = useUIStore()
 const { success, warning } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
 const { setData } = useRouterStore()
+const dateUtil = useDate()
 
 // 筛选条件区域
 // 查询状态下拉框
@@ -282,7 +288,8 @@ async function loadItems(options: {
       param.orderStartDate = queryParam.value.orderDateRange[0]
     }
     if (queryParam.value.orderDateRange.length >= 2) {
-      param.orderEndDate = queryParam.value.orderDateRange[queryParam.value.orderDateRange.length - 1]
+      param.orderEndDate =
+        queryParam.value.orderDateRange[queryParam.value.orderDateRange.length - 1]
     }
   }
   if (queryParam.value.processedDateRange) {
@@ -290,7 +297,8 @@ async function loadItems(options: {
       param.processedStartDate = queryParam.value.processedDateRange[0]
     }
     if (queryParam.value.processedDateRange.length >= 2) {
-      param.processedEndDate = queryParam.value.processedDateRange[queryParam.value.processedDateRange.length - 1]
+      param.processedEndDate =
+        queryParam.value.processedDateRange[queryParam.value.processedDateRange.length - 1]
     }
   }
   if (queryParam.value.sorts && queryParam.value.sorts.length) {
@@ -301,7 +309,7 @@ async function loadItems(options: {
       }
     })
   }
-  data.value = await ServiceBillApi.getByQueryParam(param) ?? {
+  data.value = (await ServiceBillApi.getByQueryParam(param)) ?? {
     items: [],
     totalCount: 0,
     totalPages: 0,

@@ -75,6 +75,10 @@ public class ServiceBillDTO {
      */
     private Instant processedDate;
     /**
+     * 完成时间
+     */
+    private Instant finishedDate;
+    /**
      * 备注
      */
     private String remark;

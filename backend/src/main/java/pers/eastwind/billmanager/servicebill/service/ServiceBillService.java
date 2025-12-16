@@ -309,10 +309,11 @@ public class ServiceBillService {
             @CacheEvict(value = "serviceBill_query", allEntries = true),
             @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
     })
-    public ActionsResult<Integer, Void> finish(List<Integer> ids) {
+    public ActionsResult<Integer, Void> finish(List<Integer> ids, Instant finishedDate) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
         }
+        final Instant finalFinishedDate = finishedDate == null ? Instant.now() : finishedDate;
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
                 ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
@@ -323,6 +324,7 @@ public class ServiceBillService {
                     throw new BizException("非处理完成状态的单据不能完成");
                 }
                 bill.setState(ServiceBillState.FINISHED);
+                bill.setFinishedDate(finalFinishedDate);
                 serviceBillRepository.save(bill);
             });
             return null;

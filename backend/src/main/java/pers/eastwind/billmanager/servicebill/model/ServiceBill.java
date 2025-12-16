@@ -80,6 +80,10 @@ public class ServiceBill extends AuditEntity {
      */
     private Instant processedDate;
     /**
+     * 完成时间
+     */
+    private Instant finishedDate;
+    /**
      * 备注
      */
     @Column(length = 1000)

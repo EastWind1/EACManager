@@ -202,7 +202,9 @@
                 class="text-subtitle-1"
                 >创建时间
                 {{
-                  serviceBill.orderDate ? date.format(serviceBill.orderDate, 'yyyy-MM-dd') : ''
+                  serviceBill.orderDate
+                    ? dateUtil.format(serviceBill.orderDate, 'keyboardDate')
+                    : ''
                 }}</label
               >
               <v-date-input
@@ -218,7 +220,14 @@
             <!-- 处理完成时间 -->
             <v-col v-if="serviceBill.processedDate" cols="12" lg="4" md="6" sm="12" xl="3">
               <label class="text-subtitle-1"
-                >处理完成时间 {{ date.format(serviceBill.processedDate, 'yyyy-MM-dd') }}</label
+                >处理完成时间
+                {{ dateUtil.format(serviceBill.processedDate, 'keyboardDate') }}</label
+              >
+            </v-col>
+            <!-- 回款完成时间 -->
+            <v-col v-if="serviceBill.finishedDate" cols="12" lg="4" md="6" sm="12" xl="3">
+              <label class="text-subtitle-1"
+                >回款完成时间 {{ dateUtil.format(serviceBill.finishedDate, 'keyboardDate') }}</label
               >
             </v-col>
           </v-row>
@@ -232,7 +241,6 @@
 import { ref } from 'vue'
 import { type ServiceBill, ServiceBillState, ServiceBillType } from '@/model/ServiceBill.ts'
 import BillFormDetail from '@/component/BillFormDetail.vue'
-import * as date from 'date-fns'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import { storeToRefs } from 'pinia'
 import FormAttachDetail from '@/component/FormAttachDetail.vue'
@@ -243,13 +251,14 @@ import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
 import { mdiNavigation, mdiPhone } from '@mdi/js'
-import { useDisplay } from 'vuetify/framework'
+import { useDate, useDisplay } from 'vuetify/framework'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
 const { warning, success } = store
 const route = useRoute()
 const { mobile } = useDisplay()
+const dateUtil = useDate()
 // 页面是否编辑状态
 const isEditState = ref(false)
 // 单据类型选项
@@ -339,7 +348,7 @@ function callPhone(phone?: string) {
     return
   }
   const { confirm } = useUIStore()
-  confirm('拨打电话', `是否拨打电话 ${phone}`).then(res => {
+  confirm('拨打电话', `是否拨打电话 ${phone}`).then((res) => {
     if (!res) {
       return
     }

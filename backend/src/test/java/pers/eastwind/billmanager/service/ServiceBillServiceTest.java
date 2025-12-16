@@ -209,11 +209,11 @@ class ServiceBillServiceTest {
         ServiceBillDTO createdBill = serviceBillService.create(testServiceBillDTO);
         List<Integer> idsToProcess = List.of(createdBill.getId());
         serviceBillService.process(idsToProcess); // 先标记为处理中
-        Instant processedDate = Instant.now();
-        serviceBillService.processed(idsToProcess, processedDate); // 再标记为已处理
+        Instant cur = Instant.now();
+        serviceBillService.processed(idsToProcess, cur); // 再标记为已处理
 
         // When
-        ActionsResult<Integer, Void> result = serviceBillService.finish(idsToProcess);
+        ActionsResult<Integer, Void> result = serviceBillService.finish(idsToProcess, cur);
 
 
         // 验证状态已更新
