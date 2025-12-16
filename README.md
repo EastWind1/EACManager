@@ -22,8 +22,8 @@
 - 交付物使用挂载目录管理，便于动态替换
 - 容器
     - eac-frontend
-        - 使用 nginx 镜像
-        - 挂载静态资源目录、配置及 SSL 证书
+        - 使用 Caddy 镜像
+        - 挂载静态资源目录、配置
     - eac-backend
         - 使用 eclipse-temurin 镜像
         - 挂载 JAR 包目录及配置文件
@@ -33,20 +33,20 @@
         - 使用 volume 挂载数据目录
     - ocr-server
         - 基于 rapidocr 官方 Dockerfile
-        - 由于 rapidocr 官方支持 Java 运行时，默认不启用该容器
+        - 由于 rapidocr 官方支持 Java 运行时，默认不启用该容器，在需要独立部署 OCR 服务时使用
 
 ### 环境配置
 
-1. 获取或生成 SSL 证书文件，放在 `deploy/frontend/conf/cert` 目录下， 重命名为 `server.crt` 与 `server.key`
-2. 在 `deploy` 目录下新建 `.env` 文件
-3. 至少设置以下环境变量
+1. 在 `deploy` 目录下新建 `.env` 文件
+2. 至少设置以下环境变量
 
 ```text
-# 此处值为本地调试实例，根据实际修改
-DB_USERNAME=postgres # 数据库用户
-DB_PASSWORD=admin # 数据库用户密码
-DB_NAME=test # 数据库名称
-JWT_KEY=xx # JWT 密钥, 用于生成 JWT
+DB_USERNAME # 数据库用户
+DB_PASSWORD # 数据库用户密码
+DB_NAME # 数据库名称
+JWT_KEY # JWT 密钥, 用于生成 JWT, 至少256位
+DOMAIN # 域名，本地可使用 localhost
+CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 ```
 
 ### 运行
@@ -59,5 +59,5 @@ JWT_KEY=xx # JWT 密钥, 用于生成 JWT
 ```shell
 docker cp init_user.sql eac-postgres:/tmp
 docker exec -it eac-postgres /bin/bash
-psql -U postgres -d test -f /tmp/init_user.sql
+psql -U ${DB_NAME} -d ${DB_USERNAME} -f /tmp/init_user.sql
 ```
