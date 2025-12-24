@@ -19,7 +19,6 @@
         <jose.jwt.version>10.6</jose.jwt.version>
         <rapidocr.version>0.0.7</rapidocr.version>
         <rapidocr.onnx.version>1.2.2</rapidocr.onnx.version>
-        <tika.version>3.2.3</tika.version>
         <pdfbox.version>3.0.6</pdfbox.version>
         <poi.version>5.5.1</poi.version>
     </properties>
@@ -113,13 +112,6 @@
             <artifactId>rapidocr-onnx-windows-x86_64</artifactId>
             <version>${rapidocr.onnx.version}</version>
         </dependency>
-        <!-- 文件类型处理 -->
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-core</artifactId>
-            <version>${tika.version}</version>
-        </dependency>
-
         <!-- PDF 解析 -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>

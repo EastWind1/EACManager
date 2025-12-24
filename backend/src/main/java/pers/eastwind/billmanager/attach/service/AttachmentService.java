@@ -6,10 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
-import org.apache.tika.Tika;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -21,8 +20,9 @@ import pers.eastwind.billmanager.common.exception.BizException;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
-import java.net.MalformedURLException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -166,12 +166,13 @@ public class AttachmentService implements InitializingBean {
     /**
      * 获取文件类型
      *
-     * @param stream 文件流（务必保证传入的新的流）
+     * @param path 文件路径
      * @return 文件类型
      */
-    private AttachmentType getFileType(InputStream stream, String fileName) throws IOException {
-        Tika tika = new Tika();
-        String mimeType = tika.detect(stream);
+    private AttachmentType getFileType(Path path) throws IOException {
+        String mimeType = Files.probeContentType(path);
+        String fileName = path.getFileName().toString();
+        String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
         return switch (mimeType) {
             case "application/pdf" -> AttachmentType.PDF;
             case "image/jpeg", "image/png", "image/gif" -> AttachmentType.IMAGE;
@@ -179,49 +180,28 @@ public class AttachmentService implements InitializingBean {
                     AttachmentType.WORD;
             case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
                     AttachmentType.EXCEL;
-            case "application/zip" -> {
-                if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
-                    yield AttachmentType.EXCEL;
-                } else if (fileName.endsWith(".doc") || fileName.endsWith(".docx")) {
-                    yield AttachmentType.WORD;
-                } else {
-                    yield AttachmentType.OTHER;
-                }
-            }
             // 禁止可执行文件
             case "application/x-msdownload", "application/x-executable", "application/x-sh", "application/x-bat" ->
                     throw new BizException("不支持的文件类型: " + mimeType);
-            default -> {
-                if (fileName.endsWith(".exe") || fileName.endsWith(".dll") || fileName.endsWith(".sh") ||
-                        fileName.endsWith(".bat") || fileName.endsWith(".cmd") || fileName.endsWith(".ps1") ||
-                        fileName.endsWith(".py") || fileName.endsWith(".pl") || fileName.endsWith(".rb")) {
-                    throw new BizException("不支持的文件类型");
-                }
-                yield AttachmentType.OTHER;
-            }
+            default -> AttachmentType.OTHER;
         };
     }
 
     /**
      * 提取 PDF 为图片并保存至临时文件
+     * 暂时只支持转换第一页
      */
     public Path renderPDFToImage(Path path) {
         validPath(path);
         try (PDDocument document = Loader.loadPDF(path.toFile())) {
-            Path imagePath = null;
+            if (document.getNumberOfPages() <= 0) {
+                throw new BizException("PDF 文件为空");
+            }
+            Path imagePath = tempPath.resolve("PDFImage-" + System.currentTimeMillis() + ".png");;
             PDFRenderer renderer = new PDFRenderer(document);
-            for (int page = 0; page < document.getNumberOfPages(); page++) {
-                BufferedImage image = renderer.renderImage(page);
-                ByteArrayOutputStream os = new ByteArrayOutputStream();
-                ImageIO.write(image, "png", os);
-                imagePath = tempPath.resolve("PDFImage-" + System.currentTimeMillis() + ".png");
-                Files.copy(new ByteArrayInputStream(os.toByteArray()), imagePath, StandardCopyOption.REPLACE_EXISTING);
-            }
-            if (imagePath != null) {
-                return imagePath;
-            } else {
-                throw new BizException("提取 PDF 图片失败");
-            }
+            BufferedImage image = renderer.renderImage(0);
+            ImageIO.write(image, "png", imagePath.toFile());
+            return imagePath;
         } catch (IOException e) {
             throw new BizException("提取 PDF 图片失败", e);
         }
@@ -266,12 +246,18 @@ public class AttachmentService implements InitializingBean {
         validPath(targetPath);
         AttachmentType type;
         try {
-            type = getFileType(resource.getInputStream(), fileName);
             if (!Files.exists(targetPath)) {
                 Files.createDirectories(targetPath);
             }
             Files.copy(resource.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            // 文件类型判断只能在保存文件之后
+            type = getFileType(targetPath);
         } catch (IOException e) {
+            // 尝试删除该临时文件
+            try {
+                Files.delete(targetPath);
+            } catch (IOException ignored) {
+            }
             throw new BizException("保存文件失败", e);
         }
         Path relativePath = rootPath.relativize(targetPath);
@@ -311,13 +297,7 @@ public class AttachmentService implements InitializingBean {
         if (!Files.exists(path) || Files.isDirectory(path)) {
             throw new BizException("文件不存在");
         }
-        Resource resource;
-        try {
-            resource = new UrlResource(path.toUri());
-        } catch (MalformedURLException e) {
-            throw new BizException("文件地址不合法", e);
-        }
-        return resource;
+        return new FileSystemResource(path);
     }
 
     /**
@@ -390,15 +370,13 @@ public class AttachmentService implements InitializingBean {
             throw new BizException("不能删除根目录");
         }
         try (Stream<Path> stream = Files.walk(path)) {
-            stream
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(curPath -> {
-                        try {
-                            Files.delete(curPath);
-                        } catch (IOException e) {
-                            throw new BizException("删除文件失败", e);
-                        }
-                    });
+            stream.sorted(Comparator.reverseOrder()).forEach(curPath -> {
+                try {
+                    Files.delete(curPath);
+                } catch (IOException e) {
+                    throw new BizException("删除文件失败", e);
+                }
+            });
         } catch (IOException e) {
             log.error("删除文件失败", e);
         }
@@ -420,18 +398,17 @@ public class AttachmentService implements InitializingBean {
             }
             if (Files.isDirectory(sourceDirPath)) {
                 try (Stream<Path> stream = Files.walk(sourceDirPath)) {
-                    stream.filter(path -> !Files.isDirectory(path))
-                            .forEach(path -> {
-                                String name = sourceDirPath.relativize(path).toString().replace("\\", "/");
-                                ZipEntry zipEntry = new ZipEntry(name);
-                                try {
-                                    zipOut.putNextEntry(zipEntry);
-                                    Files.copy(path, zipOut);
-                                    zipOut.closeEntry();
-                                } catch (IOException e) {
-                                    throw new BizException("压缩文件失败", e);
-                                }
-                            });
+                    stream.filter(path -> !Files.isDirectory(path)).forEach(path -> {
+                        String name = sourceDirPath.relativize(path).toString().replace("\\", "/");
+                        ZipEntry zipEntry = new ZipEntry(name);
+                        try {
+                            zipOut.putNextEntry(zipEntry);
+                            Files.copy(path, zipOut);
+                            zipOut.closeEntry();
+                        } catch (IOException e) {
+                            throw new BizException("压缩文件失败", e);
+                        }
+                    });
                 }
             } else {
                 String name = sourceDirPath.getFileName().toString();
@@ -448,7 +425,7 @@ public class AttachmentService implements InitializingBean {
     /**
      * 获取业务单据附件
      *
-     * @param billId   单据ID
+     * @param billId   单据 ID
      * @param billType 单据类型
      * @return 业务单据附件
      */
@@ -465,7 +442,7 @@ public class AttachmentService implements InitializingBean {
     /**
      * 根据目标附件集合更新业务单据关联附件
      *
-     * @param billId         单据ID
+     * @param billId         单据 ID
      * @param billNumber     单据编号
      * @param billType       单据类型
      * @param attachmentDTOs 目标附件集合
@@ -517,7 +494,7 @@ public class AttachmentService implements InitializingBean {
     /**
      * 删除没有业务关联的附件
      */
-    void cleanUnattach() {
+    private void cleanUnattach() {
         List<Attachment> attachments = attachmentRepository.findByBillIsNull();
         for (Attachment attachment : attachments) {
             delete(getAbsolutePath(Path.of(attachment.getRelativePath())));

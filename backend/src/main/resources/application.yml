@@ -22,8 +22,6 @@ config:
     path: ${user.dir}${file.separator}attachment
     # 相对于path的临时目录
     temp: temp
-    # ocr 映射规则路径, 必须为绝对路径
-    map-rule-path: ${user.dir}${file.separator}rule
   # JWT 密钥
   jwt:
     # 过期时间，单位秒

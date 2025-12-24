@@ -11,7 +11,8 @@ import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillQueryParam;
-import pers.eastwind.billmanager.servicebill.service.ServiceBillService;
+import pers.eastwind.billmanager.servicebill.service.ServiceBillBizService;
+import pers.eastwind.billmanager.servicebill.service.ServiceBillIOService;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -25,11 +26,13 @@ import java.util.List;
 @RequestMapping("/api/serviceBill")
 @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class ServiceBillController {
-    private final ServiceBillService serviceBillService;
+    private final ServiceBillBizService serviceBillBizService;
+    private final ServiceBillIOService serviceBillIOService;
     private final AttachmentService attachmentService;
 
-    public ServiceBillController(ServiceBillService serviceBillService, AttachmentService attachmentService) {
-        this.serviceBillService = serviceBillService;
+    public ServiceBillController(ServiceBillBizService serviceBillBizService, ServiceBillIOService serviceBillIOService, AttachmentService attachmentService) {
+        this.serviceBillBizService = serviceBillBizService;
+        this.serviceBillIOService = serviceBillIOService;
         this.attachmentService = attachmentService;
     }
 
@@ -41,7 +44,7 @@ public class ServiceBillController {
     @PostMapping("/query")
     public PageResult<ServiceBillDTO> queryByParam(@RequestBody ServiceBillQueryParam queryParam) {
 
-        Page<ServiceBillDTO> pageResult = serviceBillService.findByParam(queryParam);
+        Page<ServiceBillDTO> pageResult = serviceBillBizService.findByParam(queryParam);
         return PageResult.fromPage(pageResult);
 
     }
@@ -51,7 +54,7 @@ public class ServiceBillController {
      */
     @GetMapping("/{id}")
     public ServiceBillDTO getById(@PathVariable Integer id) {
-        return serviceBillService.findById(id);
+        return serviceBillBizService.findById(id);
     }
 
     /**
@@ -62,7 +65,7 @@ public class ServiceBillController {
      */
     @PostMapping
     public ServiceBillDTO create(@RequestBody ServiceBillDTO serviceBillDTO) {
-        return serviceBillService.create(serviceBillDTO);
+        return serviceBillBizService.create(serviceBillDTO);
     }
 
     /**
@@ -73,7 +76,7 @@ public class ServiceBillController {
      */
     @PutMapping
     public ServiceBillDTO save(@RequestBody ServiceBillDTO serviceBillDTO) {
-        return serviceBillService.update(serviceBillDTO);
+        return serviceBillBizService.update(serviceBillDTO);
     }
 
     /**
@@ -81,7 +84,7 @@ public class ServiceBillController {
      */
     @PostMapping("/import")
     public ServiceBillDTO importByFile(MultipartFile file) throws IOException {
-        return serviceBillService.generateByFile(file.getResource());
+        return serviceBillIOService.generateByFile(file.getResource());
     }
 
     /**
@@ -89,7 +92,7 @@ public class ServiceBillController {
      */
     @DeleteMapping
     public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
-        return serviceBillService.delete(ids);
+        return serviceBillBizService.delete(ids);
     }
 
     /**
@@ -97,7 +100,7 @@ public class ServiceBillController {
      */
     @PutMapping("/process")
     public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
-        return serviceBillService.process(ids);
+        return serviceBillBizService.process(ids);
     }
 
     /**
@@ -105,7 +108,7 @@ public class ServiceBillController {
      */
     @PutMapping("/processed")
     public ActionsResult<Integer, Void> processed(@RequestBody ProcessedParam param) {
-        return serviceBillService.processed(param.ids, param.processedDate);
+        return serviceBillBizService.processed(param.ids, param.processedDate);
     }
 
     /**
@@ -113,7 +116,7 @@ public class ServiceBillController {
      */
     @PutMapping("/finish")
     public ActionsResult<Integer, Void> finish(@RequestBody FinishParam param) {
-        return serviceBillService.finish(param.ids, param.finishedDate);
+        return serviceBillBizService.finish(param.ids, param.finishedDate);
     }
 
     /**
@@ -121,7 +124,7 @@ public class ServiceBillController {
      */
     @PostMapping(value = "/export", produces = "application/octet-stream")
     public Resource export(@RequestBody List<Integer> ids) {
-        return attachmentService.loadByPath(serviceBillService.export(ids));
+        return attachmentService.loadByPath(serviceBillIOService.export(ids));
     }
 
     /**

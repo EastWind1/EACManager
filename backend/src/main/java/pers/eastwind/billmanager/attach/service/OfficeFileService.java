@@ -1,9 +1,7 @@
 package pers.eastwind.billmanager.attach.service;
 
-import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.ImportMapRule;
 import pers.eastwind.billmanager.common.exception.BizException;
 
 import java.io.FileOutputStream;
@@ -17,26 +15,13 @@ import java.util.List;
  */
 @Service
 public class OfficeFileService {
-    private final MapRuleService mapRuleService;
-
-    public OfficeFileService(MapRuleService mapRuleService) {
-        this.mapRuleService = mapRuleService;
-    }
-
     /**
-     * 将 Excel 转换至对象
+     * 读取 Excel 文件, 范围二维数据
      *
      * @param path   文件相对路径
-     * @param target 目标对象
      */
-    public void parseExcel(Path path, Object target) {
-        List<ImportMapRule> mapRules = mapRuleService.getMapRule("Excel", target.getClass().getSimpleName());
-
-        List<String> texts = new ArrayList<>();
-        // WPS 编辑后的文档会产生大量无用对象，关闭安全限制
-        ZipSecureFile.setMinInflateRatio(0);
-        ZipSecureFile.setMaxFileCount(1000000);
-        ZipSecureFile.setMaxEntrySize(1000000);
+    public List<List<String>> parseExcel(Path path) {
+        List<List<String>> res = new ArrayList<>();
         try (Workbook workbook = WorkbookFactory.create(path.toFile())) {
             // 只读取第一个 sheet
             Sheet sheet = workbook.getSheetAt(0);
@@ -44,23 +29,39 @@ public class OfficeFileService {
                 throw new BizException("文档为空");
             }
             for (Row row : sheet) {
+                // 跳过隐藏行
+                if (row.getZeroHeight()) {
+                    continue;
+                }
+                List<String> curRow = new ArrayList<>();
                 for (Cell cell : row) {
-                    // 只处理字符串和数字
                     switch (cell.getCellType()) {
-                        case STRING -> texts.add(cell.getStringCellValue());
-                        case NUMERIC -> texts.add(String.valueOf(cell.getNumericCellValue()));
+                        case STRING -> curRow.add(cell.getStringCellValue());
+                        case NUMERIC -> curRow.add(String.valueOf(cell.getNumericCellValue()));
+                        case BLANK -> curRow.add("");
+                        case FORMULA -> {
+                            // 使用公式缓存值
+                            switch (cell.getCachedFormulaResultType()) {
+                                case STRING -> curRow.add(cell.getStringCellValue());
+                                case NUMERIC -> curRow.add(String.valueOf(cell.getNumericCellValue()));
+                                case BLANK -> curRow.add("");
+                                default -> throw new BizException("不支持的 Cell 类型");
+                            }
+                        }
+                        default -> throw new BizException("不支持的 Cell 类型");
                     }
                 }
+                res.add(curRow);
             }
         } catch (IOException e) {
             throw new BizException("打开文档失败", e);
         }
-        mapRuleService.executeMapRule(mapRules, texts, target);
+        return res;
     }
 
     /**
-     * 生成Excel文件
-     *
+     * 生成 Excel 文件
+     * 只支持简单的二维数据
      * @param rows       数据
      * @param targetFile 目标文件
      */

@@ -22,8 +22,4 @@ public class AttachConfigProperties {
      * 临时文件目录（相对于 path）
      */
     private String temp;
-    /**
-     * 映射规则路径
-     */
-    private Path mapRulePath;
 }

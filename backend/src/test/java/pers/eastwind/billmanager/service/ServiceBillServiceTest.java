@@ -14,7 +14,7 @@ import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDetailDTO;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillQueryParam;
 import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
-import pers.eastwind.billmanager.servicebill.service.ServiceBillService;
+import pers.eastwind.billmanager.servicebill.service.ServiceBillBizService;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ServiceBillServiceTest {
 
     @Autowired
-    private ServiceBillService serviceBillService;
+    private ServiceBillBizService serviceBillBizService;
 
     @Autowired
     private ServiceBillRepository serviceBillRepository;
@@ -43,14 +43,14 @@ class ServiceBillServiceTest {
         testServiceBillDTO.setState(ServiceBillState.CREATED);
         testServiceBillDTO.setProjectName("集成测试项目");
         testServiceBillDTO.setProjectAddress("测试地址");
-        testServiceBillDTO.setTotalAmount(new BigDecimal("5000.00"));
+        testServiceBillDTO.setTotalAmount(new BigDecimal("2000.00"));
         testServiceBillDTO.setOrderDate(Instant.now());
 
         ServiceBillDetailDTO detailDTO = new ServiceBillDetailDTO();
         detailDTO.setDevice("测试设备");
         detailDTO.setUnitPrice(new BigDecimal("1000.00"));
-        detailDTO.setQuantity(2);
-        detailDTO.setSubtotal(new BigDecimal("5000.00"));
+        detailDTO.setQuantity(BigDecimal.valueOf(2));
+        detailDTO.setSubtotal(new BigDecimal("2000.00"));
 
         testServiceBillDTO.setDetails(List.of(detailDTO));
         testServiceBillDTO.setAttachments(new ArrayList<>());
@@ -60,7 +60,7 @@ class ServiceBillServiceTest {
     @DisplayName("测试创建服务单据")
     void shouldCreateServiceBillSuccessfully() {
         // When
-        ServiceBillDTO createdBill = serviceBillService.create(testServiceBillDTO);
+        ServiceBillDTO createdBill = serviceBillBizService.create(testServiceBillDTO);
 
         // Then
         assertNotNull(createdBill.getId());
@@ -75,10 +75,10 @@ class ServiceBillServiceTest {
     @DisplayName("测试根据ID查找服务单据")
     void shouldFindServiceBillById() {
         // Given
-        ServiceBillDTO createdBill = serviceBillService.create(testServiceBillDTO);
+        ServiceBillDTO createdBill = serviceBillBizService.create(testServiceBillDTO);
 
         // When
-        ServiceBillDTO foundBill = serviceBillService.findById(createdBill.getId());
+        ServiceBillDTO foundBill = serviceBillBizService.findById(createdBill.getId());
 
         // Then
         assertNotNull(foundBill);
@@ -91,19 +91,19 @@ class ServiceBillServiceTest {
     @DisplayName("测试更新服务单据")
     void shouldUpdateServiceBillSuccessfully() {
         // Given
-        ServiceBillDTO createdBill = serviceBillService.create(testServiceBillDTO);
+        ServiceBillDTO createdBill = serviceBillBizService.create(testServiceBillDTO);
         createdBill.setProjectName("更新后的项目名称");
         createdBill.setTotalAmount(new BigDecimal("6000.00"));
 
         ServiceBillDetailDTO detailDTO = new ServiceBillDetailDTO();
         detailDTO.setDevice("更新后的设备");
         detailDTO.setUnitPrice(new BigDecimal("2000.00"));
-        detailDTO.setQuantity(3);
+        detailDTO.setQuantity(BigDecimal.valueOf(3));
         detailDTO.setSubtotal(new BigDecimal("6000.00"));
         createdBill.setDetails(List.of(detailDTO));
 
         // When
-        ServiceBillDTO updatedBill = serviceBillService.update(createdBill);
+        ServiceBillDTO updatedBill = serviceBillBizService.update(createdBill);
 
         // Then
         assertEquals("更新后的项目名称", updatedBill.getProjectName());
@@ -116,23 +116,23 @@ class ServiceBillServiceTest {
     @DisplayName("测试根据条件查询服务单据")
     void shouldFindByParamSuccessfully() {
         // Given
-        serviceBillService.create(testServiceBillDTO);
+        serviceBillBizService.create(testServiceBillDTO);
 
         ServiceBillDTO anotherBill = new ServiceBillDTO();
         anotherBill.setNumber("SIT-002");
         anotherBill.setState(ServiceBillState.PROCESSING);
         anotherBill.setProjectName("另一个测试项目");
         anotherBill.setProjectAddress("另一个测试地址");
-        anotherBill.setTotalAmount(new BigDecimal("3000.00"));
+        anotherBill.setTotalAmount(new BigDecimal("0.00"));
         anotherBill.setOrderDate(Instant.now());
         anotherBill.setDetails(new ArrayList<>());
         anotherBill.setAttachments(new ArrayList<>());
-        serviceBillService.create(anotherBill);
+        serviceBillBizService.create(anotherBill);
 
         // When
         ServiceBillQueryParam param = new ServiceBillQueryParam();
         param.setProjectName("集成测试");
-        Page<ServiceBillDTO> result = serviceBillService.findByParam(param);
+        Page<ServiceBillDTO> result = serviceBillBizService.findByParam(param);
 
         // Then
         assertNotNull(result);
@@ -144,41 +144,41 @@ class ServiceBillServiceTest {
     @DisplayName("测试批量删除服务单据")
     void shouldDeleteServiceBillsSuccessfully() {
         // Given
-        ServiceBillDTO createdBill1 = serviceBillService.create(testServiceBillDTO);
+        ServiceBillDTO createdBill1 = serviceBillBizService.create(testServiceBillDTO);
 
         ServiceBillDTO testBill2 = new ServiceBillDTO();
         testBill2.setNumber("SIT-002");
         testBill2.setState(ServiceBillState.CREATED);
         testBill2.setProjectName("测试项目2");
         testBill2.setProjectAddress("测试地址2");
-        testBill2.setTotalAmount(new BigDecimal("2000.00"));
+        testBill2.setTotalAmount(new BigDecimal("0.00"));
         testBill2.setOrderDate(Instant.now());
         testBill2.setDetails(new ArrayList<>());
         testBill2.setAttachments(new ArrayList<>());
-        ServiceBillDTO createdBill2 = serviceBillService.create(testBill2);
+        ServiceBillDTO createdBill2 = serviceBillBizService.create(testBill2);
 
         List<Integer> idsToDelete = Arrays.asList(createdBill1.getId(), createdBill2.getId());
 
         // When
-        ActionsResult<Integer, Void> result = serviceBillService.delete(idsToDelete);
+        ActionsResult<Integer, Void> result = serviceBillBizService.delete(idsToDelete);
 
         // 验证数据库中已删除
-        assertThrows(RuntimeException.class, () -> serviceBillService.findById(createdBill1.getId()));
-        assertThrows(RuntimeException.class, () -> serviceBillService.findById(createdBill2.getId()));
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.findById(createdBill1.getId()));
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.findById(createdBill2.getId()));
     }
 
     @Test
     @DisplayName("测试批量处理服务单据")
     void shouldProcessServiceBillsSuccessfully() {
         // Given
-        ServiceBillDTO createdBill = serviceBillService.create(testServiceBillDTO);
+        ServiceBillDTO createdBill = serviceBillBizService.create(testServiceBillDTO);
         List<Integer> idsToProcess = List.of(createdBill.getId());
 
         // When
-        ActionsResult<Integer, Void> result = serviceBillService.process(idsToProcess);
+        ActionsResult<Integer, Void> result = serviceBillBizService.process(idsToProcess);
 
         // 验证状态已更新
-        ServiceBillDTO processedBill = serviceBillService.findById(createdBill.getId());
+        ServiceBillDTO processedBill = serviceBillBizService.findById(createdBill.getId());
         assertEquals(ServiceBillState.PROCESSING, processedBill.getState());
     }
 
@@ -186,18 +186,18 @@ class ServiceBillServiceTest {
     @DisplayName("测试标记服务单据为已处理")
     void shouldMarkServiceBillsAsProcessedSuccessfully() {
         // Given
-        ServiceBillDTO createdBill = serviceBillService.create(testServiceBillDTO);
+        ServiceBillDTO createdBill = serviceBillBizService.create(testServiceBillDTO);
         List<Integer> idsToProcess = List.of(createdBill.getId());
-        serviceBillService.process(idsToProcess); // 先标记为处理中
+        serviceBillBizService.process(idsToProcess); // 先标记为处理中
 
         Instant processedDate = Instant.now();
 
         // When
-        ActionsResult<Integer, Void> result = serviceBillService.processed(idsToProcess, processedDate);
+        ActionsResult<Integer, Void> result = serviceBillBizService.processed(idsToProcess, processedDate);
 
 
         // 验证状态已更新
-        ServiceBillDTO processedBill = serviceBillService.findById(createdBill.getId());
+        ServiceBillDTO processedBill = serviceBillBizService.findById(createdBill.getId());
         assertEquals(ServiceBillState.PROCESSED, processedBill.getState());
         assertEquals(processedDate, processedBill.getProcessedDate());
     }
@@ -206,18 +206,18 @@ class ServiceBillServiceTest {
     @DisplayName("测试完成服务单据")
     void shouldFinishServiceBillsSuccessfully() {
         // Given
-        ServiceBillDTO createdBill = serviceBillService.create(testServiceBillDTO);
+        ServiceBillDTO createdBill = serviceBillBizService.create(testServiceBillDTO);
         List<Integer> idsToProcess = List.of(createdBill.getId());
-        serviceBillService.process(idsToProcess); // 先标记为处理中
+        serviceBillBizService.process(idsToProcess); // 先标记为处理中
         Instant cur = Instant.now();
-        serviceBillService.processed(idsToProcess, cur); // 再标记为已处理
+        serviceBillBizService.processed(idsToProcess, cur); // 再标记为已处理
 
         // When
-        ActionsResult<Integer, Void> result = serviceBillService.finish(idsToProcess, cur);
+        ActionsResult<Integer, Void> result = serviceBillBizService.finish(idsToProcess, cur);
 
 
         // 验证状态已更新
-        ServiceBillDTO finishedBill = serviceBillService.findById(createdBill.getId());
+        ServiceBillDTO finishedBill = serviceBillBizService.findById(createdBill.getId());
         assertEquals(ServiceBillState.FINISHED, finishedBill.getState());
     }
 
@@ -225,25 +225,25 @@ class ServiceBillServiceTest {
     @DisplayName("测试多状态查询")
     void shouldFindByMultipleStatesSuccessfully() {
         // Given
-        ServiceBillDTO createdBill1 = serviceBillService.create(testServiceBillDTO);
+        ServiceBillDTO createdBill1 = serviceBillBizService.create(testServiceBillDTO);
 
         ServiceBillDTO testBill2 = new ServiceBillDTO();
         testBill2.setNumber("SIT-002");
         testBill2.setState(ServiceBillState.PROCESSING);
         testBill2.setProjectName("测试项目2");
         testBill2.setProjectAddress("测试地址2");
-        testBill2.setTotalAmount(new BigDecimal("2000.00"));
+        testBill2.setTotalAmount(new BigDecimal("0.00"));
         testBill2.setOrderDate(Instant.now());
         testBill2.setDetails(new ArrayList<>());
         testBill2.setAttachments(new ArrayList<>());
-        ServiceBillDTO createdBill2 = serviceBillService.create(testBill2);
+        ServiceBillDTO createdBill2 = serviceBillBizService.create(testBill2);
 
-        serviceBillService.process(List.of(createdBill2.getId())); // 将第二个单据改为处理中
+        serviceBillBizService.process(List.of(createdBill2.getId())); // 将第二个单据改为处理中
 
         // When - 查询多种状态的单据
         ServiceBillQueryParam param = new ServiceBillQueryParam();
         param.setStates(Arrays.asList(ServiceBillState.CREATED, ServiceBillState.PROCESSING));
-        Page<ServiceBillDTO> result = serviceBillService.findByParam(param);
+        Page<ServiceBillDTO> result = serviceBillBizService.findByParam(param);
 
         // Then
         assertNotNull(result);

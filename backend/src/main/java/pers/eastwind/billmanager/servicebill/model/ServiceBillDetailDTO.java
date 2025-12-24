@@ -17,7 +17,7 @@ public class ServiceBillDetailDTO {
     /**
      * 数量
      */
-    private int quantity;
+    private BigDecimal quantity;
     /**
      * 单价
      */
