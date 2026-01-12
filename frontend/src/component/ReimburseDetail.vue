@@ -67,7 +67,6 @@ const detailHeaders = computed(() => {
   const base: {title:string, key: string, sortable?:boolean}[] = [
     { title: '项目名称', key: 'name' },
     { title: '金额', key: 'amount' },
-    { title: '操作', key: 'actions', sortable: false },
   ]
   if (!readonly.value) {
     base.push({ title: '操作', key: 'actions', sortable: false })

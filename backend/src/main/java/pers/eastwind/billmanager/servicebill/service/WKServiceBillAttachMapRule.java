@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.service.AttachMapRule;
+import pers.eastwind.billmanager.company.model.CompanyDTO;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDetailDTO;
 
@@ -77,6 +78,9 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
     @Override
     public ServiceBillDTO mapFromOCR(List<String> texts) {
         ServiceBillDTO serviceBill = new ServiceBillDTO();
+        serviceBill.setProductCompany(new CompanyDTO(){{
+            setId(1);
+        }});
         for (String text : texts) {
             setByText(serviceBill, text);
         }
@@ -86,6 +90,9 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
     @Override
     public ServiceBillDTO mapFromExcel(List<List<String>> rows) {
         ServiceBillDTO serviceBill = new ServiceBillDTO();
+        serviceBill.setProductCompany(new CompanyDTO(){{
+            setId(1);
+        }});
         serviceBill.setDetails(new ArrayList<>());
         // 明细开始索引行
         int detailStartIndex = -1;
@@ -100,6 +107,7 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
             if (row.getFirst().contains("出货信息")) {
                 detailStartIndex = -1;
             }
+            // 主表
             if (detailStartIndex == -1) {
                 for (String text : row) {
                     setByText(serviceBill, text);

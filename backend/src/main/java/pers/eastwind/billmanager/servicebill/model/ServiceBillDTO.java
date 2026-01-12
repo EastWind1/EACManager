@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.servicebill.model;
 
 import lombok.Data;
 import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.company.model.CompanyDTO;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,6 +27,10 @@ public class ServiceBillDTO {
      * 单据状态
      */
     private ServiceBillState state = ServiceBillState.CREATED;
+    /**
+     * 产品公司
+     */
+    private CompanyDTO productCompany;
     /**
      * 项目名称
      */

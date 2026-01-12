@@ -30,6 +30,7 @@ public class AttachMapService {
      * @param attachment 附件
      * @return 对象
      */
+    @SuppressWarnings("unchecked")
     public <T> T map(Attachment attachment) {
         Path path = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
         switch (attachment.getType()) {

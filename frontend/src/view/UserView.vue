@@ -79,7 +79,7 @@ import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
 import UserApi from '@/api/UserApi.ts'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
-import { CryptoTool } from '@/util/Crypto.ts'
+import Crypto from '@/util/Crypto.ts'
 
 // 表头
 const headers = [
@@ -174,7 +174,7 @@ async function saveUser() {
 
   // 密码 hash 混淆
   if (postUser.password) {
-    postUser.password = await CryptoTool.SHA256(postUser.password, postUser.username)
+    postUser.password = await Crypto.SHA256(postUser.password, postUser.username)
   }
   // 修改
   if (postUser.id) {
@@ -195,7 +195,7 @@ async function saveUser() {
 
 // 初始化
 async function init() {
-  users.value = await UserApi.getAll() ?? []
+  users.value = (await UserApi.getAll()) ?? []
 }
 
 init()

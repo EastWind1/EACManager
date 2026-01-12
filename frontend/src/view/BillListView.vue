@@ -309,6 +309,7 @@ async function loadItems(options: {
       }
     })
   }
+  selectedIds.value = []
   data.value = (await ServiceBillApi.getByQueryParam(param)) ?? {
     items: [],
     totalCount: 0,

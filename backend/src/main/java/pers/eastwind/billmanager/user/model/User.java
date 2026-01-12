@@ -14,7 +14,8 @@ import java.util.Collections;
  * 用户实体
  */
 @Entity
-@Table(name = "\"user\"") // 由于user是postgresql关键字，需用""括起来
+@Table(name = "\"user\"", // 由于user是 PostgreSQL 关键字，需用""括起来
+        indexes = @Index(columnList = "username"))
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class User extends AuditEntity implements UserDetails {

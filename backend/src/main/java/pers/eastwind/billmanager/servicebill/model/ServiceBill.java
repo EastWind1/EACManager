@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import pers.eastwind.billmanager.common.model.AuditEntity;
+import pers.eastwind.billmanager.company.model.Company;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -38,6 +39,12 @@ public class ServiceBill extends AuditEntity {
      */
     @Enumerated
     private ServiceBillState state = ServiceBillState.CREATED;
+    /**
+     * 生产公司
+     */
+    @ManyToOne
+    @JoinColumn(foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private Company productCompany;
     /**
      * 项目名称
      */

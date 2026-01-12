@@ -1,13 +1,13 @@
 /**
  * Crypto
  */
-export class CryptoTool {
+const Crypto = {
   /**
    * SHA256
    * @param str 源
    * @param salt 盐
    */
-  static async SHA256(str: string, salt?: string) {
+  async SHA256(str: string, salt?: string) {
     if (salt) {
       str = str + ':' + salt
     }
@@ -17,3 +17,4 @@ export class CryptoTool {
       .join('')
   }
 }
+export default Crypto

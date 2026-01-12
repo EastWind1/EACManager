@@ -29,6 +29,11 @@ const router = createRouter({
           path: '/user',
           component: () => import('@/view/UserView.vue'),
         },
+        // 公司管理
+        {
+          path: '/company',
+          component: () => import('@/view/CompanyView.vue'),
+        },
         // 服务单列表
         {
           path: '/services',

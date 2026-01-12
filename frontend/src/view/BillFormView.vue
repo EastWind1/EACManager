@@ -98,6 +98,16 @@
                 label="单据类型"
               ></v-select>
             </v-col>
+            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+              <v-select
+                v-model="serviceBill.productCompany"
+                label="产品公司"
+                :items="companyData.data"
+                item-title="name"
+                return-object
+                @update:menu="companySelect"
+              ></v-select>
+            </v-col>
             <!-- 项目名称 -->
             <v-col cols="12" lg="4" md="6" sm="12" xl="3">
               <v-text-field
@@ -252,6 +262,8 @@ import { useBillActions } from '@/composable/BillActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
 import { mdiNavigation, mdiPhone } from '@mdi/js'
 import { useDate, useDisplay } from 'vuetify/framework'
+import type { Company } from '@/model/Company.ts'
+import CompanyApi from '@/api/CompanyApi.ts'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
@@ -282,10 +294,25 @@ const serviceBill = ref<ServiceBill>({
 const valid = ref(false)
 // 必填验证
 const requiredRule = (v: unknown) => !!v || '必填项'
+// 公司信息,用于下拉框处理
+const companyData = ref<{ loaded: boolean; data: Company[] }>({
+  loaded: false,
+  data: [],
+})
 
-// 当前 Tab 页
+// 当前子表 Tab 页
 const tab = ref('detail')
 
+/**
+ * 公司下拉加载
+ */
+async function companySelect() {
+  if (companyData.value.loaded) {
+    return
+  }
+  companyData.value.data = await CompanyApi.getAll()
+  companyData.value.loaded = true
+}
 // 提交表单
 async function save() {
   if (valid.value) {

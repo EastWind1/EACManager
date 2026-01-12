@@ -45,7 +45,7 @@
 <script lang="ts" setup>
 import { RouterView, useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
-import { mdiAccount, mdiCash, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
+import { mdiAccount, mdiCash, mdiMenu, mdiMonitorDashboard, mdiDomain } from '@mdi/js'
 import { useUserStore } from '@/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
 
@@ -77,6 +77,13 @@ const menuItems = [
     props: {
       prependIcon: mdiAccount,
       to: '/user',
+    },
+  },
+  {
+    title: '公司管理',
+    props: {
+      prependIcon: mdiDomain,
+      to: '/company',
     },
   },
   {

@@ -4,13 +4,17 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import pers.eastwind.billmanager.common.model.AuditEntity;
 
 /**
  * 公司实体
  */
+
 @Entity
 @Data
-public class Company {
+@EqualsAndHashCode(callSuper = true)
+public class Company extends AuditEntity {
     @Id
     @GeneratedValue
     private Integer id;
@@ -29,10 +33,17 @@ public class Company {
      * 联系人电话
      */
     private String contactPhone;
-
+    /**
+     * 邮箱
+     */
+    private String email;
     /**
      * 地址
      */
     private String address;
+    /**
+     * 是否禁用
+     */
+    private Boolean isDisabled = false;
 
 }

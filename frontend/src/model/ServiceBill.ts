@@ -1,5 +1,6 @@
 import type { Attachment } from '@/model/Attachment.ts'
 import type { QueryParam } from '@/model/QueryParam.ts'
+import type { Company } from '@/model/Company.ts'
 
 /**
  * 服务单类型
@@ -82,6 +83,10 @@ export interface ServiceBill {
    * 单据状态
    */
   state: ServiceBillStateValue
+  /**
+   * 产品公司
+   */
+  productCompany?: Company
   /**
    * 项目名称
    */

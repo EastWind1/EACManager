@@ -19,7 +19,10 @@ public class CompanyDTO {
      * 联系人电话
      */
     private String contactPhone;
-
+    /**
+     * 邮箱
+     */
+    private String email;
     /**
      * 地址
      */

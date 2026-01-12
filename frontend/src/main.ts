@@ -10,6 +10,7 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 import { createPinia } from 'pinia'
 import { useUserStore } from '@/store/UserStore.ts'
 
+
 const vuetify = createVuetify({
   // 中文
   locale: {
@@ -25,7 +26,7 @@ const vuetify = createVuetify({
   },
   // 主题
   theme: {
-    defaultTheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    defaultTheme: 'system'
   },
   // UI 默认样式
   defaults: {

@@ -280,6 +280,7 @@ async function loadItems(options: {
       }
     })
   }
+  selectedIds.value = []
   data.value = (await ReimburseApi.getByQueryParam(param)) ?? {
     items: [],
     totalCount: 0,
