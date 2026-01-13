@@ -264,7 +264,7 @@ public class ReimburseService {
                     reimbursement.getNumber(),
                     reimbursement.getSummary(),
                     reimbursement.getTotalAmount().toString(),
-                    dateTimeFormatter.format(reimbursement.getReimburseDate().atZone(ZoneId.systemDefault())),
+                    reimbursement.getReimburseDate() == null ? "" : dateTimeFormatter.format(reimbursement.getReimburseDate().atZone(ZoneId.systemDefault())),
                     reimbursement.getDetails().stream().map((detail) ->
                                     detail.getName() + " : " + detail.getAmount().stripTrailingZeros().toPlainString() + " ; ")
                             .collect(Collectors.joining())

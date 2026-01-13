@@ -1,9 +1,8 @@
 import { useUIStore } from '@/store/UIStore.ts'
 import ServiceBillApi from '@/api/ServiceBillApi.ts'
 import type { ActionsResult } from '@/model/ActionsResult.ts'
-import { h, ref, render } from 'vue'
+import { getCurrentInstance, h, ref, render } from 'vue'
 import { VBtn, VCard, VDatePicker, VDialog } from 'vuetify/components'
-import { appContext } from '@/main.ts'
 
 /**
  * 单据操作
@@ -11,6 +10,7 @@ import { appContext } from '@/main.ts'
  */
 export function useBillActions(processResult: (result: ActionsResult<number, void>) => void) {
   const { warning, confirm } = useUIStore()
+  const appContext = getCurrentInstance()?.appContext
 
   /**
    * 开始处理
@@ -80,7 +80,9 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
             ],
           }),
       )
-
+      if (!appContext) {
+        throw new Error('必须在 setup 中调用')
+      }
       node.appContext = appContext
       render(node, document.body)
     })

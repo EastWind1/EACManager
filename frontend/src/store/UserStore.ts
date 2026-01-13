@@ -45,13 +45,20 @@ export const useUserStore = defineStore('userStore', () => {
    * 是否有任何身份
    */
   function hasAnyRole(roles: AuthorityRoleValue[]) {
-    return user.value && roles && roles.includes(user.value.authority)
+    const values = []
+    for (let role of roles) {
+      if (!role.startsWith('ROLE_')) {
+        role = 'ROLE_' + role
+      }
+      values.push(role)
+    }
+    return user.value && values && values.includes(user.value.authority)
   }
 
   return {
     setUser,
     getUser,
     removeUser,
-    hasAnyRole
+    hasAnyRole,
   }
 })

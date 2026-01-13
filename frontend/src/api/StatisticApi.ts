@@ -18,21 +18,20 @@ export const StatisticApi = {
   /**
    * 统计服务单状态数量
    */
-  countBillsByState: () =>
-    getAxios()
-      .get(`/billCountByState`)
-      .then((res) => res.data as { [key in ServiceBillStateValue]?: number }),
+  async countBillsByState() {
+    const res = await getAxios().get(`/billCountByState`)
+    return res.data as {
+      [key in ServiceBillStateValue]?: number
+    }
+  },
   /**
    * 按月统计服务单收入总金额
    */
-  sumTotalAmountByMonth: () =>
-    getAxios()
-      .get(`/billTotalAmountGroupByMonth`)
-      .then(
-        (res) =>
-          res.data as {
-            month: string
-            amount: number
-          }[],
-      ),
+  async sumTotalAmountByMonth() {
+    const res = await getAxios().get(`/billTotalAmountGroupByMonth`)
+    return res.data as {
+      month: string
+      amount: number
+    }[]
+  },
 }

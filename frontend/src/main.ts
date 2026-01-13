@@ -60,23 +60,21 @@ const vuetify = createVuetify({
   },
 })
 // 导出以供非 setup 函数内使用
-const pinia = createPinia()
-const app = createApp(App)
-app
-  .use(pinia)
+createApp(App)
+  .use(createPinia())
   .use(router)
   .use(vuetify)
   // 权限指令，控制元素渲染
   .directive('role', (el, binding) => {
     const userStore = useUserStore()
-    if (binding.value && !userStore.hasAnyRole(binding.value)) {
+    if (!binding.value) {
+      return
+    }
+    const args = binding.value instanceof Array ? binding.value : [binding.value]
+    if (!userStore.hasAnyRole(args)) {
       el.style.display = 'none'
     } else {
       el.style.display = ''
     }
   })
   .mount('#app')
-
-// 导出上下文以供动态创建 vnode 使用
-const appContext = app._context
-export { appContext, pinia }

@@ -34,6 +34,7 @@ import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/store/UIStore.ts'
 import { useUserStore } from '@/store/UserStore.ts'
 import Crypto from '@/util/Crypto.ts'
+import { useHotkey } from 'vuetify/framework'
 
 const store = useUIStore()
 const { success } = store
@@ -52,7 +53,7 @@ const showPassword = ref(false)
 const valid = ref(true)
 // 必填
 const required = (value: string) => !!value || '不能为空'
-
+useHotkey('enter', login)
 // 登陆
 async function login() {
   if (!valid.value) {

@@ -18,33 +18,34 @@ const CompanyApi = {
   /**
    * 获取所有公司
    */
-  getAll: () =>
-    getAxios()
-      .get('')
-      .then((res) => res.data as Company[]),
-
+  async getAll() {
+    const res = await getAxios().get('')
+    return res.data as Company[]
+  },
   /**
    * 创建公司
    * @param company 公司数据
    */
-  create: (company: Company) =>
-    getAxios()
-      .post('', company)
-      .then((res) => res.data as Company),
+  async create(company: Company) {
+    const res = await getAxios().post('', company)
+    return res.data as Company
+  },
 
   /**
    * 更新公司
    * @param company 公司数据
    */
-  update: (company: Company) =>
-    getAxios()
-      .put('', company)
-      .then((res) => res.data as Company),
+  async update(company: Company) {
+    const res = await getAxios().put('', company)
+    return res.data as Company
+  },
 
   /**
    * 禁用公司
    * @param id 公司 ID
    */
-  disable: (id: number) => getAxios().delete(`/${id}`),
+  async disable(id: number) {
+    return getAxios().delete(`/${id}`)
+  }
 }
 export default CompanyApi

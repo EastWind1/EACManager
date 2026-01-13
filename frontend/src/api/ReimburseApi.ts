@@ -21,65 +21,72 @@ const ReimburseApi = {
    * 条件查询
    * @param queryParam 查询参数
    */
-  getByQueryParam: (queryParam: ReimburseQueryParam) =>
-    getAxios()
-      .post(`/query`, queryParam)
-      .then((res) => res.data as PageResult<Reimbursement>),
+  async getByQueryParam(queryParam: ReimburseQueryParam) {
+    const res = await getAxios().post(`/query`, queryParam)
+    return res.data as PageResult<Reimbursement>
+  },
+
   /**
    * 根据 id 获取
    * @param id 单据 ID
    */
-  getById: (id: number) =>
-    getAxios()
-      .get(`/${id}`)
-      .then((res) => res.data as Reimbursement),
+  async getById(id: number) {
+    const res = await getAxios().get(`/${id}`)
+    return res.data as Reimbursement
+  },
+
   /**
    * 新建
    * @param reimbursement 单据
    */
-  create: (reimbursement: Reimbursement) =>
-    getAxios()
-      .post('', reimbursement)
-      .then((res) => res.data as Reimbursement),
+  async create(reimbursement: Reimbursement) {
+    const res = await getAxios().post('', reimbursement)
+    return res.data as Reimbursement
+  },
+
   /**
    * 保存
    * @param reimbursement 单据
    */
-  save: (reimbursement: Reimbursement) =>
-    getAxios()
-      .put('', reimbursement)
-      .then((res) => res.data as Reimbursement),
+  async save(reimbursement: Reimbursement) {
+    const res = await getAxios().put('', reimbursement)
+    return res.data as Reimbursement
+  },
+
   /**
    * 删除
    * @param ids 单据 ID 列表
    */
-  delete: (ids: number[]) =>
-    getAxios()
-      .delete('', { data: ids })
-      .then((res) => res.data as ActionsResult<number, void>),
+  async delete(ids: number[]) {
+    const res = await getAxios().delete('', { data: ids })
+    return res.data as ActionsResult<number, void>
+  },
+
   /**
    * 处理
    * @param ids 单据 ID 列表
    */
-  process: (ids: number[]) =>
-    getAxios()
-      .put(`/process`, ids)
-      .then((res) => res.data as ActionsResult<number, void>),
+  async process(ids: number[]) {
+    const res = await getAxios().put(`/process`, ids)
+    return res.data as ActionsResult<number, void>
+  },
+
   /**
    * 完成
    * @param ids 单据 ID 列表
    */
-  finish: (ids: number[]) =>
-    getAxios()
-      .put(`/finish`, ids)
-      .then((res) => res.data as ActionsResult<number, void>),
+  async finish(ids: number[]) {
+    const res = await getAxios().put(`/finish`, ids)
+    return res.data as ActionsResult<number, void>
+  },
+
   /**
    * 导出
    * @param ids 单据 ID 列表
    */
-  export: (ids: number[]) =>
-    getAxios()
-      .post(`/export`, ids, { responseType: 'blob' })
-      .then((res) => res as never as Blob),
+  async export(ids: number[]) {
+    const res = await getAxios().post(`/export`, ids, { responseType: 'blob' })
+    return res as never as Blob
+  },
 }
 export default ReimburseApi

@@ -21,43 +21,47 @@ const UserApi = {
    * @param username 用户名
    * @param password 密码
    */
-  login: (username: string, password: string) =>
-    getAxios()
-      .post(`/token`, {
-        username,
-        password,
-      })
-      .then((res) => res.data as User),
+  async login(username: string, password: string) {
+    const res = await getAxios().post(`/token`, {
+      username,
+      password,
+    })
+    return res.data as User
+  },
+
   /**
    * 获取所有用户
    */
-  getAll: () =>
-    getAxios()
-      .get('')
-      .then((res) => res.data as User[]),
+  async getAll() {
+    const res = await getAxios().get('')
+    return res.data as User[]
+  },
 
   /**
    * 创建用户
    * @param user 用户数据
    */
-  create: (user: User) =>
-    getAxios()
-      .post('', user)
-      .then((res) => res.data as User),
+  async create(user: User) {
+    const res = await getAxios().post('', user)
+    return res.data as User
+  },
 
   /**
    * 更新用户
    * @param user 用户数据
    */
-  update: (user: User) =>
-    getAxios()
-      .put('', user)
-      .then((res) => res.data as User),
+  async update(user: User) {
+    const res = await getAxios().put('', user)
+    return res.data as User
+  },
 
   /**
    * 禁用用户（删除）
    * @param username 用户名
    */
-  disable: (username: string) => getAxios().delete(`/${username}`),
+  async disable(username: string) {
+    const res = await getAxios().delete(`/${username}`)
+    return res.data
+  },
 }
 export default UserApi

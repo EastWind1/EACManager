@@ -153,7 +153,7 @@ import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { storeToRefs } from 'pinia'
 import { useReimburseActions } from '@/composable/ReimburseActions.ts'
 import { AuthorityRole } from '@/model/User.ts'
-import { useDate } from 'vuetify/framework'
+import { useDate, useHotkey } from 'vuetify/framework'
 
 const store = useUIStore()
 const { success, warning } = store
@@ -209,7 +209,8 @@ const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
 if (cache) {
   Object.assign(queryParam.value, JSON.parse(cache))
 }
-
+// 搜索快捷键
+useHotkey('enter', () => (search.value = new Date().toString()))
 // 数据表格区域
 // 表头
 const headers = [

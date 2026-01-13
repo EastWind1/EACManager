@@ -261,7 +261,7 @@ import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
 import { mdiNavigation, mdiPhone } from '@mdi/js'
-import { useDate, useDisplay } from 'vuetify/framework'
+import { useDate, useDisplay, useHotkey } from 'vuetify/framework'
 import type { Company } from '@/model/Company.ts'
 import CompanyApi from '@/api/CompanyApi.ts'
 
@@ -313,6 +313,8 @@ async function companySelect() {
   companyData.value.data = await CompanyApi.getAll()
   companyData.value.loaded = true
 }
+// 保存快捷键
+useHotkey('ctrl+s', save)
 // 提交表单
 async function save() {
   if (valid.value) {

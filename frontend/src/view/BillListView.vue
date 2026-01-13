@@ -43,7 +43,10 @@
                 ></v-date-input>
               </v-col>
               <v-col class="text-right" cols="12">
-                <v-btn @click="search = new Date().toString()">查询</v-btn>
+                <v-btn
+                  @click="search = new Date().toString()"
+                  >查询</v-btn
+                >
               </v-col>
             </v-row>
           </v-container>
@@ -155,7 +158,7 @@ import type { ActionsResult } from '@/model/ActionsResult.ts'
 import { useBillActions } from '@/composable/BillActions.ts'
 import { storeToRefs } from 'pinia'
 import { useRouterStore } from '@/store/RouterStore.ts'
-import { useDate } from 'vuetify/framework'
+import { useDate, useHotkey } from 'vuetify/framework'
 
 const store = useUIStore()
 const { success, warning } = store
@@ -214,7 +217,8 @@ const queryParam = ref<QueryParam>({
     },
   ],
 })
-
+// 搜索快捷键
+useHotkey("enter", () => search.value = new Date().toString())
 // 处理路由参数
 const route = useRoute()
 if (route.query.hasOwnProperty('query')) {

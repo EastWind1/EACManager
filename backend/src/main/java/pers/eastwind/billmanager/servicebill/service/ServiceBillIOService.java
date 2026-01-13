@@ -86,7 +86,7 @@ public class ServiceBillIOService {
                     serviceBill.getProjectName(),
                     serviceBill.getProjectAddress(),
                     serviceBill.getTotalAmount().toString(),
-                    dateTimeFormatter.format(serviceBill.getProcessedDate().atZone(ZoneId.systemDefault())),
+                    serviceBill.getProcessedDate() == null ? "" : dateTimeFormatter.format(serviceBill.getProcessedDate().atZone(ZoneId.systemDefault())),
                     serviceBill.getDetails().stream().map((detail) ->
                                     detail.getDevice() + " : " + detail.getUnitPrice().stripTrailingZeros().toPlainString()
                                             + " * " + detail.getQuantity().stripTrailingZeros().toPlainString() + " ; ")

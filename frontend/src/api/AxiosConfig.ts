@@ -1,7 +1,6 @@
 import axios, { type AxiosInstance } from 'axios'
 import { useUIStore } from '@/store/UIStore.ts'
 import router from '@/router/router.ts'
-import { pinia } from '@/main.ts'
 
 /**
  * 获取 axios 实例
@@ -10,7 +9,7 @@ function useAxios(baseURL: string): AxiosInstance {
   const instance = axios.create({
     baseURL,
   })
-  const { showLoading, hideLoading, warning } = useUIStore(pinia)
+  const { showLoading, hideLoading, warning } = useUIStore()
   const requestMap = new Map<string, AbortController>()
   // 请求前拦截器
   instance.interceptors.request.use(
