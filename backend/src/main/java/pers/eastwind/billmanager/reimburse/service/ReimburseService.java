@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -56,6 +57,7 @@ public class ReimburseService {
      * @param id ID
      * @return ReimbursementDTO
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public ReimbursementDTO findById(Integer id) {
         if (id == null) {
             throw new BizException("id不能为空");
@@ -74,6 +76,7 @@ public class ReimburseService {
      * @param reimbursementDTO 单据
      * @return 保存后的单据
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Transactional
     public ReimbursementDTO create(ReimbursementDTO reimbursementDTO) {
         if (reimbursementDTO.getId() != null && reimburseRepository.existsById(reimbursementDTO.getId())) {
@@ -98,6 +101,7 @@ public class ReimburseService {
      * @param reimbursementDTO 单据
      * @return 更新后的单据
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Transactional
     public ReimbursementDTO update(ReimbursementDTO reimbursementDTO) {
         if (reimbursementDTO.getId() == null) {
@@ -119,6 +123,7 @@ public class ReimburseService {
      * @param param 查询参数
      * @return 分页结果
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public Page<ReimbursementDTO> findByParam(ReimburseQueryParam param) {
         if (param == null) {
             throw new BizException("查询参数为空");
@@ -161,6 +166,7 @@ public class ReimburseService {
      * @param ids 单据 ID 列表
      * @return 批量操作结果
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ActionsResult<Integer, Void> delete(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
@@ -184,6 +190,7 @@ public class ReimburseService {
     /**
      * 提交处理
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ActionsResult<Integer, Void> process(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
@@ -207,6 +214,7 @@ public class ReimburseService {
     /**
      * 完成
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ActionsResult<Integer, Void> finish(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
@@ -233,6 +241,7 @@ public class ReimburseService {
      * @param ids 单据列表
      * @return 压缩文件路径
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public Path export(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");

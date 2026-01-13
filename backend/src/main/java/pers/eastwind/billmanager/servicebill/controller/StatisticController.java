@@ -16,7 +16,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/statistic")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
 public class StatisticController {
 
     private final StatisticService statisticService;

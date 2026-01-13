@@ -1,6 +1,7 @@
 package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.core.io.Resource;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.Attachment;
 import pers.eastwind.billmanager.attach.model.AttachmentMapper;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 /**
  * 服务单导入导出
  */
+@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 @Service
 public class ServiceBillIOService {
     private final ServiceBillRepository serviceBillRepository;

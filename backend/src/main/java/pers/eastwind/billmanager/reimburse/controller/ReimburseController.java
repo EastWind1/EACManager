@@ -3,7 +3,6 @@ package pers.eastwind.billmanager.reimburse.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.common.model.ActionsResult;
@@ -34,7 +33,6 @@ public class ReimburseController {
      *
      * @return 报销单列表
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @PostMapping("/query")
     public PageResult<ReimbursementDTO> queryByParam(@RequestBody ReimburseQueryParam queryParam) {
 
@@ -46,7 +44,6 @@ public class ReimburseController {
     /**
      * 根据 ID 获取报销单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @GetMapping("/{id}")
     public ReimbursementDTO getById(@PathVariable Integer id) {
         return reimburseService.findById(id);
@@ -58,7 +55,6 @@ public class ReimburseController {
      * @param reimbursementDTO 报销单
      * @return 保存后的报销单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping
     public ReimbursementDTO create(@RequestBody ReimbursementDTO reimbursementDTO) {
         return reimburseService.create(reimbursementDTO);
@@ -70,7 +66,6 @@ public class ReimburseController {
      * @param reimbursementDTO 报销单
      * @return 保存后的报销单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping
     public ReimbursementDTO save(@RequestBody ReimbursementDTO reimbursementDTO) {
         return reimburseService.update(reimbursementDTO);
@@ -79,7 +74,6 @@ public class ReimburseController {
     /**
      * 删除报销单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @DeleteMapping
     public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
         return reimburseService.delete(ids);
@@ -88,7 +82,6 @@ public class ReimburseController {
     /**
      * 处理报销单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping("/process")
     public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
         return reimburseService.process(ids);
@@ -97,7 +90,6 @@ public class ReimburseController {
     /**
      * 处理完成报销单
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping("/finish")
     public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
         return reimburseService.finish(ids);
@@ -106,7 +98,6 @@ public class ReimburseController {
     /**
      * 导出
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @PostMapping(value = "/export", produces = "application/octet-stream")
     public Resource export(@RequestBody List<Integer> ids) {
         return attachmentService.loadByPath(reimburseService.export(ids));

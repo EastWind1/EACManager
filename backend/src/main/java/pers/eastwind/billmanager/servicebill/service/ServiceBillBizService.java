@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -35,6 +36,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class ServiceBillBizService {
     private final ServiceBillRepository serviceBillRepository;
     private final ServiceBillMapper serviceBillMapper;

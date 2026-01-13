@@ -4,6 +4,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -34,12 +35,24 @@ public class UserService implements UserDetailsService {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
     }
-
+    private User getCurUser() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new BizException("无法获取登录信息");
+        }
+        return (User) auth.getPrincipal();
+    }
     /**
      * 获取用户
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public List<UserDTO> getAll() {
-        User curUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new BizException("无法获取登录信息");
+        }
+        User curUser = getCurUser();
+        // 非管理员只能获取自己
         if (curUser.getAuthority() == AuthorityRole.ROLE_ADMIN) {
             return userRepository.findAllEnabled().stream().map(userMapper::toBaseDTO).toList();
         } else {
@@ -58,6 +71,7 @@ public class UserService implements UserDetailsService {
      * @return 创建后的用户
      */
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public UserDTO create(UserDTO user) {
         if (user.getUsername() == null || user.getUsername().isEmpty()) {
             throw new BizException("用户名不能为空");
@@ -81,11 +95,12 @@ public class UserService implements UserDetailsService {
      */
     @Transactional
     @CacheEvict(value = "user", key = "#user.username")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public UserDTO update(UserDTO user) {
         if (user.getId() == null) {
-            throw new BizException("id不能为空");
+            throw new BizException("id 不能为空");
         }
-        User curUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User curUser = getCurUser();
         if (curUser.getAuthority() != AuthorityRole.ROLE_ADMIN && !curUser.getId().equals(user.getId())) {
             throw new AccessDeniedException("无权限修改其他用户信息");
         }
@@ -97,12 +112,10 @@ public class UserService implements UserDetailsService {
         if (!oldUser.getUsername().equals(user.getUsername())) {
             throw new BizException("用户名不能修改");
         }
-        if (user.getPassword() != null) {
-            if (user.getPassword().isEmpty()) {
-                throw new BizException("密码不能为空");
-            }
-            oldUser.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new BizException("密码不能为空");
         }
+        oldUser.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
         userMapper.updateEntityFromDTO(user, oldUser);
         return userMapper.toDTO(userRepository.save(oldUser));
     }
@@ -114,6 +127,7 @@ public class UserService implements UserDetailsService {
      */
     @Transactional
     @CacheEvict(value = "user", key = "#username")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public void disable(String username) {
         User user = userRepository.findByUsername(username);
         if (user == null) {
