@@ -17,9 +17,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.attach.model.Attachment;
 import pers.eastwind.billmanager.attach.model.BillType;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
-import pers.eastwind.billmanager.attach.service.OfficeFileService;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
+import pers.eastwind.billmanager.company.model.Company;
+import pers.eastwind.billmanager.company.repository.CompanyRepository;
 import pers.eastwind.billmanager.servicebill.model.*;
 import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
 
@@ -30,6 +31,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 服务单业务
@@ -42,12 +44,14 @@ public class ServiceBillBizService {
     private final ServiceBillMapper serviceBillMapper;
     private final AttachmentService attachmentService;
     private final TransactionTemplate transactionTemplate;
+    private final CompanyRepository companyRepository;
 
-    public ServiceBillBizService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper,  AttachmentService attachmentService, TransactionTemplate transactionTemplate, OfficeFileService officeFileService) {
+    public ServiceBillBizService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, AttachmentService attachmentService, TransactionTemplate transactionTemplate, CompanyRepository companyRepository) {
         this.serviceBillRepository = serviceBillRepository;
         this.serviceBillMapper = serviceBillMapper;
         this.attachmentService = attachmentService;
         this.transactionTemplate = transactionTemplate;
+        this.companyRepository = companyRepository;
     }
 
     /**
@@ -127,13 +131,25 @@ public class ServiceBillBizService {
     @Transactional
     public ServiceBillDTO update(ServiceBillDTO serviceBillDTO) {
         if (serviceBillDTO.getId() == null) {
-            throw new BizException("id不能为空");
+            throw new BizException("id 不能为空");
         }
         ServiceBill bill = serviceBillRepository.findById(serviceBillDTO.getId()).orElse(null);
         if (bill == null) {
             throw new BizException("单据不存在");
         }
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
+        // 公司关联单独处理, 直接使用 MapStruct 会因为代理对象 ID 变化触发关联变更（即使未设置 Cascade）
+        if (serviceBillDTO.getProductCompany() != null
+                && serviceBillDTO.getProductCompany().getId() != null
+                && (bill.getProductCompany() == null || !Objects.equals(bill.getProductCompany().getId(), serviceBillDTO.getProductCompany().getId()))) {
+            Company targetCompany = companyRepository.findById(serviceBillDTO.getProductCompany().getId()).orElse(null);
+            if (targetCompany == null) {
+                throw new BizException("公司不存在");
+            }
+            bill.setProductCompany(targetCompany);
+        } else {
+            bill.setProductCompany(null);
+        }
         validateAmount(bill);
         bill = serviceBillRepository.save(bill);
 
