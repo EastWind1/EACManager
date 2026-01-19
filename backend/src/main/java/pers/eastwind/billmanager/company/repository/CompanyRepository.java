@@ -12,4 +12,5 @@ import java.util.List;
 @Repository
 public interface CompanyRepository extends BaseRepository<Company> {
     List<Company> findByIsDisabled(Boolean isDisabled);
+    List<Company> findByNameContains(String name);
 }

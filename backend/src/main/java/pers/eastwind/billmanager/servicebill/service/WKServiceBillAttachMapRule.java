@@ -3,6 +3,7 @@ package pers.eastwind.billmanager.servicebill.service;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.service.AttachMapRule;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
+import pers.eastwind.billmanager.company.service.CompanyService;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDetailDTO;
 
@@ -10,24 +11,32 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+
 
 /**
  * 威垦服务单映射
  */
 @Service
 public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO> {
+    private final CompanyService companyService;
+    public WKServiceBillAttachMapRule(CompanyService companyService) {
+        this.companyService = companyService;
+    }
 
-    private final Map<String, String> mapRules = Map.of(
-            "合同编号", "number",
-            "下单时间", "orderDate",
-            "项目名称", "projectName",
-            "监理、站长", "projectContact",
-            "现场联系人", "onSiteContact",
-            "项目地址", "projectAddress",
-            "备注", "remark"
+    private final Map<String, BiConsumer<ServiceBillDTO, String>> mapRules = Map.of(
+            "合同编号", ServiceBillDTO::setNumber,
+            "下单时间", ( target,  text) -> target.setOrderDate(AttachMapRule.parseDateString(text)),
+            "项目名称", ServiceBillDTO::setProjectName,
+            "监理、站长", ServiceBillDTO::setProjectContact,
+            "现场联系人", ServiceBillDTO::setOnSiteContact,
+            "项目地址", ServiceBillDTO::setProjectAddress,
+            "备注", ServiceBillDTO::setRemark
     );
 
-    private void setByText(ServiceBillDTO target, String text) {
+
+
+    protected void setByText(ServiceBillDTO target, String text) {
         if (text == null || text.isEmpty()) {
             return;
         }
@@ -42,7 +51,7 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
         if (!mapRules.containsKey(labels[0])) {
             return;
         }
-        AttachMapRule.setStringValue(target, mapRules.get(labels[0]), labels[1]);
+        mapRules.get(labels[0]).accept(target, labels[1]);
     }
 
     @Override
@@ -74,25 +83,27 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
         }
         return false;
     }
-
+    protected void setCompany(ServiceBillDTO target, String name) {
+        List<CompanyDTO> company = companyService.findByName(name);
+        if (!company.isEmpty()) {
+            target.setProductCompany(company.getFirst());
+        }
+    }
     @Override
     public ServiceBillDTO mapFromOCR(List<String> texts) {
         ServiceBillDTO serviceBill = new ServiceBillDTO();
-        serviceBill.setProductCompany(new CompanyDTO(){{
-            setId(1);
-        }});
+        setCompany(serviceBill, "威垦");
         for (String text : texts) {
             setByText(serviceBill, text);
         }
+        // OCR 实现子表映射过于复杂，暂不处理
         return serviceBill;
     }
 
     @Override
     public ServiceBillDTO mapFromExcel(List<List<String>> rows) {
         ServiceBillDTO serviceBill = new ServiceBillDTO();
-        serviceBill.setProductCompany(new CompanyDTO(){{
-            setId(1);
-        }});
+        setCompany(serviceBill, "威垦");
         serviceBill.setDetails(new ArrayList<>());
         // 明细开始索引行
         int detailStartIndex = -1;

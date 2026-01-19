@@ -68,39 +68,4 @@ public interface AttachMapRule<T> {
         }
         return null;
     }
-    /**
-     * 设置字符串值
-     *
-     * @param target 目标对象
-     * @param fieldName 字段名
-     * @param value 字符串值
-     */
-    static void setStringValue(Object target, String fieldName, String value) {
-        if (value == null || value.isEmpty()) {
-            return;
-        }
-        try {
-            Field field = target.getClass().getDeclaredField(fieldName);
-            Class<?> type = field.getType();
-            field.setAccessible(true);
-            if (type == String.class) {
-                field.set(target, value);
-            } else if (type == Integer.class || type == int.class) {
-                field.set(target, Integer.parseInt(value));
-            } else if (type == Double.class || type == double.class) {
-                field.set(target, Double.parseDouble(value));
-            } else if (type == Float.class || type == float.class) {
-                field.set(target, Float.parseFloat(value));
-            } else if (type == Long.class || type == long.class) {
-                field.set(target, Long.parseLong(value));
-            } else if (type == Boolean.class || type == boolean.class) {
-                field.set(target, Boolean.parseBoolean(value));
-            } else if (type == BigDecimal.class) {
-                field.set(target, new BigDecimal(value));
-            } else if (type == Instant.class) {
-                field.set(target, parseDateString(value));
-            }
-        } catch (NoSuchFieldException | IllegalAccessException ignored) {
-        }
-    }
 }

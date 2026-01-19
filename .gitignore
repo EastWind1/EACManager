@@ -1,6 +1,10 @@
 .idea
 .vscode
 *.iml
+.classpath
+.factorypath
+.project
+.settings
 
 .mvn
 attachment

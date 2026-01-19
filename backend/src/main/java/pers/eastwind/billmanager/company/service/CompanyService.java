@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.company.model.Company;
+import pers.eastwind.billmanager.company.model.CompanyDTO;
+import pers.eastwind.billmanager.company.model.CompanyMapper;
 import pers.eastwind.billmanager.company.repository.CompanyRepository;
 
 import java.util.List;
@@ -13,34 +15,41 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class CompanyService {
     private final CompanyRepository companyRepository;
+    private final CompanyMapper companyMapper;
 
-    public CompanyService(CompanyRepository companyRepository) {
+    public CompanyService(CompanyRepository companyRepository, CompanyMapper companyMapper) {
         this.companyRepository = companyRepository;
+        this.companyMapper = companyMapper;
     }
-
-    public List<Company> findAll() {
-        return companyRepository.findAll();
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<CompanyDTO> findAll() {
+        return companyRepository.findAll().stream().map(companyMapper::toDTO).toList();
     }
-
-    public List<Company> findEnabled() {
-        return companyRepository.findByIsDisabled(false);
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public List<CompanyDTO> findEnabled() {
+        return companyRepository.findByIsDisabled(false).stream().map(companyMapper::toDTO).toList();
     }
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public Company create(Company company) {
+    public CompanyDTO create(CompanyDTO company) {
         if (company.getName() == null || company.getName().isEmpty()) {
             throw new BizException("公司名称不能为空");
         }
-        return companyRepository.save(company);
+        return companyMapper.toDTO(companyRepository.save(companyMapper.toEntity(company)));
     }
-
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public List<CompanyDTO> findByName(String name) {
+        return companyRepository.findByNameContains(name).stream().map(companyMapper::toDTO).toList();
+    }
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public Company update(Company company) {
+    public CompanyDTO update(CompanyDTO company) {
         if (!companyRepository.existsById(company.getId())) {
             throw new BizException("公司不存在: " + company.getName());
         }
-        return companyRepository.save(company);
+        return companyMapper.toDTO(companyRepository.save(companyMapper.toEntity(company)));
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public void disable(Integer id) {
         Company company = companyRepository.findById(id)

@@ -22,7 +22,7 @@ public class AuditConfig {
      */
     @Bean
     public AuditorAware<Integer> auditorProvider() {
-        return () -> Optional.ofNullable(SecurityContextHolder.getContext())
+        return () -> Optional.of(SecurityContextHolder.getContext())
                 .map(SecurityContext::getAuthentication)
                 .filter(Authentication::isAuthenticated)
                 .map(Authentication::getPrincipal)

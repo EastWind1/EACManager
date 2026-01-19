@@ -1,9 +1,7 @@
 package pers.eastwind.billmanager.company.controller;
 
 import org.springframework.web.bind.annotation.*;
-import pers.eastwind.billmanager.company.model.Company;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
-import pers.eastwind.billmanager.company.model.CompanyMapper;
 import pers.eastwind.billmanager.company.service.CompanyService;
 
 import java.util.List;
@@ -15,26 +13,22 @@ import java.util.List;
 @RequestMapping("/api/company")
 public class CompanyController {
     private final CompanyService companyService;
-    private final CompanyMapper companyMapper;
 
-    public CompanyController(CompanyService companyService, CompanyMapper companyMapper) {
+    public CompanyController(CompanyService companyService) {
         this.companyService = companyService;
-        this.companyMapper = companyMapper;
     }
 
     @GetMapping
     public List<CompanyDTO> getAll() {
-        return companyService.findEnabled().stream().map(companyMapper::toDTO).toList();
+        return companyService.findEnabled();
     }
     @PostMapping
     public CompanyDTO create(@RequestBody CompanyDTO companyDTO) {
-        Company company = companyMapper.toEntity(companyDTO);
-        return companyMapper.toDTO(companyService.create(company));
+        return companyService.create(companyDTO);
     }
     @PutMapping
     public CompanyDTO update(@RequestBody CompanyDTO companyDTO) {
-        Company company = companyMapper.toEntity(companyDTO);
-        return companyMapper.toDTO(companyService.update(company));
+        return companyService.update(companyDTO);
     }
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
