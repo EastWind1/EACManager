@@ -18,17 +18,14 @@ jobs:
       with:
         java-version: '25'
         distribution: 'temurin'
-        server-id: github
         settings-path: ${{ github.workspace }}
 
     - name: Set up Node.js
       uses: actions/setup-node@v6.2.0
       with:
         node-version: '24.13.0'
-        server-id: github
-        settings-path: ${{ github.workspace }}
 
     - name: Build with script
-      run: cd deploy & sh ./build.bat
+      run: cd $GITHUB_WORKSPACE & sh ./deploy/build.bat
 
     
