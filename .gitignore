@@ -6,25 +6,4 @@
 .project
 .settings
 
-.mvn
-attachment
-target
-*.log
-
-dist
-node_modules
 .env
-
-application-*.yml
-
-# deploy 排除中的配置文件
-/deploy/**
-!/deploy/build.bat
-!/deploy/docker-compose.yml
-!/deploy/frontend/
-!/deploy/frontend/conf/
-!/deploy/frontend/conf/Caddyfile
-!/deploy/backend/
-!/deploy/backend/init_user.sql
-!/deploy/ocr-server/
-!/deploy/ocr-server/Dockerfile

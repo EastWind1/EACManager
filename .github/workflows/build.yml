@@ -13,19 +13,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    
     - name: Set up JDK 25
       uses: actions/setup-java@v4
       with:
         java-version: '25'
         distribution: 'temurin'
         settings-path: ${{ github.workspace }}
-
+        cache: 'maven'
+    
     - name: Set up Node.js
       uses: actions/setup-node@v6.2.0
       with:
         node-version: '24.13.0'
 
-    - name: Build with script
-      run: cd $GITHUB_WORKSPACE & sh ./deploy/build.bat
-
+    - name: Set up pnpm and dependence
+      run: npm i -g pnpm && cd $GITHUB_WORKSPACE/frontend && pnpm i
     
+    - name: Build with script
+      run: cd $GITHUB_WORKSPACE && chmod +x ./deploy/build.sh && sh ./deploy/build.sh

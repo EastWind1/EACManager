@@ -53,4 +53,9 @@ public class Reimbursement extends AuditEntity {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "reimbursement_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private List<ReimburseDetail> details = new ArrayList<>();
+    /**
+     * 版本字段
+     */
+    @Version
+    private Integer version = 0;
 }

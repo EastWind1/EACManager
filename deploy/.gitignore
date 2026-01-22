@@ -1,0 +1,5 @@
+backend/app
+backend/app.jar
+frontend/cert
+frontend/html
+.env

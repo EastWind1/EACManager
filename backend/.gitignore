@@ -1,0 +1,6 @@
+.mvn
+attachment
+target
+*.log
+
+application-*.yml

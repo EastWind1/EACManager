@@ -1,14 +1,14 @@
 import { createApp } from 'vue'
 
-import App from './App.vue'
-import router from './router/router.ts'
+import App from '@/App.vue'
+import router from '@/router.ts'
 
 import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
 import { zhHans } from 'vuetify/locale'
 import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 import { createPinia } from 'pinia'
-import { useUserStore } from '@/store/UserStore.ts'
+import { useUserStore } from '@/user/store/UserStore.ts'
 
 
 const vuetify = createVuetify({

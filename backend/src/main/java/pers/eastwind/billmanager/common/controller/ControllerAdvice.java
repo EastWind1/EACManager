@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.common.controller;
 
+import jakarta.persistence.OptimisticLockException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
@@ -57,6 +58,14 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         return Result.ok(body);
     }
 
+    /**
+     * 乐观锁异常统一处理
+     */
+    @ExceptionHandler(OptimisticLockException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result<Object> handleOptimisticLockException(OptimisticLockException e) {
+        return Result.error("数据已被更改，请稍后刷新重试");
+    }
     /**
      * 包装错误响应
      * @param e 错误

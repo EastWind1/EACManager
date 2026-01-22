@@ -37,7 +37,7 @@
 <script lang="ts" setup>
 // 全局进度条、通知
 import { storeToRefs } from 'pinia'
-import { useUIStore } from '@/store/UIStore.ts'
+import { useUIStore } from '@/common/store/UIStore.ts'
 
 const { loading, notify, dialogData } = storeToRefs(useUIStore())
 </script>

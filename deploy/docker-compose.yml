@@ -39,7 +39,7 @@ services:
       - .env
     volumes:
       - ./backend:/app/backend
-    command: sh -c "cd /app/backend/app && java -Dspring.aot.enabled=true -jar app.jar"
+    command: sh -c "cd /app/backend/app && java -jar app.jar"
     networks:
       - eac-network
   frontend:
@@ -58,7 +58,6 @@ services:
       - ./frontend/html:/usr/share/caddy:ro
     networks:
       - eac-network
-    restart: always
 volumes:
   pgdata:
 networks:
