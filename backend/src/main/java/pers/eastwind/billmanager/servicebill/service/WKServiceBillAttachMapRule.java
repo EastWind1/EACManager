@@ -57,10 +57,6 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
     @Override
     public boolean canOCR(List<String> texts) {
         for (String text : texts) {
-            // 暂不支持维修单
-            if (text.contains("维修")) {
-                return false;
-            }
             if (text.contains("威垦")) {
                 return true;
             }
@@ -72,10 +68,6 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
     public boolean canExcel(List<List<String>> rows) {
         for (List<String> row : rows) {
             for (String text : row) {
-                // 暂不支持维修单
-                if (text.contains("维修")) {
-                    return false;
-                }
                 if (text.contains("威垦")) {
                     return true;
                 }

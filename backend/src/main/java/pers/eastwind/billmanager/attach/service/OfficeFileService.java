@@ -54,7 +54,7 @@ public class OfficeFileService {
                 res.add(curRow);
             }
         } catch (IOException e) {
-            throw new BizException("打开文档失败", e);
+            throw new BizException("打开文档失败, 若文件过大请尝试瘦身文件", e);
         }
         return res;
     }

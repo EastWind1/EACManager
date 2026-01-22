@@ -16,7 +16,7 @@
     <properties>
         <java.version>25</java.version>
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
-        <jose.jwt.version>10.6</jose.jwt.version>
+        <jose.jwt.version>10.7</jose.jwt.version>
         <rapidocr.version>0.0.7</rapidocr.version>
         <rapidocr.onnx.version>1.2.2</rapidocr.onnx.version>
         <pdfbox.version>3.0.6</pdfbox.version>
@@ -126,19 +126,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
-            <artifactId>poi-scratchpad</artifactId>
-            <version>${poi.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>${poi.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi-ooxml-lite</artifactId>
-            <version>${poi.version}</version>
-        </dependency>
+
     </dependencies>
 
     <build>
