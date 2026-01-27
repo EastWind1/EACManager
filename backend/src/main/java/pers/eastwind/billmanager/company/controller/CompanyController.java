@@ -1,6 +1,8 @@
 package pers.eastwind.billmanager.company.controller;
 
 import org.springframework.web.bind.annotation.*;
+import pers.eastwind.billmanager.common.model.PageResult;
+import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
 import pers.eastwind.billmanager.company.service.CompanyService;
 
@@ -19,8 +21,8 @@ public class CompanyController {
     }
 
     @GetMapping
-    public List<CompanyDTO> getAll() {
-        return companyService.findEnabled();
+    public PageResult<CompanyDTO> getAll(QueryParam queryParam) {
+        return companyService.findEnabled(queryParam);
     }
     @PostMapping
     public CompanyDTO create(@RequestBody CompanyDTO companyDTO) {

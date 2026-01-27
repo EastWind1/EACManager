@@ -1,7 +1,16 @@
 <!-- 公司管理 -->
 <template>
   <v-container>
-    <v-data-table :headers="headers" :items="companies" hide-default-footer items-per-page="-1">
+    <v-data-table
+      :headers="headers"
+      :items="data.items"
+      :items-length="data.totalCount"
+      :items-per-page="data.pageSize ? data.pageSize : 20"
+      class="mt-2 flex-grow-1"
+      mobile-breakpoint="sm"
+      show-select
+      @update:options="loadItems"
+    >
       <template #[`item.actions`]="{ item }">
         <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value">
           <v-btn :icon="mdiPencil" @click="edit(item)"></v-btn>
@@ -38,10 +47,7 @@
               label="邮箱"
               :rules="[emailValid]"
             ></v-text-field>
-            <v-text-field
-              v-model="dialogData.company.address"
-              label="地址"
-            ></v-text-field>
+            <v-text-field v-model="dialogData.company.address" label="地址"></v-text-field>
             <div class="text-right mt-4">
               <v-btn color="primary" @click="save">保存</v-btn>
               <v-btn @click="dialogData.show = false">取消</v-btn>
@@ -60,6 +66,7 @@ import { useUIStore } from '@/common/store/UIStore.ts'
 import { useUserStore } from '@/user/store/UserStore.ts'
 import type { Company } from '../model/Company.ts'
 import CompanyApi from '../api/CompanyApi.ts'
+import type { PageResult } from '@/common/model/PageResult.ts'
 
 // 表头
 const headers = [
@@ -70,7 +77,13 @@ const headers = [
   { title: '操作', key: 'actions', sortable: false },
 ]
 // 列表数据
-const companies = ref<Company[]>([])
+const data = ref<PageResult<Company>>({
+  pageIndex: 0,
+  totalPages: 0,
+  items: [],
+  totalCount: 0,
+  pageSize: 20,
+})
 // 当前登录用户，用于权限控制
 const curUser = useUserStore().getUser()
 // 新增默认值
@@ -121,8 +134,8 @@ async function disable(company: Company) {
   const { confirm } = useUIStore()
   if (company.id && (await confirm('确认', '确定要禁用该公司吗？'))) {
     await CompanyApi.disable(company.id)
-    const index = companies.value.findIndex((u) => u.id === company.id)
-    companies.value.splice(index, 1)
+    const index = data.value.items.findIndex((u) => u.id === company.id)
+    data.value.items.splice(index, 1)
   }
 }
 
@@ -135,20 +148,25 @@ async function save() {
   const postCompany = { ...dialogData.value.company }
   // 修改
   if (postCompany.id) {
-    const index = companies.value.findIndex((u) => u.id === postCompany.id)
-    companies.value[index] = await CompanyApi.update(postCompany)
+    const index = data.value.items.findIndex((u) => u.id === postCompany.id)
+    data.value.items[index] = await CompanyApi.update(postCompany)
   } else {
     // 创建
-    companies.value.push(await CompanyApi.create(postCompany))
+    data.value.items.push(await CompanyApi.create(postCompany))
   }
 
   dialogData.value.show = false
 }
 
 // 初始化
-async function init() {
-  companies.value = (await CompanyApi.getAll()) ?? []
+async function loadItems(options: {
+  page: number
+  itemsPerPage: number
+  sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
+}) {
+  data.value = await CompanyApi.getAll({
+    pageIndex: options.page - 1,
+    pageSize: options.itemsPerPage,
+  })
 }
-
-init()
 </script>

@@ -3,6 +3,9 @@ package pers.eastwind.billmanager.user.controller;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pers.eastwind.billmanager.common.model.PageResult;
+import pers.eastwind.billmanager.common.model.QueryParam;
+import pers.eastwind.billmanager.user.config.UserConfigProperties;
 import pers.eastwind.billmanager.user.model.LoginResult;
 import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
@@ -15,9 +18,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
+    private final UserConfigProperties config;
     private final UserService userService;
 
-    public UserController(UserService userService) {
+    public UserController(UserConfigProperties config, UserService userService) {
+        this.config = config;
         this.userService = userService;
     }
 
@@ -30,14 +35,13 @@ public class UserController {
      */
     @PostMapping("/token")
     public ResponseEntity<UserDTO> login(@RequestBody LoginParam param) {
-        long expiresSeconds = 7 * 24 * 60 * 60;
         LoginResult res = userService.login(param.username, param.password);
         return ResponseEntity.ok().header("Set-Cookie",
                         ResponseCookie.from("X-Auth-Token", res.token())
                                 .path("/")
                                 .httpOnly(true)
                                 .secure(true)
-                                .maxAge(expiresSeconds)
+                                .maxAge(config.getExpire())
                                 .sameSite("Strict").build().toString())
                 .body(res.user());
     }
@@ -46,8 +50,8 @@ public class UserController {
      * 查询
      */
     @GetMapping
-    public List<UserDTO> getAll() {
-        return userService.getAll();
+    public PageResult<UserDTO> getAll(QueryParam queryParam) {
+        return userService.getAll(queryParam);
     }
 
     /**

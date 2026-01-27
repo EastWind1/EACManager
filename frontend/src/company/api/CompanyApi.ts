@@ -1,6 +1,8 @@
 import type { AxiosInstance } from 'axios'
 import { useAxios } from '@/common/api/AxiosConfig.ts'
 import type { Company } from '../model/Company.ts'
+import type { QueryParam } from '@/common/model/QueryParam.ts'
+import type { PageResult } from '@/common/model/PageResult.ts'
 
 let axiosInstance: AxiosInstance
 
@@ -18,9 +20,11 @@ const CompanyApi = {
   /**
    * 获取所有公司
    */
-  async getAll() {
-    const res = await getAxios().get('')
-    return res.data as Company[]
+  async getAll(param: QueryParam) {
+    const res = await getAxios().get('', {
+      params: param
+    })
+    return res.data as PageResult<Company>
   },
   /**
    * 创建公司

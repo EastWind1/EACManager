@@ -1,7 +1,16 @@
 <!-- 用户管理 -->
 <template>
   <v-container>
-    <v-data-table :headers="headers" :items="users" hide-default-footer items-per-page="-1">
+    <v-data-table
+      :headers="headers"
+      :items="data.items"
+      :items-length="data.totalCount"
+      :items-per-page="data.pageSize ? data.pageSize : 20"
+      class="mt-2 flex-grow-1"
+      mobile-breakpoint="sm"
+      show-select
+      @update:options="loadItems"
+    >
       <template #[`item.authority`]="{ item }">
         {{ AuthorityRole[item.authority].title }}
       </template>
@@ -80,6 +89,7 @@ import UserApi from '../api/UserApi.ts'
 import { useUIStore } from '@/common/store/UIStore.ts'
 import { useUserStore } from '../store/UserStore.ts'
 import Crypto from '@/common/util/Crypto.ts'
+import type { PageResult } from '@/common/model/PageResult.ts'
 
 // 表头
 const headers = [
@@ -91,7 +101,13 @@ const headers = [
   { title: '操作', key: 'actions', sortable: false },
 ]
 // 列表数据
-const users = ref<User[]>([])
+const data = ref<PageResult<User>>({
+  items: [],
+  totalCount: 0,
+  totalPages: 0,
+  pageSize: 0,
+  pageIndex: 0,
+})
 // 映射选项，禁用管理员选项
 const options = Object.values(AuthorityRole).map((item) => ({
   title: item.title,
@@ -159,8 +175,8 @@ async function disable(user: User) {
   const { confirm } = useUIStore()
   if (user.id && (await confirm('确认', '确定要禁用该用户吗？'))) {
     await UserApi.disable(user.username)
-    const index = users.value.findIndex((u) => u.id === user.id)
-    users.value.splice(index, 1)
+    const index = data.value.items.findIndex((u) => u.id === user.id)
+    data.value.items.splice(index, 1)
   }
 }
 
@@ -183,20 +199,25 @@ async function saveUser() {
       delete postUser.password
       delete postUser.passwordAgain
     }
-    const index = users.value.findIndex((u) => u.id === postUser.id)
-    users.value[index] = await UserApi.update(postUser)
+    const index = data.value.items.findIndex((u) => u.id === postUser.id)
+    data.value.items[index] = await UserApi.update(postUser)
   } else {
     // 创建
-    users.value.push(await UserApi.create(postUser))
+    data.value.items.push(await UserApi.create(postUser))
   }
 
   dialogData.value.show = false
 }
 
-// 初始化
-async function init() {
-  users.value = (await UserApi.getAll()) ?? []
+// 查询
+async function loadItems(options: {
+  page: number
+  itemsPerPage: number
+  sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
+}) {
+  data.value = await UserApi.getAll({
+    pageIndex: options.page - 1,
+    pageSize: options.itemsPerPage,
+  })
 }
-
-init()
 </script>

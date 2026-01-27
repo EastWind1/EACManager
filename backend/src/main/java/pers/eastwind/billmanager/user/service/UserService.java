@@ -1,11 +1,12 @@
 package pers.eastwind.billmanager.user.service;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -14,10 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import pers.eastwind.billmanager.common.exception.BizException;
+import pers.eastwind.billmanager.common.model.PageResult;
+import pers.eastwind.billmanager.common.model.QueryParam;
+import pers.eastwind.billmanager.user.model.AuthorityRole;
+import pers.eastwind.billmanager.user.util.AuthUtil;
 import pers.eastwind.billmanager.user.model.*;
 import pers.eastwind.billmanager.user.repository.UserRepository;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,32 +39,26 @@ public class UserService implements UserDetailsService {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
     }
-    private User getCurUser() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getPrincipal() == null) {
-            throw new BizException("无法获取登录信息");
-        }
-        return (User) auth.getPrincipal();
-    }
     /**
-     * 获取用户
+     * 获取启用用户
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
-    public List<UserDTO> getAll() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getPrincipal() == null) {
-            throw new BizException("无法获取登录信息");
+    public PageResult<UserDTO> getAll(QueryParam queryParam) {
+        User curUser = AuthUtil.getCurUser();
+        if (curUser == null || queryParam == null) {
+            return PageResult.empty();
         }
-        User curUser = getCurUser();
-        // 非管理员只能获取自己
-        if (curUser.getAuthority() == AuthorityRole.ROLE_ADMIN) {
-            return userRepository.findAllEnabled().stream().map(userMapper::toBaseDTO).toList();
-        } else {
+
+        if (AuthUtil.hasAnyRole(curUser, AuthorityRole.ROLE_ADMIN)) {
+            Page<User> users = userRepository.findByIsEnabled(true, queryParam.getPageable());
+            return PageResult.fromPage(users, userMapper::toDTO);
+        } else { // 非管理员只能获取自己
             User user = userRepository.findById(curUser.getId()).orElse(null);
             if (user == null) {
-                return new ArrayList<>();
+                return PageResult.empty();
             }
-            return List.of(userMapper.toBaseDTO(user));
+
+            return new PageResult<>(userMapper.toBaseDTOs(List.of(user)), 1L, 1, 1, 0);
         }
     }
 
@@ -100,7 +98,10 @@ public class UserService implements UserDetailsService {
         if (user.getId() == null) {
             throw new BizException("id 不能为空");
         }
-        User curUser = getCurUser();
+        User curUser = AuthUtil.getCurUser();
+        if (curUser == null) {
+            throw new AccessDeniedException("未登录");
+        }
         if (curUser.getAuthority() != AuthorityRole.ROLE_ADMIN && !curUser.getId().equals(user.getId())) {
             throw new AccessDeniedException("无权限修改其他用户信息");
         }
@@ -139,7 +140,10 @@ public class UserService implements UserDetailsService {
 
     @Override
     @Cacheable(value = "user", key = "#username")
-    public User loadUserByUsername(String username) throws UsernameNotFoundException {
+    public @NonNull User loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
+        if (username.isEmpty()) {
+            throw new UsernameNotFoundException("用户名不能为空");
+        }
         User user = userRepository.findByUsername(username);
         if (user == null) {
             throw new UsernameNotFoundException("未找到用户名为 " + username + " 的用户");
@@ -158,6 +162,9 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findByUsername(username);
         if (user == null || !user.isEnabled()) {
             throw new BizException("用户不存在");
+        }
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new BizException("密码不能为空");
         }
         if (!BCrypt.checkpw(password, user.getPassword())) {
             throw new BizException("用户名或密码错误");

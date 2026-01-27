@@ -310,7 +310,7 @@ async function companySelect() {
   if (companyData.value.loaded) {
     return
   }
-  companyData.value.data = await CompanyApi.getAll()
+  companyData.value.data = await CompanyApi.getAll({}).then(res => res.items)
   companyData.value.loaded = true
 }
 // 保存快捷键

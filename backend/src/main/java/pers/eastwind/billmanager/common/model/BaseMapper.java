@@ -1,12 +1,13 @@
 package pers.eastwind.billmanager.common.model;
 
 import org.mapstruct.MappingTarget;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.user.model.AuthorityRole;
-import pers.eastwind.billmanager.user.model.User;
+import pers.eastwind.billmanager.user.util.AuthUtil;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * 基础实体、DTO 映射
@@ -35,6 +36,19 @@ public interface BaseMapper<E, DTO> {
      * @return 基础 DTO
      */
     DTO toBaseDTO(E entity);
+    /**
+     * 转换为基础 DTO 列表
+     */
+    default List<DTO> toBaseDTOs(Collection<E> entities) {
+        List<DTO> res = new ArrayList<>();
+        if (entities == null) {
+            return res;
+        }
+        for (E entity : entities) {
+            res.add(toBaseDTO(entity));
+        }
+        return res;
+    }
 
     /**
      * 更新实体
@@ -46,25 +60,7 @@ public interface BaseMapper<E, DTO> {
      * @see AuthorityRole
      */
     default boolean hasRole(AuthorityRole... roles) {
-        if (roles == null || roles.length == 0) {
-            return true;
-        }
-        SecurityContext securityContext = SecurityContextHolder.getContext();
-        Authentication authentication = securityContext.getAuthentication();
-        if (authentication == null) {
-            return false;
-        }
-        User user = (User) authentication.getPrincipal();
-        if (user == null) {
-            return false;
-        }
-        AuthorityRole authority = user.getAuthority();
-        for (AuthorityRole role : roles) {
-            if (authority == role) {
-                return true;
-            }
-        }
-        return false;
+        return AuthUtil.hasAnyRole(roles);
     }
     /**
      * 权限判断

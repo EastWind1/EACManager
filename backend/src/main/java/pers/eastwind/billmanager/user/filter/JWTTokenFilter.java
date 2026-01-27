@@ -8,15 +8,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import pers.eastwind.billmanager.user.model.User;
 import pers.eastwind.billmanager.user.service.JWTService;
 import pers.eastwind.billmanager.user.service.UserService;
 
@@ -59,7 +56,7 @@ public class JWTTokenFilter extends OncePerRequestFilter {
                 log.error("JWT 解析失败: {}", token);
             }
             if (userName != null) {
-                UserDetails user = userService.loadUserByUsername(userName);
+                User user = userService.loadUserByUsername(userName);
                 if (user.isEnabled()) {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             user, user.getPassword(), user.getAuthorities()

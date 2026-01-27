@@ -1,9 +1,12 @@
 package pers.eastwind.billmanager.company.service;
 
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.common.exception.BizException;
+import pers.eastwind.billmanager.common.model.PageResult;
+import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.company.model.Company;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
 import pers.eastwind.billmanager.company.model.CompanyMapper;
@@ -21,13 +24,9 @@ public class CompanyService {
         this.companyRepository = companyRepository;
         this.companyMapper = companyMapper;
     }
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<CompanyDTO> findAll() {
-        return companyRepository.findAll().stream().map(companyMapper::toDTO).toList();
-    }
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public List<CompanyDTO> findEnabled() {
-        return companyRepository.findByIsDisabled(false).stream().map(companyMapper::toDTO).toList();
+    public PageResult<CompanyDTO> findEnabled(QueryParam queryParam) {
+        return PageResult.fromPage(companyRepository.findByIsDisabled(false, queryParam.getPageable()), companyMapper::toDTO);
     }
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional

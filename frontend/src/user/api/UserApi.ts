@@ -1,6 +1,8 @@
 import { useAxios } from '@/common/api/AxiosConfig.ts'
 import type { User } from '../model/User.ts'
 import type { AxiosInstance } from 'axios'
+import type { QueryParam } from '@/common/model/QueryParam.ts'
+import type { PageResult } from '@/common/model/PageResult.ts'
 
 let axiosInstance: AxiosInstance
 
@@ -32,9 +34,11 @@ const UserApi = {
   /**
    * 获取所有用户
    */
-  async getAll() {
-    const res = await getAxios().get('')
-    return res.data as User[]
+  async getAll(param: QueryParam) {
+    const res = await getAxios().get('', {
+      params: param
+    })
+    return res.data as PageResult<User>
   },
 
   /**
