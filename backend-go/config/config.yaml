@@ -1,0 +1,22 @@
+server:
+  port: 8080
+  mode: release
+log:
+  level: info
+db:
+  host: localhost
+  port: 5432
+  name: dump
+  username: postgres
+  password: admin
+  sslmode: disable
+cache:
+  expire: 86400
+jwt:
+  secret: -the-security-key-must-be-256-bits-means-32-ASCII-characters
+  expire: 604800
+
+attachment:
+  path: attachment
+  temp: temp
+  maxFileSize: 52428800

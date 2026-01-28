@@ -1,0 +1,37 @@
+package repository
+
+import (
+	"backend-go/internal/common/database"
+	"backend-go/internal/common/result"
+	"backend-go/internal/company/model"
+	"context"
+
+	"gorm.io/gorm"
+)
+
+type CompanyRepository struct {
+	*database.BaseRepository[model.Company]
+}
+
+func NewCompanyRepository(db *gorm.DB) *CompanyRepository {
+	return &CompanyRepository{
+		BaseRepository: database.NewBaseRepository[model.Company](db),
+	}
+}
+
+// FindAllEnabled 查找所有启用的公司
+func (r *CompanyRepository) FindAllEnabled(ctx context.Context, pageable *result.QueryParam) (*result.PageResult[model.Company], error) {
+	return r.FindAllWithPage(ctx, pageable, "is_disabled = ?", false)
+}
+
+// FindEnabledByNameContains 根据名称查找启用的公司
+func (r *CompanyRepository) FindEnabledByNameContains(ctx context.Context, name string) (*[]model.Company, error) {
+	return r.FindAll(ctx, "is_disabled = ? and name LIKE ?", false, "%"+name+"%")
+}
+
+// WithTransaction 开启事务, 内部操作数据库务必使用回调传入的实例
+func (r *CompanyRepository) WithTransaction(fn func(r *CompanyRepository) error) error {
+	return r.Db.Transaction(func(tx *gorm.DB) error {
+		return fn(NewCompanyRepository(tx))
+	})
+}
