@@ -8,8 +8,7 @@
           <v-row justify="space-between">
             <!-- 左侧单据头 -->
             <v-col cols="6">
-              <v-row justify="start">
-                <!-- 单号 -->
+              <v-row>
                 <v-col>
                   <v-text-field
                     v-if="serviceBill.state === ServiceBillState.CREATED.value"
@@ -17,30 +16,30 @@
                     label="单号"
                     placeholder="可生成自动"
                   ></v-text-field>
-                  <h3 v-else>单号: {{ serviceBill.number }}</h3>
+                  <div v-else>
+                    <div class="text-h6">单号: {{ serviceBill.number }}</div>
+                  </div>
                 </v-col>
                 <!-- 单据状态 -->
                 <v-col>
-                  <h3>
+                  <div class="text-h6">
                     状态:
-                    <v-badge
+                    <v-chip
                       :color="ServiceBillState[serviceBill.state].color"
-                      :content="ServiceBillState[serviceBill.state].title"
-                      inline
-                    ></v-badge>
-                  </h3>
+                      size="small"
+                      class="text-white"
+                    >
+                      {{ ServiceBillState[serviceBill.state].title }}
+                    </v-chip>
+                  </div>
                 </v-col>
                 <!-- 总金额 -->
                 <v-col>
-                  <h3>
-                    总金额:
-                    <span class="text-red"
-                      >￥
-                      {{
-                        serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00'
-                      }}</span
-                    >
-                  </h3>
+                  <div class="text-h6">
+                    总金额: ￥{{
+                      serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00'
+                    }}
+                  </div>
                 </v-col>
               </v-row>
             </v-col>
@@ -80,17 +79,19 @@
                   >删除
                 </v-btn>
                 <v-btn v-if="isEditState" :loading="loading" type="submit">保存</v-btn>
+                <v-btn v-if="isEditState" @click="cancel" color="warning">取消</v-btn>
               </v-row>
             </v-col>
           </v-row>
         </template>
       </v-card>
-      <!-- 基本信息 -->
-      <v-card class="mt-5">
-        <template #title>基本信息</template>
+      <v-card class="mt-4">
+        <template #title>
+          <v-icon :icon="mdiFileDocument" class="me-2"></v-icon>
+          基本信息
+        </template>
         <template #text>
           <v-row>
-            <!-- 单据类型 -->
             <v-col cols="12" lg="4" md="6" sm="12" xl="3">
               <v-select
                 v-model="serviceBill.type"
@@ -146,8 +147,11 @@
         </template>
       </v-card>
       <!-- 现场信息 -->
-      <v-card class="mt-5">
-        <template #title>现场信息</template>
+      <v-card class="mt-4">
+        <template #title>
+          <v-icon :icon="mdiMapMarker" class="me-2"></v-icon>
+          现场信息
+        </template>
         <template #text>
           <v-row>
             <!-- 现场联系人 -->
@@ -177,8 +181,14 @@
       <v-card class="mt-5">
         <template #title>
           <v-tabs v-model="tab">
-            <v-tab class="v-card-title" value="detail">明细</v-tab>
-            <v-tab class="v-card-title" value="attachment">附件</v-tab>
+            <v-tab value="detail">
+              <v-icon :icon="mdiListBox" class="me-2"></v-icon>
+              明细
+            </v-tab>
+            <v-tab value="attachment">
+              <v-icon :icon="mdiPaperclip" class="me-2"></v-icon>
+              附件
+            </v-tab>
           </v-tabs>
         </template>
         <template #text>
@@ -198,8 +208,11 @@
         </template>
       </v-card>
       <!-- 其他字段 -->
-      <v-card class="mt-5">
-        <template #title>其它信息</template>
+      <v-card class="mt-4">
+        <template #title>
+          <v-icon :icon="mdiInformation" class="me-2"></v-icon>
+          其它信息
+        </template>
         <template #text>
           <v-row>
             <v-col cols="12">
@@ -207,38 +220,36 @@
             </v-col>
             <!-- 创建时间 -->
             <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-              <label
+              <div
                 v-if="serviceBill.state !== ServiceBillState.CREATED.value"
-                class="text-subtitle-1"
-                >创建时间
+                class="text-subtitle-2 mb-1"
+              >
+                创建时间
                 {{
                   serviceBill.orderDate
                     ? dateUtil.format(serviceBill.orderDate, 'keyboardDate')
                     : ''
-                }}</label
-              >
+                }}
+              </div>
               <v-date-input
                 v-else
                 v-model="serviceBill.orderDate"
                 :readonly="!isEditState"
                 label="创建时间"
-                prepend-icon=""
-                prepend-inner-icon="$calendar"
-              >
-              </v-date-input>
+                variant="outlined"
+                density="compact"
+              ></v-date-input>
             </v-col>
             <!-- 处理完成时间 -->
             <v-col v-if="serviceBill.processedDate" cols="12" lg="4" md="6" sm="12" xl="3">
-              <label class="text-subtitle-1"
-                >处理完成时间
-                {{ dateUtil.format(serviceBill.processedDate, 'keyboardDate') }}</label
-              >
+              <div class="text-subtitle-2 mb-1">
+                处理完成时间 {{ dateUtil.format(serviceBill.processedDate, 'keyboardDate') }}
+              </div>
             </v-col>
-            <!-- 回款完成时间 -->
             <v-col v-if="serviceBill.finishedDate" cols="12" lg="4" md="6" sm="12" xl="3">
-              <label class="text-subtitle-1"
-                >回款完成时间 {{ dateUtil.format(serviceBill.finishedDate, 'keyboardDate') }}</label
-              >
+              <div class="text-subtitle-2 mb-1">
+                回款完成时间 {{ dateUtil.format(serviceBill.finishedDate, 'keyboardDate') }}
+              </div>
             </v-col>
           </v-row>
         </template>
@@ -254,13 +265,21 @@ import BillFormDetail from '../component/BillFormDetail.vue'
 import ServiceBillApi from '../api/ServiceBillApi.ts'
 import { storeToRefs } from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/common/store/UIStore.ts'
 import { useRouterStore } from '@/common/store/RouterStore.ts'
 import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 import { useBillActions } from '../composable/BillActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
-import { mdiNavigation, mdiPhone } from '@mdi/js'
+import {
+  mdiFileDocument,
+  mdiPhone,
+  mdiNavigation,
+  mdiMapMarker,
+  mdiListBox,
+  mdiPaperclip,
+  mdiInformation,
+} from '@mdi/js'
 import { useDate, useDisplay, useHotkey } from 'vuetify/framework'
 import type { Company } from '@/company/model/Company.ts'
 import CompanyApi from '@/company/api/CompanyApi.ts'
@@ -269,6 +288,7 @@ const store = useUIStore()
 const { loading } = storeToRefs(store)
 const { warning, success } = store
 const route = useRoute()
+const router = useRouter()
 const { mobile } = useDisplay()
 const dateUtil = useDate()
 // 页面是否编辑状态
@@ -310,12 +330,14 @@ async function companySelect() {
   if (companyData.value.loaded) {
     return
   }
-  companyData.value.data = await CompanyApi.getAll({}).then(res => res.items)
+  companyData.value.data = await CompanyApi.getAll({}).then((res) => res.items)
   companyData.value.loaded = true
 }
 // 保存快捷键
 useHotkey('ctrl+s', save)
-// 提交表单
+/**
+ * 提交表单
+ */
 async function save() {
   if (valid.value) {
     let bill
@@ -333,6 +355,24 @@ async function save() {
   }
 }
 
+/**
+ * 取消编辑
+ */
+async function cancel() {
+  // 二次确认
+  const confirmed = await store.confirm('取消', '是否取消编辑？')
+  if (!confirmed) {
+    return
+  }
+  // 已有单据重新加载
+  if (serviceBill.value.id) {
+    serviceBill.value = await ServiceBillApi.getById(serviceBill.value.id)
+    isEditState.value = false
+  } else {
+    // 新增单据跳转回列表
+    await router.push('/serviceBill')
+  }
+}
 /**
  * 处理动作结果
  */

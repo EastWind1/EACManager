@@ -3,6 +3,7 @@ package pers.eastwind.billmanager.servicebill.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
@@ -23,6 +24,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/serviceBill")
+@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class ServiceBillController {
     private final ServiceBillBizService serviceBillBizService;
     private final ServiceBillIOService serviceBillIOService;

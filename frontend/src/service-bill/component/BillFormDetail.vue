@@ -11,18 +11,8 @@
       <!-- 最后一列显示操作按钮 -->
       <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
       <template #[`item.actions`]="{ item }">
-        <div class="d-flex ga-3">
-          <v-icon
-            :icon="mdiPencil"
-            size="small"
-            @click="editDetail(item)"
-          ></v-icon>
-          <v-icon
-            :icon="mdiDelete"
-            size="small"
-            @click="deleteDetail(item)"
-          ></v-icon>
-        </div>
+        <v-btn :icon="mdiPencil" size="small" @click="editDetail(item)" variant="plain"></v-btn>
+        <v-btn :icon="mdiDelete" size="small" @click="deleteDetail(item)" variant="plain"></v-btn>
       </template>
 
       <!-- 最后一行添加加号按钮 -->
@@ -82,7 +72,7 @@ import { computed, ref, toRefs, watchEffect } from 'vue'
 
 // 表单标题
 const detailHeaders = computed(() => {
-  const base: {title: string, key: string, sortable?: boolean}[] = [
+  const base: { title: string; key: string; sortable?: boolean }[] = [
     { title: '设备类型', key: 'device' },
     { title: '数量', key: 'quantity' },
     { title: '单价', key: 'unitPrice' },

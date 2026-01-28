@@ -1,7 +1,6 @@
 package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.servicebill.model.MonthSumAmount;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillState;
@@ -14,7 +13,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class StatisticService {
     private final ServiceBillRepository serviceBillRepository;
 

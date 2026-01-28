@@ -1,8 +1,9 @@
 <template>
-  <div class="text-h3 d-flex justify-center mt-4">服务单管理系统</div>
-  <v-container class="d-flex align-center justify-center">
-    <v-card class="pa-6" elevation="6" width="400">
-      <v-card-title class="text-h5 text-center mb-6">登录</v-card-title>
+  <v-container class="fill-height d-flex justify-center align-center">
+    <v-card class="pa-8" elevation="4" width="420">
+      <v-card-title class="text-h4 text-center mb-6">
+        <div class="text-h5">服务单管理系统</div>
+      </v-card-title>
       <v-form v-model="valid" @submit.prevent="login">
         <v-text-field
           v-model="username"
@@ -18,8 +19,10 @@
           :type="showPassword ? 'text' : 'password'"
           label="密码"
           @click:append-inner="showPassword = !showPassword"
-        />
-        <v-btn :loading="loading" block class="mt-4" color="primary" type="submit">登录</v-btn>
+        ></v-text-field>
+        <v-btn :loading="loading" block class="mt-6" color="primary" size="large" type="submit"
+          >登录</v-btn
+        >
       </v-form>
     </v-card>
   </v-container>
@@ -27,7 +30,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { mdiAccount, mdiEye, mdiEyeOff, mdiLock } from '@mdi/js'
+import { mdiAccount, mdiCash, mdiEye, mdiEyeOff, mdiLock } from '@mdi/js'
 import UserApi from '../api/UserApi.ts'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'

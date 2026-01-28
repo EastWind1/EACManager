@@ -1,7 +1,11 @@
 <template>
   <v-container class="fill-height d-flex flex-column">
     <v-expansion-panels>
-      <v-expansion-panel title="过滤条件">
+      <v-expansion-panel>
+        <template #title>
+          <v-icon :icon="mdiFilter" class="me-2"></v-icon>
+          过滤条件
+        </template>
         <template #text>
           <v-container>
             <v-row>
@@ -32,8 +36,11 @@
               <v-col cols="12" lg="4" md="6" sm="12" xl="3">
                 <v-text-field v-model="queryParam.summary" clearable label="摘要" />
               </v-col>
-              <v-col class="text-right" cols="12">
-                <v-btn @click="search = new Date().toString()">查询</v-btn>
+              <v-col cols="12" class="text-right">
+                <v-btn @click="search = new Date().toString()">
+                  <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
+                  查询
+                </v-btn>
               </v-col>
             </v-row>
           </v-container>
@@ -64,7 +71,7 @@
         >
         <v-btn
           :disabled="loading"
-          color="red"
+          color="error"
           @click="remove(selectedIds)"
           v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
           >删除</v-btn
@@ -99,14 +106,12 @@
         <RouterLink :to="`/reimburse/${item.id}`">{{ item.number }}</RouterLink>
       </template>
       <template #[`item.state`]="{ item }">
-        <v-badge
-          :color="ReimburseState[item.state].color"
-          :content="ReimburseState[item.state].title"
-          inline
-        ></v-badge>
+        <v-chip :color="ReimburseState[item.state].color" size="small" class="text-white">
+          {{ ReimburseState[item.state].title }}
+        </v-chip>
       </template>
       <template #[`item.totalAmount`]="{ item }">
-        {{ item.totalAmount ? item.totalAmount.toFixed(2) : '0.00' }}
+        <div class="text-right">{{ item.totalAmount ? item.totalAmount.toFixed(2) : '0.00' }}</div>
       </template>
       <template #[`item.reimburseDate`]="{ item }">
         {{ item.reimburseDate ? dateUtil.format(item.reimburseDate, 'keyboardDate') : '' }}
@@ -115,9 +120,12 @@
 
     <v-dialog v-model="resultDialog.show">
       <v-card>
-        <template #title>批量处理结果</template>
-        <template #subtitle
-          >成功: {{ resultDialog.successCount }} 条，失败: {{ resultDialog.failedCount }} 条
+        <template #title>
+          <v-icon :icon="mdiInformation" class="me-2"></v-icon>
+          批量处理结果
+        </template>
+        <template #subtitle>
+          成功: {{ resultDialog.successCount }} 条，失败: {{ resultDialog.failedCount }} 条
         </template>
         <template #text>
           <v-data-table
@@ -153,6 +161,7 @@ import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 import { storeToRefs } from 'pinia'
 import { useReimburseActions } from '../composable/ReimburseActions.ts'
 import { AuthorityRole } from '@/user/model/User.ts'
+import { mdiFilter, mdiMagnify, mdiInformation } from '@mdi/js'
 import { useDate, useHotkey } from 'vuetify/framework'
 
 const store = useUIStore()

@@ -1,7 +1,11 @@
 <template>
   <v-container class="fill-height d-flex flex-column">
     <v-expansion-panels>
-      <v-expansion-panel title="过滤条件">
+      <v-expansion-panel>
+        <template #title>
+          <v-icon :icon="mdiFilter" class="me-2"></v-icon>
+          过滤条件
+        </template>
         <template #text>
           <v-container>
             <v-row>
@@ -42,11 +46,11 @@
                   prepend-inner-icon="$calendar"
                 ></v-date-input>
               </v-col>
-              <v-col class="text-right" cols="12">
-                <v-btn
-                  @click="search = new Date().toString()"
-                  >查询</v-btn
-                >
+              <v-col cols="12" class="text-right">
+                <v-btn @click="search = new Date().toString()">
+                  <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
+                  查询
+                </v-btn>
               </v-col>
             </v-row>
           </v-container>
@@ -86,21 +90,17 @@
         <RouterLink :to="`/service/${item.id}`">{{ item.number }}</RouterLink>
       </template>
       <template #[`item.state`]="{ item }">
-        <v-badge
-          :color="ServiceBillState[item.state].color"
-          :content="ServiceBillState[item.state].title"
-          inline
-        ></v-badge>
+        <v-chip :color="ServiceBillState[item.state].color" size="small" class="text-white">
+          {{ ServiceBillState[item.state].title }}
+        </v-chip>
       </template>
       <template #[`item.type`]="{ item }">
-        <v-badge
-          :color="ServiceBillType[item.type].color"
-          :content="ServiceBillType[item.type].title"
-          inline
-        ></v-badge>
+        <v-chip :color="ServiceBillType[item.type].color" size="small" class="text-white">
+          {{ ServiceBillType[item.type].title }}
+        </v-chip>
       </template>
       <template #[`item.totalAmount`]="{ item }">
-        {{ item.totalAmount.toFixed(2) }}
+        <div class="text-right">{{ item.totalAmount.toFixed(2) }}</div>
       </template>
       <template #[`item.orderDate`]="{ item }">
         {{ item.orderDate ? dateUtil.format(item.orderDate, 'keyboardDate') : '' }}
@@ -112,9 +112,12 @@
 
     <v-dialog v-model="resultDialog.show">
       <v-card>
-        <template #title>批量处理结果</template>
-        <template #subtitle
-          >成功: {{ resultDialog.successCount }} 条，失败: {{ resultDialog.failedCount }} 条
+        <template #title>
+          <v-icon :icon="mdiInformation" class="me-2"></v-icon>
+          批量处理结果
+        </template>
+        <template #subtitle>
+          成功: {{ resultDialog.successCount }} 条，失败: {{ resultDialog.failedCount }} 条
         </template>
         <template #text>
           <v-data-table
@@ -126,7 +129,10 @@
           ></v-data-table>
         </template>
         <template #actions>
-          <v-btn @click="resultDialog.show = false">关闭</v-btn>
+          <v-btn @click="resultDialog.show = false">
+            <v-icon :icon="mdiClose" class="me-2"></v-icon>
+            关闭
+          </v-btn>
         </template>
       </v-card>
     </v-dialog>
@@ -152,6 +158,7 @@ import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 import { useBillActions } from '../composable/BillActions.ts'
 import { storeToRefs } from 'pinia'
 import { useRouterStore } from '@/common/store/RouterStore.ts'
+import { mdiFilter, mdiMagnify, mdiInformation, mdiClose } from '@mdi/js'
 import { useDate, useHotkey } from 'vuetify/framework'
 
 const store = useUIStore()
@@ -212,7 +219,7 @@ const queryParam = ref<QueryParam>({
   ],
 })
 // 搜索快捷键
-useHotkey("enter", () => search.value = new Date().toString())
+useHotkey('enter', () => (search.value = new Date().toString()))
 // 处理路由参数
 const route = useRoute()
 if (route.query.hasOwnProperty('query')) {
@@ -382,7 +389,7 @@ async function importFile() {
     path: '/service',
     query: {
       action: 'import',
-    }
+    },
   })
 }
 

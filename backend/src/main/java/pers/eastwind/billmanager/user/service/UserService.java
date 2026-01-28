@@ -6,7 +6,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -42,7 +41,6 @@ public class UserService implements UserDetailsService {
     /**
      * 获取启用用户
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public PageResult<UserDTO> getAll(QueryParam queryParam) {
         User curUser = AuthUtil.getCurUser();
         if (curUser == null || queryParam == null) {
@@ -69,7 +67,6 @@ public class UserService implements UserDetailsService {
      * @return 创建后的用户
      */
     @Transactional
-    @PreAuthorize("hasAnyRole('ADMIN')")
     public UserDTO create(UserDTO user) {
         if (user.getUsername() == null || user.getUsername().isEmpty()) {
             throw new BizException("用户名不能为空");
@@ -93,7 +90,6 @@ public class UserService implements UserDetailsService {
      */
     @Transactional
     @CacheEvict(value = "user", key = "#user.username")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public UserDTO update(UserDTO user) {
         if (user.getId() == null) {
             throw new BizException("id 不能为空");
@@ -128,7 +124,6 @@ public class UserService implements UserDetailsService {
      */
     @Transactional
     @CacheEvict(value = "user", key = "#username")
-    @PreAuthorize("hasAnyRole('ADMIN')")
     public void disable(String username) {
         User user = userRepository.findByUsername(username);
         if (user == null) {

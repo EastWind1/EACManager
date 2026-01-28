@@ -9,7 +9,6 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -23,7 +22,6 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -233,7 +231,6 @@ public class AttachmentService implements InitializingBean {
      * @param resource 文件资源
      * @param path     相对附件目录路径
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     private Attachment uploadSingle(Resource resource, Path path) {
         if (resource == null || !resource.exists()) {
             throw new IllegalArgumentException("禁止上传空文件");
@@ -277,7 +274,6 @@ public class AttachmentService implements InitializingBean {
      * @param resources 文件资源
      * @return 附件实体列表
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public List<Attachment> uploadTemp(List<Resource> resources) {
         if (resources == null || resources.isEmpty()) {
             throw new IllegalArgumentException("禁止上传空文件");
@@ -295,7 +291,6 @@ public class AttachmentService implements InitializingBean {
      * @param path 文件路径
      * @return 文件资源
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     public Resource loadByPath(Path path) {
         validPath(path);
         if (!Files.exists(path) || Files.isDirectory(path)) {

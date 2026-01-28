@@ -4,10 +4,10 @@
       <!-- 单据头部 -->
       <v-card>
         <template #text>
-          <v-row justify="space-between">
+          <v-row>
             <!-- 左侧单据头 -->
             <v-col cols="6">
-              <v-row justify="start">
+              <v-row>
                 <!-- 单号 -->
                 <v-col>
                   <v-text-field
@@ -16,30 +16,30 @@
                     label="单号"
                     placeholder="可生成自动"
                   ></v-text-field>
-                  <h3 v-else>单号: {{ reimbursement.number }}</h3>
+                  <div v-else>
+                    <div class="text-h6">单号: {{ reimbursement.number }}</div>
+                  </div>
                 </v-col>
                 <!-- 单据状态 -->
                 <v-col>
-                  <h3>
+                  <div class="text-h6">
                     状态:
-                    <v-badge
+                    <v-chip
                       :color="ReimburseState[reimbursement.state].color"
-                      :content="ReimburseState[reimbursement.state].title"
-                      inline
-                    ></v-badge>
-                  </h3>
+                      size="small"
+                      class="text-white"
+                    >
+                      {{ ReimburseState[reimbursement.state].title }}
+                    </v-chip>
+                  </div>
                 </v-col>
                 <!-- 总金额 -->
                 <v-col>
-                  <h3>
-                    总金额:
-                    <span class="text-red"
-                      >￥
-                      {{
-                        reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00'
-                      }}</span
-                    >
-                  </h3>
+                  <div class="text-h6">
+                    总金额: ￥{{
+                      reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00'
+                    }}
+                  </div>
                 </v-col>
               </v-row>
             </v-col>
@@ -74,6 +74,7 @@
                   v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                   :loading="loading"
                   @click="remove([reimbursement.id!])"
+                  color="error"
                   >删除
                 </v-btn>
                 <v-btn
@@ -81,16 +82,22 @@
                   :loading="loading"
                   type="submit"
                   v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                  >保存</v-btn
-                >
+                  color="primary"
+                  >保存
+                </v-btn>
+                <v-btn v-if="isEditState" :loading="loading" @click="cancel" color="warning"
+                  >取消
+                </v-btn>
               </v-row>
             </v-col>
           </v-row>
         </template>
       </v-card>
-      <!-- 基本信息 -->
-      <v-card class="mt-5">
-        <template #title>基本信息</template>
+      <v-card class="mt-4">
+        <template #title>
+          <v-icon :icon="mdiFileDocument" class="me-2"></v-icon>
+          基本信息
+        </template>
         <template #text>
           <v-row>
             <!-- 摘要 -->
@@ -107,35 +114,40 @@
             </v-col>
             <!-- 报销日期 -->
             <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-              <label
+              <div
                 v-if="reimbursement.state !== ReimburseState.CREATED.value"
-                class="text-subtitle-1"
-                >报销日期
+                class="text-subtitle-2 mb-1"
+              >
+                报销日期
                 {{
                   reimbursement.reimburseDate
                     ? dateUtil.format(reimbursement.reimburseDate, 'keyboardDate')
                     : ''
-                }}</label
-              >
+                }}
+              </div>
               <v-date-input
                 v-else
                 v-model="reimbursement.reimburseDate"
                 :readonly="!isEditState"
                 label="报销日期"
-                prepend-icon=""
-                prepend-inner-icon="$calendar"
-              >
-              </v-date-input>
+                variant="outlined"
+                density="compact"
+              ></v-date-input>
             </v-col>
           </v-row>
         </template>
       </v-card>
-      <!-- 明细 -->
-      <v-card class="mt-5">
+      <v-card class="mt-4">
         <template #title>
           <v-tabs v-model="tab">
-            <v-tab class="v-card-title" value="detail">明细</v-tab>
-            <v-tab class="v-card-title" value="attachment">附件</v-tab>
+            <v-tab value="detail">
+              <v-icon :icon="mdiListBox" class="me-2"></v-icon>
+              明细
+            </v-tab>
+            <v-tab value="attachment">
+              <v-icon :icon="mdiPaperclip" class="me-2"></v-icon>
+              附件
+            </v-tab>
           </v-tabs>
         </template>
         <template #text>
@@ -165,18 +177,20 @@ import ReimburseDetail from '../component/ReimburseDetail.vue'
 import ReimburseApi from '../api/ReimburseApi.ts'
 import { storeToRefs } from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/common/store/UIStore.ts'
 import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 import { useReimburseActions } from '../composable/ReimburseActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
 import { AuthorityRole } from '@/user/model/User.ts'
 import { useDate } from 'vuetify/framework'
+import { mdiFileDocument, mdiListBox, mdiPaperclip } from '@mdi/js'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
 const { warning, success } = store
 const route = useRoute()
+const router = useRouter()
 const dateUtil = useDate()
 // 页面是否编辑状态
 const isEditState = ref(false)
@@ -199,7 +213,9 @@ const requiredRule = (v: unknown) => !!v || '必填项'
 // 当前 Tab 页
 const tab = ref('detail')
 
-// 提交表单
+/**
+ * 保存
+ */
 async function save() {
   if (valid.value) {
     let bill
@@ -216,7 +232,24 @@ async function save() {
     reimbursement.value = bill
   }
 }
-
+/**
+ * 取消编辑
+ */
+async function cancel() {
+  // 二次确认
+  const confirmed = await store.confirm('取消', '是否取消编辑？')
+  if (!confirmed) {
+    return
+  }
+  // 已有单据重新加载
+  if (reimbursement.value.id) {
+    reimbursement.value = await ReimburseApi.getById(reimbursement.value.id)
+    isEditState.value = false
+  } else {
+    // 新增单据跳转回列表
+    await router.push('/serviceBill')
+  }
+}
 /**
  * 处理动作结果
  */

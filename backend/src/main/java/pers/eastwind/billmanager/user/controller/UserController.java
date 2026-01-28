@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.user.controller;
 
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
@@ -49,6 +50,7 @@ public class UserController {
     /**
      * 查询
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @GetMapping
     public PageResult<UserDTO> getAll(QueryParam queryParam) {
         return userService.getAll(queryParam);
@@ -57,6 +59,7 @@ public class UserController {
     /**
      * 创建
      */
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping
     public UserDTO create(@RequestBody UserDTO user) {
         return userService.create(user);
@@ -65,6 +68,7 @@ public class UserController {
     /**
      * 修改
      */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @PutMapping
     public UserDTO update(@RequestBody UserDTO user) {
         return userService.update(user);
@@ -75,6 +79,7 @@ public class UserController {
      * @param username 用户名
      */
     @DeleteMapping("/{username}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public void disable(@PathVariable String username) {
         userService.disable(username);
     }

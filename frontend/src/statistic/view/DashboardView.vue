@@ -4,38 +4,30 @@
     <v-row>
       <!-- 待处理单据与处理中单据 -->
       <v-col cols="12" md="6">
-        <v-card>
-          <template #title>单据统计</template>
+        <v-card class="h-100">
+          <template #title>
+            <div class="d-flex align-center">
+              <v-icon :icon="mdiMonitorDashboard" color="primary" class="mr-2"></v-icon>
+              <span>单据统计</span>
+            </div>
+          </template>
           <template #text>
             <v-container>
               <v-row>
-                <v-col
-                  class="v-card--hover"
-                  cols="6"
-                  @click="stateClick(ServiceBillState.CREATED.value)"
-                >
-                  <div class="text-h6 text-center">待处理单据</div>
+                <v-col cols="6" @click="stateClick(ServiceBillState.CREATED.value)">
+                  <div class="text-subtitle-2 text-center">待处理单据</div>
                   <div class="text-h4 text-center">
                     {{ countByState.CREATED ? countByState.CREATED : 0 }}
                   </div>
                 </v-col>
-                <v-col
-                  class="v-card--hover"
-                  cols="6"
-                  @click="stateClick(ServiceBillState.PROCESSING.value)"
-                >
-                  <div class="text-h6 text-center">处理中单据</div>
+                <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSING.value)">
+                  <div class="text-subtitle-2 text-center">处理中单据</div>
                   <div class="text-h4 text-center">
                     {{ countByState.PROCESSING ? countByState.PROCESSING : 0 }}
                   </div>
                 </v-col>
-
-                <v-col
-                  class="v-card--hover"
-                  cols="6"
-                  @click="stateClick(ServiceBillState.PROCESSED.value)"
-                >
-                  <div class="text-h6 text-center">处理完成单据</div>
+                <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSED.value)">
+                  <div class="text-subtitle-2 text-center">处理完成单据</div>
                   <div class="text-h4 text-center">
                     {{ countByState.PROCESSED ? countByState.PROCESSED : 0 }}
                   </div>
@@ -46,20 +38,23 @@
         </v-card>
       </v-col>
 
-      <!-- 当年收入趋势 -->
       <v-col cols="12" md="6">
-        <v-card>
-          <template #title> 近一年收入 </template>
+        <v-card class="h-100">
+          <template #title>
+            <div class="d-flex align-center">
+              <v-icon :icon="mdiCash" color="primary" class="mr-2"></v-icon>
+              <span>近一年收入</span>
+            </div>
+          </template>
           <template #text>
             <v-sparkline
               :labels="amountLabel"
               :model-value="amountValue"
-              color="blue"
+              color="primary"
               line-width="2"
               padding="8"
               smooth
-            >
-            </v-sparkline>
+            ></v-sparkline>
           </template>
         </v-card>
       </v-col>
@@ -72,6 +67,7 @@ import { computed, ref } from 'vue'
 import { ServiceBillState, type ServiceBillStateValue } from '@/service-bill/model/ServiceBill.ts'
 import { StatisticApi } from '../api/StatisticApi.ts'
 import { useRouter } from 'vue-router'
+import { mdiCash, mdiMonitorDashboard } from '@mdi/js'
 
 const router = useRouter()
 // 单据数量

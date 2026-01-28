@@ -13,8 +13,8 @@
     >
       <template #[`item.actions`]="{ item }">
         <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value">
-          <v-btn :icon="mdiPencil" @click="edit(item)"></v-btn>
-          <v-btn :icon="mdiClose" @click="disable(item)"></v-btn>
+          <v-btn :icon="mdiPencil" @click="edit(item)" size="small" variant="plain"></v-btn>
+          <v-btn :icon="mdiClose" @click="disable(item)" size="small" variant="plain"></v-btn>
         </template>
       </template>
       <!-- 最后一行添加加号按钮 -->
