@@ -14,6 +14,7 @@ import pers.eastwind.billmanager.attach.model.Attachment;
 import pers.eastwind.billmanager.attach.model.BillType;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.service.OfficeFileService;
+import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.reimburse.model.*;
@@ -243,8 +244,8 @@ public class ReimburseService {
         }
         // 创建临时目录
         String dirName = "导出-" + System.currentTimeMillis();
-        Path tempDir = attachmentService.getTempPath().resolve(dirName);
-        tempDir = attachmentService.createDirectory(tempDir);
+        Path tempPath = attachmentService.getTempPath().resolve(dirName);
+        FileUtil.createDirectories(tempPath);
         // 遍历生成 excel行，并拷贝附件
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("单据编号", "摘要", "总额", "报销日期", "备注"));
@@ -261,21 +262,29 @@ public class ReimburseService {
                             .collect(Collectors.joining())
             ));
             totalAmount = totalAmount.add(reimbursement.getTotalAmount());
-            // 复制附件文件夹
-            Path origin = attachmentService.getAbsolutePath(Path.of(reimbursement.getNumber()));
-            if (Files.exists(origin)) {
-                attachmentService.copy(origin, tempDir, true);
+            // 创建当前单据附件文件夹
+            Path curDir = tempPath.resolve(reimbursement.getNumber());
+            // 拷贝当前单据所有附件
+            List<Attachment> attachments = attachmentService.getByBill(reimbursement.getId(), BillType.REIMBURSEMENT);
+            for (Attachment attachment : attachments) {
+                Path origin = attachmentService.getRootPath().resolve(attachment.getRelativePath());
+                Path target = curDir.resolve(attachment.getName());
+                // 处理可能的重名
+                int repeatCount = 1;
+                while (Files.exists(target)) {
+                    target = curDir.resolve(repeatCount + "-" + attachment.getName());
+                    repeatCount++;
+                }
+                FileUtil.copy(origin, target);
             }
         }
         // 表合计
         rows.add(List.of("", "合计", totalAmount.toString(), "", ""));
 
-        Path excel = tempDir.resolve("导出结果.xlsx");
-        excel = attachmentService.createFile(excel);
+        Path excel = tempPath.resolve("导出结果.xlsx");
         officeFileService.generateExcelFromList(rows, excel);
-        // 压缩
-        Path zip = attachmentService.getTempPath().resolve(dirName + ".zip");
-        attachmentService.zip(tempDir, zip);
+        Path zip = attachmentService.getTempPath().resolve(tempPath + ".zip");
+        FileUtil.zip(tempPath, zip);
         return zip;
     }
 }

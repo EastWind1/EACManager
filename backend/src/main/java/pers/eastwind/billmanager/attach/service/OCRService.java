@@ -18,7 +18,7 @@ import java.util.List;
 @Service
 @Slf4j
 public class OCRService {
-    private InferenceEngine engine;
+    private volatile InferenceEngine engine;
 
     /**
      * 转换图像为字符串集合
@@ -29,7 +29,11 @@ public class OCRService {
     public List<String> parseImage(Path path) {
         // 懒加载 OCR 引擎
         if (engine == null) {
-            engine = InferenceEngine.getInstance(Model.ONNX_PPOCR_V4);
+            synchronized (this) {
+                if (engine == null) {
+                    engine = InferenceEngine.getInstance(Model.ONNX_PPOCR_V4);
+                }
+            }
         }
         OcrResult ocrResult;
         try {

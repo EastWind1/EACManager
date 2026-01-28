@@ -5,7 +5,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import pers.eastwind.billmanager.attach.service.AttachmentService;
+import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.reimburse.model.ReimburseQueryParam;
@@ -22,11 +22,9 @@ import java.util.List;
 @RequestMapping("/api/reimburse")
 public class ReimburseController {
     private final ReimburseService reimburseService;
-    private final AttachmentService attachmentService;
 
-    public ReimburseController(ReimburseService reimburseService, AttachmentService attachmentService) {
+    public ReimburseController(ReimburseService reimburseService) {
         this.reimburseService = reimburseService;
-        this.attachmentService = attachmentService;
     }
 
     /**
@@ -109,7 +107,7 @@ public class ReimburseController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @PostMapping(value = "/export", produces = "application/octet-stream")
     public Resource export(@RequestBody List<Integer> ids) {
-        return attachmentService.loadByPath(reimburseService.export(ids));
+        return FileUtil.loadByPath(reimburseService.export(ids));
     }
 
 }

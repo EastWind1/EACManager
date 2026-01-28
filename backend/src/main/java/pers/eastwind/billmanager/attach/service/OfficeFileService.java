@@ -6,6 +6,7 @@ import pers.eastwind.billmanager.common.exception.BizException;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,13 +64,19 @@ public class OfficeFileService {
      * 生成 Excel 文件
      * 只支持简单的二维数据
      * @param rows       数据
-     * @param targetFile 目标文件
+     * @param targetFile 目标文件, 若存在则替换
      */
     public void generateExcelFromList(List<List<String>> rows, Path targetFile) {
         if (rows == null || rows.isEmpty()) {
             throw new BizException("数据不能为空");
         }
-
+        if (!Files.exists(targetFile)) {
+            try {
+                Files.createFile(targetFile);
+            } catch (IOException e) {
+                throw new BizException("创建 Excel 失败", e);
+            }
+        }
         try (Workbook workbook = WorkbookFactory.create(true)) {
             Sheet sheet = workbook.createSheet("导出结果");
 
@@ -101,7 +108,7 @@ public class OfficeFileService {
                 workbook.write(fos);
             }
         } catch (IOException e) {
-            throw new BizException("生成Excel失败", e);
+            throw new BizException("写入 Excel 失败", e);
         }
     }
 }

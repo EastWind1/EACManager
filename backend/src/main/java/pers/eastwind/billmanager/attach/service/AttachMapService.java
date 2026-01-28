@@ -1,8 +1,9 @@
 package pers.eastwind.billmanager.attach.service;
 
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.Attachment;
+import pers.eastwind.billmanager.attach.model.AttachmentDTO;
 import pers.eastwind.billmanager.attach.model.AttachmentType;
+import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 
 import java.nio.file.Path;
@@ -31,12 +32,14 @@ public class AttachMapService {
      * @return 对象
      */
     @SuppressWarnings("unchecked")
-    public <T> T map(Attachment attachment) {
+    public <T> T map(AttachmentDTO attachment) {
         Path path = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
         switch (attachment.getType()) {
             case IMAGE, PDF -> {
                 if (attachment.getType() == AttachmentType.PDF) {
-                    path = attachmentService.renderPDFToImage(path);
+                    Path target = attachmentService.getTempPath().resolve(System.currentTimeMillis()+".jpg");
+                    FileUtil.convertPDFToImage(path, target);
+                    path = target;
                 }
                 List<String> texts = ocrService.parseImage(path);
                 for (AttachMapRule<?> mapRule : mapRules) {

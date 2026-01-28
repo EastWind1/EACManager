@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import pers.eastwind.billmanager.attach.service.AttachmentService;
+import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
@@ -14,7 +14,6 @@ import pers.eastwind.billmanager.servicebill.model.ServiceBillQueryParam;
 import pers.eastwind.billmanager.servicebill.service.ServiceBillBizService;
 import pers.eastwind.billmanager.servicebill.service.ServiceBillIOService;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
@@ -28,12 +27,10 @@ import java.util.List;
 public class ServiceBillController {
     private final ServiceBillBizService serviceBillBizService;
     private final ServiceBillIOService serviceBillIOService;
-    private final AttachmentService attachmentService;
 
-    public ServiceBillController(ServiceBillBizService serviceBillBizService, ServiceBillIOService serviceBillIOService, AttachmentService attachmentService) {
+    public ServiceBillController(ServiceBillBizService serviceBillBizService, ServiceBillIOService serviceBillIOService) {
         this.serviceBillBizService = serviceBillBizService;
         this.serviceBillIOService = serviceBillIOService;
-        this.attachmentService = attachmentService;
     }
 
     /**
@@ -83,7 +80,7 @@ public class ServiceBillController {
      * 通过文件创建
      */
     @PostMapping("/import")
-    public ServiceBillDTO importByFile(MultipartFile file) throws IOException {
+    public ServiceBillDTO importByFile(MultipartFile file)  {
         return serviceBillIOService.generateByFile(file.getResource());
     }
 
@@ -124,7 +121,7 @@ public class ServiceBillController {
      */
     @PostMapping(value = "/export", produces = "application/octet-stream")
     public Resource export(@RequestBody List<Integer> ids) {
-        return attachmentService.loadByPath(serviceBillIOService.export(ids));
+        return FileUtil.loadByPath(serviceBillIOService.export(ids));
     }
 
     /**
