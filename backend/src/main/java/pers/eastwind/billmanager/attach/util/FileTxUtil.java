@@ -8,6 +8,7 @@ import pers.eastwind.billmanager.common.exception.FileOpException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -131,7 +132,7 @@ public class FileTxUtil {
                         Path fileName = op.target().getFileName();
                         Path temp = Files.createTempFile(fileName.toString(), null);
                         temp.toFile().deleteOnExit();
-                        Files.move(op.target(), temp);
+                        Files.move(op.target(), temp, StandardCopyOption.REPLACE_EXISTING);
                         executedOps.add(new FileOp(FileOpType.MOVE, op.target(), temp));
                     }
                     default -> throw new FileOpException("不支持的操作: " + op.type());

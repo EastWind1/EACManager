@@ -23,21 +23,9 @@ func NewAttachmentRepository(db *gorm.DB) *AttachmentRepository {
 func (r *AttachmentRepository) FindByBill(ctx context.Context, billID int, billType model.BillType) (*[]model.Attachment, error) {
 	var attachments []model.Attachment
 	err := r.Db.WithContext(ctx).Table("attachment").
-		Joins("right join bill_attach_relation on attachment.id = bill_attach_relation.billId").
+		Joins("right join bill_attach_relation on attachment.id = bill_attach_relation.attach_id").
 		Select("attachment.*").
 		Where("bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType).
-		Find(&attachments).Error
-	if err != nil {
-		return nil, err
-	}
-	return &attachments, nil
-}
-
-// FindByBillIsNull 查找未关联业务单据的附件
-func (r *AttachmentRepository) FindByBillIsNull(ctx context.Context) (*[]model.Attachment, error) {
-	var attachments []model.Attachment
-	err := r.Db.WithContext(ctx).Table("attachment").
-		Where("not exists (select attach_id from bill_attach_relation where attachment.attach_id = attachment.id)").
 		Find(&attachments).Error
 	if err != nil {
 		return nil, err
@@ -65,5 +53,8 @@ func NewBillAttachRelationRepository(db *gorm.DB) *BillAttachRelationRepository 
 
 // FindByBillIDAndBillType 根据业务单据ID和类型查找附件关系
 func (r *BillAttachRelationRepository) FindByBillIDAndBillType(ctx context.Context, billID int, billType model.BillType) (*[]model.BillAttachRelation, error) {
-	return r.FindAll(ctx, "bill_id =? and bill_type =?", billID, billType)
+	var res []model.BillAttachRelation
+	r.Db.WithContext(ctx).Joins("attachment").
+		Find(&res, "bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType)
+	return &res, nil
 }

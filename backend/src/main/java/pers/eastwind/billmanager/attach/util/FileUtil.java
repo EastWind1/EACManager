@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.attach.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -10,12 +11,11 @@ import pers.eastwind.billmanager.common.exception.FileOpException;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -23,6 +23,7 @@ import java.util.zip.ZipOutputStream;
 /**
  * 文件工具类
  */
+@Slf4j
 public class FileUtil {
     /**
      * 获取文件类型
@@ -76,10 +77,10 @@ public class FileUtil {
      * 上传单个文件
      *
      * @param resource 文件资源
-     * @param path     目标文件路径
+     * @param tempDirPath 临时目录路径, 为空时使用系统临时目录
      * @return 上传结果
      */
-    public static UploadResult upload(Resource resource, Path path) {
+    public static UploadResult upload(Resource resource, Path tempDirPath) {
         if (resource == null || !resource.exists()) {
             throw new IllegalArgumentException("禁止上传空文件");
         }
@@ -88,26 +89,29 @@ public class FileUtil {
         if (fileName == null || fileName.isEmpty()) {
             throw new IllegalArgumentException("文件名不能为空");
         }
-        if (path == null) {
-            throw new IllegalArgumentException("目标路径不能为空");
+        if (tempDirPath == null) {
+            tempDirPath = PathUtils.getTempDirectory();
         }
         AttachmentType type;
+        Path target = null;
         try {
-            PathUtils.createParentDirectories(path);
-            try (var in = new BufferedInputStream(resource.getInputStream());
-                 var out = new BufferedOutputStream(Files.newOutputStream(path))) {
-                int data = 0;
-                while ((data = in.read()) != -1) {
-                    out.write(data);
-                }
-            }
+            target = Files.createTempFile(tempDirPath, "", "-" + fileName);
+            target.toFile().deleteOnExit();
+            Files.copy(resource.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
             // 文件类型判断只能在保存文件之后
-            type = getFileType(path);
+            type = getFileType(target);
         } catch (Exception e) {
+            try {
+                if (target != null) {
+                    Files.deleteIfExists(target);
+                }
+            } catch (IOException ei) {
+                log.error("删除临时文件失败", ei);
+            }
             throw new FileOpException("上传文件失败", e);
         }
 
-        return new UploadResult(fileName, type, path);
+        return new UploadResult(fileName, type, target);
     }
 
     /**

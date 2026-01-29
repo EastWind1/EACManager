@@ -16,7 +16,7 @@ type Cache struct {
 // cacheValue 缓存项
 type cacheValue struct {
 	value      any
-	expireTime time.Time
+	expireTime *time.Time
 }
 
 // NewCache 初始化缓存
@@ -42,6 +42,37 @@ func NewCache(cfg *config.CacheConfig) *Cache {
 	return cache
 }
 
+// GetAll 获取命名空间下的所有缓存项
+//
+// name 命名空间
+func (c *Cache) GetAll(name string) (*map[string]any, bool) {
+	innerMap, ok := c.cacheMap.Load(name)
+	if !ok {
+		return nil, false
+	}
+	inner, ok := innerMap.(*sync.Map)
+	if !ok {
+		return nil, false
+	}
+
+	var res map[string]any
+	inner.Range(func(key, value any) bool {
+		cacheVal, ok := value.(*cacheValue)
+		if !ok {
+			return true
+		}
+		// 懒删除
+		if cacheVal.expireTime != nil && cacheVal.expireTime.Before(time.Now()) {
+			inner.Delete(key)
+		} else {
+			res[key.(string)] = cacheVal.value
+		}
+		return true
+	})
+
+	return &res, true
+}
+
 // Get 获取缓存项
 //
 // name 命名空间，key 键
@@ -65,7 +96,7 @@ func (c *Cache) Get(name string, key string) (any, bool) {
 	}
 
 	// 懒删除
-	if cacheVal.expireTime.Before(time.Now()) {
+	if cacheVal.expireTime != nil && cacheVal.expireTime.Before(time.Now()) {
 		inner.Delete(key)
 		return nil, false
 	}
@@ -77,20 +108,28 @@ func (c *Cache) Get(name string, key string) (any, bool) {
 //
 // name 命名空间，key 键
 func (c *Cache) Put(name string, key string, value any) {
-	c.PutWithExpire(name, key, value, c.expire)
+	c.PutWithExpire(name, key, value)
 }
 
 // PutWithExpire 设置缓存项, 包含过期时间
-func (c *Cache) PutWithExpire(name string, key string, value any, expire time.Duration) {
+func (c *Cache) PutWithExpire(name string, key string, value any, expire ...time.Duration) {
 	inner, _ := c.cacheMap.LoadOrStore(name, &sync.Map{})
 	innerMap, ok := inner.(*sync.Map)
 	if !ok {
 		return
 	}
 
+	var expireTime *time.Time
+	if len(expire) != 0 {
+		et := time.Now().Add(expire[0])
+		expireTime = &et
+	} else {
+		et := time.Now().Add(c.expire)
+		expireTime = &et
+	}
 	innerMap.Store(key, &cacheValue{
 		value:      value,
-		expireTime: time.Now().Add(expire),
+		expireTime: expireTime,
 	})
 }
 
@@ -132,7 +171,7 @@ func (c *Cache) clearExpired() {
 				return true
 			}
 
-			if cacheVal.expireTime.Before(time.Now()) {
+			if cacheVal.expireTime != nil && cacheVal.expireTime.Before(time.Now()) {
 				innerMap.Delete(key)
 			}
 			return true

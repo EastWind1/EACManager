@@ -2,37 +2,38 @@ package model
 
 import "backend-go/internal/common/audit"
 
-// AttachmentType 附件类型
-type AttachmentType uint
+// AttachType 附件类型
+type AttachType uint
 
 const (
-	// AttachmentTypeImage 图片
-	AttachmentTypeImage AttachmentType = iota
-	// AttachmentTypePDF PDF
-	AttachmentTypePDF
-	// AttachmentTypeWord Word
-	AttachmentTypeWord
-	// AttachmentTypeExcel Excel
-	AttachmentTypeExcel
-	// AttachmentTypeOther 其他
-	AttachmentTypeOther
+	// AttachTypeImage 图片
+	AttachTypeImage AttachType = iota
+	// AttachTypePDF PDF
+	AttachTypePDF
+	// AttachTypeWord Word
+	AttachTypeWord
+	// AttachTypeExcel Excel
+	AttachTypeExcel
+	// AttachTypeOther 其他
+	AttachTypeOther
 )
 
 // Attachment 附件
 type Attachment struct {
 	ID           int `gorm:"primaryKey;defalut:nextval('attachment_seq')"`
 	Name         string
-	Type         AttachmentType `gorm:"default:4"`
+	Type         AttachType `gorm:"default:4"`
 	RelativePath string
 	audit.Entity
 }
 
 // AttachmentDTO 附件DTO
 type AttachmentDTO struct {
-	ID           int            `json:"id"`
-	Name         string         `json:"name"`
-	Type         AttachmentType `json:"type"`
-	RelativePath string         `json:"relativePath"`
+	ID           int        `json:"id"`
+	Name         string     `json:"name"`
+	Type         AttachType `json:"type"`
+	RelativePath string     `json:"relativePath"`
+	Temp         bool       `json:"temp"`
 }
 
 // ToDTO 转换为DTO
@@ -56,12 +57,12 @@ func (a *AttachmentDTO) TOEntity() *Attachment {
 }
 
 // ToDTOs 转换为 DTOs
-func ToDTOs(a *[]Attachment) *[]AttachmentDTO {
+func ToDTOs(a []*Attachment) *[]AttachmentDTO {
 	if a == nil {
 		return nil
 	}
-	dtos := make([]AttachmentDTO, len(*a))
-	for i, attachment := range *a {
+	dtos := make([]AttachmentDTO, len(a))
+	for i, attachment := range a {
 		dtos[i] = *attachment.ToDTO()
 	}
 	return &dtos
@@ -75,8 +76,26 @@ const (
 )
 
 type BillAttachRelation struct {
-	ID       int `json:"id" gorm:"primaryKey"`
-	BillID   int
+	ID       int      `gorm:"primaryKey"`
+	BillId   int      `gorm`
 	BillType BillType `gorm:"index"`
-	AttachID int
+	AttachId int
+	Attach   Attachment
+}
+
+// FileOpType 文件操作类型
+type FileOpType int
+
+const (
+	FileOpTypeCreate FileOpType = iota
+	FileOpTypeMove
+	FileOpTypeCopy
+	FileOpTypeDelete
+)
+
+// FileOp 文件操作
+type FileOp struct {
+	Type   FileOpType
+	Origin string
+	Target string
 }

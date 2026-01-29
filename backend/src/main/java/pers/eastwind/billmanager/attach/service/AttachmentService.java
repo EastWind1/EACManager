@@ -166,14 +166,12 @@ public class AttachmentService implements InitializingBean {
     public List<AttachmentDTO> uploadTemps(List<Resource> resources) {
         List<AttachmentDTO> res = new ArrayList<>();
         for (Resource resource : resources) {
-            Path target = createTempFile(null, "-" + resource.getFilename());
-            var file = FileUtil.upload(resource, target);
-            file.path().toFile().deleteOnExit();
+            var file = FileUtil.upload(resource, tempPath);
             AttachmentDTO attachment = new AttachmentDTO();
             attachment.setName(file.filename());
             attachment.setType(file.type());
             attachment.setTemp(true);
-            attachment.setRelativePath(tempPath.relativize(target).toString());
+            attachment.setRelativePath(getRelativePath(file.path(), true).toString());
             res.add(attachment);
         }
         return res;

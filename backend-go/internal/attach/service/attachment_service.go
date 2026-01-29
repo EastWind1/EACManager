@@ -2,9 +2,12 @@ package service
 
 import (
 	"backend-go/config"
+	"backend-go/internal/attach/hook"
 	"backend-go/internal/attach/model"
 	"backend-go/internal/attach/repository"
+	"backend-go/internal/common/cache"
 	"backend-go/internal/common/errs"
+	"context"
 	"fmt"
 	"io"
 	"mime"
@@ -17,34 +20,59 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 )
 
+// FileTxUtil 文件事务工具
+func FileTxUtil(ops []model.FileOperation) error {
+	// TODO: 实现文件事务
+	for _, op := range ops {
+		switch op.Type {
+		case model.FileOpTypeMove:
+			if err := os.Rename(op.Origin, op.Target); err != nil {
+				return err
+			}
+		case model.FileOpTypeDelete:
+			if err := os.Remove(op.Target); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // AttachmentService 附件服务
 type AttachmentService struct {
 	attachRepo     *repository.AttachmentRepository
 	billAttachRepo *repository.BillAttachRelationRepository
 	rootPath       string
 	tempPath       string
+	cache          *cache.Cache
+	cfg            *config.AttachmentConfig
 }
+
+// tempPrefix 临时文件夹前缀
+const tempPrefix = "eac-"
 
 func NewAttachmentService(
 	cfg *config.AttachmentConfig,
+	cache *cache.Cache,
 	attachRepo *repository.AttachmentRepository,
 	billAttachRepo *repository.BillAttachRelationRepository,
 ) *AttachmentService {
 	rootPath := cfg.Path
-	tempPath := filepath.Join(rootPath, cfg.Temp)
-
 	if err := os.MkdirAll(rootPath, 0755); err != nil {
 		log.Fatalf("创建附件根目录失败: %v - %v", rootPath, err)
 	}
-	if err := os.MkdirAll(tempPath, 0755); err != nil {
+	tempPath, err := os.MkdirTemp(os.TempDir(), tempPrefix+"*")
+	hook.RegisterTempFile(cache, tempPath)
+	if err != nil {
 		log.Fatalf("创建临时目录失败: %v - %v", tempPath, err)
 	}
-
 	return &AttachmentService{
 		attachRepo:     attachRepo,
 		billAttachRepo: billAttachRepo,
 		rootPath:       rootPath,
 		tempPath:       tempPath,
+		cache:          cache,
+		cfg:            cfg,
 	}
 }
 
@@ -68,21 +96,21 @@ func (s *AttachmentService) IsTemp(relativePath string) bool {
 }
 
 // GetFileType 获取文件类型，若是可执行文件抛出异常
-func (s *AttachmentService) GetFileType(path string) (model.AttachmentType, error) {
+func (s *AttachmentService) GetFileType(path string) (model.AttachType, error) {
 	mimeType := mime.TypeByExtension(filepath.Ext(path))
 	switch mimeType {
 	case "application/pdf":
-		return model.AttachmentTypePDF, nil
+		return model.AttachTypePDF, nil
 	case "image/jpeg", "image/png", "image/gif":
-		return model.AttachmentTypeImage, nil
+		return model.AttachTypeImage, nil
 	case "application/msword":
-		return model.AttachmentTypeWord, nil
+		return model.AttachTypeWord, nil
 	case "application/vnd.ms-excel":
-		return model.AttachmentTypeExcel, nil
+		return model.AttachTypeExcel, nil
 	case "application/x-msdownload", "application/x-executable", "application/x-sh", "application/x-bat":
-		return model.AttachmentTypeOther, errs.NewBizError("不支持的文件类型")
+		return model.AttachTypeOther, errs.NewBizError("不支持的文件类型")
 	default:
-		return model.AttachmentTypeOther, nil
+		return model.AttachTypeOther, nil
 	}
 }
 
@@ -117,75 +145,60 @@ func (s *AttachmentService) CreateFile(path string) error {
 	return nil
 }
 
-// ConvertPDFToImage 转换 PDF 为图片
-func (s *AttachmentService) ConvertPDFToImage(pdfPath string) (string, error) {
-	// TODO: 使用第三方工具实现
-	return "", errs.NewBizError("暂不支持该功能")
+// UploadTemps 上传临时文件
+func (s *AttachmentService) UploadTemps(files []*multipart.FileHeader) ([]*model.Attachment, error) {
+	var attachments []*model.Attachment
+	for _, fileHeader := range files {
+		attachment, err := s.UploadSingle(fileHeader, "")
+		if err != nil {
+			return nil, err
+		}
+		attachments = append(attachments, attachment)
+	}
+	return attachments, nil
 }
 
-// UploadSingle 上传单个文件
-func (s *AttachmentService) UploadSingle(fileHeader *multipart.FileHeader, path string) (*model.Attachment, error) {
-	if fileHeader == nil {
-		return nil, errs.NewBizError("文件为空")
-	}
-	if err := s.validPath(path); err != nil {
-		return nil, err
-	}
-	fileName := fileHeader.Filename
-	if fileName == "" {
-		return nil, errs.NewBizError("文件名不能为空")
-	}
-	file, err := fileHeader.Open()
-	if err != nil {
-		return nil, errs.NewBizError("打开文件失败", err)
-	}
-	defer func(file multipart.File) {
-		err := file.Close()
+// GetByBill 获取业务单据附件
+func (s *AttachmentService) GetByBill(billID int, billType model.BillType) ([]*model.Attachment, error) {
+	return s.MoveFromTemp(billID, "", billType, []model.AttachmentDTO{})
+}
+
+// GetResource 获取文件资源
+func (s *AttachmentService) GetResource(dto *model.AttachmentDTO) ([]byte, string, error) {
+	var relativePath string
+
+	if dto.ID != 0 {
+		ctx := context.Background()
+		attachment, err := s.attachRepo.FindByID(ctx, dto.ID)
 		if err != nil {
-			log.Errorf("关闭文件失败: %v", err)
+			return nil, "", errs.NewBizError("附件不存在")
 		}
-	}(file)
-
-	timestamp := time.Now().UnixMilli()
-	targetFileName := fmt.Sprintf("%d_%s", timestamp, fileName)
-
-	dst, err := os.Create(targetPath)
-	if err != nil {
-		return nil, result.NewBizError("创建文件失败", err)
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
-		os.Remove(targetPath)
-		return nil, result.NewBizError("保存文件失败", err)
+		if attachment == nil {
+			return nil, "", errs.NewBizError("附件不存在")
+		}
+		relativePath = attachment.RelativePath
+	} else {
+		relativePath = dto.RelativePath
 	}
 
-	fileType, err := s.GetFileType(targetPath)
-	if err != nil {
-		os.Remove(targetPath)
-		return nil, err
-	}
+	return s.GetFile(relativePath)
+}
 
-	relativePath := filepath.Join(s.attachConfig.Temp, targetFileName)
-	attachment := &model.Attachment{
-		Name:         fileName,
-		Type:         fileType,
-		RelativePath: relativePath,
-	}
-
-	return attachments, nil
+// UpdateRelativeAttach 根据目标附件集合更新业务单据关联附件
+func (s *AttachmentService) UpdateRelativeAttach(billID int, billNumber string, billType model.BillType, attachmentDTOs []model.AttachmentDTO) ([]*model.Attachment, error) {
+	return s.MoveFromTemp(billID, billNumber, billType, attachmentDTOs)
 }
 
 func (s *AttachmentService) GetFile(relativePath string) ([]byte, string, error) {
 	absPath := s.GetAbsolutePath(relativePath)
 
 	if _, err := os.Stat(absPath); os.IsNotExist(err) {
-		return nil, "", result.NewBizError("文件不存在")
+		return nil, "", errs.NewBizError("文件不存在")
 	}
 
 	data, err := os.ReadFile(absPath)
 	if err != nil {
-		return nil, "", result.NewBizError("读取文件失败", err)
+		return nil, "", errs.NewBizError("读取文件失败", err)
 	}
 
 	mimeType := mime.TypeByExtension(filepath.Ext(relativePath))
@@ -200,16 +213,17 @@ func (s *AttachmentService) DeleteFile(relativePath string) error {
 	absPath := s.GetAbsolutePath(relativePath)
 
 	if _, err := os.Stat(absPath); os.IsNotExist(err) {
-		return result.NewBizError("文件不存在")
+		return errs.NewBizError("文件不存在")
 	}
 
 	return os.Remove(absPath)
 }
 
 func (s *AttachmentService) MoveFromTemp(billID int, billNumber string, billType model.BillType, attachmentDTOs []model.AttachmentDTO) ([]*model.Attachment, error) {
-	existingRelations, _ := s.billAttachRepo.FindByBillIDAndBillType(billID, billType)
+	ctx := context.Background()
+	existingRelations, _ := s.billAttachRepo.FindByBillIDAndBillType(ctx, billID, billType)
 	removedIDs := make(map[int]bool)
-	for _, rel := range existingRelations {
+	for _, rel := range *existingRelations {
 		removedIDs[rel.AttachID] = true
 	}
 
@@ -225,7 +239,7 @@ func (s *AttachmentService) MoveFromTemp(billID int, billNumber string, billType
 				targetPath := filepath.Join(targetDir, fileName)
 
 				if err := os.Rename(absPath, targetPath); err != nil {
-					return nil, result.NewBizError("移动文件失败", err)
+					return nil, errs.NewBizError("移动文件失败", err)
 				}
 
 				newRelativePath := filepath.Join(billNumber, fileName)
@@ -235,7 +249,7 @@ func (s *AttachmentService) MoveFromTemp(billID int, billNumber string, billType
 					RelativePath: newRelativePath,
 				}
 
-				if err := s.attachRepo.Create(attachment); err != nil {
+				if err := s.attachRepo.Create(ctx, attachment); err != nil {
 					return nil, err
 				}
 
@@ -244,7 +258,7 @@ func (s *AttachmentService) MoveFromTemp(billID int, billNumber string, billType
 					BillType: billType,
 					AttachID: attachment.ID,
 				}
-				if err := s.billAttachRepo.Create(relation); err != nil {
+				if err := s.billAttachRepo.Create(ctx, relation); err != nil {
 					return nil, err
 				}
 
@@ -255,11 +269,24 @@ func (s *AttachmentService) MoveFromTemp(billID int, billNumber string, billType
 		}
 	}
 
-	for _, rel := range existingRelations {
+	for _, rel := range *existingRelations {
 		if removedIDs[rel.AttachID] {
-			s.billAttachRepo.Delete(rel)
+			if err := s.billAttachRepo.DeleteByID(ctx, rel.ID); err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return s.attachRepo.FindByBill(billID, billType)
+	attachResult, err := s.attachRepo.FindByBill(ctx, billID, billType)
+	if err != nil {
+		return nil, err
+	}
+	if attachResult == nil || len(*attachResult) == 0 {
+		return []*model.Attachment{}, nil
+	}
+	attachmentSlice := make([]*model.Attachment, len(*attachResult))
+	for i, a := range *attachResult {
+		attachmentSlice[i] = &a
+	}
+	return attachmentSlice, nil
 }
