@@ -1,20 +1,20 @@
 package pers.eastwind.billmanager.attach.service;
 
-import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.file.PathUtils;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.attach.config.AttachConfigProperties;
 import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.repository.AttachmentRepository;
 import pers.eastwind.billmanager.attach.repository.BillAttachRelationRepository;
+import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
+import pers.eastwind.billmanager.common.exception.FileOpException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,26 +31,23 @@ public class AttachmentService implements InitializingBean {
     private final AttachmentRepository attachmentRepository;
     private final BillAttachRelationRepository billAttachRelationRepository;
     private final AttachmentMapper attachmentMapper;
-    private final TransactionTemplate transactionTemplate;
     /**
      * 根目录
      */
     @Getter
     private Path rootPath;
     /**
-     * 临时目录
+     * 应用临时目录
      */
     @Getter
     private Path tempPath;
-
-    public AttachmentService(AttachConfigProperties properties, AttachmentRepository attachmentRepository, BillAttachRelationRepository billAttachRelationRepository, AttachmentMapper attachmentMapper, TransactionTemplate transactionTemplate) {
+    private static final String TEMP_PREFIX = "eac-";
+    public AttachmentService(AttachConfigProperties properties, AttachmentRepository attachmentRepository, BillAttachRelationRepository billAttachRelationRepository, AttachmentMapper attachmentMapper) {
         this.properties = properties;
         this.attachmentRepository = attachmentRepository;
         this.billAttachRelationRepository = billAttachRelationRepository;
         this.attachmentMapper = attachmentMapper;
-        this.transactionTemplate = transactionTemplate;
     }
-
 
     /**
      * 初始化附件目录
@@ -58,52 +55,110 @@ public class AttachmentService implements InitializingBean {
     @Override
     public void afterPropertiesSet() {
         rootPath = properties.getPath().normalize().toAbsolutePath();
-        String TEMP_DIR = properties.getTemp();
-        this.tempPath = rootPath.resolve(TEMP_DIR).normalize().toAbsolutePath();
-        if (rootPath.startsWith(this.tempPath)) {
-            throw new BizException("附件目录不能在临时目录内");
+        try {
+            Files.createDirectories(rootPath);
+            tempPath = Files.createTempDirectory(TEMP_PREFIX);
+            tempPath.toFile().deleteOnExit();
+        } catch (IOException e) {
+            throw new FileOpException("创建附件目录失败", e);
         }
-
-        FileUtil.createDirectories(rootPath);
-        FileUtil.createDirectories(tempPath);
     }
-
+    /**
+     * 创建临时文件
+     * @param prefix 前缀
+     * @param suffix 后缀, 为空时默认为 .tmp
+     */
+    public Path createTempFile(String prefix, String suffix) {
+        try {
+            Path res = Files.createTempFile(tempPath, prefix, suffix);
+            res.toFile().deleteOnExit();
+            return res;
+        } catch (IOException e) {
+            throw new FileOpException("创建临时文件失败", e);
+        }
+    }
+    /**
+     * 创建临时文件夹
+     * @param prefix 前缀
+     */
+    public Path createTempDir(String prefix) {
+        try {
+            Path res = Files.createTempDirectory(tempPath, prefix);
+            res.toFile().deleteOnExit();
+            return res;
+        } catch (IOException e) {
+            throw new FileOpException("创建临时文件失败", e);
+        }
+    }
+    /**
+     * 校验绝对路径
+     */
+    private void validAbsolutePath(Path path, boolean isTemp) {
+        path = path.normalize();
+        if (isTemp) {
+            if (!path.startsWith(tempPath)) {
+                throw new BizException("非法路径");
+            }
+        } else {
+            if (!path.startsWith(rootPath)) {
+                throw new BizException("非法路径");
+            }
+        }
+    }
     /**
      * 获取绝对路径
      *
      * @param relativePath 相对路径
      * @return 绝对路径
      */
-    public Path getAbsolutePath(Path relativePath) {
+    public Path getAbsolutePath(Path relativePath, boolean isTemp) {
         if (relativePath == null) {
             throw new BizException("路径不能为空");
         }
         // 去除头部的斜杠
         if (relativePath.startsWith("/")) {
-            String pathStr = relativePath.toString().substring(1);
-            relativePath = Path.of(pathStr);
+            relativePath = Path.of(relativePath.toString().substring(1));
         }
-        return rootPath.resolve(relativePath).normalize().toAbsolutePath();
+        Path absolutePath =  isTemp ? tempPath.resolve(relativePath).normalize() : rootPath.resolve(relativePath).normalize();
+        validAbsolutePath(absolutePath, isTemp);
+        return absolutePath;
     }
-
     /**
-     * 校验路径
-     * 禁止使用根路径外的路径
+     * 获取相对路径
+     *
+     * @param absolutePath 绝对路径
+     * @return 相对路径
      */
-    private void validPath(Path path) {
-        if (path == null) {
-            throw new BizException("路径为空");
+    public Path getRelativePath(Path absolutePath, boolean isTemp) {
+        if (absolutePath == null) {
+            throw new BizException("路径不能为空");
         }
-        if (!path.startsWith(rootPath)) {
-            throw new BizException("禁止使用外部路径");
-        }
+        validAbsolutePath(absolutePath, isTemp);
+        return isTemp? tempPath.relativize(absolutePath).normalize() : rootPath.relativize(absolutePath).normalize();
     }
-
     /**
-     * 判断是否是临时文件
+     * 获取 Resource
      */
-    public boolean isTempFile(Path path) {
-        return path.startsWith(tempPath);
+    public Resource getResource(AttachmentDTO attachmentDTO) {
+        Path path;
+        if (attachmentDTO.isTemp()) {
+            path = getAbsolutePath(Path.of(attachmentDTO.getRelativePath()), true);
+        } else {
+            if (attachmentDTO.getId() == null) {
+                throw new BizException("附件 ID 不能为空");
+            }
+            var attach = attachmentRepository.findById(attachmentDTO.getId());
+            if (attach.isEmpty()) {
+                throw new BizException("附件不存在");
+            }
+            path = getAbsolutePath(Path.of(attach.get().getRelativePath()), false);
+        }
+
+        validAbsolutePath(path, attachmentDTO.isTemp());
+        if (!Files.exists(path)) {
+            throw new BizException("文件不存在");
+        }
+        return new FileSystemResource(path);
     }
     /**
      * 上传临时文件
@@ -111,23 +166,19 @@ public class AttachmentService implements InitializingBean {
     public List<AttachmentDTO> uploadTemps(List<Resource> resources) {
         List<AttachmentDTO> res = new ArrayList<>();
         for (Resource resource : resources) {
-            String realFileName = String.format("T%d-%s", System.currentTimeMillis(), resource.getFilename());
-            Path targetPath = tempPath.resolve(realFileName);
-            UploadResult file = FileUtil.upload(resource, targetPath);
+            Path target = createTempFile(null, "-" + resource.getFilename());
+            var file = FileUtil.upload(resource, target);
+            file.path().toFile().deleteOnExit();
             AttachmentDTO attachment = new AttachmentDTO();
             attachment.setName(file.filename());
             attachment.setType(file.type());
-            attachment.setRelativePath(rootPath.relativize(file.path()).toString());
+            attachment.setTemp(true);
+            attachment.setRelativePath(tempPath.relativize(target).toString());
             res.add(attachment);
         }
         return res;
     }
-    /**
-     * 根据 ID 获取附件
-     */
-    public AttachmentDTO getById(Integer id) {
-        return attachmentMapper.toDTO(attachmentRepository.findById(id).orElseThrow(() -> new BizException("附件不存在")));
-    }
+
     /**
      * 获取业务单据附件
      *
@@ -151,85 +202,49 @@ public class AttachmentService implements InitializingBean {
      * @param billId         单据 ID
      * @param billNumber     单据编号
      * @param billType       单据类型
-     * @param attachmentDTOs 目标附件集合
-     * @return 更新后的附件集合
+     * @param attachmentDTOs 要更新为的附件集合
      */
     @Transactional
-    public List<Attachment> updateRelativeAttach(Integer billId, String billNumber, BillType billType, List<AttachmentDTO> attachmentDTOs) {
-        List<BillAttachRelation> billAttachRelations = billAttachRelationRepository.findByBillIdAndBillType(billId, billType);
+    public void updateRelativeAttach(Integer billId, String billNumber, BillType billType, List<AttachmentDTO> attachmentDTOs) {
+        List<BillAttachRelation> oldRelations = billAttachRelationRepository.findByBillIdAndBillType(billId, billType);
+        // 先将所有附件标记为待删除，根据传入的集合移除不需要删除的
         Set<Integer> removeIds = new HashSet<>();
-        for (BillAttachRelation billAttachRelation : billAttachRelations) {
-            removeIds.add(billAttachRelation.getAttachId());
+        for (BillAttachRelation billAttachRelation : oldRelations) {
+            removeIds.add(billAttachRelation.getAttach().getId());
         }
-
+        List<FileOp> ops = new ArrayList<>();
         for (AttachmentDTO attachmentDTO : attachmentDTOs) {
             // 新增
             if (attachmentDTO.getId() == null) {
-                Attachment newAttachment = attachmentMapper.toEntity(attachmentDTO);
-                // 移动临时文件
-                Path origin = getAbsolutePath(Path.of(newAttachment.getRelativePath()));
-                if (isTempFile(origin)) {
-                    Path realFileName = tempPath.relativize(origin);
-                    Path targetPath = rootPath.resolve(Path.of(billNumber).resolve(realFileName));
-                    newAttachment.setRelativePath(rootPath.resolve(targetPath).toString());
-                    try {
-                        PathUtils.createParentDirectories(targetPath);
-                        Files.move(origin, targetPath);
-                    } catch (IOException e) {
-                        throw new BizException("移动文件失败",e);
-                    }
-                }
+                Attachment addAttach = attachmentMapper.toEntity(attachmentDTO);
+                Path originPath = getAbsolutePath(Path.of(attachmentDTO.getRelativePath()), attachmentDTO.isTemp());
+                Path targetRelativePath = Path.of(billType.name()).resolve(billNumber).resolve(System.currentTimeMillis()+ "-"+ addAttach.getName());
+                Path targetPath = getAbsolutePath(targetRelativePath, false);
                 // 设置业务单据关联关系
-                newAttachment = attachmentRepository.save(newAttachment);
+                addAttach.setRelativePath(targetRelativePath.toString());
+                addAttach = attachmentRepository.save(addAttach);
                 BillAttachRelation billAttachRelation = new BillAttachRelation();
                 billAttachRelation.setBillId(billId);
                 billAttachRelation.setBillType(billType);
-                billAttachRelation.setAttachId(newAttachment.getId());
+                billAttachRelation.setAttach(addAttach);
                 billAttachRelationRepository.save(billAttachRelation);
+
+                ops.add(new FileOp(FileOpType.MOVE, originPath, targetPath));
             } else {
-                // 未变化
+                // 传入的包含该附件 ID, 则不做操作
                 removeIds.remove(attachmentDTO.getId());
             }
         }
         // 删除
-        for (BillAttachRelation billAttachRelation : billAttachRelations) {
-            if (removeIds.contains(billAttachRelation.getAttachId())) {
-                billAttachRelationRepository.delete(billAttachRelation);
+        for (BillAttachRelation billAttachRelation : oldRelations) {
+            if (removeIds.contains(billAttachRelation.getAttach().getId())) {
+                attachmentRepository.deleteById(billAttachRelation.getAttach().getId());
+                billAttachRelationRepository.deleteById(billAttachRelation.getId());
+                Path targetPath = getAbsolutePath(Path.of(billAttachRelation.getAttach().getRelativePath()), false);
+                ops.add(new FileOp(FileOpType.DELETE, null, targetPath));
             }
         }
 
-        return attachmentRepository.findByBill(billId, billType);
-    }
-
-    /**
-     * 删除没有业务关联的附件
-     */
-    private void cleanUnattach() {
-        List<Attachment> attachments = attachmentRepository.findByBillIsNull();
-        for (Attachment attachment : attachments) {
-            try {
-                Files.delete(getAbsolutePath(Path.of(attachment.getRelativePath())));
-            } catch (IOException e) {
-                throw new BizException("删除文件失败",e);
-            }
-            transactionTemplate.executeWithoutResult(status -> {
-                attachmentRepository.delete(attachment);
-            });
-        }
-    }
-
-    /**
-     * 清理文件
-     */
-    @PreDestroy
-    public void cleanTemp() {
-        // 删除临时文件夹
-        try {
-            PathUtils.deleteDirectory(tempPath);
-        } catch (IOException e) {
-            throw new BizException("删除临时文件夹失败",e);
-        }
-        // 删除没有业务关联的附件
-        cleanUnattach();
+        FileTxUtil.exec(ops);
     }
 }

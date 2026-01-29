@@ -115,7 +115,7 @@ async function download(attach: Attachment) {
   if (fileCache.has(attach.relativePath)) {
     a.href = fileCache.get(attach.relativePath)!
   } else {
-    const data = await AttachmentApi.download(attach.relativePath)
+    const data = await AttachmentApi.download(attach)
     const url = URL.createObjectURL(data)
     fileCache.set(attach.relativePath, url)
     a.href = url
@@ -142,7 +142,7 @@ async function preview(attach: Attachment) {
   if (fileCache.has(attach.relativePath)) {
     previewInfo.value.objectUrl = fileCache.get(attach.relativePath)!
   } else {
-    const data = await AttachmentApi.download(attach.relativePath)
+    const data = await AttachmentApi.download(attach)
     const url = URL.createObjectURL(data)
     fileCache.set(attach.relativePath, url)
     previewInfo.value.objectUrl = url
@@ -155,7 +155,7 @@ async function preview(attach: Attachment) {
  * 上传附件
  */
 async function upload() {
-  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt', true)
+  const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt', true)
   // 上传至临时目录
   const attach = await AttachmentApi.uploadTemp(Array.from(fileList))
   attachments.value?.push(...attach)
@@ -171,6 +171,7 @@ async function drop(e: DragEvent) {
     '.pdf',
     '.jpg',
     '.jpeg',
+    '.png',
     '.doc',
     '.docx',
     '.xls',

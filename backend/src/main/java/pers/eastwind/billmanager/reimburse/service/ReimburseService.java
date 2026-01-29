@@ -12,8 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.attach.model.Attachment;
 import pers.eastwind.billmanager.attach.model.BillType;
+import pers.eastwind.billmanager.attach.model.FileOp;
+import pers.eastwind.billmanager.attach.model.FileOpType;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.service.OfficeFileService;
+import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
@@ -88,8 +91,8 @@ public class ReimburseService {
             }
         }
         Reimbursement bill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
-        List<Attachment> attachments = attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
-        return reimburseMapper.toDTO(bill, attachments);
+        attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
+        return reimburseMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.REIMBURSEMENT));
     }
 
 
@@ -110,8 +113,8 @@ public class ReimburseService {
         }
         reimburseMapper.updateEntityFromDTO(reimbursementDTO, bill);
         bill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
-        List<Attachment> attachments = attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
-        return reimburseMapper.toDTO(bill, attachments);
+        attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
+        return reimburseMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.REIMBURSEMENT));
     }
 
     /**
@@ -242,10 +245,11 @@ public class ReimburseService {
         if (reimbursements.isEmpty()) {
             throw new BizException("id不存在");
         }
-        // 创建临时目录
-        String dirName = "导出-" + System.currentTimeMillis();
-        Path tempPath = attachmentService.getTempPath().resolve(dirName);
-        FileUtil.createDirectories(tempPath);
+        // 临时目录
+        Path tempPath = attachmentService.createTempDir("export");
+        // 文件操作
+        List<FileOp> ops = new ArrayList<>();
+
         // 遍历生成 excel行，并拷贝附件
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("单据编号", "摘要", "总额", "报销日期", "备注"));
@@ -275,7 +279,7 @@ public class ReimburseService {
                     target = curDir.resolve(repeatCount + "-" + attachment.getName());
                     repeatCount++;
                 }
-                FileUtil.copy(origin, target);
+                ops.add(new FileOp(FileOpType.COPY, origin, target));
             }
         }
         // 表合计
@@ -283,6 +287,9 @@ public class ReimburseService {
 
         Path excel = tempPath.resolve("导出结果.xlsx");
         officeFileService.generateExcelFromList(rows, excel);
+        // 执行文件拷贝
+        FileTxUtil.exec(ops);
+        // 生成压缩包
         Path zip = attachmentService.getTempPath().resolve(tempPath + ".zip");
         FileUtil.zip(tempPath, zip);
         return zip;

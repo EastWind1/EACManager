@@ -110,8 +110,8 @@ public class ServiceBillBizService {
         ServiceBill bill = serviceBillMapper.toEntity(serviceBillDTO);
         validateAmount(bill);
         bill = serviceBillRepository.save(bill);
-        List<Attachment> attachments = attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
-        return serviceBillMapper.toDTO(bill, attachments);
+        attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
+        return serviceBillMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL));
     }
 
 
@@ -151,9 +151,9 @@ public class ServiceBillBizService {
         validateAmount(bill);
         bill = serviceBillRepository.save(bill);
 
-        List<Attachment> attachments = attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
+        attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
 
-        return serviceBillMapper.toDTO(bill, attachments);
+        return serviceBillMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL));
     }
 
 

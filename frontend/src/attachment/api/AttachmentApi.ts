@@ -37,10 +37,10 @@ const AttachmentApi = {
   /**
    * 下载文件
    * 由于已在拦截器中获取了 data, 此处实际返回类型为 Blob, 需要强转
-   * @param path 文件路径
+   * @param attach 文件
    */
-  async download(path: string) {
-    const res = await getAxios().get(`/${path}`, { responseType: 'blob' })
+  async download(attach: Attachment) {
+    const res = await getAxios().get('/', { responseType: 'blob', params: attach })
     return res as never as Blob
   },
 }

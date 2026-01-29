@@ -1,11 +1,12 @@
 package pers.eastwind.billmanager.reimburse.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.reimburse.model.ReimburseQueryParam;
@@ -106,8 +107,12 @@ public class ReimburseController {
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @PostMapping(value = "/export", produces = "application/octet-stream")
-    public Resource export(@RequestBody List<Integer> ids) {
-        return FileUtil.loadByPath(reimburseService.export(ids));
+    public ResponseEntity<Resource> export(@RequestBody List<Integer> ids) {
+        Resource resource = new FileSystemResource(reimburseService.export(ids));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().name("导出.zip").build());
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        return new ResponseEntity<>(resource, headers, HttpStatus.OK);
     }
 
 }

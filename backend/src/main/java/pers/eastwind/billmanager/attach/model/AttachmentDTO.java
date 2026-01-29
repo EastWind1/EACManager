@@ -17,6 +17,10 @@ public class AttachmentDTO {
      */
     private String relativePath;
     /**
+     * 是否临时文件
+     */
+    private boolean temp;
+    /**
      * 文件类型
      */
     private AttachmentType type = AttachmentType.OTHER;

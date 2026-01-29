@@ -2,13 +2,12 @@ package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.Attachment;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
-import pers.eastwind.billmanager.attach.model.BillType;
+import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.service.AttachMapService;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.service.OCRService;
 import pers.eastwind.billmanager.attach.service.OfficeFileService;
+import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.servicebill.model.ServiceBill;
@@ -68,8 +67,9 @@ public class ServiceBillIOService {
             throw new BizException("id不存在");
         }
         // 创建临时目录
-        Path tempPath = attachmentService.getTempPath().resolve( "导出-" + System.currentTimeMillis());
-        FileUtil.createDirectories(tempPath);
+        Path tempPath = attachmentService.createTempDir("export");
+        // 文件操作
+        List<FileOp> ops = new ArrayList<>();
         // Excel 表头
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("单据编号", "状态", "项目名称", "项目地址", "总额", "安装完成日期", "备注"));
@@ -90,9 +90,9 @@ public class ServiceBillIOService {
                             .collect(Collectors.joining())
             ));
             totalAmount = totalAmount.add(serviceBill.getTotalAmount());
-            // 创建当前单据附件文件夹
+
             Path curDir = tempPath.resolve(serviceBill.getNumber());
-            FileUtil.createDirectories(curDir);
+
             // 拷贝当前单据所有附件
             List<Attachment> attachments = attachmentService.getByBill(serviceBill.getId(), BillType.SERVICE_BILL);
             for (Attachment attachment : attachments) {
@@ -104,7 +104,7 @@ public class ServiceBillIOService {
                     target = curDir.resolve(repeatCount + "-" + attachment.getName());
                     repeatCount++;
                 }
-                FileUtil.copy(origin, target);
+                ops.add(new FileOp(FileOpType.COPY, origin, target));
             }
         }
         // 表合计
@@ -112,6 +112,9 @@ public class ServiceBillIOService {
 
         Path excel = tempPath.resolve("导出结果.xlsx");
         officeFileService.generateExcelFromList(rows, excel);
+        // 执行文件拷贝
+        FileTxUtil.exec(ops);
+        // 生成压缩包
         Path zip = attachmentService.getTempPath().resolve(tempPath + ".zip");
         FileUtil.zip(tempPath, zip);
         return zip;

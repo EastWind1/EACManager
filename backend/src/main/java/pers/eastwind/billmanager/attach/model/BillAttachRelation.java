@@ -24,5 +24,7 @@ public class BillAttachRelation {
     /**
      * 附件ID
      */
-    private Integer attachId;
+    @OneToOne
+    @JoinColumn(name = "attach_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private Attachment attach;
 }

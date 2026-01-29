@@ -20,14 +20,7 @@ public interface AttachmentRepository extends BaseRepository<Attachment> {
      * @param billType 业务单类型
      * @return 附件
      */
-    @Query("select a from Attachment a, BillAttachRelation r " +
-            "where a.id = r.attachId " +
-            "and r.billId = :billId and r.billType = :billType")
+    @Query("select r.attach from  BillAttachRelation r " +
+            "where r.billId = :billId and r.billType = :billType")
     List<Attachment> findByBill(Integer billId, BillType billType);
-
-    /**
-     * 查找没有业务单据引用的附件
-     */
-    @Query("from Attachment a where not exists (select r.attachId from BillAttachRelation r where r.attachId = a.id)")
-    List<Attachment> findByBillIsNull();
 }

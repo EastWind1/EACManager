@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 import pers.eastwind.billmanager.common.exception.BizException;
+import pers.eastwind.billmanager.common.exception.FileOpException;
 import pers.eastwind.billmanager.common.model.Result;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
@@ -42,8 +43,8 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
      */
     @Override
     public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType, Class selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
-        // 避免二次处理
-        if (body instanceof Result) {
+        // 避免二次处理, 不处理文件下载
+        if (body instanceof Result || body instanceof Resource) {
             return body;
         }
         // 处理 String, String 内部由特定转换器处理，期望返回为 String，若直接返回 Result 会报类型转换错误
@@ -59,23 +60,34 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
     }
 
     /**
-     * 乐观锁异常统一处理
+     * 乐观锁异常处理
      */
     @ExceptionHandler(OptimisticLockException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleOptimisticLockException(OptimisticLockException e) {
+        log.warn("数据已被更改", e);
         return Result.error("数据已被更改，请稍后刷新重试");
     }
     /**
-     * 包装错误响应
+     * 业务异常处理
      * @param e 错误
      * @return 错误结果
      */
-
     @ExceptionHandler(BizException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleBizException(BizException e) {
-        // ExceptionHandlerExceptionResolver 会进行日志记录，无需重复记录
+        log.error(e.getMessage(),e);
         return Result.error(e.getMessage());
+    }
+    /**
+     * 文件操作异常处理
+     * @param e 错误
+     * @return 错误结果
+     */
+    @ExceptionHandler(FileOpException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result<Object> handleBizException(FileOpException e) {
+        log.error(e.getMessage(),e);
+        return Result.error("文件操作异常");
     }
 }

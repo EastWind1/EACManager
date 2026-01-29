@@ -33,7 +33,7 @@ public class AttachMapService {
      */
     @SuppressWarnings("unchecked")
     public <T> T map(AttachmentDTO attachment) {
-        Path path = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()));
+        Path path = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()), attachment.isTemp());
         switch (attachment.getType()) {
             case IMAGE, PDF -> {
                 if (attachment.getType() == AttachmentType.PDF) {

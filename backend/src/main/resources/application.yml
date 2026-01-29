@@ -18,10 +18,8 @@ spring:
 config:
   # 附件
   attachment:
-    # 必须为绝对路径，否则 OCR 会无法读取文件
+    # 目录
     path: ${user.dir}${file.separator}attachment
-    # 相对于 path 的临时目录
-    temp: temp
   # JWT 密钥
   jwt:
     # 过期时间，单位秒

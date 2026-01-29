@@ -1,8 +1,10 @@
 package pers.eastwind.billmanager.servicebill.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -120,8 +122,12 @@ public class ServiceBillController {
      * 导出
      */
     @PostMapping(value = "/export", produces = "application/octet-stream")
-    public Resource export(@RequestBody List<Integer> ids) {
-        return FileUtil.loadByPath(serviceBillIOService.export(ids));
+    public ResponseEntity<Resource> export(@RequestBody List<Integer> ids) {
+        Resource resource = new FileSystemResource(serviceBillIOService.export(ids));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().name("导出.zip").build());
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        return new ResponseEntity<>(resource, headers, HttpStatus.OK);
     }
 
     /**
