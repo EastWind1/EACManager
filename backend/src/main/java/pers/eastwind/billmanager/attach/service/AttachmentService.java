@@ -184,14 +184,14 @@ public class AttachmentService implements InitializingBean {
      * @param billType 单据类型
      * @return 业务单据附件
      */
-    public List<Attachment> getByBill(Integer billId, BillType billType) {
+    public List<AttachmentDTO> getByBill(Integer billId, BillType billType) {
         if (billType == null) {
             throw new BizException("单据类型不能为空");
         }
         if (billId == null) {
             throw new BizException("单据 ID 不能为空");
         }
-        return attachmentRepository.findByBill(billId, billType);
+        return attachmentRepository.findByBill(billId, billType).stream().map(attachmentMapper::toDTO).toList();
     }
 
     /**

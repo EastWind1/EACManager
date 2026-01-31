@@ -13,28 +13,23 @@ import java.util.List;
  */
 public interface AttachMapRule<T> {
     /**
-     * OCR 映射是否使用当前规则
-     */
-    boolean canOCR(List<String> texts);
-
-    /**
-     * Excel 映射是否使用当前规则
-     */
-    boolean canExcel(List<List<String>> rows);
-    /**
      * 从 OCR 文本映射
      * 用于图片和 PDF
      * @param texts ocr 文本
-     * @return 目标对象
+     * @return 目标对象, 若返回 null 表示无法映射
      */
-    T mapFromOCR(List<String> texts);
+    default T mapFromOCR(List<String> texts) {
+        return null;
+    }
     /**
      * 从 Excel 映射
      * 只支持单 sheet 页
      * @param rows Excel 内容
-     * @return 目标对象
+     * @return 目标对象，若返回 null 表示无法映射
      */
-    T mapFromExcel(List<List<String>> rows);
+    default T mapFromExcel(List<List<String>> rows) {
+        return null;
+    }
 
     /**
      * 解析日期字符串

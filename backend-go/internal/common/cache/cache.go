@@ -7,8 +7,32 @@ import (
 	"time"
 )
 
-// Cache 缓存
-type Cache struct {
+// Cache 缓存接口
+type Cache interface {
+	// GetAll 获取命名空间下的所有缓存项
+	//
+	// name 命名空间
+	GetAll(name string) (*map[string]any, bool)
+	// Get 获取缓存项
+	//
+	// name 命名空间，key 键
+	Get(name string, key string) (any, bool)
+	// Put 设置缓存项
+	//
+	// name 命名空间，key 键
+	Put(name string, key string, value any)
+	// PutWithExpire 设置缓存项, 包含过期时间
+	PutWithExpire(name string, key string, value any, expire ...time.Duration)
+	// Delete 删除缓存项
+	Delete(name string, key string)
+	// DeleteName 删除命名空间
+	DeleteName(name string)
+	// Clear 清空缓存
+	Clear()
+}
+
+// InMemoryCache 内存缓存
+type InMemoryCache struct {
 	cacheMap sync.Map
 	expire   time.Duration
 }
@@ -19,9 +43,9 @@ type cacheValue struct {
 	expireTime *time.Time
 }
 
-// NewCache 初始化缓存
-func NewCache(cfg *config.CacheConfig) *Cache {
-	cache := &Cache{
+// NewInMemoryCache 初始化内存缓存
+func NewInMemoryCache(cfg *config.CacheConfig) Cache {
+	cache := &InMemoryCache{
 		cacheMap: sync.Map{},
 		expire:   time.Duration(cfg.Expire) * time.Second,
 	}
@@ -42,10 +66,7 @@ func NewCache(cfg *config.CacheConfig) *Cache {
 	return cache
 }
 
-// GetAll 获取命名空间下的所有缓存项
-//
-// name 命名空间
-func (c *Cache) GetAll(name string) (*map[string]any, bool) {
+func (c *InMemoryCache) GetAll(name string) (*map[string]any, bool) {
 	innerMap, ok := c.cacheMap.Load(name)
 	if !ok {
 		return nil, false
@@ -55,7 +76,7 @@ func (c *Cache) GetAll(name string) (*map[string]any, bool) {
 		return nil, false
 	}
 
-	var res map[string]any
+	res := make(map[string]any)
 	inner.Range(func(key, value any) bool {
 		cacheVal, ok := value.(*cacheValue)
 		if !ok {
@@ -73,10 +94,7 @@ func (c *Cache) GetAll(name string) (*map[string]any, bool) {
 	return &res, true
 }
 
-// Get 获取缓存项
-//
-// name 命名空间，key 键
-func (c *Cache) Get(name string, key string) (any, bool) {
+func (c *InMemoryCache) Get(name string, key string) (any, bool) {
 	innerMap, ok := c.cacheMap.Load(name)
 	if !ok {
 		return nil, false
@@ -104,15 +122,11 @@ func (c *Cache) Get(name string, key string) (any, bool) {
 	return cacheVal.value, true
 }
 
-// Put 设置缓存项
-//
-// name 命名空间，key 键
-func (c *Cache) Put(name string, key string, value any) {
+func (c *InMemoryCache) Put(name string, key string, value any) {
 	c.PutWithExpire(name, key, value)
 }
 
-// PutWithExpire 设置缓存项, 包含过期时间
-func (c *Cache) PutWithExpire(name string, key string, value any, expire ...time.Duration) {
+func (c *InMemoryCache) PutWithExpire(name string, key string, value any, expire ...time.Duration) {
 	inner, _ := c.cacheMap.LoadOrStore(name, &sync.Map{})
 	innerMap, ok := inner.(*sync.Map)
 	if !ok {
@@ -133,8 +147,7 @@ func (c *Cache) PutWithExpire(name string, key string, value any, expire ...time
 	})
 }
 
-// Delete 删除缓存项
-func (c *Cache) Delete(name string, key string) {
+func (c *InMemoryCache) Delete(name string, key string) {
 	inner, ok := c.cacheMap.Load(name)
 	if !ok {
 		return
@@ -147,18 +160,16 @@ func (c *Cache) Delete(name string, key string) {
 	innerMap.Delete(key)
 }
 
-// DeleteName 删除命名空间
-func (c *Cache) DeleteName(name string) {
+func (c *InMemoryCache) DeleteName(name string) {
 	c.cacheMap.Delete(name)
 }
 
-// Clear 清空缓存
-func (c *Cache) Clear() {
+func (c *InMemoryCache) Clear() {
 	c.cacheMap.Clear()
 }
 
 // clearExpired 清理过期缓存
-func (c *Cache) clearExpired() {
+func (c *InMemoryCache) clearExpired() {
 	c.cacheMap.Range(func(nsKey, nsValue any) bool {
 		innerMap, ok := nsValue.(*sync.Map)
 		if !ok {

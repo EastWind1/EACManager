@@ -3,21 +3,15 @@ package pers.eastwind.billmanager.reimburse.service;
 import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import pers.eastwind.billmanager.attach.model.Attachment;
-import pers.eastwind.billmanager.attach.model.BillType;
-import pers.eastwind.billmanager.attach.model.FileOp;
-import pers.eastwind.billmanager.attach.model.FileOpType;
+import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
-import pers.eastwind.billmanager.attach.service.OfficeFileService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
+import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.reimburse.model.*;
@@ -28,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -44,14 +39,12 @@ public class ReimburseService {
     private final AttachmentService attachmentService;
     private final ReimburseRepository reimburseRepository;
     private final TransactionTemplate transactionTemplate;
-    private final OfficeFileService officeFileService;
 
-    public ReimburseService(ReimburseMapper reimburseMapper1, AttachmentService attachmentService, ReimburseRepository reimburseRepository, TransactionTemplate transactionTemplate, OfficeFileService officeFileService) {
+    public ReimburseService(ReimburseMapper reimburseMapper1, AttachmentService attachmentService, ReimburseRepository reimburseRepository, TransactionTemplate transactionTemplate) {
         this.reimburseMapper = reimburseMapper1;
         this.attachmentService = attachmentService;
         this.reimburseRepository = reimburseRepository;
         this.transactionTemplate = transactionTemplate;
-        this.officeFileService = officeFileService;
     }
 
     /**
@@ -68,7 +61,7 @@ public class ReimburseService {
         if (bill == null) {
             throw new BizException("单据不存在");
         }
-        List<Attachment> attachments = attachmentService.getByBill(id, BillType.REIMBURSEMENT);
+        List<AttachmentDTO> attachments = attachmentService.getByBill(id, BillType.REIMBURSEMENT);
         return reimburseMapper.toDTO(bill, attachments);
     }
 
@@ -80,8 +73,8 @@ public class ReimburseService {
      */
     @Transactional
     public ReimbursementDTO create(ReimbursementDTO reimbursementDTO) {
-        if (reimbursementDTO.getId() != null && reimburseRepository.existsById(reimbursementDTO.getId())) {
-            throw new BizException("单据已存在");
+        if (reimbursementDTO.getId() != null) {
+            reimbursementDTO.setId(null);
         }
         if (reimbursementDTO.getNumber() == null || reimbursementDTO.getNumber().isEmpty()) {
             reimbursementDTO.setNumber("R" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + new SecureRandom().nextInt(1000));
@@ -150,12 +143,7 @@ public class ReimburseService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        // 默认取前 20 行，创建时间降序排序
-        int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
-        int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
-        List<Sort.Order> orders = param.getSorts() == null ? List.of(Sort.Order.desc("reimburseDate")) : param.getSorts().stream().map(sortParam -> Sort.Order.by(sortParam.getField()).with(Sort.Direction.fromString(sortParam.getDirection()))).toList();
-        Pageable pageable = PageRequest.of(pageIndex, pageSize, Sort.by(orders));
-        Page<Reimbursement> pageResult = reimburseRepository.findAll(specification, pageable);
+        Page<Reimbursement> pageResult = reimburseRepository.findAll(specification, param.getPageable());
         return pageResult.map(reimburseMapper::toBaseDTO);
     }
 
@@ -269,8 +257,8 @@ public class ReimburseService {
             // 创建当前单据附件文件夹
             Path curDir = tempPath.resolve(reimbursement.getNumber());
             // 拷贝当前单据所有附件
-            List<Attachment> attachments = attachmentService.getByBill(reimbursement.getId(), BillType.REIMBURSEMENT);
-            for (Attachment attachment : attachments) {
+            List<AttachmentDTO> attachments = attachmentService.getByBill(reimbursement.getId(), BillType.REIMBURSEMENT);
+            for (AttachmentDTO attachment : attachments) {
                 Path origin = attachmentService.getRootPath().resolve(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());
                 // 处理可能的重名
@@ -284,9 +272,10 @@ public class ReimburseService {
         }
         // 表合计
         rows.add(List.of("", "合计", totalAmount.toString(), "", ""));
-
-        Path excel = tempPath.resolve("导出结果.xlsx");
-        officeFileService.generateExcelFromList(rows, excel);
+        // 获取当前时间字符串
+        String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        Path excel = tempPath.resolve("导出结果"+timeStr+".xlsx");
+        OfficeFileUtil.generateExcelFromList(rows, excel);
         // 执行文件拷贝
         FileTxUtil.exec(ops);
         // 生成压缩包

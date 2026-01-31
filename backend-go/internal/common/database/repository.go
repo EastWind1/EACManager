@@ -11,88 +11,112 @@ import (
 
 // BaseRepository 基础仓库
 type BaseRepository[T any] struct {
-	Db *gorm.DB
+	db *gorm.DB
+}
+
+func NewBaseRepository[T any](db *gorm.DB) *BaseRepository[T] {
+	return &BaseRepository[T]{db: db}
+}
+
+// txKey 用于在context中存储事务实例的key
+type txKey struct{}
+
+// GetDB 从context中获取数据库实例，优先使用事务实例
+func (r *BaseRepository[T]) GetDB(ctx context.Context) *gorm.DB {
+	if tx, ok := ctx.Value(txKey{}).(*gorm.DB); ok {
+		return tx
+	}
+	return r.db.WithContext(ctx)
 }
 
 // Create 创建, 成功后会修改传入的实体
 func (r *BaseRepository[T]) Create(ctx context.Context, data *T) error {
-	res := gorm.WithResult()
-	err := gorm.G[T](r.Db, res).Create(ctx, data)
-	if err != nil || res.RowsAffected == 0 {
-		return err
+	res := r.GetDB(ctx).Create(data)
+	if res.Error != nil || res.RowsAffected == 0 {
+		return res.Error
 	}
 	return nil
 }
 
 // FindByID 根据 ID 查询, 未查到时返回 nil
 func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, error) {
-	t, err := gorm.G[T](r.Db).Where("id = ?", id).First(ctx)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+	var t T
+	res := r.GetDB(ctx).Where("id = ?", id).First(&t)
+	if res.Error != nil {
+		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 		}
-		return nil, err
+		return nil, nil
 	}
 	return &t, nil
 }
 
 // FindAll 根据条件查询
 func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any) (*[]T, error) {
-	res, err := gorm.G[T](r.Db).Where(query, args...).Find(ctx)
-	if err != nil {
+	var ts []T
+	res := r.GetDB(ctx).Where(query, args...).Find(&ts)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return &ts, nil
+}
+
+// BuildQueryWithParam 拼接分页排序条件
+func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.QueryParam) (*gorm.DB, error) {
+	if err := param.Valid(); err != nil {
 		return nil, err
 	}
-	return &res, nil
+	if param.HasPage() {
+		offset := param.GetPageIndex() * param.GetPageSize()
+		db = db.Offset(offset).Limit(param.GetPageSize())
+	}
+	if param.HasSort() {
+		for _, sort := range *param.Sorts {
+			db = db.Order(fmt.Sprintf("%s %s", sort.Field, sort.Direction))
+		}
+	}
+	return db, nil
 }
 
 // FindAllWithPage 根据条件分页查询
 func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *result.QueryParam, query any, args ...any) (*result.PageResult[T], error) {
-	if err := pageParam.Valid(); err != nil {
-		return nil, err
-	}
-	q := gorm.G[T](r.Db).Where(query, args...)
-	total, err := q.Count(ctx, "id")
-	if err != nil {
-		return nil, err
+	q := r.GetDB(ctx).Where(query, args...)
+	var total int64
+	res := q.Count(&total)
+	if res.Error != nil {
+		return nil, res.Error
 	}
 	if total == 0 {
 		return result.NewPageResult(&[]T{}, 0, 0, 0), nil
 	}
-	if pageParam.HasPage() {
-		offset := pageParam.GetPageIndex() * pageParam.GetPageSize()
-		q = q.Offset(offset).Limit(pageParam.GetPageSize())
-	}
-	if pageParam.HasSort() {
-		for _, sort := range *pageParam.Sorts {
-			q = q.Order(fmt.Sprintf("%s %s", sort.Field, sort.Direction))
-		}
-	}
-	res, err := q.Find(ctx)
+
+	q, err := r.BuildQueryWithParam(q, pageParam)
 	if err != nil {
 		return nil, err
 	}
-	return result.NewPageResult(&res, int(total), pageParam.GetPageIndex(), pageParam.GetPageSize()), nil
+	var ts []T
+	res = q.Find(&ts)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return result.NewPageResult(&ts, int(total), pageParam.GetPageIndex(), pageParam.GetPageSize()), nil
 }
 
-// Save 保存, 成功后会修改传入的实体
-func (r *BaseRepository[T]) Save(ctx context.Context, data *T) error {
-	return r.Db.WithContext(ctx).Save(data).Error
+// Updates 更新, 成功后会修改传入的实体
+func (r *BaseRepository[T]) Updates(ctx context.Context, data *T) error {
+	return r.GetDB(ctx).Updates(data).Error
 }
 
 // DeleteByID 根据 ID 删除
 func (r *BaseRepository[T]) DeleteByID(ctx context.Context, id any) error {
-	rowNum, err := gorm.G[T](r.Db).Where("id = ?", 10).Delete(ctx)
-	if rowNum == 0 {
-		return gorm.ErrRecordNotFound
-	}
-	return err
+	var t T
+	res := r.GetDB(ctx).Where("id = ?", id).Delete(&t)
+	return res.Error
 }
 
-// Transaction 开启事务
-func (r *BaseRepository[T]) Transaction(fn func(tx *gorm.DB) error) error {
-	return r.Db.Transaction(fn)
-}
-
-func NewBaseRepository[T any](db *gorm.DB) *BaseRepository[T] {
-	return &BaseRepository[T]{Db: db}
+// Transaction 开启事务，通过context传递事务实例
+func (r *BaseRepository[T]) Transaction(base context.Context, fn func(ctx context.Context) error) error {
+	return r.GetDB(base).Transaction(func(tx *gorm.DB) error {
+		ctx := context.WithValue(tx.Statement.Context, txKey{}, tx)
+		return fn(ctx)
+	})
 }

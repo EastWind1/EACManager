@@ -5,10 +5,9 @@ import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.service.AttachMapService;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
-import pers.eastwind.billmanager.attach.service.OCRService;
-import pers.eastwind.billmanager.attach.service.OfficeFileService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
+import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.servicebill.model.ServiceBill;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
@@ -30,13 +29,11 @@ import java.util.stream.Collectors;
 public class ServiceBillIOService {
     private final ServiceBillRepository serviceBillRepository;
     private final AttachmentService attachmentService;
-    private final OfficeFileService officeFileService;
     private final AttachMapService attachMapService;
 
-    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService, OfficeFileService officeFileService, OCRService ocrService, AttachMapService attachMapService) {
+    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService,  AttachMapService attachMapService) {
         this.serviceBillRepository = serviceBillRepository;
         this.attachmentService = attachmentService;
-        this.officeFileService = officeFileService;
         this.attachMapService = attachMapService;
     }
 
@@ -94,8 +91,8 @@ public class ServiceBillIOService {
             Path curDir = tempPath.resolve(serviceBill.getNumber());
 
             // 拷贝当前单据所有附件
-            List<Attachment> attachments = attachmentService.getByBill(serviceBill.getId(), BillType.SERVICE_BILL);
-            for (Attachment attachment : attachments) {
+            List<AttachmentDTO> attachments = attachmentService.getByBill(serviceBill.getId(), BillType.SERVICE_BILL);
+            for (AttachmentDTO attachment : attachments) {
                 Path origin = attachmentService.getRootPath().resolve(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());
                 // 处理可能的重名
@@ -111,7 +108,7 @@ public class ServiceBillIOService {
         rows.add(List.of("", "", "", "合计", totalAmount.toString(), ""));
 
         Path excel = tempPath.resolve("导出结果.xlsx");
-        officeFileService.generateExcelFromList(rows, excel);
+        OfficeFileUtil.generateExcelFromList(rows, excel);
         // 执行文件拷贝
         FileTxUtil.exec(ops);
         // 生成压缩包

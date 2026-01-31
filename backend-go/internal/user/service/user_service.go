@@ -86,8 +86,8 @@ func (s *UserService) Create(ctx context.Context, dto *model.UserDTO) (*model.Us
 		return nil, errs.NewBizError("用户名不能为空")
 	}
 	var res *model.UserDTO
-	err := s.userRepo.WithTransaction(func(r *repository.UserRepository) error {
-		exists, err := r.ExistsByUsername(dto.Username)
+	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
+		exists, err := s.userRepo.ExistsByUsername(tx, dto.Username)
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (s *UserService) Create(ctx context.Context, dto *model.UserDTO) (*model.Us
 			newUser.Authority = auth.RoleUser
 		}
 
-		if err = r.Create(ctx, newUser); err != nil {
+		if err = s.userRepo.Create(tx, newUser); err != nil {
 			return err
 		}
 		res = newUser.ToDTO()
@@ -138,8 +138,8 @@ func (s *UserService) Update(ctx context.Context, dto *model.UserDTO) (*model.Us
 		return nil, errs.NewBizError("无权限修改其他用户信息")
 	}
 	var res *model.UserDTO
-	err := s.userRepo.WithTransaction(func(r *repository.UserRepository) error {
-		user, err := r.FindByID(ctx, dto.ID)
+	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
+		user, err := s.userRepo.FindByID(tx, dto.ID)
 		if err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func (s *UserService) Update(ctx context.Context, dto *model.UserDTO) (*model.Us
 		user.Email = dto.Email
 		user.Authority = dto.Authority
 
-		if err = r.Save(ctx, user); err != nil {
+		if err = s.userRepo.Updates(tx, user); err != nil {
 			return err
 		}
 		res = user.ToDTO()
@@ -185,14 +185,14 @@ func (s *UserService) Update(ctx context.Context, dto *model.UserDTO) (*model.Us
 
 // Disable 禁用用户
 func (s *UserService) Disable(ctx context.Context, username string) error {
-	err := s.userRepo.WithTransaction(func(r *repository.UserRepository) error {
-		user, err := r.FindByUsername(ctx, username)
+	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
+		user, err := s.userRepo.FindByUsername(tx, username)
 		if err != nil {
 			return nil
 		}
 
 		user.IsEnabled = false
-		return r.Save(ctx, user)
+		return s.userRepo.Updates(tx, user)
 	})
 	return err
 }

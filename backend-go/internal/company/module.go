@@ -11,7 +11,7 @@ import (
 )
 
 // Setup 初始化
-func Setup(ctx *context.AppContext, router fiber.Router) {
+func Setup(ctx *context.AppContext, router fiber.Router) *service.CompanyService {
 	companyRepo := repository.NewCompanyRepository(ctx.Db)
 	companyService := service.NewCompanyService(companyRepo)
 	companyController := controller.NewCompanyController(companyService)
@@ -22,4 +22,5 @@ func Setup(ctx *context.AppContext, router fiber.Router) {
 		companyGroup.Put("/", companyController.Update)
 		companyGroup.Delete("/:id", companyController.Disable)
 	}
+	return companyService
 }

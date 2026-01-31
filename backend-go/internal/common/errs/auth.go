@@ -13,6 +13,10 @@ func (e *UnauthError) Error() string {
 	return e.Message
 }
 
+func (e *UnauthError) Unwrap() error {
+	return e.Err
+}
+
 func NewUnauthError(message string, e ...error) *AuthError {
 	err := &AuthError{Message: message}
 	if len(e) > 0 {
@@ -32,6 +36,10 @@ func (e *AuthError) Error() string {
 		return e.Message + ": " + e.Err.Error()
 	}
 	return e.Message
+}
+
+func (e *AuthError) Unwrap() error {
+	return e.Err
 }
 
 func NewAuthError(message string, e ...error) *AuthError {

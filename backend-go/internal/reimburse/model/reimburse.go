@@ -3,72 +3,75 @@ package model
 import (
 	"backend-go/internal/attach/model"
 	"backend-go/internal/common/audit"
-	commonModel "backend-go/internal/common/result"
+	"time"
 )
 
-type ReimburseState string
+type ReimburseState int
 
 const (
-	ReimburseStateCreated    ReimburseState = "CREATED"
-	ReimburseStateProcessing ReimburseState = "PROCESSING"
-	ReimburseStateFinished   ReimburseState = "FINISHED"
+	ReimburseStateCreated ReimburseState = iota
+	ReimburseStateProcessing
+	ReimburseStateFinished
 )
 
+// Reimbursement 摘要
 type Reimbursement struct {
 	audit.Entity
-	ID            int               `json:"id" gorm:"primaryKey"`
-	Number        string            `json:"number" gorm:"uniqueIndex;size:100"`
-	State         ReimburseState    `json:"state" gorm:"size:50"`
-	Summary       string            `json:"summary" gorm:"size:500"`
-	TotalAmount   float64           `json:"totalAmount"`
-	ReimburseDate *string           `json:"reimburseDate"`
-	Remark        string            `json:"remark" gorm:"size:1000"`
-	Details       []ReimburseDetail `json:"details" gorm:"foreignKey:ReimbursementID"`
-	Version       int               `json:"version" gorm:"default:0"`
+	ID     uint           `gorm:"primaryKey;default:nextval('reimbursement_seq')"`
+	Number string         `gorm:"uniqueIndex"`
+	State  ReimburseState `gorm:"default:0"`
+	// 摘要
+	Summary     string
+	TotalAmount float64
+	// 报销时间
+	ReimburseDate *time.Time `gorm:"type:timestamptz;index"`
+	// 备注
+	Remark  string
+	Details []ReimburseDetail `gorm:"foreignKey:ReimbursementID"`
+	Version int
 }
 
+// ReimburseDetail 摘要明细
 type ReimburseDetail struct {
-	ID              int     `json:"id" gorm:"primaryKey"`
-	ReimbursementID int     `json:"reimbursementId" gorm:"index"`
-	Name            string  `json:"name" gorm:"size:200"`
-	Amount          float64 `json:"amount"`
+	ID              uint `gorm:"primaryKey;default:nextval('reimburse_detail_seq')"`
+	ReimbursementID int  `gorm:"index"`
+	Name            string
+	Amount          float64
 }
 
 type ReimbursementDTO struct {
-	ID            int                   `json:"id"`
+	ID            uint                  `json:"id"`
 	Number        string                `json:"number"`
 	State         ReimburseState        `json:"state"`
 	Summary       string                `json:"summary"`
 	TotalAmount   float64               `json:"totalAmount"`
-	ReimburseDate *string               `json:"reimburseDate"`
+	ReimburseDate *time.Time            `json:"reimburseDate"`
 	Remark        string                `json:"remark"`
 	Details       []ReimburseDetailDTO  `json:"details"`
 	Attachments   []model.AttachmentDTO `json:"attachments"`
 }
 
 type ReimburseDetailDTO struct {
-	ID     int     `json:"id"`
+	ID     uint    `json:"id"`
 	Name   string  `json:"name"`
 	Amount float64 `json:"amount"`
 }
 
-type ReimburseQueryParam struct {
-	Number             string           `form:"number"`
-	Summary            string           `form:"summary"`
-	States             []ReimburseState `form:"states"`
-	ReimburseStartDate *string          `form:"reimburseStartDate"`
-	ReimburseEndDate   *string          `form:"reimburseEndDate"`
-	commonModel.QueryParam
-	commonModel.SortParam
-}
-
-func (r *Reimbursement) ToDTO() ReimbursementDTO {
+// ToDTO 转换为详细 DTO
+func (r *Reimbursement) ToDTO(attaches *[]model.AttachmentDTO) *ReimbursementDTO {
 	details := make([]ReimburseDetailDTO, len(r.Details))
 	for i, d := range r.Details {
 		details[i] = d.ToDTO()
 	}
+	base := r.ToBaseDTO()
+	base.Details = details
+	base.Attachments = *attaches
+	return base
+}
 
-	return ReimbursementDTO{
+// ToBaseDTO 转换为基础 DTO
+func (r *Reimbursement) ToBaseDTO() *ReimbursementDTO {
+	return &ReimbursementDTO{
 		ID:            r.ID,
 		Number:        r.Number,
 		State:         r.State,
@@ -76,25 +79,16 @@ func (r *Reimbursement) ToDTO() ReimbursementDTO {
 		TotalAmount:   r.TotalAmount,
 		ReimburseDate: r.ReimburseDate,
 		Remark:        r.Remark,
-		Details:       details,
 	}
 }
 
-func (r *Reimbursement) ToBaseDTO() ReimbursementDTO {
-	details := make([]ReimburseDetailDTO, len(r.Details))
-	for i, d := range r.Details {
-		details[i] = d.ToDTO()
+// ToBaseDTOs 转换为基础 DTO，用于列表展示
+func ToBaseDTOs(entities *[]Reimbursement) *[]ReimbursementDTO {
+	details := make([]ReimbursementDTO, len(*entities))
+	for i, d := range *entities {
+		details[i] = *(d.ToBaseDTO())
 	}
-
-	return ReimbursementDTO{
-		ID:            r.ID,
-		Number:        r.Number,
-		State:         r.State,
-		Summary:       r.Summary,
-		TotalAmount:   r.TotalAmount,
-		ReimburseDate: r.ReimburseDate,
-		Details:       details,
-	}
+	return &details
 }
 
 func (r *ReimburseDetail) ToDTO() ReimburseDetailDTO {

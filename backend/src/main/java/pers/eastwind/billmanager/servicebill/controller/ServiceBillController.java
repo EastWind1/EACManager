@@ -74,7 +74,7 @@ public class ServiceBillController {
      * @return 保存后的服务单
      */
     @PutMapping
-    public ServiceBillDTO save(@RequestBody ServiceBillDTO serviceBillDTO) {
+    public ServiceBillDTO update(@RequestBody ServiceBillDTO serviceBillDTO) {
         return serviceBillBizService.update(serviceBillDTO);
     }
 

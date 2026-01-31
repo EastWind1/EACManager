@@ -1,146 +1,167 @@
 package controller
 
 import (
-	commonModel "backend-go/internal/common/result"
+	"backend-go/internal/common/errs"
+	"backend-go/internal/common/result"
 	"backend-go/internal/servicebill/model"
 	"backend-go/internal/servicebill/service"
-	"fmt"
-	"net/http"
+	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
 type ServiceBillController struct {
-	billService *service.ServiceBillService
+	bizSrv *service.BizService
 }
 
-func NewServiceBillController(billService *service.ServiceBillService) *ServiceBillController {
+func NewServiceBillController(bizSrv *service.BizService) *ServiceBillController {
 	return &ServiceBillController{
-		billService: billService,
+		bizSrv: bizSrv,
 	}
 }
 
-func (c *ServiceBillController) GetByID(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := parseID(idStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any]("无效的 id"))
-		return
+func (c *ServiceBillController) QueryByParam(ctx *fiber.Ctx) error {
+	var param model.ServiceBillQueryParam
+	if err := ctx.QueryParser(&param); err != nil {
+		return err
 	}
 
-	result, err := c.billService.FindByID(id)
+	res, err := c.bizSrv.FindByParam(ctx.Context(), &param)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ServiceBillController) Create(ctx *gin.Context) {
+func (c *ServiceBillController) GetByID(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
+	if idStr == "" {
+		return errs.NewBizError("ID 为空")
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return err
+	}
+	res, err := c.bizSrv.FindByID(ctx.Context(), uint(id))
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
+}
+
+func (c *ServiceBillController) Create(ctx *fiber.Ctx) error {
 	var dto model.ServiceBillDTO
-	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+	if err := ctx.BodyParser(&dto); err != nil {
+		return err
 	}
 
-	result, err := c.billService.Create(&dto)
+	res, err := c.bizSrv.Create(ctx.Context(), &dto)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ServiceBillController) Update(ctx *gin.Context) {
+func (c *ServiceBillController) ImportByFile(ctx *fiber.Ctx) error {
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		return err
+	}
+	files := form.File["files"]
+	if len(files) == 0 {
+		return errs.NewBizError("没有文件上传")
+	}
+	res, err := c.bizSrv.GenerateByFile(ctx.Context(), files[0])
+	if err != nil {
+		return err
+	}
+
+	result.SetResult(ctx, res)
+	return nil
+}
+
+func (c *ServiceBillController) Update(ctx *fiber.Ctx) error {
 	var dto model.ServiceBillDTO
-	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+	if err := ctx.BodyParser(&dto); err != nil {
+		return err
 	}
 
-	result, err := c.billService.Update(&dto)
+	res, err := c.bizSrv.Update(ctx.Context(), &dto)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ServiceBillController) Delete(ctx *gin.Context) {
-	var ids []int
-	if err := ctx.ShouldBindJSON(&ids); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+func (c *ServiceBillController) Delete(ctx *fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.BodyParser(&ids); err != nil {
+		return err
 	}
 
-	result, err := c.billService.Delete(ids)
+	res, err := c.bizSrv.Delete(ctx.Context(), ids)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ServiceBillController) Process(ctx *gin.Context) {
-	var ids []int
-	if err := ctx.ShouldBindJSON(&ids); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+func (c *ServiceBillController) Process(ctx *fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.BodyParser(&ids); err != nil {
+		return err
 	}
 
-	result, err := c.billService.Process(ids)
+	res, err := c.bizSrv.Process(ctx.Context(), ids)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ServiceBillController) Processed(ctx *gin.Context) {
-	var request struct {
-		IDs           []int   `json:"ids" binding:"required"`
-		ProcessedDate *string `json:"processedDate"`
-	}
-	if err := ctx.ShouldBindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+func (c *ServiceBillController) Processed(ctx *fiber.Ctx) error {
+	var param model.ProcessedParam
+	if err := ctx.BodyParser(&param); err != nil {
+		return err
 	}
 
-	result, err := c.billService.Processed(request.IDs, request.ProcessedDate)
+	res, err := c.bizSrv.Processed(ctx.Context(), param.Ids, param.ProcessedDate)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ServiceBillController) Finish(ctx *gin.Context) {
-	var request struct {
-		IDs          []int   `json:"ids" binding:"required"`
-		FinishedDate *string `json:"finishedDate"`
-	}
-	if err := ctx.ShouldBindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+func (c *ServiceBillController) Finish(ctx *fiber.Ctx) error {
+	var param model.FinishParam
+	if err := ctx.BodyParser(&param); err != nil {
+		return err
 	}
 
-	result, err := c.billService.Finish(request.IDs, request.FinishedDate)
+	res, err := c.bizSrv.Finish(ctx.Context(), param.Ids, param.FinishedDate)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func parseID(idStr string) (int, error) {
-	id := 0
-	_, err := fmt.Sscanf(idStr, "%d", &id)
-	return id, err
+func (c *ServiceBillController) Export(ctx *fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.BodyParser(&ids); err != nil {
+		return err
+	}
+
+	res, err := c.bizSrv.Export(ctx.Context(), ids)
+	if err != nil {
+		return err
+	}
+	return ctx.Download(res, "导出.zip")
 }

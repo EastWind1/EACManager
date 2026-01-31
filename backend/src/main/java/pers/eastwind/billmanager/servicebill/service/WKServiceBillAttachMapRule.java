@@ -54,8 +54,7 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
         mapRules.get(labels[0]).accept(target, labels[1]);
     }
 
-    @Override
-    public boolean canOCR(List<String> texts) {
+    private boolean canOCR(List<String> texts) {
         for (String text : texts) {
             if (text.contains("威垦")) {
                 return true;
@@ -64,8 +63,7 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
         return false;
     }
 
-    @Override
-    public boolean canExcel(List<List<String>> rows) {
+    private boolean canExcel(List<List<String>> rows) {
         for (List<String> row : rows) {
             for (String text : row) {
                 if (text.contains("威垦")) {
@@ -83,6 +81,9 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
     }
     @Override
     public ServiceBillDTO mapFromOCR(List<String> texts) {
+        if (!canOCR(texts)) {
+            return null;
+        }
         ServiceBillDTO serviceBill = new ServiceBillDTO();
         setCompany(serviceBill, "威垦");
         for (String text : texts) {
@@ -94,6 +95,9 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
 
     @Override
     public ServiceBillDTO mapFromExcel(List<List<String>> rows) {
+        if (!canExcel(rows)) {
+            return null;
+        }
         ServiceBillDTO serviceBill = new ServiceBillDTO();
         setCompany(serviceBill, "威垦");
         serviceBill.setDetails(new ArrayList<>());
@@ -121,21 +125,13 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
                 if (row.get(0).matches("^\\d+\\.?\\d+$")) {
                     ServiceBillDetailDTO detail = new ServiceBillDetailDTO();
                     detail.setDevice(row.get(1) + " " + row.get(2) + " " + row.get(4));
-                    if (!row.get(5).isEmpty()) {
-                        detail.setQuantity(new BigDecimal(row.get(5)));
-                    } else {
+                    if (row.get(5).isEmpty() || row.get(7).isEmpty() || row.get(8).isEmpty()) {
                         continue;
                     }
-                    if (!row.get(7).isEmpty()) {
-                        detail.setUnitPrice(new BigDecimal(row.get(7)));
-                    } else {
-                        continue;
-                    }
-                    if (!row.get(8).isEmpty()) {
-                        detail.setSubtotal(new BigDecimal(row.get(8)));
-                    } else {
-                        continue;
-                    }
+                    detail.setQuantity(new BigDecimal(row.get(5)));
+                    detail.setUnitPrice(new BigDecimal(row.get(7)));
+                    detail.setSubtotal(new BigDecimal(row.get(8)));
+                  
                     serviceBill.getDetails().add(detail);
                 } else {
                     // 特殊子项

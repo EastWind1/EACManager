@@ -1,13 +1,13 @@
 package controller
 
 import (
-	commonModel "backend-go/internal/common/result"
+	"backend-go/internal/common/errs"
+	"backend-go/internal/common/result"
 	"backend-go/internal/reimburse/model"
 	"backend-go/internal/reimburse/service"
-	"fmt"
-	"net/http"
+	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
 type ReimburseController struct {
@@ -20,115 +20,116 @@ func NewReimburseController(reimburseService *service.ReimburseService) *Reimbur
 	}
 }
 
-func (c *ReimburseController) Query(ctx *gin.Context) {
+func (c *ReimburseController) QueryByParam(ctx *fiber.Ctx) error {
 	var param model.ReimburseQueryParam
-	if err := ctx.ShouldBindQuery(&param); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+	if err := ctx.QueryParser(&param); err != nil {
+		return err
 	}
 
-	ctx.JSON(http.StatusOK, commonModel.Ok([]model.ReimbursementDTO{}))
+	res, err := c.reimburseService.FindByParam(ctx.Context(), &param)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ReimburseController) GetByID(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := parseID(idStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any]("无效的 id"))
-		return
+func (c *ReimburseController) GetByID(ctx *fiber.Ctx) error {
+	idStr := ctx.Params("id")
+	if idStr == "" {
+		return errs.NewBizError("ID 为空")
 	}
-
-	result, err := c.reimburseService.FindByID(id)
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	res, err := c.reimburseService.FindByID(ctx.Context(), uint(id))
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ReimburseController) Create(ctx *gin.Context) {
+func (c *ReimburseController) Create(ctx *fiber.Ctx) error {
 	var dto model.ReimbursementDTO
-	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+	if err := ctx.BodyParser(&dto); err != nil {
+		return err
 	}
 
-	result, err := c.reimburseService.Create(&dto)
+	res, err := c.reimburseService.Create(ctx.Context(), &dto)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ReimburseController) Update(ctx *gin.Context) {
+func (c *ReimburseController) Update(ctx *fiber.Ctx) error {
 	var dto model.ReimbursementDTO
-	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+	if err := ctx.BodyParser(&dto); err != nil {
+		return err
 	}
 
-	result, err := c.reimburseService.Update(&dto)
+	res, err := c.reimburseService.Update(ctx.Context(), &dto)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ReimburseController) Delete(ctx *gin.Context) {
-	var ids []int
-	if err := ctx.ShouldBindJSON(&ids); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+func (c *ReimburseController) Delete(ctx *fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.BodyParser(&ids); err != nil {
+		return err
 	}
 
-	result, err := c.reimburseService.Delete(ids)
+	res, err := c.reimburseService.Delete(ctx.Context(), ids)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ReimburseController) Process(ctx *gin.Context) {
-	var ids []int
-	if err := ctx.ShouldBindJSON(&ids); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+func (c *ReimburseController) Process(ctx *fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.BodyParser(&ids); err != nil {
+		return err
 	}
 
-	result, err := c.reimburseService.Process(ids)
+	res, err := c.reimburseService.Process(ctx.Context(), ids)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func (c *ReimburseController) Finish(ctx *gin.Context) {
-	var ids []int
-	if err := ctx.ShouldBindJSON(&ids); err != nil {
-		ctx.JSON(http.StatusBadRequest, commonModel.Error[any](err.Error()))
-		return
+func (c *ReimburseController) Finish(ctx *fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.BodyParser(&ids); err != nil {
+		return err
 	}
 
-	result, err := c.reimburseService.Finish(ids)
+	res, err := c.reimburseService.Finish(ctx.Context(), ids)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.JSON(http.StatusOK, result.Ok(result))
+	result.SetResult(ctx, res)
+	return nil
 }
 
-func parseID(idStr string) (int, error) {
-	id := 0
-	_, err := fmt.Sscanf(idStr, "%d", &id)
-	return id, err
+func (c *ReimburseController) Export(ctx *fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.BodyParser(&ids); err != nil {
+		return err
+	}
+
+	res, err := c.reimburseService.Export(ctx.Context(), ids)
+	if err != nil {
+		return err
+	}
+	return ctx.Download(res, "导出.zip")
 }

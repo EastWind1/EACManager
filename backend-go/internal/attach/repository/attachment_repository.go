@@ -20,9 +20,9 @@ func NewAttachmentRepository(db *gorm.DB) *AttachmentRepository {
 }
 
 // FindByBill 根据业务单据查找附件
-func (r *AttachmentRepository) FindByBill(ctx context.Context, billID int, billType model.BillType) (*[]model.Attachment, error) {
+func (r *AttachmentRepository) FindByBill(ctx context.Context, billID uint, billType model.BillType) (*[]model.Attachment, error) {
 	var attachments []model.Attachment
-	err := r.Db.WithContext(ctx).Table("attachment").
+	err := r.GetDB(ctx).WithContext(ctx).Table("attachment").
 		Joins("right join bill_attach_relation on attachment.id = bill_attach_relation.attach_id").
 		Select("attachment.*").
 		Where("bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType).
@@ -31,13 +31,6 @@ func (r *AttachmentRepository) FindByBill(ctx context.Context, billID int, billT
 		return nil, err
 	}
 	return &attachments, nil
-}
-
-// WithTransaction 开启事务，内部操作数据库务必使用回调传入的实例
-func (r *AttachmentRepository) WithTransaction(fn func(r *AttachmentRepository) error) error {
-	return r.Db.Transaction(func(tx *gorm.DB) error {
-		return fn(NewAttachmentRepository(tx))
-	})
 }
 
 // BillAttachRelationRepository 业务单据附件关系仓库
@@ -52,9 +45,9 @@ func NewBillAttachRelationRepository(db *gorm.DB) *BillAttachRelationRepository 
 }
 
 // FindByBillIDAndBillType 根据业务单据ID和类型查找附件关系
-func (r *BillAttachRelationRepository) FindByBillIDAndBillType(ctx context.Context, billID int, billType model.BillType) (*[]model.BillAttachRelation, error) {
+func (r *BillAttachRelationRepository) FindByBillIDAndBillType(ctx context.Context, billID uint, billType model.BillType) (*[]model.BillAttachRelation, error) {
 	var res []model.BillAttachRelation
-	r.Db.WithContext(ctx).Joins("attachment").
+	r.GetDB(ctx).WithContext(ctx).Joins("attachment").
 		Find(&res, "bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType)
 	return &res, nil
 }

@@ -2,12 +2,15 @@ package server
 
 import (
 	"backend-go/config"
+	"backend-go/internal/attach"
 	"backend-go/internal/common/cache"
 	"backend-go/internal/common/context"
 	"backend-go/internal/common/database"
 	"backend-go/internal/common/logger"
 	"backend-go/internal/common/middleware"
 	"backend-go/internal/company"
+	"backend-go/internal/reimburse"
+	"backend-go/internal/servicebill"
 	"backend-go/internal/user"
 	"fmt"
 
@@ -20,17 +23,17 @@ import (
 // Run 启动服务
 func Run() {
 	// 初始化上下文
-	appContext := &context.AppContext{}
+	ctx := &context.AppContext{}
 	// 加载配置
 	cfg := config.NewConfig()
-	appContext.Cfg = cfg
+	ctx.Cfg = cfg
 	// 初始化服务
 	server := fiber.New(fiber.Config{
 		JSONEncoder:  sonic.Marshal,
 		JSONDecoder:  sonic.Unmarshal,
 		ErrorHandler: middleware.ErrorHandler(),
 	})
-	appContext.Server = server
+	ctx.Server = server
 	// 初始化日志
 	logger.InitLogger(cfg.Log)
 	// 初始化异常处理
@@ -38,15 +41,18 @@ func Run() {
 	// 初始化响应体包装
 	server.Use(middleware.ResultWrap())
 	// 初始化缓存
-	appContext.Cache = cache.NewCache(cfg.Cache)
+	ctx.Cache = cache.NewInMemoryCache(cfg.Cache)
 	// 初始化数据库
-	appContext.Db = database.NewDB(cfg.Db)
+	ctx.Db = database.NewDB(cfg.Db)
 	// 初始化路由
 	router := server.Group("/api")
 	// 初始化模块
 	{
-		user.Setup(appContext, router)
-		company.Setup(appContext, router)
+		user.Setup(ctx, router)
+		companySrv := company.Setup(ctx, router)
+		attachSrv, attachMapSrv := attach.Setup(ctx, router)
+		reimburse.Setup(ctx, router, attachSrv)
+		servicebill.Setup(ctx, router, companySrv, attachSrv, attachMapSrv)
 	}
 
 	if err := server.Listen(fmt.Sprintf(":%d", cfg.Server.Port)); err != nil {

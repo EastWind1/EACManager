@@ -1,7 +1,7 @@
-package pers.eastwind.billmanager.attach.service;
+package pers.eastwind.billmanager.attach.util;
 
+import org.apache.commons.io.file.PathUtils;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.common.exception.BizException;
 
 import java.io.FileOutputStream;
@@ -14,14 +14,13 @@ import java.util.List;
 /**
  * Word、Excel 文件处理
  */
-@Service
-public class OfficeFileService {
+public class OfficeFileUtil {
     /**
      * 读取 Excel 文件, 范围二维数据
      *
      * @param path   文件相对路径
      */
-    public List<List<String>> parseExcel(Path path) {
+    public static List<List<String>> parseExcel(Path path) {
         List<List<String>> res = new ArrayList<>();
         try (Workbook workbook = WorkbookFactory.create(path.toFile())) {
             // 只读取第一个 sheet
@@ -66,12 +65,13 @@ public class OfficeFileService {
      * @param rows       数据
      * @param targetFile 目标文件, 若存在则替换
      */
-    public void generateExcelFromList(List<List<String>> rows, Path targetFile) {
+    public static void generateExcelFromList(List<List<String>> rows, Path targetFile) {
         if (rows == null || rows.isEmpty()) {
             throw new BizException("数据不能为空");
         }
         if (!Files.exists(targetFile)) {
             try {
+                PathUtils.createParentDirectories(targetFile);
                 Files.createFile(targetFile);
             } catch (IOException e) {
                 throw new BizException("创建 Excel 失败", e);

@@ -3,11 +3,10 @@ package controller
 import (
 	"backend-go/internal/attach/model"
 	"backend-go/internal/attach/service"
+	"backend-go/internal/common/errs"
 	"backend-go/internal/common/result"
-	"net/http"
-	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
 type AttachmentController struct {
@@ -20,136 +19,32 @@ func NewAttachmentController(attachService *service.AttachmentService) *Attachme
 	}
 }
 
-func (c *AttachmentController) UploadTemp(ctx *gin.Context) {
-	if err := ctx.Request.ParseMultipartForm(32 << 20); err != nil {
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("解析表单失败"))
-		return
+func (c *AttachmentController) UploadTemp(ctx *fiber.Ctx) error {
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		return err
 	}
-
-	files := ctx.Request.MultipartForm.File["files"]
+	files := form.File["files"]
 	if len(files) == 0 {
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("没有文件上传"))
-		return
+		return errs.NewBizError("没有文件上传")
 	}
-
-	attachments, err := c.attachService.UploadTemps(files)
+	temps, err := c.attachService.UploadTemps(&files)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
 
-	result := make([]model.AttachmentDTO, len(attachments))
-	for i, a := range attachments {
-		result[i] = model.AttachmentDTO{
-			ID:           a.ID,
-			Name:         a.Name,
-			Type:         a.Type,
-			RelativePath: a.RelativePath,
-			Temp:         true,
-		}
-	}
-
-	ctx.JSON(http.StatusOK, result)
+	result.SetResult(ctx, temps)
+	return nil
 }
 
-func (c *AttachmentController) DownloadFile(ctx *gin.Context) {
-	dto := &model.AttachmentDTO{}
-	if err := ctx.ShouldBind(dto); err != nil {
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("参数不能为空"))
-		return
+func (c *AttachmentController) Download(ctx *fiber.Ctx) error {
+	dto := model.AttachmentDTO{}
+	if err := ctx.ParamsParser(&dto); err != nil {
+		return err
 	}
-
-	file, contentType, err := c.attachService.GetResource(dto)
+	name, path, err := c.attachService.GetResource(ctx.Context(), &dto)
 	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
+		return err
 	}
-
-	ctx.Header("Content-Disposition", "attachment; filename="+dto.Name)
-	ctx.Data(http.StatusOK, contentType, file)
-}
-
-func (c *AttachmentController) GetAttachmentByBill(ctx *gin.Context) {
-	billIDStr := ctx.Query("billId")
-	billTypeStr := ctx.Query("billType")
-
-	if billIDStr == "" {
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("单据ID不能为空"))
-		return
-	}
-
-	billID, err := strconv.Atoi(billIDStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("单据ID格式错误"))
-		return
-	}
-
-	var billType model.BillType
-	switch billTypeStr {
-	case "SERVICE_BILL":
-		billType = model.BillTypeServiceBill
-	case "REIMBURSEMENT":
-		billType = model.BillTypeReimbursement
-	default:
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("无效的单据类型"))
-		return
-	}
-
-	attachments, err := c.attachService.GetByBill(billID, billType)
-	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
-	}
-
-	result := model.ToDTOs(attachments)
-	ctx.JSON(http.StatusOK, result)
-}
-
-func (c *AttachmentController) DeleteFile(ctx *gin.Context) {
-	path := ctx.Param("path")
-	if path == "" {
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("路径不能为空"))
-		return
-	}
-
-	if err := c.attachService.DeleteFile(path); err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
-	}
-
-	ctx.Status(http.StatusNoContent)
-}
-
-func (c *AttachmentController) UpdateRelativeAttach(ctx *gin.Context) {
-	var billDTO struct {
-		BillID         int                   `json:"billId" binding:"required"`
-		BillNumber     string                `json:"billNumber" binding:"required"`
-		BillType       string                `json:"billType" binding:"required"`
-		AttachmentDTOs []model.AttachmentDTO `json:"attachmentDTOs"`
-	}
-
-	if err := ctx.ShouldBindJSON(&billDTO); err != nil {
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("参数解析失败"))
-		return
-	}
-
-	var billType model.BillType
-	switch billDTO.BillType {
-	case "SERVICE_BILL":
-		billType = model.BillTypeServiceBill
-	case "REIMBURSEMENT":
-		billType = model.BillTypeReimbursement
-	default:
-		ctx.JSON(http.StatusBadRequest, result.Error[any]("无效的单据类型"))
-		return
-	}
-
-	attachments, err := c.attachService.UpdateRelativeAttach(billDTO.BillID, billDTO.BillNumber, billType, billDTO.AttachmentDTOs)
-	if err != nil {
-		ctx.JSON(http.StatusOK, result.Error[any](err.Error()))
-		return
-	}
-
-	result := model.ToDTOs(attachments)
-	ctx.JSON(http.StatusOK, result)
+	return ctx.Download(path, name)
 }

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.AttachmentDTO;
 import pers.eastwind.billmanager.attach.model.AttachmentType;
 import pers.eastwind.billmanager.attach.util.FileUtil;
+import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 
 import java.nio.file.Path;
@@ -15,13 +16,11 @@ import java.util.List;
 @Service
 public class AttachMapService {
     private final OCRService ocrService;
-    private final OfficeFileService officeFileService;
     private final List<AttachMapRule<?>> mapRules;
     private final AttachmentService attachmentService;
 
-    public AttachMapService(OCRService ocrService, OfficeFileService officeFileService, List<AttachMapRule<?>> mapRules, AttachmentService attachmentService) {
+    public AttachMapService(OCRService ocrService, List<AttachMapRule<?>> mapRules, AttachmentService attachmentService) {
         this.ocrService = ocrService;
-        this.officeFileService = officeFileService;
         this.mapRules = mapRules;
         this.attachmentService = attachmentService;
     }
@@ -31,29 +30,30 @@ public class AttachMapService {
      * @param attachment 附件
      * @return 对象
      */
-    @SuppressWarnings("unchecked")
     public <T> T map(AttachmentDTO attachment) {
         Path path = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()), attachment.isTemp());
         switch (attachment.getType()) {
             case IMAGE, PDF -> {
                 if (attachment.getType() == AttachmentType.PDF) {
-                    Path target = attachmentService.getTempPath().resolve(System.currentTimeMillis()+".jpg");
+                    Path target = attachmentService.createTempFile("", ".jpg");
                     FileUtil.convertPDFToImage(path, target);
                     path = target;
                 }
                 List<String> texts = ocrService.parseImage(path);
                 for (AttachMapRule<?> mapRule : mapRules) {
-                    if (mapRule.canOCR(texts)) {
-                        return (T) mapRule.mapFromOCR(texts);
+                    T cur = (T) mapRule.mapFromOCR(texts);
+                    if (cur != null) {
+                        return cur;
                     }
                 }
                 throw new BizException("未配置映射规则");
             }
             case EXCEL -> {
-                List<List<String>> rows = officeFileService.parseExcel(path);
+                List<List<String>> rows = OfficeFileUtil.parseExcel(path);
                 for (AttachMapRule<?> mapRule : mapRules) {
-                    if (mapRule.canExcel(rows)) {
-                        return (T) mapRule.mapFromExcel(rows);
+                    T cur = (T) mapRule.mapFromExcel(rows);
+                    if  (cur != null) {
+                        return cur;
                     }
                 }
                 throw new BizException("未配置映射规则");

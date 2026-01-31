@@ -9,10 +9,10 @@ import (
 
 // Entity 审计实体
 type Entity struct {
-	CreatedDate      time.Time `gorm:"autoCreateTime"`
-	CreatedByID      *uint
-	LastModifiedDate time.Time `gorm:"autoUpdateTime"`
-	LastModifiedByID *uint
+	CreatedDate      time.Time `gorm:"autoCreateTime;type:timestamptz"`
+	CreatedByID      uint
+	LastModifiedDate time.Time `gorm:"autoUpdateTime;type:timestamptz"`
+	LastModifiedByID uint
 }
 
 // BeforeCreate 插入前设置创建人
@@ -22,7 +22,7 @@ func (entity *Entity) BeforeCreate(db *gorm.DB) (err error) {
 		return
 	}
 	id := user.GetID()
-	entity.CreatedByID = &id
+	entity.CreatedByID = id
 	return
 }
 
@@ -33,6 +33,6 @@ func (entity *Entity) BeforeUpdate(db *gorm.DB) (err error) {
 		return
 	}
 	id := user.GetID()
-	entity.LastModifiedByID = &id
+	entity.LastModifiedByID = id
 	return
 }

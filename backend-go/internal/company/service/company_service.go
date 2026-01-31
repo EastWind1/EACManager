@@ -51,31 +51,30 @@ func (s *CompanyService) Create(ctx context.Context, dto *model.CompanyDTO) (*mo
 }
 
 func (s *CompanyService) Update(ctx context.Context, dto *model.CompanyDTO) (*model.CompanyDTO, error) {
-	var res *model.CompanyDTO
-	err := s.companyRepo.WithTransaction(func(r *repository.CompanyRepository) error {
-		com, err := r.FindByID(ctx, dto.ID)
+	var company *model.Company
+	err := s.companyRepo.Transaction(ctx, func(tx context.Context) error {
+		com, err := s.companyRepo.FindByID(tx, dto.ID)
 		if err != nil {
 			return err
 		}
 		if com == nil {
 			return errs.NewBizError("公司不存在")
 		}
-		company := dto.ToEntity()
-		if err = r.Save(ctx, company); err != nil {
+		company = dto.ToEntity()
+		if err = s.companyRepo.Updates(tx, company); err != nil {
 			return err
 		}
-		res = company.ToDTO()
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return res, nil
+	return company.ToDTO(), nil
 }
 
 func (s *CompanyService) Disable(ctx context.Context, id int) error {
-	err := s.companyRepo.WithTransaction(func(r *repository.CompanyRepository) error {
-		company, err := r.FindByID(ctx, id)
+	err := s.companyRepo.Transaction(ctx, func(tx context.Context) error {
+		company, err := s.companyRepo.FindByID(tx, id)
 		if err != nil {
 			return err
 		}
@@ -83,7 +82,7 @@ func (s *CompanyService) Disable(ctx context.Context, id int) error {
 			return errs.NewBizError("公司不存在")
 		}
 		company.IsDisabled = true
-		return r.Save(ctx, company)
+		return s.companyRepo.Updates(tx, company)
 	})
 	return err
 }

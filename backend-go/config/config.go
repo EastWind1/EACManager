@@ -14,6 +14,7 @@ type Config struct {
 	Db         *DatabaseConfig
 	JWT        *JWTConfig
 	Cache      *CacheConfig
+	OCR        *OCRConfig
 	Attachment *AttachmentConfig
 }
 
@@ -42,6 +43,11 @@ type DatabaseConfig struct {
 type CacheConfig struct {
 	// Expire 过期时间，单位秒
 	Expire int
+}
+
+type OCRConfig struct {
+	// URL 远程 OCR 服务地址
+	URL string
 }
 
 // GetDBStr 获取数据库连接字符串
@@ -73,17 +79,17 @@ func NewConfig() *Config {
 	viper.SetConfigType("yaml")
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Failed to read config file: %v", err)
+		log.Fatalf("加载配置文件失败: %v", err)
 	}
 	// 读取环境变量
 	viper.AutomaticEnv()
 
-	log.Infof("load config file: %s", viper.ConfigFileUsed())
-	log.Infof("use config: %v", viper.AllSettings())
+	log.Infof("加载配置文件 %s", viper.ConfigFileUsed())
+	log.Infof("使用配置: %v", viper.AllSettings())
 
 	config := &Config{}
 	if err := viper.Unmarshal(config); err != nil {
-		log.Fatalf("Failed to unmarshal config: %v", err)
+		log.Fatalf("反序列化配置文件失败: %v", err)
 	}
 
 	return config

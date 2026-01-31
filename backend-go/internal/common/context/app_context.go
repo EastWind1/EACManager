@@ -13,7 +13,7 @@ type AppContext struct {
 	// cfg 配置
 	Cfg *config.Config
 	// cache 缓存
-	Cache *cache.Cache
+	Cache cache.Cache
 	// db 数据库链接
 	Db *gorm.DB
 	// server 服务

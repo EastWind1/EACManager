@@ -6,9 +6,11 @@ import (
 
 // Company 公司
 type Company struct {
-	ID           int `gorm:"primaryKey;default:nextval('company_seq')"`
-	Name         string
-	ContactName  string
+	ID   uint `gorm:"primaryKey;default:nextval('company_seq')"`
+	Name string
+	// ContactName 联系人名称
+	ContactName string
+	// ContactPhone 联系人电话
 	ContactPhone string
 	Email        string
 	Address      string
@@ -18,7 +20,7 @@ type Company struct {
 
 // CompanyDTO 公司 DTO
 type CompanyDTO struct {
-	ID           int    `json:"id"`
+	ID           uint   `json:"id"`
 	Name         string `json:"name"`
 	ContactName  string `json:"contactName"`
 	ContactPhone string `json:"contactPhone"`

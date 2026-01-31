@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
-import pers.eastwind.billmanager.attach.model.Attachment;
+import pers.eastwind.billmanager.attach.model.AttachmentDTO;
 import pers.eastwind.billmanager.common.model.BaseMapper;
 
 import java.util.List;
@@ -20,5 +20,5 @@ public interface ReimburseMapper extends BaseMapper<Reimbursement, Reimbursement
     @Mapping(target = "attachments", ignore = true)
     ReimbursementDTO toBaseDTO(Reimbursement reimbursement);
 
-    ReimbursementDTO toDTO(Reimbursement reimbursement, List<Attachment> attachments);
+    ReimbursementDTO toDTO(Reimbursement reimbursement, List<AttachmentDTO> attachments);
 }

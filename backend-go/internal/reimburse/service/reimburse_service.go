@@ -1,26 +1,40 @@
 package service
 
 import (
-	error2 "backend-go/internal/common/errs"
+	attachModel "backend-go/internal/attach/model"
+	"backend-go/internal/common/cache"
+	"context"
+	"fmt"
+	"math/rand"
+	"path/filepath"
+	"time"
+
+	"backend-go/internal/attach/files"
+	"backend-go/internal/attach/service"
+	"backend-go/internal/common/errs"
 	"backend-go/internal/common/result"
 	"backend-go/internal/reimburse/model"
 	"backend-go/internal/reimburse/repository"
-	"fmt"
-	"math/rand"
-	"time"
 )
 
 type ReimburseService struct {
 	reimburseRepo   *repository.ReimburseRepository
+	attachService   *service.AttachmentService
+	cache           cache.Cache
 	reimburseMapper *ReimburseMapper
 }
 
 type ReimburseMapper struct{}
 
-func NewReimburseService(reimburseRepo *repository.ReimburseRepository) *ReimburseService {
+func NewReimburseService(
+	reimburseRepo *repository.ReimburseRepository,
+	attachService *service.AttachmentService,
+	cache cache.Cache,
+) *ReimburseService {
 	return &ReimburseService{
-		reimburseRepo:   reimburseRepo,
-		reimburseMapper: &ReimburseMapper{},
+		reimburseRepo: reimburseRepo,
+		attachService: attachService,
+		cache:         cache,
 	}
 }
 
@@ -30,215 +44,72 @@ func (s *ReimburseService) GenerateNumber() string {
 	return fmt.Sprintf("R%s%04d", timestamp, randomNum)
 }
 
-func (s *ReimburseService) FindByID(id int) (*model.ReimbursementDTO, error) {
+func (s *ReimburseService) FindByID(ctx context.Context, id uint) (*model.ReimbursementDTO, error) {
 	if id == 0 {
-		return nil, error2.NewBizError("ID不能为空")
+		return nil, errs.NewBizError("ID不能为空")
 	}
-	bill, err := s.reimburseRepo.FindByID(id)
+	bill, err := s.reimburseRepo.FindFullById(ctx, id)
 	if err != nil {
-		return nil, error2.NewBizError("单据不存在")
+		return nil, err
 	}
-	dto := bill.ToDTO()
-	return &dto, nil
+	if bill == nil {
+		return nil, errs.NewBizError("单据不存在")
+	}
+	attachments, err := s.attachService.GetByBill(ctx, bill.ID, attachModel.BillTypeReimbursement)
+	if err != nil {
+		return nil, errs.NewBizError("获取附件失败")
+	}
+	return bill.ToDTO(attachments), nil
 }
 
-func (s *ReimburseService) Create(dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
+func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
 	if dto.ID != 0 {
-		exists, _ := s.reimburseRepo.ExistsByID(dto.ID)
+		dto.ID = 0
+	}
+	entity := model.Reimbursement{
+		ID:            dto.ID,
+		Number:        dto.Number,
+		State:         dto.State,
+		Summary:       dto.Summary,
+		TotalAmount:   dto.TotalAmount,
+		ReimburseDate: dto.ReimburseDate,
+		Remark:        dto.Remark,
+	}
+	if entity.Number == "" {
+		entity.Number = s.GenerateNumber()
+	}
+	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+		exists, _ := s.reimburseRepo.ExistsByNumber(ctx, dto.Number)
 		if exists {
-			return nil, error2.NewBizError("单据已存在")
+			return errs.NewBizError("单据编号已存在")
 		}
-	}
-
-	if dto.Number == "" {
-		dto.Number = s.GenerateNumber()
-	} else {
-		exists, _ := s.reimburseRepo.ExistsByNumber(dto.Number)
-		if exists {
-			return nil, error2.NewBizError("单据编号已存在")
+		if err := s.reimburseRepo.Create(tx, &entity); err != nil {
+			return err
 		}
-	}
 
-	bill := s.reimburseMapper.ToEntity(dto)
-	if err := s.reimburseRepo.Create(bill); err != nil {
-		return nil, err
-	}
+		if err := s.attachService.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeReimbursement, &dto.Attachments); err != nil {
+			return err
+		}
+		return nil
+	})
 
-	result := bill.ToDTO()
-	return &result, nil
-}
-
-func (s *ReimburseService) Update(dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
-	if dto.ID == 0 {
-		return nil, error2.NewBizError("id 不能为空")
-	}
-
-	bill, err := s.reimburseRepo.FindByID(dto.ID)
 	if err != nil {
-		return nil, error2.NewBizError("单据不存在")
-	}
-
-	if bill.Number != dto.Number {
-		return nil, error2.NewBizError("单号不能修改")
-	}
-
-	bill.State = dto.State
-	bill.Summary = dto.Summary
-	bill.TotalAmount = dto.TotalAmount
-	bill.ReimburseDate = dto.ReimburseDate
-	bill.Remark = dto.Remark
-
-	bill.Details = make([]model.ReimburseDetail, 0, len(dto.Details))
-	for _, detailDTO := range dto.Details {
-		detail := model.ReimburseDetail{
-			ReimbursementID: bill.ID,
-			Name:            detailDTO.Name,
-			Amount:          detailDTO.Amount,
-		}
-		if detailDTO.ID != 0 {
-			detail.ID = detailDTO.ID
-		}
-		bill.Details = append(bill.Details, detail)
-	}
-
-	if err := s.reimburseRepo.Update(bill); err != nil {
 		return nil, err
 	}
 
-	result := bill.ToDTO()
-	return &result, nil
+	attaches, err := s.attachService.GetByBill(ctx, entity.ID, attachModel.BillTypeReimbursement)
+	if err != nil {
+		return nil, err
+	}
+	return entity.ToDTO(attaches), nil
 }
 
-func (s *ReimburseService) Delete(ids []int) (*result.ActionsResult[int, any], error) {
-	res := &result.ActionsResult[int, any]{Results: make([]result.Row[int, any], 0, len(ids))}
-
-	for _, id := range ids {
-		if id == 0 {
-			continue
-		}
-
-		bill, err := s.reimburseRepo.FindByID(id)
-		if err != nil {
-			res.Results = append(res.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		if bill.State != model.ReimburseStateCreated {
-			res.Results = append(res.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		if err := s.reimburseRepo.Delete(id); err != nil {
-			res.Results = append(res.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		res.Results = append(res.Results, result.Row[int, any]{
-			Param: id,
-			Error: false,
-		})
+func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
+	if dto.ID == 0 {
+		return nil, errs.NewBizError("id不能为空")
 	}
 
-	return res, nil
-}
-
-func (s *ReimburseService) Process(ids []int) (*result.ActionsResult[int, any], error) {
-	result := &result.ActionsResult[int, any]{Results: make([]result.Row[int, any], 0, len(ids))}
-
-	for _, id := range ids {
-		if id == 0 {
-			continue
-		}
-
-		bill, err := s.reimburseRepo.FindByID(id)
-		if err != nil {
-			result.Results = append(result.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		if bill.State != model.ReimburseStateCreated {
-			result.Results = append(result.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		bill.State = model.ReimburseStateProcessing
-		if err := s.reimburseRepo.Update(bill); err != nil {
-			result.Results = append(result.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		result.Results = append(result.Results, result.Row[int, any]{
-			Param: id,
-			Error: false,
-		})
-	}
-
-	return result, nil
-}
-
-func (s *ReimburseService) Finish(ids []int) (*result.ActionsResult[int, any], error) {
-	result := &result.ActionsResult[int, any]{Results: make([]result.Row[int, any], 0, len(ids))}
-
-	for _, id := range ids {
-		if id == 0 {
-			continue
-		}
-
-		bill, err := s.reimburseRepo.FindByID(id)
-		if err != nil {
-			result.Results = append(result.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		if bill.State != model.ReimburseStateProcessing {
-			result.Results = append(result.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		bill.State = model.ReimburseStateFinished
-		if err := s.reimburseRepo.Update(bill); err != nil {
-			result.Results = append(result.Results, result.Row[int, any]{
-				Param: id,
-				Error: true,
-			})
-			continue
-		}
-
-		result.Results = append(result.Results, result.Row[int, any]{
-			Param: id,
-			Error: false,
-		})
-	}
-
-	return result, nil
-}
-
-func (m *ReimburseMapper) ToEntity(dto *model.ReimbursementDTO) *model.Reimbursement {
-	bill := &model.Reimbursement{
+	entity := model.Reimbursement{
 		ID:            dto.ID,
 		Number:        dto.Number,
 		State:         dto.State,
@@ -248,15 +119,223 @@ func (m *ReimburseMapper) ToEntity(dto *model.ReimbursementDTO) *model.Reimburse
 		Remark:        dto.Remark,
 	}
 
-	bill.Details = make([]model.ReimburseDetail, 0, len(dto.Details))
-	for _, detailDTO := range dto.Details {
-		detail := model.ReimburseDetail{
-			ID:     detailDTO.ID,
-			Name:   detailDTO.Name,
-			Amount: detailDTO.Amount,
+	if len(dto.Details) > 0 {
+		details := make([]model.ReimburseDetail, len(dto.Details))
+		for i, detail := range dto.Details {
+			details[i] = model.ReimburseDetail{
+				ID:     detail.ID,
+				Name:   detail.Name,
+				Amount: detail.Amount,
+			}
 		}
-		bill.Details = append(bill.Details, detail)
+		entity.Details = details
 	}
 
-	return bill
+	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+		bill, err := s.reimburseRepo.FindByID(tx, dto.ID)
+		if err != nil {
+			return err
+		}
+		if bill == nil {
+			return errs.NewBizError("单据不存在")
+		}
+		err = s.attachService.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeReimbursement, &dto.Attachments)
+		if err != nil {
+			return err
+		}
+		return s.reimburseRepo.Updates(tx, bill)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	attaches, err := s.attachService.GetByBill(ctx, entity.ID, attachModel.BillTypeReimbursement)
+	if err != nil {
+		return nil, err
+	}
+	return entity.ToDTO(attaches), nil
+}
+
+func (s *ReimburseService) FindByParam(ctx context.Context, param *model.ReimburseQueryParam) (*result.PageResult[model.ReimbursementDTO], error) {
+	if param == nil {
+		return nil, errs.NewBizError("查询参数为空")
+	}
+
+	res, err := s.reimburseRepo.FindByParam(ctx, param)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.NewPageResultFromDB(res, model.ToBaseDTOs), nil
+}
+
+func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+			bill, err := s.reimburseRepo.FindByID(tx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if bill.State != model.ReimburseStateCreated {
+				return errs.NewBizError("非创建状态不能删除")
+			}
+			if err = s.reimburseRepo.DeleteByID(tx, id); err != nil {
+				return err
+			}
+			return s.attachService.UpdateRelativeAttach(tx, bill.ID, bill.Number, attachModel.BillTypeReimbursement, nil)
+		})
+		return nil, err
+	}), nil
+}
+
+func (s *ReimburseService) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+			bill, err := s.reimburseRepo.FindByID(tx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if bill.State != model.ReimburseStateCreated {
+				return errs.NewBizError("非创建状态不能提交")
+			}
+			bill.State = model.ReimburseStateProcessing
+			return s.reimburseRepo.Updates(tx, bill)
+		})
+		return nil, err
+	}), nil
+}
+
+func (s *ReimburseService) Finish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+			bill, err := s.reimburseRepo.FindByID(tx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if bill.State != model.ReimburseStateProcessing {
+				return errs.NewBizError("非处理状态不能完成")
+			}
+			bill.State = model.ReimburseStateFinished
+			return s.reimburseRepo.Updates(tx, bill)
+		})
+		return nil, err
+	}), nil
+}
+
+func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, error) {
+	if ids == nil || len(ids) == 0 {
+		return "", errs.NewBizError("ID 不能为空")
+	}
+
+	reimbursements, err := s.reimburseRepo.FindAll(ctx, ids)
+	if reimbursements == nil || len(*reimbursements) == 0 {
+		return "", errs.NewBizError("单据不存在")
+	}
+
+	// 创建临时目录
+	tempDir, err := s.attachService.CreateTempDir(s.cache, "export")
+	if err != nil {
+		return "", err
+	}
+
+	var ops []attachModel.FileOp
+	var rows [][]string
+
+	// 表头
+	rows = append(rows, []string{"单据编号", "摘要", "总额", "报销日期", "备注"})
+	var totalAmount float64
+
+	// 遍历生成 excel行，并拷贝附件
+	for _, reimbursement := range *reimbursements {
+		dateStr := ""
+		if reimbursement.ReimburseDate != nil {
+			dateStr = reimbursement.ReimburseDate.Format("2006-01-02")
+		}
+
+		// 构建详情字符串
+		detailStr := ""
+		for _, detail := range reimbursement.Details {
+			detailStr += fmt.Sprintf("%s : %.2f ; ", detail.Name, detail.Amount)
+		}
+
+		// 添加行数据
+		rows = append(rows, []string{
+			reimbursement.Number,
+			reimbursement.Summary,
+			fmt.Sprintf("%.2f", reimbursement.TotalAmount),
+			dateStr,
+			detailStr,
+		})
+
+		totalAmount += reimbursement.TotalAmount
+
+		// 获取当前单据的所有附件
+		attachments, err := s.attachService.GetByBill(ctx, reimbursement.ID, attachModel.BillTypeReimbursement)
+		if err != nil {
+			return "", err
+		}
+
+		// 创建当前单据附件文件夹
+		curDir := filepath.Join(tempDir, reimbursement.Number)
+		for _, attachment := range *attachments {
+			// 获取原始附件路径
+			originPath, err := s.attachService.GetAbsolutePath(attachment.RelativePath, false)
+			if err != nil {
+				return "", err
+			}
+
+			// 设置目标路径
+			targetPath := filepath.Join(curDir, attachment.Name)
+
+			// 处理可能的重名
+			repeatCount := 1
+			for files.Exists(targetPath) {
+				targetPath = fmt.Sprintf("%s/%d-%s", curDir, repeatCount, attachment.Name)
+				repeatCount++
+			}
+			// 添加文件操作到列表
+			ops = append(ops, attachModel.FileOp{
+				Type:   attachModel.FileOpCopy,
+				Origin: originPath,
+				Target: targetPath,
+			})
+		}
+	}
+
+	// 表合计
+	rows = append(rows, []string{"", "合计", fmt.Sprintf("%.2f", totalAmount), "", ""})
+
+	// 生成Excel文件
+	excelPath := filepath.Join(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
+	if err = files.GenerateExcelFromList(&rows, excelPath); err != nil {
+		return "", errs.NewBizError("生成Excel失败: " + err.Error())
+	}
+
+	if err = files.Exec(s.cache, &ops); err != nil {
+		return "", errs.NewBizError("文件操作失败: " + err.Error())
+	}
+	zipPath, err := files.Zip(tempDir, "")
+	if err != nil {
+		return "", err
+	}
+	return zipPath, nil
 }

@@ -5,30 +5,26 @@ import (
 	"backend-go/internal/attach/hook"
 	"backend-go/internal/attach/repository"
 	"backend-go/internal/attach/service"
+	"backend-go/internal/common/auth"
 	"backend-go/internal/common/context"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
-var (
-	attachmentRepo       *repository.AttachmentRepository
-	billAttachRepo       *repository.BillAttachRelationRepository
-	attachmentService    *service.AttachmentService
-	attachmentController *controller.AttachmentController
-)
-
-func Setup(ctx *context.AppContext, router *gin.RouterGroup) {
-	attachmentRepo = repository.NewAttachmentRepository(ctx.Db)
-	billAttachRepo = repository.NewBillAttachRelationRepository(ctx.Db)
-	attachmentService = service.NewAttachmentService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo, billAttachRepo)
-	attachmentController = controller.NewAttachmentController(attachmentService)
+func Setup(ctx *context.AppContext, router fiber.Router) (*service.AttachmentService, *service.AttachMapService) {
+	attachmentRepo := repository.NewAttachmentRepository(ctx.Db)
+	billAttachRepo := repository.NewBillAttachRelationRepository(ctx.Db)
+	attachmentService := service.NewAttachmentService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo, billAttachRepo)
+	ocrService := service.NewOCRService(ctx.Cfg.OCR)
+	attachMapService := service.NewAttachMapService(ctx.Cache, ocrService, attachmentService)
+	attachmentController := controller.NewAttachmentController(attachmentService)
 	attachGroup := router.Group("/attachment")
 	{
-		attachGroup.GET("/", attachmentController.DownloadFile)
-		attachGroup.POST("/temp", attachmentController.UploadTemp)
+		attachGroup.Get("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), attachmentController.Download)
+		attachGroup.Post("/temp", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), attachmentController.UploadTemp)
 	}
-	ctx.Server.Hooks().OnShutdown(func() error {
-		hook.DeleteTempFiles(ctx.Cache)
-		return nil
-	})
+
+	hook.SetupCleanOnExit(ctx.Cache)
+
+	return attachmentService, attachMapService
 }

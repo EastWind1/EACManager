@@ -18,8 +18,7 @@ public class LDServiceBillAttachMapRule extends WKServiceBillAttachMapRule {
         super(companyService);
     }
 
-    @Override
-    public boolean canOCR(List<String> texts) {
+    private boolean canOCR(List<String> texts) {
         for (String text : texts) {
             if (text.contains("菱电")) {
                 return true;
@@ -28,8 +27,7 @@ public class LDServiceBillAttachMapRule extends WKServiceBillAttachMapRule {
         return false;
     }
 
-    @Override
-    public boolean canExcel(List<List<String>> rows) {
+    private boolean canExcel(List<List<String>> rows) {
         for (List<String> row : rows) {
             for (String text : row) {
                 if (text.contains("菱电")) {
@@ -41,6 +39,9 @@ public class LDServiceBillAttachMapRule extends WKServiceBillAttachMapRule {
     }
     @Override
     public ServiceBillDTO mapFromOCR(List<String> texts) {
+        if (!canOCR(texts)) {
+            return null;
+        }
         ServiceBillDTO serviceBill = super.mapFromOCR(texts);
         setCompany(serviceBill, "菱电");
         return serviceBill;
@@ -48,6 +49,9 @@ public class LDServiceBillAttachMapRule extends WKServiceBillAttachMapRule {
 
     @Override
     public ServiceBillDTO mapFromExcel(List<List<String>> rows) {
+        if (!canExcel(rows)) {
+            return null;
+        }
         ServiceBillDTO serviceBill = super.mapFromExcel(rows);
         setCompany(serviceBill, "菱电");
         return serviceBill;

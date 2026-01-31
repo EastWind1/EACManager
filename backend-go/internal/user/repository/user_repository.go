@@ -23,8 +23,12 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 
 // FindByUsername 根据用户名查找用户
 func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
-	user, err := gorm.G[model.User](r.Db).Where("username = ?", username).First(ctx)
-	return &user, err
+	var user model.User
+	res := r.GetDB(ctx).Where("username = ?", username).First(&user)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return &user, nil
 }
 
 // FindAllEnabled 查找所有启用的用户
@@ -33,15 +37,8 @@ func (r *UserRepository) FindAllEnabled(ctx context.Context, pageable *result.Qu
 }
 
 // ExistsByUsername 检查用户名是否存在
-func (r *UserRepository) ExistsByUsername(username string) (bool, error) {
+func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	var count int64
-	err := r.Db.Model(&model.User{}).Where("username = ?", username).Count(&count).Error
+	err := r.GetDB(ctx).Model(&model.User{}).Where("username = ?", username).Count(&count).Error
 	return count > 0, err
-}
-
-// WithTransaction 开启事务，内部操作数据库务必使用回调传入的实例
-func (r *UserRepository) WithTransaction(fn func(r *UserRepository) error) error {
-	return r.Db.Transaction(func(tx *gorm.DB) error {
-		return fn(NewUserRepository(tx))
-	})
 }

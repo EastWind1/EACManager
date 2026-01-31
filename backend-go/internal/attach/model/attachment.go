@@ -20,7 +20,7 @@ const (
 
 // Attachment 附件
 type Attachment struct {
-	ID           int `gorm:"primaryKey;defalut:nextval('attachment_seq')"`
+	ID           uint `gorm:"primaryKey;defalut:nextval('attachment_seq')"`
 	Name         string
 	Type         AttachType `gorm:"default:4"`
 	RelativePath string
@@ -29,7 +29,7 @@ type Attachment struct {
 
 // AttachmentDTO 附件DTO
 type AttachmentDTO struct {
-	ID           int        `json:"id"`
+	ID           uint       `json:"id"`
 	Name         string     `json:"name"`
 	Type         AttachType `json:"type"`
 	RelativePath string     `json:"relativePath"`
@@ -75,11 +75,22 @@ const (
 	BillTypeReimbursement
 )
 
+func (b BillType) String() string {
+	switch b {
+	case BillTypeServiceBill:
+		return "SERVICE_BILL"
+	case BillTypeReimbursement:
+		return "REIMBURSEMENT"
+	default:
+		return "Unknown"
+	}
+}
+
 type BillAttachRelation struct {
-	ID       int      `gorm:"primaryKey"`
-	BillId   int      `gorm`
+	ID       uint `gorm:"primaryKey;defalut:nextval('bill_attach_relation_seq')"`
+	BillId   uint
 	BillType BillType `gorm:"index"`
-	AttachId int
+	AttachId uint
 	Attach   Attachment
 }
 
@@ -87,11 +98,26 @@ type BillAttachRelation struct {
 type FileOpType int
 
 const (
-	FileOpTypeCreate FileOpType = iota
-	FileOpTypeMove
-	FileOpTypeCopy
-	FileOpTypeDelete
+	FileOpCreate FileOpType = iota
+	FileOpMove
+	FileOpCopy
+	FileOpDelete
 )
+
+func (f FileOpType) String() string {
+	switch f {
+	case FileOpCreate:
+		return "Create"
+	case FileOpMove:
+		return "Move"
+	case FileOpCopy:
+		return "Copy"
+	case FileOpDelete:
+		return "Delete"
+	default:
+		return "Unknown"
+	}
+}
 
 // FileOp 文件操作
 type FileOp struct {

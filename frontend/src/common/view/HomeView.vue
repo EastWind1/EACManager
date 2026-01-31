@@ -6,6 +6,7 @@
       <!-- 左侧导航抽屉 -->
       <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
       <!-- 标题 -->
+      <img src="/favicon.ico" alt="" style="width:50px;height: 25px">
       <h2 class="ml-3 mr-3">服务单管理</h2>
       <v-spacer></v-spacer>
 
