@@ -38,7 +38,7 @@ func NewBizService(
 	}
 }
 
-func (s *BizService) ValidateAmount(bill *model.ServiceBill) error {
+func (s *BizService) ValidateAmount(bill *model.ServiceBill) errs.StackError {
 	totalAmount := 0.0
 	for _, detail := range bill.Details {
 		expectedSubtotal := detail.Quantity * detail.UnitPrice
@@ -62,7 +62,7 @@ func (s *BizService) GenerateNumber() string {
 	return fmt.Sprintf("S%s%04d", timestamp, randomNum)
 }
 
-func (s *BizService) FindByID(ctx context.Context, id uint) (*model.ServiceBillDTO, error) {
+func (s *BizService) FindByID(ctx context.Context, id uint) (*model.ServiceBillDTO, errs.StackError) {
 	if id == 0 {
 		return nil, errs.NewBizError("ID不能为空")
 	}
@@ -78,7 +78,7 @@ func (s *BizService) FindByID(ctx context.Context, id uint) (*model.ServiceBillD
 	return dto, nil
 }
 
-func (s *BizService) FindByParam(ctx context.Context, param *model.ServiceBillQueryParam) (*result.PageResult[model.ServiceBillDTO], error) {
+func (s *BizService) FindByParam(ctx context.Context, param *model.ServiceBillQueryParam) (*result.PageResult[model.ServiceBillDTO], errs.StackError) {
 	if param == nil {
 		return nil, errs.NewBizError("查询参数为空")
 	}
@@ -91,7 +91,7 @@ func (s *BizService) FindByParam(ctx context.Context, param *model.ServiceBillQu
 	return result.NewPageResultFromDB(res, model.ToBaseDTOs), nil
 }
 
-func (s *BizService) Create(ctx context.Context, dto *model.ServiceBillDTO) (*model.ServiceBillDTO, error) {
+func (s *BizService) Create(ctx context.Context, dto *model.ServiceBillDTO) (*model.ServiceBillDTO, errs.StackError) {
 	if dto.ID != 0 {
 		return nil, errs.NewBizError("单据 ID 自动生成")
 	}
@@ -104,7 +104,7 @@ func (s *BizService) Create(ctx context.Context, dto *model.ServiceBillDTO) (*mo
 		return nil, err
 	}
 
-	err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+	err := s.billRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		exist, err := s.billRepo.ExistsByNumber(tx, entity.Number)
 		if err != nil {
 			return err
@@ -130,7 +130,7 @@ func (s *BizService) Create(ctx context.Context, dto *model.ServiceBillDTO) (*mo
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *BizService) Update(ctx context.Context, dto *model.ServiceBillDTO) (*model.ServiceBillDTO, error) {
+func (s *BizService) Update(ctx context.Context, dto *model.ServiceBillDTO) (*model.ServiceBillDTO, errs.StackError) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("单据 ID 为空")
 	}
@@ -140,7 +140,7 @@ func (s *BizService) Update(ctx context.Context, dto *model.ServiceBillDTO) (*mo
 		return nil, err
 	}
 
-	err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+	err := s.billRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		bill, err := s.billRepo.FindByID(tx, entity.ID)
 		if err != nil {
 			return err
@@ -165,12 +165,12 @@ func (s *BizService) Update(ctx context.Context, dto *model.ServiceBillDTO) (*mo
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *BizService) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *BizService) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], errs.StackError) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+	return result.ExecuteActions(ids, func(id uint) (any, errs.StackError) {
+		err := s.billRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 			bill, err := s.billRepo.FindByID(tx, id)
 			if err != nil {
 				return err
@@ -190,12 +190,12 @@ func (s *BizService) Delete(ctx context.Context, ids []uint) (*result.ActionsRes
 	}), nil
 }
 
-func (s *BizService) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *BizService) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], errs.StackError) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+	return result.ExecuteActions(ids, func(id uint) (any, errs.StackError) {
+		err := s.billRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 			bill, err := s.billRepo.FindByID(tx, id)
 			if err != nil {
 				return err
@@ -213,7 +213,7 @@ func (s *BizService) Process(ctx context.Context, ids []uint) (*result.ActionsRe
 	}), nil
 }
 
-func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *time.Time) (*result.ActionsResult[uint, any], error) {
+func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *time.Time) (*result.ActionsResult[uint, any], errs.StackError) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -221,8 +221,8 @@ func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *t
 		now := time.Now()
 		processedDate = &now
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+	return result.ExecuteActions(ids, func(id uint) (any, errs.StackError) {
+		err := s.billRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 			bill, err := s.billRepo.FindByID(tx, id)
 			if err != nil {
 				return err
@@ -241,7 +241,7 @@ func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *t
 	}), nil
 }
 
-func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.Time) (*result.ActionsResult[uint, any], error) {
+func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.Time) (*result.ActionsResult[uint, any], errs.StackError) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -249,8 +249,8 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 		now := time.Now()
 		finishedDate = &now
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+	return result.ExecuteActions(ids, func(id uint) (any, errs.StackError) {
+		err := s.billRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 			bill, err := s.billRepo.FindByID(tx, id)
 			if err != nil {
 				return err
@@ -269,7 +269,7 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 	}), nil
 }
 
-func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*model.ServiceBillDTO, error) {
+func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*model.ServiceBillDTO, errs.StackError) {
 	attaches, err := s.attachSrv.UploadTemps(&[]*multipart.FileHeader{file})
 	if err != nil {
 		return nil, err
@@ -288,7 +288,7 @@ func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHea
 
 }
 
-func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
+func (s *BizService) Export(ctx context.Context, ids []uint) (string, errs.StackError) {
 	if ids == nil || len(ids) == 0 {
 		return "", errs.NewBizError("ID 不能为空")
 	}

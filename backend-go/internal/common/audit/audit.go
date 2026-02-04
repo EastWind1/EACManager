@@ -17,8 +17,8 @@ type Entity struct {
 
 // BeforeCreate 插入前设置 ID, 创建人
 func (entity *Entity) BeforeCreate(db *gorm.DB) (err error) {
-	user := auth.GetCurrentUser(db.Statement.Context)
-	if user == nil {
+	user, err := auth.GetCurrentUser(db.Statement.Context)
+	if err != nil {
 		return
 	}
 	id := user.GetID()
@@ -28,8 +28,8 @@ func (entity *Entity) BeforeCreate(db *gorm.DB) (err error) {
 
 // BeforeUpdate 更新前设置修改人
 func (entity *Entity) BeforeUpdate(db *gorm.DB) (err error) {
-	user := auth.GetCurrentUser(db.Statement.Context)
-	if user == nil {
+	user, err := auth.GetCurrentUser(db.Statement.Context)
+	if err != nil {
 		return
 	}
 	id := user.GetID()

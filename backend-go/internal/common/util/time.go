@@ -2,17 +2,16 @@ package util
 
 import (
 	"backend-go/internal/common/errs"
-	"errors"
 	"regexp"
 	"strings"
 	"time"
 )
 
 // ParseDateTime 转换常见日期字符串
-func ParseDateTime(input string) (*time.Time, error) {
+func ParseDateTime(input string) (*time.Time, errs.StackError) {
 	processed := strings.TrimSpace(input)
 	if processed == "" {
-		return nil, errors.New("输入日期字符串为空")
+		return nil, errs.NewBizError("输入日期字符串为空")
 	}
 
 	processed = strings.ReplaceAll(processed, "年", "-")

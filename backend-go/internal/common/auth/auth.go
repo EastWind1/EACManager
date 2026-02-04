@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 )
 
 // currentUserKey 当前用户在上下文中的 Key
@@ -42,24 +41,23 @@ func SetCurrentUser(c *fiber.Ctx, user User) {
 }
 
 // GetCurrentUser 获取当前用户
-func GetCurrentUser(c context.Context) User {
+func GetCurrentUser(c context.Context) (User, errs.StackError) {
 	data := c.Value(currentUserKey)
 	if data == nil {
-		return nil
+		return nil, errs.NewUnauthError("未登录")
 	}
 	user, ok := data.(User)
 	if !ok {
-		log.Error("转换 User 失败")
-		return nil
+		return nil, errs.NewBizError("转换用户失败")
 	}
-	return user
+	return user, nil
 }
 
 // HasRole 检查当前用户是否有指定的角色
 func HasRole(ctx context.Context, roles ...AuthorityRole) (bool, error) {
-	user := GetCurrentUser(ctx)
-	if user == nil {
-		return false, errs.NewUnauthError("未登录")
+	user, err := GetCurrentUser(ctx)
+	if err != nil {
+		return false, err
 	}
 	for _, role := range roles {
 		if user.GetRole() == role {

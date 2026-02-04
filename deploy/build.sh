@@ -138,6 +138,14 @@ if [ -d "$BACKEND_GO_TARGET_DIR" ]; then
     mkdir -p "$BACKEND_GO_DEPLOY_DIR"
     cp -r "$BACKEND_GO_TARGET_DIR"/* "$BACKEND_GO_DEPLOY_DIR/"
     cp -r "$BACKEND_GO_DIR/config/config.yaml" "$BACKEND_GO_DEPLOY_DIR/"
+
+    # 为Go可执行文件设置执行权限
+    if [ -f "$BACKEND_GO_DEPLOY_DIR/backend-go" ]; then
+        echo "为Go后端可执行文件设置执行权限..."
+        chmod +x "$BACKEND_GO_DEPLOY_DIR/backend-go"
+        echo "Go后端执行权限设置完成"
+    fi
+
     echo "Go 后端文件拷贝成功"
 else
     echo "警告：Go 后端 target 目录不存在，跳过拷贝"

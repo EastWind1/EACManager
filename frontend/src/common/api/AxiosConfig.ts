@@ -37,7 +37,7 @@ function useAxios(baseURL: string): AxiosInstance {
       return res.data
     },
     // 全局异常处理
-    (err) => {
+    async (err) => {
       hideLoading()
       if (err.code === 'ERR_NETWORK') {
         warning('网络异常')
@@ -61,6 +61,12 @@ function useAxios(baseURL: string): AxiosInstance {
             warning('请求地址不存在')
             break
           default:
+            // 下载时异常需要单独处理
+            if (err.response.data instanceof Blob) {
+              const bytes = err.response.data as Blob
+              const json = await bytes.text()
+              err.response.data = JSON.parse(json)
+            }
             warning(err.response.data ? err.response.data.message : err.response.statusText)
             break
         }

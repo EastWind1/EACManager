@@ -3,6 +3,7 @@ package repository
 import (
 	"backend-go/internal/attach/model"
 	"backend-go/internal/common/database"
+	"backend-go/internal/common/errs"
 	"context"
 
 	"gorm.io/gorm"
@@ -20,7 +21,7 @@ func NewAttachmentRepository(db *gorm.DB) *AttachmentRepository {
 }
 
 // FindByBill 根据业务单据查找附件
-func (r *AttachmentRepository) FindByBill(ctx context.Context, billID uint, billType model.BillType) (*[]model.Attachment, error) {
+func (r *AttachmentRepository) FindByBill(ctx context.Context, billID uint, billType model.BillType) (*[]model.Attachment, errs.StackError) {
 	var attachments []model.Attachment
 	err := r.GetDB(ctx).WithContext(ctx).Table("attachment").
 		Joins("right join bill_attach_relation on attachment.id = bill_attach_relation.attach_id").
@@ -28,7 +29,7 @@ func (r *AttachmentRepository) FindByBill(ctx context.Context, billID uint, bill
 		Where("bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType).
 		Find(&attachments).Error
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err)
 	}
 	return &attachments, nil
 }
@@ -45,11 +46,11 @@ func NewBillAttachRelationRepository(db *gorm.DB) *BillAttachRelationRepository 
 }
 
 // FindByBillIDAndBillType 根据业务单据ID和类型查找附件关系
-func (r *BillAttachRelationRepository) FindByBillIDAndBillType(ctx context.Context, billID uint, billType model.BillType) (*[]model.BillAttachRelation, error) {
+func (r *BillAttachRelationRepository) FindByBillIDAndBillType(ctx context.Context, billID uint, billType model.BillType) (*[]model.BillAttachRelation, errs.StackError) {
 	res := make([]model.BillAttachRelation, 0)
 	if err := r.GetDB(ctx).WithContext(ctx).Preload("Attach").
 		Find(&res, "bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType).Error; err != nil {
-		return nil, err
+		return nil, errs.Wrap(err)
 	}
 	return &res, nil
 }

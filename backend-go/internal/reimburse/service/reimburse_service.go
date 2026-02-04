@@ -44,7 +44,7 @@ func (s *ReimburseService) GenerateNumber() string {
 	return fmt.Sprintf("R%s%04d", timestamp, randomNum)
 }
 
-func (s *ReimburseService) FindByID(ctx context.Context, id uint) (*model.ReimbursementDTO, error) {
+func (s *ReimburseService) FindByID(ctx context.Context, id uint) (*model.ReimbursementDTO, errs.StackError) {
 	if id == 0 {
 		return nil, errs.NewBizError("ID不能为空")
 	}
@@ -62,7 +62,7 @@ func (s *ReimburseService) FindByID(ctx context.Context, id uint) (*model.Reimbu
 	return bill.ToDTO(attachments), nil
 }
 
-func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
+func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, errs.StackError) {
 	if dto.ID != 0 {
 		return nil, errs.NewBizError("单据 ID 不为空")
 	}
@@ -71,7 +71,7 @@ func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementD
 		entity.Number = s.GenerateNumber()
 	}
 
-	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		exists, _ := s.reimburseRepo.ExistsByNumber(ctx, dto.Number)
 		if exists {
 			return errs.NewBizError("单据编号已存在")
@@ -97,14 +97,14 @@ func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementD
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
+func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, errs.StackError) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("id不能为空")
 	}
 
 	entity := dto.ToEntity()
 
-	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		bill, err := s.reimburseRepo.FindByID(tx, dto.ID)
 		if err != nil {
 			return err
@@ -130,7 +130,7 @@ func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementD
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *ReimburseService) FindByParam(ctx context.Context, param *model.ReimburseQueryParam) (*result.PageResult[model.ReimbursementDTO], error) {
+func (s *ReimburseService) FindByParam(ctx context.Context, param *model.ReimburseQueryParam) (*result.PageResult[model.ReimbursementDTO], errs.StackError) {
 	if param == nil {
 		return nil, errs.NewBizError("查询参数为空")
 	}
@@ -143,12 +143,12 @@ func (s *ReimburseService) FindByParam(ctx context.Context, param *model.Reimbur
 	return result.NewPageResultFromDB(res, model.ToBaseDTOs), nil
 }
 
-func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], errs.StackError) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+	return result.ExecuteActions(ids, func(id uint) (any, errs.StackError) {
+		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 			bill, err := s.reimburseRepo.FindFullById(tx, id)
 			if err != nil {
 				return err
@@ -168,12 +168,12 @@ func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.Acti
 	}), nil
 }
 
-func (s *ReimburseService) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *ReimburseService) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], errs.StackError) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+	return result.ExecuteActions(ids, func(id uint) (any, errs.StackError) {
+		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 			bill, err := s.reimburseRepo.FindByID(tx, id)
 			if err != nil {
 				return err
@@ -191,12 +191,12 @@ func (s *ReimburseService) Process(ctx context.Context, ids []uint) (*result.Act
 	}), nil
 }
 
-func (s *ReimburseService) Finish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *ReimburseService) Finish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], errs.StackError) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+	return result.ExecuteActions(ids, func(id uint) (any, errs.StackError) {
+		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 			bill, err := s.reimburseRepo.FindByID(tx, id)
 			if err != nil {
 				return err
@@ -214,7 +214,7 @@ func (s *ReimburseService) Finish(ctx context.Context, ids []uint) (*result.Acti
 	}), nil
 }
 
-func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, error) {
+func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, errs.StackError) {
 	if ids == nil || len(ids) == 0 {
 		return "", errs.NewBizError("ID 不能为空")
 	}

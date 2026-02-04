@@ -28,7 +28,7 @@ func NewUserService(userRepo *repository.UserRepository, jwtSvc *JWTService) *Us
 }
 
 // Login 用户登录
-func (s *UserService) Login(ctx context.Context, username, password, subject string) (*model.LoginResult, error) {
+func (s *UserService) Login(ctx context.Context, username, password, subject string) (*model.LoginResult, errs.StackError) {
 	user, err := s.userRepo.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func (s *UserService) Login(ctx context.Context, username, password, subject str
 		return nil, errs.NewBizError("用户已禁用")
 	}
 
-	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return nil, errs.NewBizError("用户名或密码错误")
 	}
 
@@ -53,10 +53,10 @@ func (s *UserService) Login(ctx context.Context, username, password, subject str
 }
 
 // GetAll 获取用户列表
-func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam) (*result.PageResult[model.UserDTO], error) {
-	curUser := auth.GetCurrentUser(ctx)
-	if curUser == nil {
-		return nil, errs.NewUnauthError("未登录")
+func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam) (*result.PageResult[model.UserDTO], errs.StackError) {
+	curUser, err := auth.GetCurrentUser(ctx)
+	if err != nil {
+		return nil, err
 	}
 	currentRole := curUser.GetRole()
 	var res *result.PageResult[model.UserDTO]
@@ -81,12 +81,12 @@ func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam)
 }
 
 // Create 创建用户
-func (s *UserService) Create(ctx context.Context, dto *model.UserDTO) (*model.UserDTO, error) {
+func (s *UserService) Create(ctx context.Context, dto *model.UserDTO) (*model.UserDTO, errs.StackError) {
 	if dto.Username == "" {
 		return nil, errs.NewBizError("用户名不能为空")
 	}
 	var res *model.UserDTO
-	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
+	err := s.userRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		exists, err := s.userRepo.ExistsByUsername(tx, dto.Username)
 		if err != nil {
 			return err
@@ -102,9 +102,9 @@ func (s *UserService) Create(ctx context.Context, dto *model.UserDTO) (*model.Us
 		if len(passwordByte) > 72 {
 			return errs.NewBizError("密码过长")
 		}
-		hashedPassword, err := bcrypt.GenerateFromPassword(passwordByte, bcrypt.DefaultCost)
+		hashedPassword, e := bcrypt.GenerateFromPassword(passwordByte, bcrypt.DefaultCost)
 		if err != nil {
-			return err
+			return errs.Wrap(e)
 		}
 
 		newUser := dto.ToEntity()
@@ -129,16 +129,19 @@ func (s *UserService) Create(ctx context.Context, dto *model.UserDTO) (*model.Us
 }
 
 // Update 更新用户
-func (s *UserService) Update(ctx context.Context, dto *model.UserDTO) (*model.UserDTO, error) {
+func (s *UserService) Update(ctx context.Context, dto *model.UserDTO) (*model.UserDTO, errs.StackError) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("id 不能为空")
 	}
-	curUser := auth.GetCurrentUser(ctx)
+	curUser, err := auth.GetCurrentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if curUser.GetRole() != auth.RoleAdmin && curUser.GetID() != dto.ID {
-		return nil, errs.NewBizError("无权限修改其他用户信息")
+		return nil, errs.NewAuthError("无权限修改其他用户信息")
 	}
 	var res *model.UserDTO
-	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
+	err = s.userRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		user, err := s.userRepo.FindByID(tx, dto.ID)
 		if err != nil {
 			return err
@@ -159,7 +162,7 @@ func (s *UserService) Update(ctx context.Context, dto *model.UserDTO) (*model.Us
 			}
 			hashedPassword, err := bcrypt.GenerateFromPassword(passwordByte, bcrypt.DefaultCost)
 			if err != nil {
-				return err
+				return errs.Wrap(err)
 			}
 
 			user.Password = string(hashedPassword)
@@ -184,8 +187,8 @@ func (s *UserService) Update(ctx context.Context, dto *model.UserDTO) (*model.Us
 }
 
 // Disable 禁用用户
-func (s *UserService) Disable(ctx context.Context, username string) error {
-	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
+func (s *UserService) Disable(ctx context.Context, username string) errs.StackError {
+	err := s.userRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		user, err := s.userRepo.FindByUsername(tx, username)
 		if err != nil {
 			return nil
@@ -198,6 +201,6 @@ func (s *UserService) Disable(ctx context.Context, username string) error {
 }
 
 // FindByUsername 加载用户信息
-func (s *UserService) FindByUsername(ctx context.Context, username string) (*model.User, error) {
+func (s *UserService) FindByUsername(ctx context.Context, username string) (*model.User, errs.StackError) {
 	return s.userRepo.FindByUsername(ctx, username)
 }

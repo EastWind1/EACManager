@@ -105,7 +105,7 @@ public class ReimburseService {
             throw new BizException("单据不存在");
         }
         reimburseMapper.updateEntityFromDTO(reimbursementDTO, bill);
-        bill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
+        bill = reimburseRepository.save(bill);
         attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
         return reimburseMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.REIMBURSEMENT));
     }

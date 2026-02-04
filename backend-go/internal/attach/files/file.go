@@ -31,57 +31,66 @@ func IsDir(path string) bool {
 }
 
 // CreateParentDirs 创建父目录
-func CreateParentDirs(path string) error {
+func CreateParentDirs(path string) errs.StackError {
 	dir := filepath.Dir(path)
-	if dir != "" {
-		return os.MkdirAll(dir, 0755)
+	if dir == "" {
+		return errs.NewFileOpError("路径为空", "")
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return errs.NewFileOpError("", path, err)
 	}
 	return nil
 }
 
 // CreateFile 创建空文件
-func CreateFile(path string) error {
+func CreateFile(path string) errs.StackError {
 	file, err := os.Create(path)
 	if err != nil {
-		return err
+		return errs.NewFileOpError("", path, err)
 	}
-	return file.Close()
+	if err = file.Close(); err != nil {
+		return errs.NewFileOpError("", path, err)
+	}
+	return nil
 }
 
 // CopyFile 复制文件
-func CopyFile(src, dst string) error {
+func CopyFile(src, dst string) errs.StackError {
 	srcFile, err := os.Open(src)
 	if err != nil {
-		return err
+		return errs.Wrap(err)
 	}
 	defer srcFile.Close()
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
-		return err
+		return errs.NewFileOpError("", dst, err)
 	}
 	defer dstFile.Close()
 
 	_, err = io.Copy(dstFile, srcFile)
-	return err
+	if err != nil {
+		return errs.NewFileOpError("", src, err)
+	}
+	return nil
 }
 
 // MoveFile 移动文件
-func MoveFile(src, dst string) error {
+func MoveFile(src, dst string) errs.StackError {
 	if err := CopyFile(src, dst); err != nil {
 		return err
 	}
 	if err := os.Remove(src); err != nil {
-		return err
+		return errs.NewFileOpError("", src, err)
 	}
 	return nil
 }
 
 // GetFileType 获取文件类型，若是可执行文件抛出异常
-func GetFileType(path string) (model.AttachType, error) {
+func GetFileType(path string) (model.AttachType, errs.StackError) {
 	mimeType, err := mimetype.DetectFile(path)
 	if err != nil {
-		return model.AttachTypeOther, errs.NewBizError("获取文件类型失败", err)
+		return model.AttachTypeOther, errs.NewFileOpError("获取文件类型失败", "", err)
 	}
 	switch mimeType.String() {
 	case "application/pdf":
@@ -93,14 +102,14 @@ func GetFileType(path string) (model.AttachType, error) {
 	case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
 		return model.AttachTypeExcel, nil
 	case "application/x-msdownload", "application/x-executable", "application/x-sh", "application/x-bat":
-		return model.AttachTypeOther, errs.NewBizError("不支持的文件类型")
+		return model.AttachTypeOther, errs.NewFileOpError("不支持的文件类型", "")
 	default:
 		return model.AttachTypeOther, nil
 	}
 }
 
 // ConvertPDFToImage 转换 PDF 为图片
-func ConvertPDFToImage(pdfPath string, target string) error {
+func ConvertPDFToImage(pdfPath string, target string) errs.StackError {
 	// TODO: 使用第三方工具实现
 	return errs.NewBizError("暂不支持该功能")
 }
@@ -112,7 +121,7 @@ type UploadResult struct {
 }
 
 // Upload 上传单个文件
-func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string) (*UploadResult, error) {
+func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string) (*UploadResult, errs.StackError) {
 	if fileHeader == nil {
 		return nil, errs.NewFileOpError("文件为空", "")
 	}
@@ -146,7 +155,7 @@ func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string)
 
 	fileType, err := GetFileType(targetFile.Name())
 	if err != nil {
-		return nil, err
+		return nil, errs.NewFileOpError("", targetFile.Name(), err)
 	}
 
 	return &UploadResult{
@@ -157,7 +166,7 @@ func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string)
 }
 
 // Zip 压缩目录或文件至指定路径
-func Zip(src string, target string) (string, error) {
+func Zip(src string, target string) (string, errs.StackError) {
 	if !Exists(src) {
 		return "", errs.NewFileOpError("源不存在", src)
 	}
@@ -166,10 +175,11 @@ func Zip(src string, target string) (string, error) {
 		return "", err
 	}
 	var zipFile *os.File
+	var e error
 	if target == "" {
-		zipFile, err = os.CreateTemp("", "*.zip")
-		if err != nil {
-			return "", err
+		zipFile, e = os.CreateTemp("", "*.zip")
+		if e != nil {
+			return "", errs.NewFileOpError("", "", e)
 		}
 		target = zipFile.Name()
 	} else {
@@ -179,16 +189,17 @@ func Zip(src string, target string) (string, error) {
 				return "", err
 			}
 		}
-		zipFile, err = os.Open(target)
-		if err != nil {
-			return "", err
+		zipFile, e = os.Open(target)
+		if e != nil {
+			return "", errs.NewFileOpError("", "", e)
 		}
+
 	}
 	defer zipFile.Close()
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
 
-	err = filepath.Walk(src, func(filePath string, fileInfo os.FileInfo, err error) error {
+	e = filepath.Walk(src, func(filePath string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -215,8 +226,8 @@ func Zip(src string, target string) (string, error) {
 		return err
 	})
 
-	if err != nil {
-		return "", err
+	if e != nil {
+		return "", errs.NewFileOpError("", src, e)
 	}
 	return target, nil
 }

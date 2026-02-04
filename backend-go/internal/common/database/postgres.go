@@ -4,14 +4,13 @@ import (
 	"backend-go/config"
 
 	"github.com/gofiber/fiber/v2/log"
-	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
 
 // NewDB 初始化 Postgres 数据库
-func NewDB(cfg *config.DatabaseConfig) *gorm.DB {
+func NewDB(cfg *config.DatabaseConfig, logCfg *config.LogConfig) *gorm.DB {
 	// 连接数据库
 	db, err := gorm.Open(postgres.Open(cfg.GetDBStr()), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
@@ -20,9 +19,9 @@ func NewDB(cfg *config.DatabaseConfig) *gorm.DB {
 		},
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("初始化数据库链接失败：%v", err)
 	}
-	if viper.Get("log.level") == "debug" {
+	if logCfg.Level == "debug" || logCfg.Level == "trace" {
 		return db.Debug()
 	}
 	return db

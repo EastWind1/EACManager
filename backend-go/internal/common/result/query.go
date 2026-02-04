@@ -1,7 +1,7 @@
 package result
 
 import (
-	"errors"
+	"backend-go/internal/common/errs"
 	"strings"
 )
 
@@ -27,23 +27,23 @@ func (p *QueryParam) GetOffset() int {
 }
 
 // Valid 校验并设置部分默认值
-func (p *QueryParam) Valid() error {
+func (p *QueryParam) Valid() errs.StackError {
 	if p.HasPage() {
 		if *p.PageSize < 1 || *p.PageIndex < 0 {
-			return errors.New("分页参数不合法，索引必读非负，页大小必须大于0")
+			return errs.NewBizError("分页参数不合法，索引必读非负，页大小必须大于0")
 		}
 	}
 	if p.HasPage() {
 		for _, sort := range p.Sorts {
 			if sort.Field == "" {
-				return errors.New("排序字段不能为空")
+				return errs.NewBizError("排序字段不能为空")
 			}
 			if sort.Direction == "" {
 				sort.Direction = "asc"
 			}
 			sort.Direction = strings.ToLower(sort.Direction)
 			if sort.Direction != "asc" && sort.Direction != "desc" {
-				return errors.New("排序方向只能是asc或desc")
+				return errs.NewBizError("排序方向只能是asc或desc")
 			}
 		}
 	}

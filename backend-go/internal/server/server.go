@@ -43,7 +43,7 @@ func Run() {
 	// 初始化缓存
 	ctx.Cache = cache.NewInMemoryCache(cfg.Cache)
 	// 初始化数据库
-	ctx.Db = database.NewDB(cfg.Db)
+	ctx.Db = database.NewDB(cfg.Db, cfg.Log)
 	// 初始化路由
 	router := server.Group("/api")
 	// 初始化模块

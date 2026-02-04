@@ -1,63 +1,95 @@
 package errs
 
 import (
+	"errors"
 	"runtime/debug"
-
-	"github.com/spf13/viper"
 )
 
 // UnauthError 未认证异常
 type UnauthError struct {
-	Message string
-	Err     error
+	msg   string
+	err   error
+	stack []byte
 }
 
 func (e *UnauthError) Error() string {
-	if e.Err != nil {
-		return e.Message + ": " + e.Err.Error()
+	if e.err != nil {
+		return e.msg + ": " + e.err.Error()
 	}
-	return e.Message
+	return e.msg
 }
 
 func (e *UnauthError) Unwrap() error {
-	return e.Err
+	return e.err
+}
+
+func (e *UnauthError) Stack() []byte {
+	return e.stack
 }
 
 func NewUnauthError(message string, e ...error) *UnauthError {
-	err := &UnauthError{Message: message}
-	if len(e) > 0 {
-		err.Err = e[0]
+	err := &UnauthError{}
+	if message != "" {
+		err.msg = message
+	} else if len(e) > 0 {
+		err.msg = e[0].Error()
+	} else {
+		err.msg = "认证异常"
 	}
-	if viper.Get("log.level") == "debug" || viper.Get("log.level") == "trace" {
-		debug.PrintStack()
+
+	if len(e) > 0 {
+		err.err = e[0]
+		var se StackError
+		if errors.As(e[0], &se) {
+			err.stack = se.Stack()
+		}
+	}
+	if err.stack != nil {
+		err.stack = debug.Stack()
 	}
 	return err
 }
 
 // AuthError 权限异常
 type AuthError struct {
-	Message string
-	Err     error
+	msg   string
+	err   error
+	stack []byte
 }
 
 func (e *AuthError) Error() string {
-	if e.Err != nil {
-		return e.Message + ": " + e.Err.Error()
+	if e.err != nil {
+		return e.msg + ": " + e.err.Error()
 	}
-	return e.Message
+	return e.msg
 }
 
 func (e *AuthError) Unwrap() error {
-	return e.Err
+	return e.err
+}
+
+func (e *AuthError) Stack() []byte {
+	return e.stack
 }
 
 func NewAuthError(message string, e ...error) *AuthError {
-	err := &AuthError{Message: message}
-	if len(e) > 0 {
-		err.Err = e[0]
+	err := &AuthError{}
+	if message != "" {
+		err.msg = message
+	} else if len(e) > 0 {
+		err.msg = e[0].Error()
+	} else {
+		err.msg = "鉴权异常"
 	}
-	if viper.Get("log.level") == "debug" || viper.Get("log.level") == "trace" {
-		debug.PrintStack()
+	if len(e) > 0 {
+		err.err = e[0]
+		var se StackError
+		if errors.As(e[0], &se) {
+			err.stack = se.Stack()
+		}
+	}
+	if err.stack != nil {
+		err.stack = debug.Stack()
 	}
 	return err
 }

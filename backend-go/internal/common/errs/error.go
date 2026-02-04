@@ -1,57 +1,116 @@
 package errs
 
 import (
+	"errors"
 	"fmt"
 	"runtime/debug"
-
-	"github.com/spf13/viper"
 )
+
+type StackError interface {
+	Error() string
+	Stack() []byte
+}
 
 // BizError 业务异常
 type BizError struct {
-	Message string
-	Err     error
+	msg   string
+	err   error
+	stack []byte
 }
 
 func (e *BizError) Error() string {
-	if e.Err != nil {
-		return e.Message + ": " + e.Err.Error()
+	if e.err != nil {
+		return e.msg + ": " + e.err.Error()
 	}
-	return e.Message
+	return e.msg
+}
+
+func (e *BizError) Unwrap() error {
+	return e.err
+}
+
+func (e *BizError) Stack() []byte {
+	return e.stack
 }
 
 func NewBizError(message string, e ...error) *BizError {
-	err := &BizError{Message: message}
-	if len(e) > 0 {
-		err.Err = e[0]
+	err := &BizError{}
+	if message != "" {
+		err.msg = message
+	} else if len(e) > 0 {
+		err.msg = e[0].Error()
+	} else {
+		err.msg = "业务异常"
 	}
-	if viper.Get("log.level") == "debug" || viper.Get("log.level") == "trace" {
-		debug.PrintStack()
+
+	if len(e) > 0 {
+		err.err = e[0]
+		var se StackError
+		if errors.As(e[0], &se) {
+			err.stack = se.Stack()
+		}
+	}
+	if err.stack != nil {
+		err.stack = debug.Stack()
 	}
 	return err
 }
 
+func Wrap(err error) *BizError {
+	if err == nil {
+		return nil
+	}
+	return NewBizError("", err)
+}
+
 // FileOpError 文件操作异常
 type FileOpError struct {
-	Message string
-	Err     error
-	Path    string
+	msg   string
+	err   error
+	path  string
+	stack []byte
 }
 
 func (e *FileOpError) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("%v : %v - %v", e.Message, e.Path, e.Err.Error())
+	if e.err != nil {
+		return fmt.Sprintf("%v : %v - %v", e.msg, e.err.Error(), e.path)
 	}
-	return e.Message + ": " + e.Path
+	return e.msg + ": " + e.path
+}
+
+func (e *FileOpError) ErrorWithoutPath() string {
+	if e.err != nil {
+		return fmt.Sprintf("%v : %v", e.msg, e.err.Error())
+	}
+	return e.msg + ": " + e.path
+}
+
+func (e *FileOpError) Unwrap() error {
+	return e.err
+}
+
+func (e *FileOpError) Stack() []byte {
+	return e.stack
 }
 
 func NewFileOpError(message string, path string, e ...error) *FileOpError {
-	err := &FileOpError{Message: message, Path: path}
-	if len(e) > 0 {
-		err.Err = e[0]
+	err := &FileOpError{path: path}
+	if message != "" {
+		err.msg = message
+	} else if len(e) > 0 {
+		err.msg = e[0].Error()
+	} else {
+		err.msg = "文件操作异常"
 	}
-	if viper.Get("log.level") == "debug" || viper.Get("log.level") == "trace" {
-		debug.PrintStack()
+	if len(e) > 0 {
+		err.err = e[0]
+		var se StackError
+		if errors.As(e[0], &se) {
+			err.stack = se.Stack()
+		}
+	}
+	if err.stack != nil {
+		err.stack = debug.Stack()
 	}
 	return err
 }

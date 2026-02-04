@@ -31,7 +31,7 @@ func NewOCRService(cfg *config.OCRConfig) *OCRService {
 }
 
 // ParseImage 解析图片
-func (s *OCRService) ParseImage(path string) (*[]string, error) {
+func (s *OCRService) ParseImage(path string) (*[]string, errs.StackError) {
 	if s.cfg.URL == "" {
 		return nil, errs.NewBizError("未配置 OCR 服务器")
 	}
@@ -39,12 +39,12 @@ func (s *OCRService) ParseImage(path string) (*[]string, error) {
 	client.JSON(OCRRequest{ImageFile: path})
 	_, body, e := client.Bytes()
 	if len(e) > 0 {
-		return nil, e[0]
+		return nil, errs.NewFileOpError("", path, e[0])
 	}
 
 	res := make(OCRResult)
 	if err := sonic.Unmarshal(body, &res); err != nil {
-		return nil, err
+		return nil, errs.NewFileOpError("", path, err)
 	}
 	var texts []string
 	for _, block := range res {

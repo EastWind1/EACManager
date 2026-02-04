@@ -18,7 +18,7 @@ func NewCompanyService(companyRepo *repository.CompanyRepository) *CompanyServic
 	}
 }
 
-func (s *CompanyService) FindEnabled(ctx context.Context, param *result.QueryParam) (*result.PageResult[model.CompanyDTO], error) {
+func (s *CompanyService) FindEnabled(ctx context.Context, param *result.QueryParam) (*result.PageResult[model.CompanyDTO], errs.StackError) {
 	companies, err := s.companyRepo.FindAllEnabled(ctx, param)
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (s *CompanyService) FindEnabled(ctx context.Context, param *result.QueryPar
 	return result.NewPageResultFromDB(companies, model.ToDTOs), nil
 }
 
-func (s *CompanyService) FindByName(ctx context.Context, name string) ([]model.CompanyDTO, error) {
+func (s *CompanyService) FindByName(ctx context.Context, name string) ([]model.CompanyDTO, errs.StackError) {
 	companies, err := s.companyRepo.FindEnabledByNameContains(ctx, name)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func (s *CompanyService) FindByName(ctx context.Context, name string) ([]model.C
 	return res, nil
 }
 
-func (s *CompanyService) Create(ctx context.Context, dto *model.CompanyDTO) (*model.CompanyDTO, error) {
+func (s *CompanyService) Create(ctx context.Context, dto *model.CompanyDTO) (*model.CompanyDTO, errs.StackError) {
 	if dto.Name == "" {
 		return nil, errs.NewBizError("公司名称不能为空")
 	}
@@ -50,9 +50,9 @@ func (s *CompanyService) Create(ctx context.Context, dto *model.CompanyDTO) (*mo
 	return company.ToDTO(), nil
 }
 
-func (s *CompanyService) Update(ctx context.Context, dto *model.CompanyDTO) (*model.CompanyDTO, error) {
+func (s *CompanyService) Update(ctx context.Context, dto *model.CompanyDTO) (*model.CompanyDTO, errs.StackError) {
 	var company *model.Company
-	err := s.companyRepo.Transaction(ctx, func(tx context.Context) error {
+	err := s.companyRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		com, err := s.companyRepo.FindByID(tx, dto.ID)
 		if err != nil {
 			return err
@@ -72,8 +72,8 @@ func (s *CompanyService) Update(ctx context.Context, dto *model.CompanyDTO) (*mo
 	return company.ToDTO(), nil
 }
 
-func (s *CompanyService) Disable(ctx context.Context, id int) error {
-	err := s.companyRepo.Transaction(ctx, func(tx context.Context) error {
+func (s *CompanyService) Disable(ctx context.Context, id int) errs.StackError {
+	err := s.companyRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
 		company, err := s.companyRepo.FindByID(tx, id)
 		if err != nil {
 			return err

@@ -1,10 +1,9 @@
 package result
 
 import (
-	"runtime/debug"
+	"backend-go/internal/common/errs"
 
 	"github.com/gofiber/fiber/v2/log"
-	"github.com/spf13/viper"
 )
 
 // ActionsResult 批量操作结果
@@ -45,7 +44,7 @@ type Row[P any, R any] struct {
 }
 
 // ExecuteActions 执行批量操作
-func ExecuteActions[P any, R any](params []P, fn func(P) (R, error)) *ActionsResult[P, R] {
+func ExecuteActions[P any, R any](params []P, fn func(P) (R, errs.StackError)) *ActionsResult[P, R] {
 	results := make([]Row[P, R], 0, len(params))
 	for _, p := range params {
 		data, err := fn(p)
@@ -58,9 +57,7 @@ func ExecuteActions[P any, R any](params []P, fn func(P) (R, error)) *ActionsRes
 			result.Message = err.Error()
 			log.Errorf("操作参数: %v", p)
 			log.Errorf("异常: %v", err)
-			if viper.Get("log.level") == "debug" {
-				debug.PrintStack()
-			}
+			log.Errorf("%v", string(err.Stack()))
 		}
 		results = append(results, result)
 	}

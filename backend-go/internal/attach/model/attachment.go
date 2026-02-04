@@ -125,15 +125,15 @@ func (a *AttachmentDTO) TOEntity() *Attachment {
 }
 
 // ToDTOs 转换为 DTOs
-func ToDTOs(a []*Attachment) *[]AttachmentDTO {
+func ToDTOs(a []Attachment) []AttachmentDTO {
 	if a == nil {
 		return nil
 	}
-	dtos := make([]AttachmentDTO, len(a))
+	attaches := make([]AttachmentDTO, len(a))
 	for i, attachment := range a {
-		dtos[i] = *attachment.ToDTO()
+		attaches[i] = *attachment.ToDTO()
 	}
-	return &dtos
+	return attaches
 }
 
 type BillType uint

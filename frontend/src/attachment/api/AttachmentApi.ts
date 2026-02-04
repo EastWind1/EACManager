@@ -40,8 +40,8 @@ const AttachmentApi = {
    * @param attach 文件
    */
   async download(attach: Attachment) {
-    const res = await getAxios().get('/', { responseType: 'blob', params: attach })
-    return res as never as Blob
+
+    return await getAxios().get('/', {responseType: 'blob', params: attach }) as Blob
   },
 }
 export default AttachmentApi

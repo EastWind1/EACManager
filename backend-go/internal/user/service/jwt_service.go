@@ -23,7 +23,7 @@ func NewJWTService(cfg *config.JWTConfig) *JWTService {
 }
 
 // GenerateToken 生成JWT令牌
-func (s *JWTService) GenerateToken(username string, subject string) (string, error) {
+func (s *JWTService) GenerateToken(username string, subject string) (string, errs.StackError) {
 	now := time.Now()
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(s.expire) * time.Second)),
@@ -46,7 +46,7 @@ type TokenInfo struct {
 }
 
 // VerifyToken 验证JWT令牌
-func (s *JWTService) VerifyToken(tokenString string) (*TokenInfo, error) {
+func (s *JWTService) VerifyToken(tokenString string) (*TokenInfo, errs.StackError) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return s.secret, nil
 	})

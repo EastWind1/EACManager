@@ -13,7 +13,7 @@ import (
 )
 
 // validSrc 检查源文件存在且为文件
-func validSrc(origin string) error {
+func validSrc(origin string) errs.StackError {
 	if origin == "" {
 		return errs.NewFileOpError("源路径不能为空", "")
 	}
@@ -29,7 +29,7 @@ func validSrc(origin string) error {
 // validTarget 检查目标文件
 //
 // exist 表示期望的存在状态
-func validTarget(target string, exist bool) error {
+func validTarget(target string, exist bool) errs.StackError {
 	if target == "" {
 		return errs.NewFileOpError("目标路径不能为空", "")
 	}
@@ -45,7 +45,7 @@ func validTarget(target string, exist bool) error {
 	}
 	return nil
 }
-func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
+func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, errs.StackError) {
 	if op == nil {
 		return nil, errs.NewFileOpError("操作为空", "")
 	}
@@ -115,11 +115,14 @@ func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
 	default:
 		err = errs.NewFileOpError("不支持的操作类型", fmt.Sprintf("%d", op.Type))
 	}
-	return res, err
+	if err != nil {
+		return nil, errs.NewFileOpError("", op.Target, err)
+	}
+	return res, nil
 }
 
 // Exec 执行文件操作
-func Exec(cache cache.Cache, ops *[]model.FileOp) error {
+func Exec(cache cache.Cache, ops *[]model.FileOp) errs.StackError {
 	if ops == nil {
 		return errs.NewFileOpError("操作列表为空", "")
 	}
@@ -137,7 +140,7 @@ func Exec(cache cache.Cache, ops *[]model.FileOp) error {
 	if err != nil {
 		// 回滚已执行的操作
 		rollback(&executedOps)
-		return err
+		return errs.NewFileOpError("", "", err)
 	}
 	return nil
 }
@@ -147,7 +150,7 @@ func rollback(executedOps *[]model.FileOp) {
 	if executedOps == nil {
 		return
 	}
-	var rollbackErrs []error
+	var rollbackErrs []errs.StackError
 	// 倒序回滚
 	for i := len(*executedOps) - 1; i >= 0; i-- {
 		op := (*executedOps)[i]
@@ -155,7 +158,7 @@ func rollback(executedOps *[]model.FileOp) {
 		switch op.Type {
 		case model.FileOpCreate, model.FileOpCopy:
 			if err := os.Remove(op.Target); err != nil {
-				rollbackErrs = append(rollbackErrs, err)
+				rollbackErrs = append(rollbackErrs, errs.NewFileOpError("", op.Target, err))
 			}
 		case model.FileOpMove:
 			if err := MoveFile(op.Target, op.Origin); err != nil {

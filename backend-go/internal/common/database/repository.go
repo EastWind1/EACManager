@@ -1,6 +1,7 @@
 package database
 
 import (
+	"backend-go/internal/common/errs"
 	"backend-go/internal/common/result"
 	"backend-go/internal/common/util"
 	"context"
@@ -31,38 +32,39 @@ func (r *BaseRepository[T]) GetDB(ctx context.Context) *gorm.DB {
 }
 
 // Create 创建, 成功后会修改传入的实体
-func (r *BaseRepository[T]) Create(ctx context.Context, data *T) error {
+func (r *BaseRepository[T]) Create(ctx context.Context, data *T) errs.StackError {
 	res := r.GetDB(ctx).Create(data)
 	if res.Error != nil || res.RowsAffected == 0 {
-		return res.Error
+		return errs.Wrap(res.Error)
 	}
 	return nil
 }
 
 // FindByID 根据 ID 查询, 未查到时返回 nil
-func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, error) {
+func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, errs.StackError) {
 	var t T
 	res := r.GetDB(ctx).Where("id = ?", id).Take(&t)
 	if res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
 		}
-		return nil, nil
+		return nil, errs.Wrap(res.Error)
 	}
 	return &t, nil
 }
 
 // FindAll 根据条件查询
-func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any) (*[]T, error) {
+func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any) (*[]T, errs.StackError) {
 	var ts []T
 	res := r.GetDB(ctx).Where(query, args...).Find(&ts)
 	if res.Error != nil {
-		return nil, res.Error
+		return nil, errs.Wrap(res.Error)
 	}
 	return &ts, nil
 }
 
 // BuildQueryWithParam 拼接分页排序条件
-func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.QueryParam) (*gorm.DB, error) {
+func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.QueryParam) (*gorm.DB, errs.StackError) {
 	if err := param.Valid(); err != nil {
 		return nil, err
 	}
@@ -79,13 +81,13 @@ func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.Query
 }
 
 // FindAllWithPage 根据条件分页查询
-func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *result.QueryParam, query any, args ...any) (*result.PageResult[T], error) {
+func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *result.QueryParam, query any, args ...any) (*result.PageResult[T], errs.StackError) {
 	var t T
 	q := r.GetDB(ctx).Model(&t).Where(query, args...)
 	var total int64
 	res := q.Count(&total)
 	if res.Error != nil {
-		return nil, res.Error
+		return nil, errs.Wrap(res.Error)
 	}
 	if total == 0 {
 		return result.NewPageResult(&[]T{}, 0, 0, 0), nil
@@ -98,27 +100,26 @@ func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *resu
 	var ts []T
 	res = q.Find(&ts)
 	if res.Error != nil {
-		return nil, res.Error
+		return nil, errs.Wrap(res.Error)
 	}
 	return result.NewPageResult(&ts, int(total), pageParam.GetPageIndex(), pageParam.GetPageSize()), nil
 }
 
 // Updates 更新, 成功后会修改传入的实体
-func (r *BaseRepository[T]) Updates(ctx context.Context, data *T) error {
-	return r.GetDB(ctx).Model(data).Updates(data).Error
+func (r *BaseRepository[T]) Updates(ctx context.Context, data *T) errs.StackError {
+	return errs.Wrap(r.GetDB(ctx).Model(data).Updates(data).Error)
 }
 
 // DeleteByID 根据 ID 删除
-func (r *BaseRepository[T]) DeleteByID(ctx context.Context, id any) error {
+func (r *BaseRepository[T]) DeleteByID(ctx context.Context, id any) errs.StackError {
 	var t T
-	res := r.GetDB(ctx).Where("id = ?", id).Delete(&t)
-	return res.Error
+	return errs.Wrap(r.GetDB(ctx).Where("id = ?", id).Delete(&t).Error)
 }
 
 // Transaction 开启事务，通过context传递事务实例
-func (r *BaseRepository[T]) Transaction(base context.Context, fn func(ctx context.Context) error) error {
-	return r.GetDB(base).Transaction(func(tx *gorm.DB) error {
+func (r *BaseRepository[T]) Transaction(base context.Context, fn func(ctx context.Context) errs.StackError) errs.StackError {
+	return errs.Wrap(r.GetDB(base).Transaction(func(tx *gorm.DB) error {
 		ctx := context.WithValue(tx.Statement.Context, txKey{}, tx)
 		return fn(ctx)
-	})
+	}))
 }

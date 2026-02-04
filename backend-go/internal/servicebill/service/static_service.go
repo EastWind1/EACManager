@@ -2,6 +2,7 @@ package service
 
 import (
 	"backend-go/internal/common/cache"
+	"backend-go/internal/common/errs"
 	"backend-go/internal/servicebill/model"
 	"backend-go/internal/servicebill/repository"
 	"context"
@@ -22,7 +23,7 @@ func NewStatisticService(cache cache.Cache, billRepo *repository.ServiceBillRepo
 }
 
 // CountBillsByState 统计不同状态的服务单据数量
-func (s *StatisticService) CountBillsByState(ctx context.Context) (*model.CountByStateResult, error) {
+func (s *StatisticService) CountBillsByState(ctx context.Context) (*model.CountByStateResult, errs.StackError) {
 	states := []model.ServiceBillState{
 		model.ServiceBillStateCreated,
 		model.ServiceBillStateProcessing,
@@ -37,7 +38,7 @@ func (s *StatisticService) CountBillsByState(ctx context.Context) (*model.CountB
 }
 
 // SumAmountByMonth 按月份统计应收和已收服务单据金额总和
-func (s *StatisticService) SumAmountByMonth(ctx context.Context) (*[]model.MonthSumAmount, error) {
+func (s *StatisticService) SumAmountByMonth(ctx context.Context) (*[]model.MonthSumAmount, errs.StackError) {
 	if value, ok := s.cache.Get("service-bill", "SumAmountByMonth"); ok {
 		return value.(*[]model.MonthSumAmount), nil
 	}
