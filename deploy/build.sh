@@ -137,7 +137,7 @@ if [ -d "$BACKEND_GO_TARGET_DIR" ]; then
     echo "拷贝 Go 后端文件..."
     mkdir -p "$BACKEND_GO_DEPLOY_DIR"
     cp -r "$BACKEND_GO_TARGET_DIR"/* "$BACKEND_GO_DEPLOY_DIR/"
-    cp -r "$BACKEND_GO_DIR/config/config.yml" "$BACKEND_GO_DEPLOY_DIR/"
+    cp -r "$BACKEND_GO_DIR/config/config.yaml" "$BACKEND_GO_DEPLOY_DIR/"
     echo "Go 后端文件拷贝成功"
 else
     echo "警告：Go 后端 target 目录不存在，跳过拷贝"
