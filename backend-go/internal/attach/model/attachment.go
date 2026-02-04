@@ -1,6 +1,12 @@
 package model
 
-import "backend-go/internal/common/audit"
+import (
+	"backend-go/internal/common/audit"
+	"backend-go/internal/common/database"
+	"backend-go/internal/common/errs"
+
+	"github.com/bytedance/sonic"
+)
 
 // AttachType 附件类型
 type AttachType uint
@@ -18,9 +24,69 @@ const (
 	AttachTypeOther
 )
 
+func (s *AttachType) MarshalJSON() ([]byte, error) {
+	str := ""
+	switch *s {
+	case AttachTypeImage:
+		str = "IMAGE"
+	case AttachTypePDF:
+		str = "PDF"
+	case AttachTypeWord:
+		str = "WORD"
+	case AttachTypeExcel:
+		str = "EXCEL"
+	case AttachTypeOther:
+		str = "OTHER"
+
+	}
+	return sonic.Marshal(str)
+}
+
+func (s *AttachType) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := sonic.Unmarshal(data, &str); err == nil {
+		switch str {
+		case "IMAGE":
+			*s = AttachTypeImage
+		case "PDF":
+			*s = AttachTypePDF
+		case "WORD":
+			*s = AttachTypeWord
+		case "EXCEL":
+			*s = AttachTypeExcel
+		case "OTHER":
+			*s = AttachTypeOther
+		default:
+			return errs.NewBizError("不支持的附件类型")
+		}
+	}
+	return nil
+}
+
+func (s *AttachType) UnmarshalText(data []byte) error {
+	var str string
+	if err := sonic.Unmarshal(data, &str); err == nil {
+		switch str {
+		case "IMAGE":
+			*s = AttachTypeImage
+		case "PDF":
+			*s = AttachTypePDF
+		case "WORD":
+			*s = AttachTypeWord
+		case "EXCEL":
+			*s = AttachTypeExcel
+		case "OTHER":
+			*s = AttachTypeOther
+		default:
+			return errs.NewBizError("不支持的附件类型")
+		}
+	}
+	return nil
+}
+
 // Attachment 附件
 type Attachment struct {
-	ID           uint `gorm:"primaryKey;defalut:nextval('attachment_seq')"`
+	database.BaseEntity
 	Name         string
 	Type         AttachType `gorm:"default:4"`
 	RelativePath string
@@ -49,7 +115,9 @@ func (a *Attachment) ToDTO() *AttachmentDTO {
 // TOEntity 转换为DTO
 func (a *AttachmentDTO) TOEntity() *Attachment {
 	return &Attachment{
-		ID:           a.ID,
+		BaseEntity: database.BaseEntity{
+			ID: a.ID,
+		},
 		Name:         a.Name,
 		Type:         a.Type,
 		RelativePath: a.RelativePath,
@@ -87,11 +155,11 @@ func (b BillType) String() string {
 }
 
 type BillAttachRelation struct {
-	ID       uint `gorm:"primaryKey;defalut:nextval('bill_attach_relation_seq')"`
+	database.BaseEntity
 	BillId   uint
 	BillType BillType `gorm:"index"`
 	AttachId uint
-	Attach   Attachment
+	Attach   Attachment `gorm:"foreignkey:AttachId"`
 }
 
 // FileOpType 文件操作类型

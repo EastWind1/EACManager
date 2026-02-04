@@ -3,7 +3,8 @@ package database
 import (
 	"backend-go/config"
 
-	"github.com/sirupsen/logrus"
+	"github.com/gofiber/fiber/v2/log"
+	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -19,7 +20,10 @@ func NewDB(cfg *config.DatabaseConfig) *gorm.DB {
 		},
 	})
 	if err != nil {
-		logrus.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	if viper.Get("log.level") == "debug" {
+		return db.Debug()
 	}
 	return db
 }

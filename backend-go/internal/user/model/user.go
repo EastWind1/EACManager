@@ -3,13 +3,12 @@ package model
 import (
 	"backend-go/internal/common/audit"
 	"backend-go/internal/common/auth"
-
-	"gorm.io/plugin/optimisticlock"
+	"backend-go/internal/common/database"
 )
 
 // User 用户实体
 type User struct {
-	ID        uint   `gorm:"primaryKey;default:nextval('user_seq')"` // 兼容 JPA 序列
+	database.BaseEntity
 	Username  string `gorm:"uniqueIndex"`
 	Password  string
 	Name      string
@@ -17,7 +16,6 @@ type User struct {
 	Email     string
 	Authority auth.AuthorityRole `gorm:"default:'ROLE_USER'"`
 	IsEnabled bool               `gorm:"default:true"`
-	Version   optimisticlock.Version
 	audit.Entity
 }
 
@@ -58,7 +56,9 @@ func (u *User) ToDTO() *UserDTO {
 // ToEntity 创建用户实体
 func (u *UserDTO) ToEntity() *User {
 	return &User{
-		ID:        u.ID,
+		BaseEntity: database.BaseEntity{
+			ID: u.ID,
+		},
 		Username:  u.Username,
 		Password:  *u.Password,
 		Name:      u.Name,

@@ -46,7 +46,7 @@ func (c *UserController) Login(ctx *fiber.Ctx) error {
 		HTTPOnly: true,
 	}
 	ctx.Cookie(&cookie)
-	result.SetResult(ctx, res)
+	result.SetResult(ctx, res.User)
 	return nil
 }
 

@@ -1,6 +1,11 @@
 package result
 
-import "github.com/gofiber/fiber/v2/log"
+import (
+	"runtime/debug"
+
+	"github.com/gofiber/fiber/v2/log"
+	"github.com/spf13/viper"
+)
 
 // ActionsResult 批量操作结果
 type ActionsResult[P any, R any] struct {
@@ -47,12 +52,15 @@ func ExecuteActions[P any, R any](params []P, fn func(P) (R, error)) *ActionsRes
 		result := Row[P, R]{
 			Param:   p,
 			Result:  data,
-			Success: err != nil,
+			Success: err == nil,
 		}
 		if err != nil {
 			result.Message = err.Error()
 			log.Errorf("操作参数: %v", p)
 			log.Errorf("异常: %v", err)
+			if viper.Get("log.level") == "debug" {
+				debug.PrintStack()
+			}
 		}
 		results = append(results, result)
 	}

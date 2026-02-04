@@ -27,7 +27,11 @@ type MonthSumAmount struct {
 	Amount float64 `json:"amount"`
 }
 
-type CountByStateResult map[ServiceBillState]int
+type CountByStateRow struct {
+	State int
+	Count int
+}
+type CountByStateResult map[string]int
 
 type ProcessedParam struct {
 	Ids           []uint     `json:"ids"`

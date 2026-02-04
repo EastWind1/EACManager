@@ -12,7 +12,7 @@ import (
 // ErrorHandler 错误处理
 func ErrorHandler() fiber.ErrorHandler {
 	return func(c *fiber.Ctx, err error) error {
-		log.Errorf("ErrorHandler: %+v", err)
+		log.Errorf("捕获异常: %+v", err)
 		// 业务异常
 		var bizErr *errs.BizError
 		if errors.As(err, &bizErr) {

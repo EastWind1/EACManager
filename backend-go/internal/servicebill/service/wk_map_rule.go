@@ -158,19 +158,21 @@ func (r *WKMapRule) MapFromExcel(rows *[][]string) (any, error) {
 				if len(row) > 4 {
 					detail.Device += " " + row[4]
 				}
-
-				if row[5] == "" || row[7] == "" || row[8] == "" {
+				// 去除没有数量的行
+				if row[5] == "" {
 					continue
 				}
 
-				if quantity, err := strconv.ParseFloat(row[5], 64); err == nil {
+				if quantity, err := strconv.ParseFloat(strings.TrimSpace(row[5]), 64); err == nil {
 					detail.Quantity = quantity
 				}
-				if unitPrice, err := strconv.ParseFloat(row[7], 64); err == nil {
-					detail.UnitPrice = unitPrice
-				}
-				if subtotal, err := strconv.ParseFloat(row[8], 64); err == nil {
-					detail.Subtotal = subtotal
+				if len(row) >= 9 {
+					if unitPrice, err := strconv.ParseFloat(strings.TrimSpace(row[7]), 64); err == nil {
+						detail.UnitPrice = unitPrice
+					}
+					if subtotal, err := strconv.ParseFloat(strings.TrimSpace(row[8]), 64); err == nil {
+						detail.Subtotal = subtotal
+					}
 				}
 
 				serviceBill.Details = append(serviceBill.Details, detail)
@@ -181,7 +183,7 @@ func (r *WKMapRule) MapFromExcel(rows *[][]string) (any, error) {
 						detail := model.ServiceBillDetailDTO{
 							Device: "路费补贴",
 						}
-						if price, err := strconv.ParseFloat(row[j+2], 64); err == nil {
+						if price, err := strconv.ParseFloat(strings.TrimSpace(row[j+2]), 64); err == nil {
 							detail.Quantity = 1
 							detail.UnitPrice = price
 							detail.Subtotal = price
@@ -190,7 +192,7 @@ func (r *WKMapRule) MapFromExcel(rows *[][]string) (any, error) {
 					}
 
 					if strings.Contains(text, "合计") && j+2 < len(row) {
-						if totalAmount, err := strconv.ParseFloat(row[j+2], 64); err == nil {
+						if totalAmount, err := strconv.ParseFloat(strings.TrimSpace(row[j+2]), 64); err == nil {
 							serviceBill.TotalAmount = totalAmount
 						}
 					}

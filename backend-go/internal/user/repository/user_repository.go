@@ -5,6 +5,7 @@ import (
 	"backend-go/internal/common/result"
 	"backend-go/internal/user/model"
 	"context"
+	"errors"
 
 	"gorm.io/gorm"
 )
@@ -24,8 +25,11 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 // FindByUsername 根据用户名查找用户
 func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
-	res := r.GetDB(ctx).Where("username = ?", username).First(&user)
+	res := r.GetDB(ctx).Where("username = ?", username).Take(&user)
 	if res.Error != nil {
+		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, res.Error
 	}
 	return &user, nil

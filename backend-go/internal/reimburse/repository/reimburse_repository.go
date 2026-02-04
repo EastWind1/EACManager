@@ -30,7 +30,7 @@ func (r *ReimburseRepository) ExistsByNumber(ctx context.Context, number string)
 // FindFullById 查询完整实体
 func (r *ReimburseRepository) FindFullById(ctx context.Context, id uint) (*model.Reimbursement, error) {
 	var res model.Reimbursement
-	if err := r.GetDB(ctx).Joins("reimburse_detail").Find(&res, "id = ?", id).Error; err != nil {
+	if err := r.GetDB(ctx).Preload("Details").Find(&res, "reimbursement.id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -39,9 +39,23 @@ func (r *ReimburseRepository) FindFullById(ctx context.Context, id uint) (*model
 	return &res, nil
 }
 
+// Updates 更新
+func (r *ReimburseRepository) Updates(ctx context.Context, entity *model.Reimbursement) error {
+	if err := r.GetDB(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(entity).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// Delete 删除整个实体
+func (r *ReimburseRepository) Delete(ctx context.Context, entity *model.Reimbursement) error {
+	res := r.GetDB(ctx).Select("Details").Delete(entity)
+	return res.Error
+}
+
 // FindByParam 根据查询条件查询
 func (r *ReimburseRepository) FindByParam(ctx context.Context, param *model.ReimburseQueryParam) (*result.PageResult[model.Reimbursement], error) {
-	q := r.GetDB(ctx).WithContext(ctx)
+	q := r.GetDB(ctx).Model(&model.Reimbursement{}).WithContext(ctx)
 	if param.Number != "" {
 		q = q.Where("number = ?", param.Number)
 	}

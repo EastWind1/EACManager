@@ -38,8 +38,8 @@ func (c *AttachmentController) UploadTemp(ctx *fiber.Ctx) error {
 }
 
 func (c *AttachmentController) Download(ctx *fiber.Ctx) error {
-	dto := model.AttachmentDTO{}
-	if err := ctx.ParamsParser(&dto); err != nil {
+	var dto model.AttachmentDTO
+	if err := ctx.QueryParser(&dto); err != nil {
 		return err
 	}
 	name, path, err := c.attachService.GetResource(ctx.Context(), &dto)

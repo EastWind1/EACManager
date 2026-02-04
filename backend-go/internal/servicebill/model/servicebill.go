@@ -3,8 +3,13 @@ package model
 import (
 	"backend-go/internal/attach/model"
 	"backend-go/internal/common/audit"
+	"backend-go/internal/common/database"
+	"backend-go/internal/common/errs"
 	companyModel "backend-go/internal/company/model"
+	"encoding/json"
 	"time"
+
+	"gorm.io/plugin/optimisticlock"
 )
 
 type ServiceBillState int
@@ -16,8 +21,43 @@ const (
 	ServiceBillStateFinished
 )
 
-func (s ServiceBillState) String() string {
-	return []string{"创建", "处理中", "处理完成", "完成"}[s]
+func (s *ServiceBillState) String() string {
+	return []string{"CREATED", "PROCESSING", "PROCESSED", "FINISHED"}[*s]
+}
+
+func (s *ServiceBillState) MarshalJSON() ([]byte, error) {
+	str := ""
+	switch *s {
+	case ServiceBillStateCreated:
+		str = "CREATED"
+	case ServiceBillStateProcessing:
+		str = "PROCESSING"
+	case ServiceBillStateProcessed:
+		str = "PROCESSED"
+	case ServiceBillStateFinished:
+		str = "FINISHED"
+
+	}
+	return json.Marshal(str)
+}
+
+func (s *ServiceBillState) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		switch str {
+		case "CREATED":
+			*s = ServiceBillStateCreated
+		case "PROCESSING":
+			*s = ServiceBillStateProcessing
+		case "PROCESSED":
+			*s = ServiceBillStateProcessed
+		case "FINISHED":
+			*s = ServiceBillStateFinished
+		default:
+			return errs.NewBizError("不支持的单据状态")
+		}
+	}
+	return nil
 }
 
 type ServiceBillType int
@@ -27,18 +67,44 @@ const (
 	ServiceBillTypeFix
 )
 
+func (s *ServiceBillType) MarshalJSON() ([]byte, error) {
+	str := ""
+	switch *s {
+	case ServiceBillTypeInstall:
+		str = "INSTALL"
+	case ServiceBillTypeFix:
+		str = "FIX"
+	}
+	return json.Marshal(str)
+}
+
+func (s *ServiceBillType) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		switch str {
+		case "INSTALL":
+			*s = ServiceBillTypeInstall
+		case "FIX":
+			*s = ServiceBillTypeFix
+		default:
+			return errs.NewBizError("不支持的单据状态")
+		}
+	}
+	return nil
+}
+
 type ServiceBill struct {
 	audit.Entity
-	ID               uint   `gorm:"primaryKey;default:nextval('service_bill_seq')"`
-	Number           string `gorm:"uniqueIndex"`
-	Type             ServiceBillType
-	State            ServiceBillState
-	ProductCompanyID *uint                 `gorm:"index"`
-	ProductCompany   *companyModel.Company `gorm:"foreignKey:ProductCompanyID"`
-	ProjectName      string
-	ProjectAddress   string
-	ProjectContact   string
-	ProjectPhone     string
+	database.BaseEntity
+	Number              string `gorm:"uniqueIndex"`
+	Type                ServiceBillType
+	State               ServiceBillState
+	ProductCompanyID    *uint                 `gorm:"index"`
+	ProductCompany      *companyModel.Company `gorm:"foreignKey:ProductCompanyID"`
+	ProjectName         string
+	ProjectAddress      string
+	ProjectContact      string
+	ProjectContactPhone string
 	// 现场联系人
 	OnSiteContact string
 	OnSitePhone   string
@@ -53,12 +119,12 @@ type ServiceBill struct {
 	FinishedDate *time.Time
 	Remark       string
 	Details      []ServiceBillDetail `gorm:"foreignKey:ServiceBillID"`
-	Version      int
+	Version      optimisticlock.Version
 }
 
 type ServiceBillDetail struct {
-	ID            uint `gorm:"primaryKey;default:nextval('service_bill_detail_seq')"`
-	ServiceBillID int  `gorm:"index"`
+	database.BaseEntity
+	ServiceBillID int `gorm:"index"`
 	// 设备信息
 	Device   string
 	Quantity float64
@@ -69,25 +135,25 @@ type ServiceBillDetail struct {
 }
 
 type ServiceBillDTO struct {
-	ID             uint                     `json:"id"`
-	Number         string                   `json:"number"`
-	Type           ServiceBillType          `json:"type"`
-	State          ServiceBillState         `json:"state"`
-	ProductCompany *companyModel.CompanyDTO `json:"productCompany"`
-	ProjectName    string                   `json:"projectName"`
-	ProjectAddress string                   `json:"projectAddress"`
-	ProjectContact string                   `json:"projectContact"`
-	ProjectPhone   string                   `json:"projectPhone"`
-	OnSiteContact  string                   `json:"onSiteContact"`
-	OnSitePhone    string                   `json:"onSitePhone"`
-	ElevatorInfo   string                   `json:"elevatorInfo"`
-	TotalAmount    float64                  `json:"totalAmount"`
-	OrderDate      *time.Time               `json:"orderDate"`
-	ProcessedDate  *time.Time               `json:"processedDate"`
-	FinishedDate   *time.Time               `json:"finishedDate"`
-	Remark         string                   `json:"remark"`
-	Details        []ServiceBillDetailDTO   `json:"details"`
-	Attachments    []model.AttachmentDTO    `json:"attachments"`
+	ID                  uint                     `json:"id"`
+	Number              string                   `json:"number"`
+	Type                ServiceBillType          `json:"type"`
+	State               ServiceBillState         `json:"state"`
+	ProductCompany      *companyModel.CompanyDTO `json:"productCompany"`
+	ProjectName         string                   `json:"projectName"`
+	ProjectAddress      string                   `json:"projectAddress"`
+	ProjectContact      string                   `json:"projectContact"`
+	ProjectContactPhone string                   `json:"projectPhone"`
+	OnSiteContact       string                   `json:"onSiteContact"`
+	OnSitePhone         string                   `json:"onSitePhone"`
+	ElevatorInfo        string                   `json:"elevatorInfo"`
+	TotalAmount         float64                  `json:"totalAmount"`
+	OrderDate           *time.Time               `json:"orderDate"`
+	ProcessedDate       *time.Time               `json:"processedDate"`
+	FinishedDate        *time.Time               `json:"finishedDate"`
+	Remark              string                   `json:"remark"`
+	Details             []ServiceBillDetailDTO   `json:"details"`
+	Attachments         []model.AttachmentDTO    `json:"attachments"`
 }
 
 type ServiceBillDetailDTO struct {
@@ -117,23 +183,23 @@ func (s *ServiceBill) ToBaseDTO() *ServiceBillDTO {
 		productCompanyDTO = s.ProductCompany.ToDTO()
 	}
 	return &ServiceBillDTO{
-		ID:             s.ID,
-		Number:         s.Number,
-		Type:           s.Type,
-		State:          s.State,
-		ProductCompany: productCompanyDTO,
-		ProjectName:    s.ProjectName,
-		ProjectAddress: s.ProjectAddress,
-		ProjectContact: s.ProjectContact,
-		ProjectPhone:   s.ProjectPhone,
-		OnSiteContact:  s.OnSiteContact,
-		OnSitePhone:    s.OnSitePhone,
-		ElevatorInfo:   s.ElevatorInfo,
-		TotalAmount:    s.TotalAmount,
-		OrderDate:      s.OrderDate,
-		ProcessedDate:  s.ProcessedDate,
-		FinishedDate:   s.FinishedDate,
-		Remark:         s.Remark,
+		ID:                  s.ID,
+		Number:              s.Number,
+		Type:                s.Type,
+		State:               s.State,
+		ProductCompany:      productCompanyDTO,
+		ProjectName:         s.ProjectName,
+		ProjectAddress:      s.ProjectAddress,
+		ProjectContact:      s.ProjectContact,
+		ProjectContactPhone: s.ProjectContactPhone,
+		OnSiteContact:       s.OnSiteContact,
+		OnSitePhone:         s.OnSitePhone,
+		ElevatorInfo:        s.ElevatorInfo,
+		TotalAmount:         s.TotalAmount,
+		OrderDate:           s.OrderDate,
+		ProcessedDate:       s.ProcessedDate,
+		FinishedDate:        s.FinishedDate,
+		Remark:              s.Remark,
 	}
 }
 
@@ -143,23 +209,25 @@ func (s *ServiceBillDTO) ToEntity() *ServiceBill {
 		details[i] = *d.ToEntity()
 	}
 	entity := ServiceBill{
-		ID:             s.ID,
-		Number:         s.Number,
-		Type:           s.Type,
-		State:          s.State,
-		ProjectName:    s.ProjectName,
-		ProjectAddress: s.ProjectAddress,
-		ProjectContact: s.ProjectContact,
-		ProjectPhone:   s.ProjectPhone,
-		OnSiteContact:  s.OnSiteContact,
-		OnSitePhone:    s.OnSitePhone,
-		ElevatorInfo:   s.ElevatorInfo,
-		TotalAmount:    s.TotalAmount,
-		OrderDate:      s.OrderDate,
-		ProcessedDate:  s.ProcessedDate,
-		FinishedDate:   s.FinishedDate,
-		Remark:         s.Remark,
-		Details:        details,
+		BaseEntity: database.BaseEntity{
+			ID: s.ID,
+		},
+		Number:              s.Number,
+		Type:                s.Type,
+		State:               s.State,
+		ProjectName:         s.ProjectName,
+		ProjectAddress:      s.ProjectAddress,
+		ProjectContact:      s.ProjectContact,
+		ProjectContactPhone: s.ProjectContactPhone,
+		OnSiteContact:       s.OnSiteContact,
+		OnSitePhone:         s.OnSitePhone,
+		ElevatorInfo:        s.ElevatorInfo,
+		TotalAmount:         s.TotalAmount,
+		OrderDate:           s.OrderDate,
+		ProcessedDate:       s.ProcessedDate,
+		FinishedDate:        s.FinishedDate,
+		Remark:              s.Remark,
+		Details:             details,
 	}
 	if s.ProductCompany != nil && s.ProductCompany.ID != 0 {
 		entity.ProductCompanyID = &(s.ProductCompany.ID)
@@ -188,7 +256,9 @@ func (s *ServiceBillDetail) ToDTO() *ServiceBillDetailDTO {
 
 func (s *ServiceBillDetailDTO) ToEntity() *ServiceBillDetail {
 	return &ServiceBillDetail{
-		ID:        s.ID,
+		BaseEntity: database.BaseEntity{
+			ID: s.ID,
+		},
 		Device:    s.Device,
 		Quantity:  s.Quantity,
 		UnitPrice: s.UnitPrice,

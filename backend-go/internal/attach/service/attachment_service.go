@@ -38,11 +38,14 @@ func NewAttachmentService(
 	attachRepo *repository.AttachmentRepository,
 	billAttachRepo *repository.BillAttachRelationRepository,
 ) *AttachmentService {
-	rootPath := cfg.Path
+	appPath, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	rootPath := filepath.Clean(filepath.Join(appPath, cfg.Path))
 	if err := os.MkdirAll(rootPath, 0755); err != nil {
 		log.Fatalf("创建附件根目录失败: %v - %v", rootPath, err)
 	}
-	log.Infof("创建附录文件夹 %v", rootPath)
 	tempPath, err := os.MkdirTemp(os.TempDir(), tempPrefix+"*")
 	if err != nil {
 		log.Fatalf("创建临时目录失败: %v - %v", tempPath, err)

@@ -24,7 +24,10 @@ func Setup(ctx *context.AppContext, router fiber.Router) (*service.AttachmentSer
 		attachGroup.Post("/temp", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), attachmentController.UploadTemp)
 	}
 
-	hook.SetupCleanOnExit(ctx.Cache)
+	ctx.Server.Hooks().OnShutdown(func() error {
+		hook.DeleteTempFiles(ctx.Cache)
+		return nil
+	})
 
 	return attachmentService, attachMapService
 }

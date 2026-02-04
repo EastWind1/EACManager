@@ -23,7 +23,7 @@
         </template>
       </template>
       <!-- 最后一行添加加号按钮 -->
-      <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value" #[`body.append`]>
+      <template #[`body.append`] v-if="AuthorityRole.ROLE_ADMIN.value">
         <tr>
           <td :colspan="headers.length" class="align-center">
             <v-btn block variant="plain" @click="add">
@@ -91,6 +91,7 @@ import { useUserStore } from '../store/UserStore.ts'
 import Crypto from '@/common/util/Crypto.ts'
 import type { PageResult } from '@/common/model/PageResult.ts'
 
+const curUser = useUserStore().getUser()
 // 表头
 const headers = [
   { title: '用户名', key: 'username', sortable: false },
@@ -116,8 +117,7 @@ const options = Object.values(AuthorityRole).map((item) => ({
     disabled: item.value === AuthorityRole.ROLE_ADMIN.value,
   },
 }))
-// 当前登录用户，用于权限控制
-const curUser = useUserStore().getUser()
+
 // 新增默认值
 const USER_DEFAULT = {
   username: '',

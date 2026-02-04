@@ -48,7 +48,7 @@
               <v-row class="ga-2" justify="end">
                 <!-- 非完成状态都可以编辑 -->
                 <v-btn
-                  v-if="serviceBill.id && serviceBill.state !== ServiceBillState.FINISHED.value"
+                  v-if="serviceBill.id && (serviceBill.state !== ServiceBillState.FINISHED.value || userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))"
                   :disabled="isEditState"
                   color="primary"
                   @click="isEditState = true"
@@ -75,7 +75,7 @@
                 <v-btn
                   v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
                   :loading="loading"
-                  @click="remove([serviceBill.id!])"
+                  @click="removeAndBack(serviceBill.id!)"
                   >删除
                 </v-btn>
                 <v-btn v-if="isEditState" :loading="loading" type="submit">保存</v-btn>
@@ -283,6 +283,8 @@ import {
 import { useDate, useDisplay, useHotkey } from 'vuetify/framework'
 import type { Company } from '@/company/model/Company.ts'
 import CompanyApi from '@/company/api/CompanyApi.ts'
+import { useUserStore } from '@/user/store/UserStore.ts'
+import { AuthorityRole } from '@/user/model/User.ts'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
@@ -291,6 +293,7 @@ const route = useRoute()
 const router = useRouter()
 const { mobile } = useDisplay()
 const dateUtil = useDate()
+const userStore = useUserStore()
 // 页面是否编辑状态
 const isEditState = ref(false)
 // 单据类型选项
@@ -427,6 +430,10 @@ function callPhone(phone?: string) {
 
 const { process, processed, finish, remove } = useBillActions(processResult)
 
+async function removeAndBack(id :number) {
+  await remove([id])
+  router.back()
+}
 // 初始化
 async function init() {
   // 链接查看

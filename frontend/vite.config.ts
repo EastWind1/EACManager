@@ -14,6 +14,7 @@ export default defineConfig({
   },
   // 开发服务器跨域问题
   server: {
+    port: 3000,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

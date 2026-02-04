@@ -26,7 +26,7 @@ const vuetify = createVuetify({
   },
   // 主题
   theme: {
-    defaultTheme: 'system'
+    defaultTheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   },
   // UI 默认样式
   defaults: {

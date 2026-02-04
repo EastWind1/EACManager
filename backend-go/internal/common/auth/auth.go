@@ -79,6 +79,6 @@ func RoleMiddleware(roles ...AuthorityRole) fiber.Handler {
 		if !res {
 			return errs.NewAuthError("没有权限")
 		}
-		return nil
+		return c.Next()
 	}
 }

@@ -21,9 +21,11 @@ func Setup(ctx *context.AppContext, router fiber.Router) {
 	router.Use(middleware.AuthMiddleware(jwtSrv, userSrv))
 
 	api := router.Group("/user")
-	api.Post("/token", userController.Login)
-	api.Get("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), userController.GetAll)
-	api.Post("/", auth.RoleMiddleware(auth.RoleAdmin), userController.Create)
-	api.Put("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), userController.Update)
-	api.Delete("/:username", auth.RoleMiddleware(auth.RoleAdmin), userController.Disable)
+	{
+		api.Post(middleware.LoginPath, userController.Login)
+		api.Get("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), userController.GetAll)
+		api.Post("/", auth.RoleMiddleware(auth.RoleAdmin), userController.Create)
+		api.Put("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), userController.Update)
+		api.Delete("/:username", auth.RoleMiddleware(auth.RoleAdmin), userController.Disable)
+	}
 }

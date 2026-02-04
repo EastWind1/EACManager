@@ -2,11 +2,12 @@ package model
 
 import (
 	"backend-go/internal/common/audit"
+	"backend-go/internal/common/database"
 )
 
 // Company 公司
 type Company struct {
-	ID   uint `gorm:"primaryKey;default:nextval('company_seq')"`
+	database.BaseEntity
 	Name string
 	// ContactName 联系人名称
 	ContactName string
@@ -45,7 +46,9 @@ func (c *Company) ToDTO() *CompanyDTO {
 // ToEntity 创建公司实体
 func (c *CompanyDTO) ToEntity() *Company {
 	return &Company{
-		ID:           c.ID,
+		BaseEntity: database.BaseEntity{
+			ID: c.ID,
+		},
 		Name:         c.Name,
 		ContactName:  c.ContactName,
 		ContactPhone: c.ContactPhone,

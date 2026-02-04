@@ -51,11 +51,39 @@ func GenerateExcelFromList(rows *[][]string, targetPath string) error {
 	if err != nil {
 		return err
 	}
+	// 冻结首行
+	if err = f.SetPanes("导出结果", &excelize.Panes{
+		YSplit:      1,
+		TopLeftCell: "A2",
+		ActivePane:  "bottomLeft",
+		Freeze:      true,
+	}); err != nil {
+		return err
+	}
+	headerStyle, err := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold: true,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#90EE90"},
+			Pattern: 1,
+		},
+	})
+	if err != nil {
+		return err
+	}
 	for i, row := range *rows {
 		for j, cell := range row {
 			cellIndex, err := excelize.CoordinatesToCellName(j+1, i+1)
 			if err != nil {
 				return err
+			}
+			// 表头设置样式
+			if i == 0 {
+				if err = f.SetCellStyle("导出结果", cellIndex, cellIndex, headerStyle); err != nil {
+					return err
+				}
 			}
 			if err = f.SetCellValue("导出结果", cellIndex, cell); err != nil {
 				return err

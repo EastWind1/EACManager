@@ -22,7 +22,7 @@ func NewReimburseController(reimburseService *service.ReimburseService) *Reimbur
 
 func (c *ReimburseController) QueryByParam(ctx *fiber.Ctx) error {
 	var param model.ReimburseQueryParam
-	if err := ctx.QueryParser(&param); err != nil {
+	if err := ctx.BodyParser(&param); err != nil {
 		return err
 	}
 

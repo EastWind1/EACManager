@@ -1,6 +1,11 @@
 package errs
 
-import "fmt"
+import (
+	"fmt"
+	"runtime/debug"
+
+	"github.com/spf13/viper"
+)
 
 // BizError 业务异常
 type BizError struct {
@@ -19,6 +24,9 @@ func NewBizError(message string, e ...error) *BizError {
 	err := &BizError{Message: message}
 	if len(e) > 0 {
 		err.Err = e[0]
+	}
+	if viper.Get("log.level") == "debug" || viper.Get("log.level") == "trace" {
+		debug.PrintStack()
 	}
 	return err
 }
@@ -41,6 +49,9 @@ func NewFileOpError(message string, path string, e ...error) *FileOpError {
 	err := &FileOpError{Message: message, Path: path}
 	if len(e) > 0 {
 		err.Err = e[0]
+	}
+	if viper.Get("log.level") == "debug" || viper.Get("log.level") == "trace" {
+		debug.PrintStack()
 	}
 	return err
 }

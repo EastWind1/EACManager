@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/spf13/viper"
@@ -65,7 +66,6 @@ type JWTConfig struct {
 // AttachmentConfig 附件配置
 type AttachmentConfig struct {
 	Path        string
-	Temp        string
 	MaxFileSize int64
 }
 
@@ -83,7 +83,7 @@ func NewConfig() *Config {
 	}
 	// 读取环境变量
 	viper.AutomaticEnv()
-
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	log.Infof("加载配置文件 %s", viper.ConfigFileUsed())
 	log.Infof("使用配置: %v", viper.AllSettings())
 

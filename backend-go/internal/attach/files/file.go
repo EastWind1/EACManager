@@ -66,6 +66,17 @@ func CopyFile(src, dst string) error {
 	return err
 }
 
+// MoveFile 移动文件
+func MoveFile(src, dst string) error {
+	if err := CopyFile(src, dst); err != nil {
+		return err
+	}
+	if err := os.Remove(src); err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetFileType 获取文件类型，若是可执行文件抛出异常
 func GetFileType(path string) (model.AttachType, error) {
 	mimeType, err := mimetype.DetectFile(path)
@@ -77,9 +88,9 @@ func GetFileType(path string) (model.AttachType, error) {
 		return model.AttachTypePDF, nil
 	case "image/jpeg", "image/png", "image/gif":
 		return model.AttachTypeImage, nil
-	case "application/msword":
+	case "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
 		return model.AttachTypeWord, nil
-	case "application/vnd.ms-excel":
+	case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
 		return model.AttachTypeExcel, nil
 	case "application/x-msdownload", "application/x-executable", "application/x-sh", "application/x-bat":
 		return model.AttachTypeOther, errs.NewBizError("不支持的文件类型")

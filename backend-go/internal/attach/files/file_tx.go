@@ -64,7 +64,7 @@ func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
 		}
 		res = op
 	case model.FileOpCopy:
-		if err = validSrc(op.Target); err != nil {
+		if err = validSrc(op.Origin); err != nil {
 			break
 		}
 		if err = validTarget(op.Target, false); err != nil {
@@ -78,7 +78,7 @@ func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
 		}
 		res = op
 	case model.FileOpMove:
-		if err = validSrc(op.Target); err != nil {
+		if err = validSrc(op.Origin); err != nil {
 			break
 		}
 		if err = validTarget(op.Target, false); err != nil {
@@ -87,7 +87,7 @@ func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
 		if err = CreateParentDirs(op.Target); err != nil {
 			break
 		}
-		if err = os.Rename(op.Origin, op.Target); err != nil {
+		if err = MoveFile(op.Origin, op.Target); err != nil {
 			break
 		}
 		res = op
@@ -104,7 +104,7 @@ func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
 		}
 		hook.RegisterTempFile(cache, tempFile.Name())
 		defer tempFile.Close()
-		if err = os.Rename(op.Target, tempFile.Name()); err != nil {
+		if err = MoveFile(op.Target, tempFile.Name()); err != nil {
 			break
 		}
 		res = &model.FileOp{
@@ -158,7 +158,7 @@ func rollback(executedOps *[]model.FileOp) {
 				rollbackErrs = append(rollbackErrs, err)
 			}
 		case model.FileOpMove:
-			if err := os.Rename(op.Target, op.Origin); err != nil {
+			if err := MoveFile(op.Target, op.Origin); err != nil {
 				rollbackErrs = append(rollbackErrs, err)
 			}
 		default:

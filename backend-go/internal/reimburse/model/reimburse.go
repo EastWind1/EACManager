@@ -3,7 +3,12 @@ package model
 import (
 	"backend-go/internal/attach/model"
 	"backend-go/internal/common/audit"
+	"backend-go/internal/common/database"
+	"backend-go/internal/common/errs"
+	"encoding/json"
 	"time"
+
+	"gorm.io/plugin/optimisticlock"
 )
 
 type ReimburseState int
@@ -14,10 +19,41 @@ const (
 	ReimburseStateFinished
 )
 
+func (s *ReimburseState) MarshalJSON() ([]byte, error) {
+	str := ""
+	switch *s {
+	case ReimburseStateCreated:
+		str = "CREATED"
+	case ReimburseStateProcessing:
+		str = "PROCESSING"
+	case ReimburseStateFinished:
+		str = "FINISHED"
+
+	}
+	return json.Marshal(str)
+}
+
+func (s *ReimburseState) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		switch str {
+		case "CREATED":
+			*s = ReimburseStateCreated
+		case "PROCESSING":
+			*s = ReimburseStateProcessing
+		case "FINISHED":
+			*s = ReimburseStateFinished
+		default:
+			return errs.NewBizError("不支持的单据状态")
+		}
+	}
+	return nil
+}
+
 // Reimbursement 摘要
 type Reimbursement struct {
 	audit.Entity
-	ID     uint           `gorm:"primaryKey;default:nextval('reimbursement_seq')"`
+	database.BaseEntity
 	Number string         `gorm:"uniqueIndex"`
 	State  ReimburseState `gorm:"default:0"`
 	// 摘要
@@ -28,13 +64,13 @@ type Reimbursement struct {
 	// 备注
 	Remark  string
 	Details []ReimburseDetail `gorm:"foreignKey:ReimbursementID"`
-	Version int
+	Version optimisticlock.Version
 }
 
 // ReimburseDetail 摘要明细
 type ReimburseDetail struct {
-	ID              uint `gorm:"primaryKey;default:nextval('reimburse_detail_seq')"`
-	ReimbursementID int  `gorm:"index"`
+	database.BaseEntity
+	ReimbursementID int `gorm:"index"`
 	Name            string
 	Amount          float64
 }
@@ -61,7 +97,7 @@ type ReimburseDetailDTO struct {
 func (r *Reimbursement) ToDTO(attaches *[]model.AttachmentDTO) *ReimbursementDTO {
 	details := make([]ReimburseDetailDTO, len(r.Details))
 	for i, d := range r.Details {
-		details[i] = d.ToDTO()
+		details[i] = *d.ToDTO()
 	}
 	base := r.ToBaseDTO()
 	base.Details = details
@@ -91,10 +127,36 @@ func ToBaseDTOs(entities *[]Reimbursement) *[]ReimbursementDTO {
 	return &details
 }
 
-func (r *ReimburseDetail) ToDTO() ReimburseDetailDTO {
-	return ReimburseDetailDTO{
+func (r *ReimburseDetail) ToDTO() *ReimburseDetailDTO {
+	return &ReimburseDetailDTO{
 		ID:     r.ID,
 		Name:   r.Name,
 		Amount: r.Amount,
 	}
+}
+
+func (r *ReimbursementDTO) ToEntity() *Reimbursement {
+	entity := Reimbursement{
+		BaseEntity: database.BaseEntity{
+			ID: r.ID,
+		},
+		Number:        r.Number,
+		State:         r.State,
+		Summary:       r.Summary,
+		TotalAmount:   r.TotalAmount,
+		ReimburseDate: r.ReimburseDate,
+		Remark:        r.Remark,
+	}
+	details := make([]ReimburseDetail, len(r.Details))
+	for i, d := range r.Details {
+		details[i] = ReimburseDetail{
+			BaseEntity: database.BaseEntity{
+				ID: d.ID,
+			},
+			Name:   d.Name,
+			Amount: d.Amount,
+		}
+	}
+	entity.Details = details
+	return &entity
 }

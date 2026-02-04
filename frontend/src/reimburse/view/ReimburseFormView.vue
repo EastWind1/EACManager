@@ -48,7 +48,7 @@
               <v-row class="ga-2" justify="end">
                 <!-- 非完成状态都可以编辑 -->
                 <v-btn
-                  v-if="reimbursement.id && reimbursement.state !== ReimburseState.FINISHED.value"
+                  v-if="reimbursement.id && (reimbursement.state !== ReimburseState.FINISHED.value || userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))"
                   v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                   :disabled="isEditState"
                   color="primary"
@@ -73,7 +73,7 @@
                   v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                   v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                   :loading="loading"
-                  @click="remove([reimbursement.id!])"
+                  @click="removeAndBack(reimbursement.id!)"
                   color="error"
                   >删除
                 </v-btn>
@@ -185,6 +185,7 @@ import { VDateInput } from 'vuetify/labs/components'
 import { AuthorityRole } from '@/user/model/User.ts'
 import { useDate } from 'vuetify/framework'
 import { mdiFileDocument, mdiListBox, mdiPaperclip } from '@mdi/js'
+import { useUserStore } from '@/user/store/UserStore.ts'
 
 const store = useUIStore()
 const { loading } = storeToRefs(store)
@@ -192,6 +193,7 @@ const { warning, success } = store
 const route = useRoute()
 const router = useRouter()
 const dateUtil = useDate()
+const userStore = useUserStore()
 // 页面是否编辑状态
 const isEditState = ref(false)
 
@@ -264,6 +266,11 @@ async function processResult(result: ActionsResult<number, void>) {
 }
 
 const { process, finish, remove } = useReimburseActions(processResult)
+
+async function removeAndBack(id: number) {
+  await remove([id])
+  router.back()
+}
 
 // 初始化
 async function init() {

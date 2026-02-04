@@ -46,8 +46,10 @@ func NewBillAttachRelationRepository(db *gorm.DB) *BillAttachRelationRepository 
 
 // FindByBillIDAndBillType 根据业务单据ID和类型查找附件关系
 func (r *BillAttachRelationRepository) FindByBillIDAndBillType(ctx context.Context, billID uint, billType model.BillType) (*[]model.BillAttachRelation, error) {
-	var res []model.BillAttachRelation
-	r.GetDB(ctx).WithContext(ctx).Joins("attachment").
-		Find(&res, "bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType)
+	res := make([]model.BillAttachRelation, 0)
+	if err := r.GetDB(ctx).WithContext(ctx).Preload("Attach").
+		Find(&res, "bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType).Error; err != nil {
+		return nil, err
+	}
 	return &res, nil
 }

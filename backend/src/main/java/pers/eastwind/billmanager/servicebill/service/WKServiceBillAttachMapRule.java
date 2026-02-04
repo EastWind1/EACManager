@@ -129,8 +129,8 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
                         continue;
                     }
                     detail.setQuantity(new BigDecimal(row.get(5)));
-                    detail.setUnitPrice(new BigDecimal(row.get(7)));
-                    detail.setSubtotal(new BigDecimal(row.get(8)));
+                    detail.setUnitPrice(row.get(7).isEmpty() ? BigDecimal.ZERO : new BigDecimal(row.get(7)));
+                    detail.setSubtotal(row.get(8).isEmpty() ? BigDecimal.ZERO : new BigDecimal(row.get(8)));
                   
                     serviceBill.getDetails().add(detail);
                 } else {

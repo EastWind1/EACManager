@@ -64,26 +64,19 @@ func (s *ReimburseService) FindByID(ctx context.Context, id uint) (*model.Reimbu
 
 func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
 	if dto.ID != 0 {
-		dto.ID = 0
+		return nil, errs.NewBizError("单据 ID 不为空")
 	}
-	entity := model.Reimbursement{
-		ID:            dto.ID,
-		Number:        dto.Number,
-		State:         dto.State,
-		Summary:       dto.Summary,
-		TotalAmount:   dto.TotalAmount,
-		ReimburseDate: dto.ReimburseDate,
-		Remark:        dto.Remark,
-	}
+	entity := dto.ToEntity()
 	if entity.Number == "" {
 		entity.Number = s.GenerateNumber()
 	}
+
 	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
 		exists, _ := s.reimburseRepo.ExistsByNumber(ctx, dto.Number)
 		if exists {
 			return errs.NewBizError("单据编号已存在")
 		}
-		if err := s.reimburseRepo.Create(tx, &entity); err != nil {
+		if err := s.reimburseRepo.Create(tx, entity); err != nil {
 			return err
 		}
 
@@ -109,27 +102,7 @@ func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementD
 		return nil, errs.NewBizError("id不能为空")
 	}
 
-	entity := model.Reimbursement{
-		ID:            dto.ID,
-		Number:        dto.Number,
-		State:         dto.State,
-		Summary:       dto.Summary,
-		TotalAmount:   dto.TotalAmount,
-		ReimburseDate: dto.ReimburseDate,
-		Remark:        dto.Remark,
-	}
-
-	if len(dto.Details) > 0 {
-		details := make([]model.ReimburseDetail, len(dto.Details))
-		for i, detail := range dto.Details {
-			details[i] = model.ReimburseDetail{
-				ID:     detail.ID,
-				Name:   detail.Name,
-				Amount: detail.Amount,
-			}
-		}
-		entity.Details = details
-	}
+	entity := dto.ToEntity()
 
 	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
 		bill, err := s.reimburseRepo.FindByID(tx, dto.ID)
@@ -176,7 +149,7 @@ func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.Acti
 	}
 	return result.ExecuteActions(ids, func(id uint) (any, error) {
 		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
-			bill, err := s.reimburseRepo.FindByID(tx, id)
+			bill, err := s.reimburseRepo.FindFullById(tx, id)
 			if err != nil {
 				return err
 			}
@@ -186,10 +159,10 @@ func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.Acti
 			if bill.State != model.ReimburseStateCreated {
 				return errs.NewBizError("非创建状态不能删除")
 			}
-			if err = s.reimburseRepo.DeleteByID(tx, id); err != nil {
+			if err = s.attachService.UpdateRelativeAttach(tx, bill.ID, bill.Number, attachModel.BillTypeReimbursement, nil); err != nil {
 				return err
 			}
-			return s.attachService.UpdateRelativeAttach(tx, bill.ID, bill.Number, attachModel.BillTypeReimbursement, nil)
+			return s.reimburseRepo.Delete(tx, bill)
 		})
 		return nil, err
 	}), nil
@@ -327,11 +300,11 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 	// 生成Excel文件
 	excelPath := filepath.Join(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
 	if err = files.GenerateExcelFromList(&rows, excelPath); err != nil {
-		return "", errs.NewBizError("生成Excel失败: " + err.Error())
+		return "", err
 	}
 
 	if err = files.Exec(s.cache, &ops); err != nil {
-		return "", errs.NewBizError("文件操作失败: " + err.Error())
+		return "", err
 	}
 	zipPath, err := files.Zip(tempDir, "")
 	if err != nil {

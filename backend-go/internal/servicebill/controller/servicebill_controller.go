@@ -22,7 +22,7 @@ func NewServiceBillController(bizSrv *service.BizService) *ServiceBillController
 
 func (c *ServiceBillController) QueryByParam(ctx *fiber.Ctx) error {
 	var param model.ServiceBillQueryParam
-	if err := ctx.QueryParser(&param); err != nil {
+	if err := ctx.BodyParser(&param); err != nil {
 		return err
 	}
 
@@ -70,7 +70,7 @@ func (c *ServiceBillController) ImportByFile(ctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	files := form.File["files"]
+	files := form.File["file"]
 	if len(files) == 0 {
 		return errs.NewBizError("没有文件上传")
 	}

@@ -3,3 +3,4 @@ backend/app.jar
 frontend/cert
 frontend/html
 .env
+backend-go/backend-go

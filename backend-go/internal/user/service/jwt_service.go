@@ -52,11 +52,11 @@ func (s *JWTService) VerifyToken(tokenString string) (*TokenInfo, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return nil, errs.NewBizError("Token 无效")
+		return nil, errs.NewUnauthError("Token 无效")
 	}
 
 	if expireTime, ok := token.Claims.GetExpirationTime(); ok != nil || expireTime.Before(time.Now()) {
-		return nil, errs.NewBizError("Token 过期")
+		return nil, errs.NewUnauthError("Token 过期")
 	}
 
 	aud, err := token.Claims.GetAudience()

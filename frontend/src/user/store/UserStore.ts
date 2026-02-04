@@ -13,7 +13,7 @@ export const useUserStore = defineStore('userStore', () => {
   if (userJSON) {
     try {
       user.value = JSON.parse(userJSON)
-    } catch (e) {
+    } catch  {
       user.value = undefined
     }
   }

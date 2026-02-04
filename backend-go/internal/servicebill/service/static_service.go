@@ -1,18 +1,22 @@
 package service
 
 import (
+	"backend-go/internal/common/cache"
 	"backend-go/internal/servicebill/model"
 	"backend-go/internal/servicebill/repository"
 	"context"
+	"time"
 )
 
 // StatisticService 统计服务
 type StatisticService struct {
+	cache    cache.Cache
 	billRepo *repository.ServiceBillRepository
 }
 
-func NewStatisticService(billRepo *repository.ServiceBillRepository) *StatisticService {
+func NewStatisticService(cache cache.Cache, billRepo *repository.ServiceBillRepository) *StatisticService {
 	return &StatisticService{
+		cache:    cache,
 		billRepo: billRepo,
 	}
 }
@@ -34,5 +38,13 @@ func (s *StatisticService) CountBillsByState(ctx context.Context) (*model.CountB
 
 // SumAmountByMonth 按月份统计应收和已收服务单据金额总和
 func (s *StatisticService) SumAmountByMonth(ctx context.Context) (*[]model.MonthSumAmount, error) {
-	return s.billRepo.SumReceiveAmountByMonth(ctx)
+	if value, ok := s.cache.Get("service-bill", "SumAmountByMonth"); ok {
+		return value.(*[]model.MonthSumAmount), nil
+	}
+	res, err := s.billRepo.SumReceiveAmountByMonth(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s.cache.PutWithExpire("service-bill", "SumAmountByMonth", res, time.Hour)
+	return res, nil
 }

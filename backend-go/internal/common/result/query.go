@@ -13,9 +13,9 @@ type SortParam struct {
 
 // QueryParam 查询参数
 type QueryParam struct {
-	PageIndex *int         `json:"pageIndex"`
-	PageSize  *int         `json:"pageSize"`
-	Sorts     *[]SortParam `json:"sorts"`
+	PageIndex *int        `json:"pageIndex"`
+	PageSize  *int        `json:"pageSize"`
+	Sorts     []SortParam `json:"sorts"`
 }
 
 // GetOffset 获取偏移量
@@ -34,7 +34,7 @@ func (p *QueryParam) Valid() error {
 		}
 	}
 	if p.HasPage() {
-		for _, sort := range *p.Sorts {
+		for _, sort := range p.Sorts {
 			if sort.Field == "" {
 				return errors.New("排序字段不能为空")
 			}
@@ -73,27 +73,27 @@ func (p *QueryParam) GetPageSize() int {
 
 // HasSort 是否有排序参数
 func (p *QueryParam) HasSort() bool {
-	return p.Sorts != nil && len(*p.Sorts) > 0
+	return p.Sorts != nil && len(p.Sorts) > 0
 }
 
 // PageResult 分页结果
 type PageResult[T any] struct {
-	Content    *[]T `json:"content"`
-	Total      int  `json:"total"`
-	PageIndex  int  `json:"pageIndex"`
-	PageSize   int  `json:"pageSize"`
-	TotalPages int  `json:"totalPages"`
+	Items      []T `json:"items"`
+	TotalCount int `json:"TotalCount"`
+	PageIndex  int `json:"pageIndex"`
+	PageSize   int `json:"pageSize"`
+	TotalPages int `json:"totalPages"`
 }
 
 // NewPageResult 创建分页结果
-func NewPageResult[T any](content *[]T, total, pageIndex, pageSize int) *PageResult[T] {
-	totalPages := total / pageSize
-	if total%pageSize != 0 {
+func NewPageResult[T any](items *[]T, totalCount, pageIndex, pageSize int) *PageResult[T] {
+	totalPages := totalCount / pageSize
+	if totalCount%pageSize != 0 {
 		totalPages++
 	}
 	return &PageResult[T]{
-		Content:    content,
-		Total:      total,
+		Items:      *items,
+		TotalCount: totalCount,
 		PageIndex:  pageIndex,
 		PageSize:   pageSize,
 		TotalPages: totalPages,
@@ -103,8 +103,8 @@ func NewPageResult[T any](content *[]T, total, pageIndex, pageSize int) *PageRes
 // NewPageResultFromDB 从数据库查询结果创建分页结果
 func NewPageResultFromDB[E any, DTO any](result *PageResult[E], fn func(*[]E) *[]DTO) *PageResult[DTO] {
 	return &PageResult[DTO]{
-		Content:    fn(result.Content),
-		Total:      result.Total,
+		Items:      *fn(&result.Items),
+		TotalCount: result.TotalCount,
 		PageIndex:  result.PageIndex,
 		PageSize:   result.PageSize,
 		TotalPages: result.TotalPages,

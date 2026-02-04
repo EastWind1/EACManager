@@ -17,7 +17,7 @@ func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attachSrv.At
 	reimburseController := controller.NewReimburseController(reimburseService)
 	companyGroup := router.Group("/reimburse")
 	{
-		companyGroup.Get("/query", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.QueryByParam)
+		companyGroup.Post("/query", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.QueryByParam)
 		companyGroup.Get("/:id", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.GetByID)
 		companyGroup.Post("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Create)
 		companyGroup.Put("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Update)

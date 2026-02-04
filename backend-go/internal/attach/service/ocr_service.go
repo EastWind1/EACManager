@@ -3,11 +3,9 @@ package service
 import (
 	"backend-go/config"
 	"backend-go/internal/common/errs"
-	"bytes"
-	"io"
-	"net/http"
 
 	"github.com/bytedance/sonic"
+	"github.com/gofiber/fiber/v2"
 )
 
 type OCRRequest struct {
@@ -37,27 +35,19 @@ func (s *OCRService) ParseImage(path string) (*[]string, error) {
 	if s.cfg.URL == "" {
 		return nil, errs.NewBizError("未配置 OCR 服务器")
 	}
-	json, err := sonic.Marshal(OCRRequest{ImageFile: path})
-	if err != nil {
-		return nil, err
-	}
-	res, err := http.Post(s.cfg.URL, "application/json", bytes.NewBuffer(json))
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	resByte, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	result := make(OCRResult)
-	if err = sonic.Unmarshal(resByte, &result); err != nil {
-		return nil, err
+	client := fiber.Post(s.cfg.URL)
+	client.JSON(OCRRequest{ImageFile: path})
+	_, body, e := client.Bytes()
+	if len(e) > 0 {
+		return nil, e[0]
 	}
 
+	res := make(OCRResult)
+	if err := sonic.Unmarshal(body, &res); err != nil {
+		return nil, err
+	}
 	var texts []string
-	for _, block := range result {
+	for _, block := range res {
 		texts = append(texts, block.RecTxt)
 	}
 

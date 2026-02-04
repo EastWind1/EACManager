@@ -17,19 +17,19 @@
                 <v-col cols="6" @click="stateClick(ServiceBillState.CREATED.value)">
                   <div class="text-subtitle-2 text-center">待处理单据</div>
                   <div class="text-h4 text-center">
-                    {{ countByState.CREATED ? countByState.CREATED : 0 }}
+                    {{ countByState && countByState.CREATED ? countByState.CREATED : 0 }}
                   </div>
                 </v-col>
                 <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSING.value)">
                   <div class="text-subtitle-2 text-center">处理中单据</div>
                   <div class="text-h4 text-center">
-                    {{ countByState.PROCESSING ? countByState.PROCESSING : 0 }}
+                    {{ countByState && countByState.PROCESSING ? countByState.PROCESSING : 0 }}
                   </div>
                 </v-col>
                 <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSED.value)">
                   <div class="text-subtitle-2 text-center">处理完成单据</div>
                   <div class="text-h4 text-center">
-                    {{ countByState.PROCESSED ? countByState.PROCESSED : 0 }}
+                    {{ countByState && countByState.PROCESSED ? countByState.PROCESSED : 0 }}
                   </div>
                 </v-col>
               </v-row>
@@ -71,7 +71,11 @@ import { mdiCash, mdiMonitorDashboard } from '@mdi/js'
 
 const router = useRouter()
 // 单据数量
-const countByState = ref<{ [key in ServiceBillStateValue]?: number }>({})
+const countByState = ref<{ [key in ServiceBillStateValue]?: number }>({
+  CREATED: 0,
+  PROCESSING: 0,
+  PROCESSED: 0,
+})
 // 金额统计
 const amountGroupByMonth = ref<{ month: string; amount: number }[]>([])
 

@@ -23,7 +23,7 @@ func Setup(ctx *context.AppContext, router fiber.Router, companySrv *companySrv.
 
 	serviceBillGroup := router.Group("/serviceBill", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser))
 	{
-		serviceBillGroup.Get("/query", serviceBillController.QueryByParam)
+		serviceBillGroup.Post("/query", serviceBillController.QueryByParam)
 		serviceBillGroup.Get("/:id", serviceBillController.GetByID)
 		serviceBillGroup.Post("/", serviceBillController.Create)
 		serviceBillGroup.Post("/import", serviceBillController.ImportByFile)
@@ -34,7 +34,7 @@ func Setup(ctx *context.AppContext, router fiber.Router, companySrv *companySrv.
 		serviceBillGroup.Put("/finish", serviceBillController.Finish)
 		serviceBillGroup.Post("/export", serviceBillController.Export)
 	}
-	statisticSrv := service.NewStatisticService(serviceBillRepo)
+	statisticSrv := service.NewStatisticService(ctx.Cache, serviceBillRepo)
 	statisticController := controller.NewStatisticController(statisticSrv)
 	statisticGroup := router.Group("/statistic", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser))
 	{

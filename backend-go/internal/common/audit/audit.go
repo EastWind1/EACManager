@@ -15,7 +15,7 @@ type Entity struct {
 	LastModifiedByID uint
 }
 
-// BeforeCreate 插入前设置创建人
+// BeforeCreate 插入前设置 ID, 创建人
 func (entity *Entity) BeforeCreate(db *gorm.DB) (err error) {
 	user := auth.GetCurrentUser(db.Statement.Context)
 	if user == nil {

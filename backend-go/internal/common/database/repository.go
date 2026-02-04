@@ -2,6 +2,7 @@ package database
 
 import (
 	"backend-go/internal/common/result"
+	"backend-go/internal/common/util"
 	"context"
 	"errors"
 	"fmt"
@@ -41,7 +42,7 @@ func (r *BaseRepository[T]) Create(ctx context.Context, data *T) error {
 // FindByID 根据 ID 查询, 未查到时返回 nil
 func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, error) {
 	var t T
-	res := r.GetDB(ctx).Where("id = ?", id).First(&t)
+	res := r.GetDB(ctx).Where("id = ?", id).Take(&t)
 	if res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 		}
@@ -70,8 +71,8 @@ func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.Query
 		db = db.Offset(offset).Limit(param.GetPageSize())
 	}
 	if param.HasSort() {
-		for _, sort := range *param.Sorts {
-			db = db.Order(fmt.Sprintf("%s %s", sort.Field, sort.Direction))
+		for _, sort := range param.Sorts {
+			db = db.Order(fmt.Sprintf("%s %s", util.CamelToSnake(sort.Field), sort.Direction))
 		}
 	}
 	return db, nil
@@ -79,7 +80,8 @@ func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.Query
 
 // FindAllWithPage 根据条件分页查询
 func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *result.QueryParam, query any, args ...any) (*result.PageResult[T], error) {
-	q := r.GetDB(ctx).Where(query, args...)
+	var t T
+	q := r.GetDB(ctx).Model(&t).Where(query, args...)
 	var total int64
 	res := q.Count(&total)
 	if res.Error != nil {
@@ -103,7 +105,7 @@ func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *resu
 
 // Updates 更新, 成功后会修改传入的实体
 func (r *BaseRepository[T]) Updates(ctx context.Context, data *T) error {
-	return r.GetDB(ctx).Updates(data).Error
+	return r.GetDB(ctx).Model(data).Updates(data).Error
 }
 
 // DeleteByID 根据 ID 删除
