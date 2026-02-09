@@ -64,7 +64,7 @@ func NewAttachmentService(
 }
 
 // CreateTempFile 创建临时文件
-func (s *AttachmentService) CreateTempFile(cache cache.Cache, prefix string, suffix string) (string, errs.StackError) {
+func (s *AttachmentService) CreateTempFile(cache cache.Cache, prefix string, suffix string) (string, error) {
 	file, err := os.CreateTemp(s.tempPath, prefix+"*"+suffix)
 	if err != nil {
 		return "", errs.NewFileOpError("", s.tempPath, err)
@@ -75,7 +75,7 @@ func (s *AttachmentService) CreateTempFile(cache cache.Cache, prefix string, suf
 }
 
 // CreateTempDir 创建临时文件
-func (s *AttachmentService) CreateTempDir(cache cache.Cache, prefix string) (string, errs.StackError) {
+func (s *AttachmentService) CreateTempDir(cache cache.Cache, prefix string) (string, error) {
 	dir, err := os.MkdirTemp(s.tempPath, prefix+"*")
 	if err != nil {
 		return "", errs.NewFileOpError("", s.tempPath, err)
@@ -85,7 +85,7 @@ func (s *AttachmentService) CreateTempDir(cache cache.Cache, prefix string) (str
 }
 
 // ValidAbsolutePath 校验绝对路径
-func (s *AttachmentService) validAbsolutePath(absolutePath string, isTemp bool) errs.StackError {
+func (s *AttachmentService) validAbsolutePath(absolutePath string, isTemp bool) error {
 	absolutePath = filepath.Clean(absolutePath)
 	absolutePath, err := filepath.Abs(absolutePath)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *AttachmentService) validAbsolutePath(absolutePath string, isTemp bool) 
 }
 
 // GetAbsolutePath 获取绝对路径
-func (s *AttachmentService) GetAbsolutePath(relativePath string, isTemp bool) (string, errs.StackError) {
+func (s *AttachmentService) GetAbsolutePath(relativePath string, isTemp bool) (string, error) {
 	if relativePath == "" {
 		return "", errs.NewBizError("路径不能为空")
 	}
@@ -124,7 +124,7 @@ func (s *AttachmentService) GetAbsolutePath(relativePath string, isTemp bool) (s
 }
 
 // GetRelativePath 获取相对路径
-func (s *AttachmentService) GetRelativePath(absolutePath string, isTemp bool) (string, errs.StackError) {
+func (s *AttachmentService) GetRelativePath(absolutePath string, isTemp bool) (string, error) {
 	if absolutePath == "" {
 		return "", errs.NewBizError("路径不能为空")
 	}
@@ -145,7 +145,7 @@ func (s *AttachmentService) GetRelativePath(absolutePath string, isTemp bool) (s
 }
 
 // UploadTemps 上传临时文件
-func (s *AttachmentService) UploadTemps(fileHeaders *[]*multipart.FileHeader) (*[]model.AttachmentDTO, errs.StackError) {
+func (s *AttachmentService) UploadTemps(fileHeaders *[]*multipart.FileHeader) (*[]model.AttachmentDTO, error) {
 	var attachments []model.AttachmentDTO
 	if fileHeaders == nil || len(*fileHeaders) == 0 {
 		return nil, errs.NewBizError("文件不能为空")
@@ -170,7 +170,7 @@ func (s *AttachmentService) UploadTemps(fileHeaders *[]*multipart.FileHeader) (*
 }
 
 // GetResource 获取文件资源
-func (s *AttachmentService) GetResource(ctx context.Context, dto *model.AttachmentDTO) (filename string, path string, err errs.StackError) {
+func (s *AttachmentService) GetResource(ctx context.Context, dto *model.AttachmentDTO) (filename string, path string, err error) {
 	if dto == nil {
 		return "", "", errs.NewBizError("附件信息不能为空")
 	}
@@ -199,7 +199,7 @@ func (s *AttachmentService) GetResource(ctx context.Context, dto *model.Attachme
 }
 
 // GetByBill 获取业务单据附件
-func (s *AttachmentService) GetByBill(ctx context.Context, billID uint, billType model.BillType) (*[]model.AttachmentDTO, errs.StackError) {
+func (s *AttachmentService) GetByBill(ctx context.Context, billID uint, billType model.BillType) (*[]model.AttachmentDTO, error) {
 	attaches, err := s.attachRepo.FindByBill(ctx, billID, billType)
 	if err != nil {
 		return nil, err
@@ -212,7 +212,7 @@ func (s *AttachmentService) GetByBill(ctx context.Context, billID uint, billType
 }
 
 // UpdateRelativeAttach 根据目标附件集合更新业务单据关联附件
-func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uint, billNumber string, billType model.BillType, attachmentDTOs *[]model.AttachmentDTO) errs.StackError {
+func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uint, billNumber string, billType model.BillType, attachmentDTOs *[]model.AttachmentDTO) error {
 	oldRelations, err := s.billAttachRepo.FindByBillIDAndBillType(ctx, billID, billType)
 	if err != nil {
 		return err
@@ -223,7 +223,7 @@ func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uin
 		removedIDs[rel.AttachId] = true
 	}
 	var ops []model.FileOp
-	return s.billAttachRepo.Transaction(ctx, func(tx context.Context) errs.StackError {
+	return s.billAttachRepo.Transaction(ctx, func(tx context.Context) error {
 		if attachmentDTOs != nil {
 			for _, dto := range *attachmentDTOs {
 				// 新增

@@ -27,7 +27,7 @@ func (p *QueryParam) GetOffset() int {
 }
 
 // Valid 校验并设置部分默认值
-func (p *QueryParam) Valid() errs.StackError {
+func (p *QueryParam) Valid() error {
 	if p.HasPage() {
 		if *p.PageSize < 1 || *p.PageIndex < 0 {
 			return errs.NewBizError("分页参数不合法，索引必读非负，页大小必须大于0")
@@ -79,7 +79,7 @@ func (p *QueryParam) HasSort() bool {
 // PageResult 分页结果
 type PageResult[T any] struct {
 	Items      []T `json:"items"`
-	TotalCount int `json:"TotalCount"`
+	TotalCount int `json:"totalCount"`
 	PageIndex  int `json:"pageIndex"`
 	PageSize   int `json:"pageSize"`
 	TotalPages int `json:"totalPages"`

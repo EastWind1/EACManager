@@ -7,32 +7,32 @@ import (
 	"gorm.io/gorm"
 )
 
-// Entity 审计实体
-type Entity struct {
+// Audit 审计实体
+type Audit struct {
 	CreatedDate      time.Time `gorm:"autoCreateTime;type:timestamptz"`
 	CreatedByID      uint
 	LastModifiedDate time.Time `gorm:"autoUpdateTime;type:timestamptz"`
 	LastModifiedByID uint
 }
 
-// BeforeCreate 插入前设置 ID, 创建人
-func (entity *Entity) BeforeCreate(db *gorm.DB) (err error) {
+// 由于 Gorm 嵌套同名钩子会相互抵消，由使用方显式调用
+
+func (a *Audit) SetCreator(db *gorm.DB) (err error) {
 	user, err := auth.GetCurrentUser(db.Statement.Context)
 	if err != nil {
 		return
 	}
 	id := user.GetID()
-	entity.CreatedByID = id
+	a.CreatedByID = id
 	return
 }
 
-// BeforeUpdate 更新前设置修改人
-func (entity *Entity) BeforeUpdate(db *gorm.DB) (err error) {
+func (a *Audit) SetModifier(db *gorm.DB) (err error) {
 	user, err := auth.GetCurrentUser(db.Statement.Context)
 	if err != nil {
 		return
 	}
 	id := user.GetID()
-	entity.LastModifiedByID = id
+	a.LastModifiedByID = id
 	return
 }

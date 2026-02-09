@@ -41,7 +41,7 @@ func SetCurrentUser(c *fiber.Ctx, user User) {
 }
 
 // GetCurrentUser 获取当前用户
-func GetCurrentUser(c context.Context) (User, errs.StackError) {
+func GetCurrentUser(c context.Context) (User, error) {
 	data := c.Value(currentUserKey)
 	if data == nil {
 		return nil, errs.NewUnauthError("未登录")

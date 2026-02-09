@@ -17,6 +17,8 @@ func NewDB(cfg *config.DatabaseConfig, logCfg *config.LogConfig) *gorm.DB {
 			// 单数表名
 			SingularTable: true,
 		},
+		// 禁止外键自动生成
+		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		log.Fatalf("初始化数据库链接失败：%v", err)

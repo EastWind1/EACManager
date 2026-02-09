@@ -8,7 +8,7 @@ import (
 )
 
 // ParseDateTime 转换常见日期字符串
-func ParseDateTime(input string) (*time.Time, errs.StackError) {
+func ParseDateTime(input string) (*time.Time, error) {
 	processed := strings.TrimSpace(input)
 	if processed == "" {
 		return nil, errs.NewBizError("输入日期字符串为空")

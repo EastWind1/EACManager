@@ -31,7 +31,7 @@ func IsDir(path string) bool {
 }
 
 // CreateParentDirs 创建父目录
-func CreateParentDirs(path string) errs.StackError {
+func CreateParentDirs(path string) error {
 	dir := filepath.Dir(path)
 	if dir == "" {
 		return errs.NewFileOpError("路径为空", "")
@@ -43,7 +43,7 @@ func CreateParentDirs(path string) errs.StackError {
 }
 
 // CreateFile 创建空文件
-func CreateFile(path string) errs.StackError {
+func CreateFile(path string) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return errs.NewFileOpError("", path, err)
@@ -55,7 +55,7 @@ func CreateFile(path string) errs.StackError {
 }
 
 // CopyFile 复制文件
-func CopyFile(src, dst string) errs.StackError {
+func CopyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return errs.Wrap(err)
@@ -76,7 +76,7 @@ func CopyFile(src, dst string) errs.StackError {
 }
 
 // MoveFile 移动文件
-func MoveFile(src, dst string) errs.StackError {
+func MoveFile(src, dst string) error {
 	if err := CopyFile(src, dst); err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func MoveFile(src, dst string) errs.StackError {
 }
 
 // GetFileType 获取文件类型，若是可执行文件抛出异常
-func GetFileType(path string) (model.AttachType, errs.StackError) {
+func GetFileType(path string) (model.AttachType, error) {
 	mimeType, err := mimetype.DetectFile(path)
 	if err != nil {
 		return model.AttachTypeOther, errs.NewFileOpError("获取文件类型失败", "", err)
@@ -109,7 +109,7 @@ func GetFileType(path string) (model.AttachType, errs.StackError) {
 }
 
 // ConvertPDFToImage 转换 PDF 为图片
-func ConvertPDFToImage(pdfPath string, target string) errs.StackError {
+func ConvertPDFToImage(pdfPath string, target string) error {
 	// TODO: 使用第三方工具实现
 	return errs.NewBizError("暂不支持该功能")
 }
@@ -121,7 +121,7 @@ type UploadResult struct {
 }
 
 // Upload 上传单个文件
-func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string) (*UploadResult, errs.StackError) {
+func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string) (*UploadResult, error) {
 	if fileHeader == nil {
 		return nil, errs.NewFileOpError("文件为空", "")
 	}
@@ -166,7 +166,7 @@ func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string)
 }
 
 // Zip 压缩目录或文件至指定路径
-func Zip(src string, target string) (string, errs.StackError) {
+func Zip(src string, target string) (string, error) {
 	if !Exists(src) {
 		return "", errs.NewFileOpError("源不存在", src)
 	}

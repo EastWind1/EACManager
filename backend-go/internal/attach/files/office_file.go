@@ -7,7 +7,7 @@ import (
 )
 
 // ParseExcel 解析 Excel
-func ParseExcel(path string) (*[][]string, errs.StackError) {
+func ParseExcel(path string) (*[][]string, error) {
 	file, err := excelize.OpenFile(path)
 	if err != nil {
 		return nil, errs.NewFileOpError("", path, err)
@@ -33,7 +33,7 @@ func ParseExcel(path string) (*[][]string, errs.StackError) {
 }
 
 // GenerateExcelFromList 创建 Excel
-func GenerateExcelFromList(rows *[][]string, targetPath string) errs.StackError {
+func GenerateExcelFromList(rows *[][]string, targetPath string) error {
 	if rows == nil || len(*rows) == 0 {
 		return nil
 	}

@@ -45,6 +45,7 @@ func ErrorHandler() fiber.ErrorHandler {
 		if errors.As(err, &internalErr) {
 			return c.Status(internalErr.Code).JSON(result.Error[any](internalErr.Message))
 		}
+		log.Errorf("%+v", err)
 		debug.PrintStack()
 		return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any]("服务器内部错误"))
 	}

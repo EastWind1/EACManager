@@ -24,7 +24,7 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 }
 
 // FindByUsername 根据用户名查找用户
-func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, errs.StackError) {
+func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
 	res := r.GetDB(ctx).Where("username = ?", username).Take(&user)
 	if res.Error != nil {
@@ -37,12 +37,12 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 }
 
 // FindAllEnabled 查找所有启用的用户
-func (r *UserRepository) FindAllEnabled(ctx context.Context, pageable *result.QueryParam) (*result.PageResult[model.User], errs.StackError) {
+func (r *UserRepository) FindAllEnabled(ctx context.Context, pageable *result.QueryParam) (*result.PageResult[model.User], error) {
 	return r.FindAllWithPage(ctx, pageable, "is_enabled = ?", true)
 }
 
 // ExistsByUsername 检查用户名是否存在
-func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, errs.StackError) {
+func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	var count int64
 	err := r.GetDB(ctx).Model(&model.User{}).Where("username = ?", username).Count(&count).Error
 	return count > 0, errs.Wrap(err)

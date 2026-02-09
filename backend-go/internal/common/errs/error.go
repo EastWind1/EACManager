@@ -37,7 +37,7 @@ func NewBizError(message string, e ...error) *BizError {
 	err := &BizError{}
 	if message != "" {
 		err.msg = message
-	} else if len(e) > 0 {
+	} else if len(e) > 0 && e[0] != nil {
 		err.msg = e[0].Error()
 	} else {
 		err.msg = "业务异常"
@@ -56,9 +56,13 @@ func NewBizError(message string, e ...error) *BizError {
 	return err
 }
 
-func Wrap(err error) *BizError {
+func Wrap(err error) error {
 	if err == nil {
 		return nil
+	}
+	var bizErr *BizError
+	if errors.As(err, &bizErr) {
+		return bizErr
 	}
 	return NewBizError("", err)
 }
@@ -97,7 +101,7 @@ func NewFileOpError(message string, path string, e ...error) *FileOpError {
 	err := &FileOpError{path: path}
 	if message != "" {
 		err.msg = message
-	} else if len(e) > 0 {
+	} else if len(e) > 0 && e[0] != nil {
 		err.msg = e[0].Error()
 	} else {
 		err.msg = "文件操作异常"

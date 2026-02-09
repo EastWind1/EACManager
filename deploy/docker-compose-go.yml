@@ -27,7 +27,7 @@ services:
   #      - eac-network
   backend:
     image: alpine:3.23.3
-    container_name: eac-backend
+    container_name: eac-backend-go
     depends_on:
       postgres:
         condition: service_healthy

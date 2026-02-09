@@ -13,7 +13,7 @@ import (
 )
 
 // validSrc 检查源文件存在且为文件
-func validSrc(origin string) errs.StackError {
+func validSrc(origin string) error {
 	if origin == "" {
 		return errs.NewFileOpError("源路径不能为空", "")
 	}
@@ -29,7 +29,7 @@ func validSrc(origin string) errs.StackError {
 // validTarget 检查目标文件
 //
 // exist 表示期望的存在状态
-func validTarget(target string, exist bool) errs.StackError {
+func validTarget(target string, exist bool) error {
 	if target == "" {
 		return errs.NewFileOpError("目标路径不能为空", "")
 	}
@@ -45,7 +45,7 @@ func validTarget(target string, exist bool) errs.StackError {
 	}
 	return nil
 }
-func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, errs.StackError) {
+func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
 	if op == nil {
 		return nil, errs.NewFileOpError("操作为空", "")
 	}
@@ -122,7 +122,7 @@ func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, errs.Stac
 }
 
 // Exec 执行文件操作
-func Exec(cache cache.Cache, ops *[]model.FileOp) errs.StackError {
+func Exec(cache cache.Cache, ops *[]model.FileOp) error {
 	if ops == nil {
 		return errs.NewFileOpError("操作列表为空", "")
 	}
@@ -150,7 +150,7 @@ func rollback(executedOps *[]model.FileOp) {
 	if executedOps == nil {
 		return
 	}
-	var rollbackErrs []errs.StackError
+	var rollbackErrs []error
 	// 倒序回滚
 	for i := len(*executedOps) - 1; i >= 0; i-- {
 		op := (*executedOps)[i]

@@ -2,10 +2,11 @@ package model
 
 import (
 	"backend-go/internal/common/audit"
-	"backend-go/internal/common/database"
 	"backend-go/internal/common/errs"
+	"fmt"
 
 	"github.com/bytedance/sonic"
+	"gorm.io/gorm"
 )
 
 // AttachType 附件类型
@@ -86,11 +87,26 @@ func (s *AttachType) UnmarshalText(data []byte) error {
 
 // Attachment 附件
 type Attachment struct {
-	database.BaseEntity
+	ID           uint `gorm:"primaryKey"`
 	Name         string
 	Type         AttachType `gorm:"default:4"`
 	RelativePath string
-	audit.Entity
+	audit.Audit
+}
+
+func (a *Attachment) BeforeCreate(db *gorm.DB) (err error) {
+	var nextId uint
+	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
+	if err != nil {
+		return errs.Wrap(err)
+	}
+	a.ID = nextId
+
+	return a.Audit.SetCreator(db)
+}
+
+func (a *Attachment) BeforeUpdate(db *gorm.DB) (err error) {
+	return a.Audit.SetModifier(db)
 }
 
 // AttachmentDTO 附件DTO
@@ -115,9 +131,7 @@ func (a *Attachment) ToDTO() *AttachmentDTO {
 // TOEntity 转换为DTO
 func (a *AttachmentDTO) TOEntity() *Attachment {
 	return &Attachment{
-		BaseEntity: database.BaseEntity{
-			ID: a.ID,
-		},
+		ID:           a.ID,
 		Name:         a.Name,
 		Type:         a.Type,
 		RelativePath: a.RelativePath,
@@ -155,11 +169,21 @@ func (b BillType) String() string {
 }
 
 type BillAttachRelation struct {
-	database.BaseEntity
+	ID       uint `gorm:"primaryKey"`
 	BillId   uint
 	BillType BillType `gorm:"index"`
 	AttachId uint
 	Attach   Attachment `gorm:"foreignkey:AttachId"`
+}
+
+func (a *BillAttachRelation) BeforeCreate(db *gorm.DB) (err error) {
+	var nextId uint
+	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
+	if err != nil {
+		return errs.Wrap(err)
+	}
+	a.ID = nextId
+	return
 }
 
 // FileOpType 文件操作类型

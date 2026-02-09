@@ -25,14 +25,14 @@ func NewServiceBillRepository(db *gorm.DB) *ServiceBillRepository {
 }
 
 // ExistsByNumber 是否存在对应单号
-func (r *ServiceBillRepository) ExistsByNumber(ctx context.Context, number string) (bool, errs.StackError) {
+func (r *ServiceBillRepository) ExistsByNumber(ctx context.Context, number string) (bool, error) {
 	var count int64
 	err := r.GetDB(ctx).Model(&model.ServiceBill{}).Where("number = ?", number).Count(&count).Error
 	return count > 0, errs.Wrap(err)
 }
 
 // FindFullById 查询完整实体
-func (r *ServiceBillRepository) FindFullById(ctx context.Context, id uint) (*model.ServiceBill, errs.StackError) {
+func (r *ServiceBillRepository) FindFullById(ctx context.Context, id uint) (*model.ServiceBill, error) {
 	var res model.ServiceBill
 	if err := r.GetDB(ctx).Model(&res).Preload("ProductCompany").Preload("Details").
 		Take(&res, "id = ?", id).Error; err != nil {
@@ -45,7 +45,7 @@ func (r *ServiceBillRepository) FindFullById(ctx context.Context, id uint) (*mod
 }
 
 // FindByParam 根据查询条件查询
-func (r *ServiceBillRepository) FindByParam(ctx context.Context, param *model.ServiceBillQueryParam) (*result.PageResult[model.ServiceBill], errs.StackError) {
+func (r *ServiceBillRepository) FindByParam(ctx context.Context, param *model.ServiceBillQueryParam) (*result.PageResult[model.ServiceBill], error) {
 	q := r.GetDB(ctx).WithContext(ctx).Model(&model.ServiceBill{})
 	if param.Number != "" {
 		q = q.Where("number = ?", param.Number)
@@ -85,17 +85,17 @@ func (r *ServiceBillRepository) FindByParam(ctx context.Context, param *model.Se
 }
 
 // Updates 更新
-func (r *ServiceBillRepository) Updates(ctx context.Context, entity *model.ServiceBill) errs.StackError {
+func (r *ServiceBillRepository) Updates(ctx context.Context, entity *model.ServiceBill) error {
 	return errs.Wrap(r.GetDB(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Omit("ProductCompany").Save(entity).Error)
 }
 
 // Delete 删除整个实体
-func (r *ServiceBillRepository) Delete(ctx context.Context, entity *model.ServiceBill) errs.StackError {
+func (r *ServiceBillRepository) Delete(ctx context.Context, entity *model.ServiceBill) error {
 	return errs.Wrap(r.GetDB(ctx).Select("Details").Delete(entity).Error)
 }
 
 // CountByState 根据单据状态计数
-func (r *ServiceBillRepository) CountByState(ctx context.Context, states []model.ServiceBillState) (*model.CountByStateResult, errs.StackError) {
+func (r *ServiceBillRepository) CountByState(ctx context.Context, states []model.ServiceBillState) (*model.CountByStateResult, error) {
 	rows := make([]model.CountByStateRow, 0)
 	if err := r.GetDB(ctx).Select("state, count(1)").
 		Table("service_bill").
@@ -113,7 +113,7 @@ func (r *ServiceBillRepository) CountByState(ctx context.Context, states []model
 }
 
 // SumReceiveAmountByMonth 根据月份分组统计一年的收入
-func (r *ServiceBillRepository) SumReceiveAmountByMonth(ctx context.Context) (*[]model.MonthSumAmount, errs.StackError) {
+func (r *ServiceBillRepository) SumReceiveAmountByMonth(ctx context.Context) (*[]model.MonthSumAmount, error) {
 	var qRes []model.YearMonthSumAmount
 	now := time.Now()
 	end := time.Date(now.Year(), now.Month()+1, 1, 23, 59, 59, 59, now.Location()).AddDate(0, 0, -1)

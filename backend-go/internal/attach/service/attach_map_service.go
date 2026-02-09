@@ -11,9 +11,9 @@ import (
 // AttachMapRule 附件映射规则
 type AttachMapRule interface {
 	// MapFromOCR 从 OCR 识别结果映射到实体, 返回 nil 表示无法映射
-	MapFromOCR(texts *[]string) (any, errs.StackError)
+	MapFromOCR(texts *[]string) (any, error)
 	// MapFromExcel 从 Excel 解析结果映射到实体, 返回 nil 表示无法映射
-	MapFromExcel(rows *[][]string) (any, errs.StackError)
+	MapFromExcel(rows *[][]string) (any, error)
 }
 
 // AttachMapService 映射服务
@@ -42,7 +42,7 @@ func (s *AttachMapService) RegisterRule(rule AttachMapRule) {
 	s.rules = append(s.rules, rule)
 }
 
-func (s *AttachMapService) MapTo(attach *model.AttachmentDTO) (any, errs.StackError) {
+func (s *AttachMapService) MapTo(attach *model.AttachmentDTO) (any, error) {
 	if attach == nil {
 		return nil, errs.NewBizError("附件为空")
 	}

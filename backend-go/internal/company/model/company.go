@@ -2,12 +2,15 @@ package model
 
 import (
 	"backend-go/internal/common/audit"
-	"backend-go/internal/common/database"
+	"backend-go/internal/common/errs"
+	"fmt"
+
+	"gorm.io/gorm"
 )
 
 // Company 公司
 type Company struct {
-	database.BaseEntity
+	ID   uint `gorm:"primaryKey"`
 	Name string
 	// ContactName 联系人名称
 	ContactName string
@@ -16,7 +19,22 @@ type Company struct {
 	Email        string
 	Address      string
 	IsDisabled   bool `gorm:"defalut:false"`
-	audit.Entity
+	audit.Audit
+}
+
+func (a *Company) BeforeCreate(db *gorm.DB) (err error) {
+	var nextId uint
+	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
+	if err != nil {
+		return errs.Wrap(err)
+	}
+	a.ID = nextId
+
+	return a.Audit.SetCreator(db)
+}
+
+func (a *Company) BeforeUpdate(db *gorm.DB) (err error) {
+	return a.Audit.SetModifier(db)
 }
 
 // CompanyDTO 公司 DTO
@@ -46,9 +64,7 @@ func (c *Company) ToDTO() *CompanyDTO {
 // ToEntity 创建公司实体
 func (c *CompanyDTO) ToEntity() *Company {
 	return &Company{
-		BaseEntity: database.BaseEntity{
-			ID: c.ID,
-		},
+		ID:           c.ID,
 		Name:         c.Name,
 		ContactName:  c.ContactName,
 		ContactPhone: c.ContactPhone,

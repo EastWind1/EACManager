@@ -31,7 +31,7 @@ func NewUnauthError(message string, e ...error) *UnauthError {
 	err := &UnauthError{}
 	if message != "" {
 		err.msg = message
-	} else if len(e) > 0 {
+	} else if len(e) > 0 && e[0] != nil {
 		err.msg = e[0].Error()
 	} else {
 		err.msg = "认证异常"
@@ -76,7 +76,7 @@ func NewAuthError(message string, e ...error) *AuthError {
 	err := &AuthError{}
 	if message != "" {
 		err.msg = message
-	} else if len(e) > 0 {
+	} else if len(e) > 0 && e[0] != nil {
 		err.msg = e[0].Error()
 	} else {
 		err.msg = "鉴权异常"

@@ -3,12 +3,13 @@ package model
 import (
 	"backend-go/internal/attach/model"
 	"backend-go/internal/common/audit"
-	"backend-go/internal/common/database"
 	"backend-go/internal/common/errs"
 	companyModel "backend-go/internal/company/model"
 	"encoding/json"
+	"fmt"
 	"time"
 
+	"gorm.io/gorm"
 	"gorm.io/plugin/optimisticlock"
 )
 
@@ -94,8 +95,8 @@ func (s *ServiceBillType) UnmarshalJSON(data []byte) error {
 }
 
 type ServiceBill struct {
-	audit.Entity
-	database.BaseEntity
+	audit.Audit
+	ID                  uint   `gorm:"primaryKey"`
 	Number              string `gorm:"uniqueIndex"`
 	Type                ServiceBillType
 	State               ServiceBillState
@@ -122,9 +123,24 @@ type ServiceBill struct {
 	Version      optimisticlock.Version
 }
 
+func (s *ServiceBill) BeforeCreate(db *gorm.DB) (err error) {
+	var nextId uint
+	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
+	if err != nil {
+		return errs.Wrap(err)
+	}
+	s.ID = nextId
+
+	return s.Audit.SetCreator(db)
+}
+
+func (s *ServiceBill) BeforeUpdate(db *gorm.DB) (err error) {
+	return s.Audit.SetModifier(db)
+}
+
 type ServiceBillDetail struct {
-	database.BaseEntity
-	ServiceBillID int `gorm:"index"`
+	ID            uint `gorm:"primaryKey"`
+	ServiceBillID int  `gorm:"index"`
 	// 设备信息
 	Device   string
 	Quantity float64
@@ -132,6 +148,17 @@ type ServiceBillDetail struct {
 	UnitPrice float64
 	Subtotal  float64
 	Remark    string
+}
+
+func (s *ServiceBillDetail) BeforeCreate(db *gorm.DB) (err error) {
+	var nextId uint
+	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
+	if err != nil {
+		return errs.Wrap(err)
+	}
+	s.ID = nextId
+
+	return
 }
 
 type ServiceBillDTO struct {
@@ -209,9 +236,7 @@ func (s *ServiceBillDTO) ToEntity() *ServiceBill {
 		details[i] = *d.ToEntity()
 	}
 	entity := ServiceBill{
-		BaseEntity: database.BaseEntity{
-			ID: s.ID,
-		},
+		ID:                  s.ID,
 		Number:              s.Number,
 		Type:                s.Type,
 		State:               s.State,
@@ -256,9 +281,7 @@ func (s *ServiceBillDetail) ToDTO() *ServiceBillDetailDTO {
 
 func (s *ServiceBillDetailDTO) ToEntity() *ServiceBillDetail {
 	return &ServiceBillDetail{
-		BaseEntity: database.BaseEntity{
-			ID: s.ID,
-		},
+		ID:        s.ID,
 		Device:    s.Device,
 		Quantity:  s.Quantity,
 		UnitPrice: s.UnitPrice,

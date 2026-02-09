@@ -32,7 +32,7 @@ func (r *BaseRepository[T]) GetDB(ctx context.Context) *gorm.DB {
 }
 
 // Create 创建, 成功后会修改传入的实体
-func (r *BaseRepository[T]) Create(ctx context.Context, data *T) errs.StackError {
+func (r *BaseRepository[T]) Create(ctx context.Context, data *T) error {
 	res := r.GetDB(ctx).Create(data)
 	if res.Error != nil || res.RowsAffected == 0 {
 		return errs.Wrap(res.Error)
@@ -41,7 +41,7 @@ func (r *BaseRepository[T]) Create(ctx context.Context, data *T) errs.StackError
 }
 
 // FindByID 根据 ID 查询, 未查到时返回 nil
-func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, errs.StackError) {
+func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, error) {
 	var t T
 	res := r.GetDB(ctx).Where("id = ?", id).Take(&t)
 	if res.Error != nil {
@@ -54,7 +54,7 @@ func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, errs.Stac
 }
 
 // FindAll 根据条件查询
-func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any) (*[]T, errs.StackError) {
+func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any) (*[]T, error) {
 	var ts []T
 	res := r.GetDB(ctx).Where(query, args...).Find(&ts)
 	if res.Error != nil {
@@ -64,7 +64,7 @@ func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any)
 }
 
 // BuildQueryWithParam 拼接分页排序条件
-func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.QueryParam) (*gorm.DB, errs.StackError) {
+func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.QueryParam) (*gorm.DB, error) {
 	if err := param.Valid(); err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.Query
 }
 
 // FindAllWithPage 根据条件分页查询
-func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *result.QueryParam, query any, args ...any) (*result.PageResult[T], errs.StackError) {
+func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *result.QueryParam, query any, args ...any) (*result.PageResult[T], error) {
 	var t T
 	q := r.GetDB(ctx).Model(&t).Where(query, args...)
 	var total int64
@@ -106,18 +106,18 @@ func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *resu
 }
 
 // Updates 更新, 成功后会修改传入的实体
-func (r *BaseRepository[T]) Updates(ctx context.Context, data *T) errs.StackError {
+func (r *BaseRepository[T]) Updates(ctx context.Context, data *T) error {
 	return errs.Wrap(r.GetDB(ctx).Model(data).Updates(data).Error)
 }
 
 // DeleteByID 根据 ID 删除
-func (r *BaseRepository[T]) DeleteByID(ctx context.Context, id any) errs.StackError {
+func (r *BaseRepository[T]) DeleteByID(ctx context.Context, id any) error {
 	var t T
 	return errs.Wrap(r.GetDB(ctx).Where("id = ?", id).Delete(&t).Error)
 }
 
 // Transaction 开启事务，通过context传递事务实例
-func (r *BaseRepository[T]) Transaction(base context.Context, fn func(ctx context.Context) errs.StackError) errs.StackError {
+func (r *BaseRepository[T]) Transaction(base context.Context, fn func(ctx context.Context) error) error {
 	return errs.Wrap(r.GetDB(base).Transaction(func(tx *gorm.DB) error {
 		ctx := context.WithValue(tx.Statement.Context, txKey{}, tx)
 		return fn(ctx)

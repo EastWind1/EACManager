@@ -3,12 +3,15 @@ package model
 import (
 	"backend-go/internal/common/audit"
 	"backend-go/internal/common/auth"
-	"backend-go/internal/common/database"
+	"backend-go/internal/common/errs"
+	"fmt"
+
+	"gorm.io/gorm"
 )
 
 // User 用户实体
 type User struct {
-	database.BaseEntity
+	ID        uint   `gorm:"primaryKey"`
 	Username  string `gorm:"uniqueIndex"`
 	Password  string
 	Name      string
@@ -16,7 +19,22 @@ type User struct {
 	Email     string
 	Authority auth.AuthorityRole `gorm:"default:'ROLE_USER'"`
 	IsEnabled bool               `gorm:"default:true"`
-	audit.Entity
+	audit.Audit
+}
+
+func (u *User) BeforeCreate(db *gorm.DB) (err error) {
+	var nextId uint
+	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
+	if err != nil {
+		return errs.Wrap(err)
+	}
+	u.ID = nextId
+
+	return u.Audit.SetCreator(db)
+}
+
+func (u *User) BeforeUpdate(db *gorm.DB) (err error) {
+	return u.Audit.SetModifier(db)
 }
 
 func (u *User) GetID() uint {
@@ -56,9 +74,7 @@ func (u *User) ToDTO() *UserDTO {
 // ToEntity 创建用户实体
 func (u *UserDTO) ToEntity() *User {
 	return &User{
-		BaseEntity: database.BaseEntity{
-			ID: u.ID,
-		},
+		ID:        u.ID,
 		Username:  u.Username,
 		Password:  *u.Password,
 		Name:      u.Name,

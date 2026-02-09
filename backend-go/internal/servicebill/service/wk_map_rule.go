@@ -1,7 +1,6 @@
 package service
 
 import (
-	"backend-go/internal/common/errs"
 	"backend-go/internal/common/util"
 	"backend-go/internal/company/service"
 	"backend-go/internal/servicebill/model"
@@ -96,7 +95,7 @@ func (r *WKMapRule) CanExcel(rows *[][]string) bool {
 	return false
 }
 
-func (r *WKMapRule) MapFromOCR(texts *[]string) (any, errs.StackError) {
+func (r *WKMapRule) MapFromOCR(texts *[]string) (any, error) {
 	if !r.CanOCR(texts) {
 		return nil, nil
 	}
@@ -114,7 +113,7 @@ func matchNumberPattern(s string) bool {
 	return matched
 }
 
-func (r *WKMapRule) MapFromExcel(rows *[][]string) (any, errs.StackError) {
+func (r *WKMapRule) MapFromExcel(rows *[][]string) (any, error) {
 	if !r.CanExcel(rows) {
 		return nil, nil
 	}

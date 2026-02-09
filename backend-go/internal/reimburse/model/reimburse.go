@@ -3,11 +3,12 @@ package model
 import (
 	"backend-go/internal/attach/model"
 	"backend-go/internal/common/audit"
-	"backend-go/internal/common/database"
 	"backend-go/internal/common/errs"
 	"encoding/json"
+	"fmt"
 	"time"
 
+	"gorm.io/gorm"
 	"gorm.io/plugin/optimisticlock"
 )
 
@@ -52,8 +53,8 @@ func (s *ReimburseState) UnmarshalJSON(data []byte) error {
 
 // Reimbursement 摘要
 type Reimbursement struct {
-	audit.Entity
-	database.BaseEntity
+	audit.Audit
+	ID     uint           `gorm:"primaryKey"`
 	Number string         `gorm:"uniqueIndex"`
 	State  ReimburseState `gorm:"default:0"`
 	// 摘要
@@ -67,12 +68,38 @@ type Reimbursement struct {
 	Version optimisticlock.Version
 }
 
+func (r *Reimbursement) BeforeCreate(db *gorm.DB) (err error) {
+	var nextId uint
+	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
+	if err != nil {
+		return errs.Wrap(err)
+	}
+	r.ID = nextId
+
+	return r.Audit.SetCreator(db)
+}
+
+func (r *Reimbursement) BeforeUpdate(db *gorm.DB) (err error) {
+	return r.Audit.SetModifier(db)
+}
+
 // ReimburseDetail 摘要明细
 type ReimburseDetail struct {
-	database.BaseEntity
-	ReimbursementID int `gorm:"index"`
+	ID              uint `gorm:"primaryKey"`
+	ReimbursementID int  `gorm:"index"`
 	Name            string
 	Amount          float64
+}
+
+func (r *ReimburseDetail) BeforeCreate(db *gorm.DB) (err error) {
+	var nextId uint
+	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
+	if err != nil {
+		return errs.Wrap(err)
+	}
+	r.ID = nextId
+
+	return
 }
 
 type ReimbursementDTO struct {
@@ -137,9 +164,7 @@ func (r *ReimburseDetail) ToDTO() *ReimburseDetailDTO {
 
 func (r *ReimbursementDTO) ToEntity() *Reimbursement {
 	entity := Reimbursement{
-		BaseEntity: database.BaseEntity{
-			ID: r.ID,
-		},
+		ID:            r.ID,
 		Number:        r.Number,
 		State:         r.State,
 		Summary:       r.Summary,
@@ -150,9 +175,7 @@ func (r *ReimbursementDTO) ToEntity() *Reimbursement {
 	details := make([]ReimburseDetail, len(r.Details))
 	for i, d := range r.Details {
 		details[i] = ReimburseDetail{
-			BaseEntity: database.BaseEntity{
-				ID: d.ID,
-			},
+			ID:     d.ID,
 			Name:   d.Name,
 			Amount: d.Amount,
 		}
