@@ -5,7 +5,13 @@
       :headers="headers"
       :items="data.items"
       :items-length="data.totalCount"
-      :items-per-page="data.pageSize ? data.pageSize : 20"
+      :items-per-page="data.pageSize ? data.pageSize : 25"
+      :items-per-page-options="[
+        { value: 10, title: '10' },
+        { value: 25, title: '25' },
+        { value: 50, title: '50' },
+        { value: 100, title: '100' },
+      ]"
       class="mt-2 flex-grow-1"
       mobile-breakpoint="sm"
       show-select
