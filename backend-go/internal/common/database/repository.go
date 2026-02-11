@@ -54,13 +54,13 @@ func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, error) {
 }
 
 // FindAll 根据条件查询
-func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any) (*[]T, error) {
+func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any) ([]T, error) {
 	var ts []T
 	res := r.GetDB(ctx).Where(query, args...).Find(&ts)
 	if res.Error != nil {
 		return nil, errs.Wrap(res.Error)
 	}
-	return &ts, nil
+	return ts, nil
 }
 
 // BuildQueryWithParam 拼接分页排序条件
@@ -90,7 +90,7 @@ func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *resu
 		return nil, errs.Wrap(res.Error)
 	}
 	if total == 0 {
-		return result.NewPageResult(&[]T{}, 0, 0, 0), nil
+		return result.NewPageResult([]T{}, 0, 0, 0), nil
 	}
 
 	q, err := r.BuildQueryWithParam(q, pageParam)
@@ -102,7 +102,7 @@ func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *resu
 	if res.Error != nil {
 		return nil, errs.Wrap(res.Error)
 	}
-	return result.NewPageResult(&ts, int(total), pageParam.GetPageIndex(), pageParam.GetPageSize()), nil
+	return result.NewPageResult(ts, int(total), pageParam.GetPageIndex(), pageParam.GetPageSize()), nil
 }
 
 // Updates 更新, 成功后会修改传入的实体

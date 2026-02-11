@@ -145,12 +145,12 @@ func (s *AttachmentService) GetRelativePath(absolutePath string, isTemp bool) (s
 }
 
 // UploadTemps 上传临时文件
-func (s *AttachmentService) UploadTemps(fileHeaders *[]*multipart.FileHeader) (*[]model.AttachmentDTO, error) {
+func (s *AttachmentService) UploadTemps(fileHeaders []*multipart.FileHeader) ([]model.AttachmentDTO, error) {
 	var attachments []model.AttachmentDTO
-	if fileHeaders == nil || len(*fileHeaders) == 0 {
+	if fileHeaders == nil || len(fileHeaders) == 0 {
 		return nil, errs.NewBizError("文件不能为空")
 	}
-	for _, fileHeader := range *fileHeaders {
+	for _, fileHeader := range fileHeaders {
 		file, err := files.Upload(s.cache, fileHeader, s.tempPath)
 		if err != nil {
 			return nil, err
@@ -166,7 +166,7 @@ func (s *AttachmentService) UploadTemps(fileHeaders *[]*multipart.FileHeader) (*
 			RelativePath: relativePath,
 		})
 	}
-	return &attachments, nil
+	return attachments, nil
 }
 
 // GetResource 获取文件资源
@@ -199,33 +199,33 @@ func (s *AttachmentService) GetResource(ctx context.Context, dto *model.Attachme
 }
 
 // GetByBill 获取业务单据附件
-func (s *AttachmentService) GetByBill(ctx context.Context, billID uint, billType model.BillType) (*[]model.AttachmentDTO, error) {
+func (s *AttachmentService) GetByBill(ctx context.Context, billID uint, billType model.BillType) ([]model.AttachmentDTO, error) {
 	attaches, err := s.attachRepo.FindByBill(ctx, billID, billType)
 	if err != nil {
 		return nil, err
 	}
-	res := make([]model.AttachmentDTO, len(*attaches))
-	for i, d := range *attaches {
+	res := make([]model.AttachmentDTO, len(attaches))
+	for i, d := range attaches {
 		res[i] = *d.ToDTO()
 	}
-	return &res, nil
+	return res, nil
 }
 
 // UpdateRelativeAttach 根据目标附件集合更新业务单据关联附件
-func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uint, billNumber string, billType model.BillType, attachmentDTOs *[]model.AttachmentDTO) error {
+func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uint, billNumber string, billType model.BillType, attachmentDTOs []model.AttachmentDTO) error {
 	oldRelations, err := s.billAttachRepo.FindByBillIDAndBillType(ctx, billID, billType)
 	if err != nil {
 		return err
 	}
 	// 待删除
 	removedIDs := make(map[uint]bool)
-	for _, rel := range *oldRelations {
+	for _, rel := range oldRelations {
 		removedIDs[rel.AttachId] = true
 	}
 	var ops []model.FileOp
 	return s.billAttachRepo.Transaction(ctx, func(tx context.Context) error {
 		if attachmentDTOs != nil {
-			for _, dto := range *attachmentDTOs {
+			for _, dto := range attachmentDTOs {
 				// 新增
 				if dto.ID == 0 {
 					addAttach := dto.TOEntity()
@@ -262,7 +262,7 @@ func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uin
 			}
 		}
 
-		for _, rel := range *oldRelations {
+		for _, rel := range oldRelations {
 			if removedIDs[rel.AttachId] {
 				if err = s.attachRepo.DeleteByID(tx, rel.AttachId); err != nil {
 					return err
@@ -280,7 +280,7 @@ func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uin
 				})
 			}
 		}
-		if err = files.Exec(s.cache, &ops); err != nil {
+		if err = files.Exec(s.cache, ops); err != nil {
 			return err
 		}
 		return nil

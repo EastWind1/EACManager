@@ -53,13 +53,8 @@ func NewInMemoryCache(cfg *config.CacheConfig) Cache {
 	go func() {
 		ticker := time.NewTicker(time.Hour * 24)
 		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				cache.clearExpired()
-			default:
-				time.Sleep(time.Minute)
-			}
+		for range ticker.C {
+			cache.clearExpired()
 		}
 	}()
 

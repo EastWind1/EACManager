@@ -69,11 +69,11 @@ func (r *WKMapRule) SetCompany(target *model.ServiceBillDTO, name string) {
 	target.ProductCompany = &company
 }
 
-func (r *WKMapRule) CanOCR(texts *[]string) bool {
+func (r *WKMapRule) CanOCR(texts []string) bool {
 	if texts == nil {
 		return false
 	}
-	for _, text := range *texts {
+	for _, text := range texts {
 		if strings.Contains(text, "威垦") {
 			return true
 		}
@@ -81,11 +81,11 @@ func (r *WKMapRule) CanOCR(texts *[]string) bool {
 	return false
 }
 
-func (r *WKMapRule) CanExcel(rows *[][]string) bool {
+func (r *WKMapRule) CanExcel(rows [][]string) bool {
 	if rows == nil {
 		return false
 	}
-	for _, row := range *rows {
+	for _, row := range rows {
 		for _, text := range row {
 			if strings.Contains(text, "威垦") {
 				return true
@@ -95,13 +95,13 @@ func (r *WKMapRule) CanExcel(rows *[][]string) bool {
 	return false
 }
 
-func (r *WKMapRule) MapFromOCR(texts *[]string) (any, error) {
+func (r *WKMapRule) MapFromOCR(texts []string) (any, error) {
 	if !r.CanOCR(texts) {
 		return nil, nil
 	}
 	dto := model.ServiceBillDTO{}
 	r.SetCompany(&dto, "威垦")
-	for _, text := range *texts {
+	for _, text := range texts {
 		r.SetByText(&dto, text)
 	}
 	return &dto, nil
@@ -113,7 +113,7 @@ func matchNumberPattern(s string) bool {
 	return matched
 }
 
-func (r *WKMapRule) MapFromExcel(rows *[][]string) (any, error) {
+func (r *WKMapRule) MapFromExcel(rows [][]string) (any, error) {
 	if !r.CanExcel(rows) {
 		return nil, nil
 	}
@@ -128,7 +128,7 @@ func (r *WKMapRule) MapFromExcel(rows *[][]string) (any, error) {
 	// 明细开始索引行
 	detailStartIndex := -1
 
-	for i, row := range *rows {
+	for i, row := range rows {
 		// 明细开始
 		if len(row) > 0 && strings.Contains(row[0], "序号") {
 			detailStartIndex = i + 1

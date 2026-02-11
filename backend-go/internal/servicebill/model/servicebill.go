@@ -192,7 +192,7 @@ type ServiceBillDetailDTO struct {
 	Remark    string  `json:"remark"`
 }
 
-func (s *ServiceBill) ToDTO(attaches *[]model.AttachmentDTO) *ServiceBillDTO {
+func (s *ServiceBill) ToDTO(attaches []model.AttachmentDTO) *ServiceBillDTO {
 	details := make([]ServiceBillDetailDTO, len(s.Details))
 	for i, d := range s.Details {
 		details[i] = *d.ToDTO()
@@ -200,7 +200,7 @@ func (s *ServiceBill) ToDTO(attaches *[]model.AttachmentDTO) *ServiceBillDTO {
 
 	dto := s.ToBaseDTO()
 	dto.Details = details
-	dto.Attachments = *attaches
+	dto.Attachments = attaches
 	return dto
 }
 
@@ -260,12 +260,12 @@ func (s *ServiceBillDTO) ToEntity() *ServiceBill {
 	return &entity
 }
 
-func ToBaseDTOs(entities *[]ServiceBill) *[]ServiceBillDTO {
-	res := make([]ServiceBillDTO, len(*entities))
-	for i, e := range *entities {
+func ToBaseDTOs(entities []ServiceBill) []ServiceBillDTO {
+	res := make([]ServiceBillDTO, len(entities))
+	for i, e := range entities {
 		res[i] = *e.ToBaseDTO()
 	}
-	return &res
+	return res
 }
 
 func (s *ServiceBillDetail) ToDTO() *ServiceBillDetailDTO {

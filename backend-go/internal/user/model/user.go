@@ -86,13 +86,13 @@ func (u *UserDTO) ToEntity() *User {
 }
 
 // ToDTOs 创建用户 DTO 列表
-func ToDTOs(users *[]User) *[]UserDTO {
+func ToDTOs(users []User) []UserDTO {
 	if users == nil {
 		return nil
 	}
-	userDTOs := make([]UserDTO, len(*users))
-	for i, user := range *users {
+	userDTOs := make([]UserDTO, len(users))
+	for i, user := range users {
 		userDTOs[i] = *user.ToDTO()
 	}
-	return &userDTOs
+	return userDTOs
 }

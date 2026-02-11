@@ -31,7 +31,7 @@ func NewOCRService(cfg *config.OCRConfig) *OCRService {
 }
 
 // ParseImage 解析图片
-func (s *OCRService) ParseImage(path string) (*[]string, error) {
+func (s *OCRService) ParseImage(path string) ([]string, error) {
 	if s.cfg.URL == "" {
 		return nil, errs.NewBizError("未配置 OCR 服务器")
 	}
@@ -51,5 +51,5 @@ func (s *OCRService) ParseImage(path string) (*[]string, error) {
 		texts = append(texts, block.RecTxt)
 	}
 
-	return &texts, nil
+	return texts, nil
 }

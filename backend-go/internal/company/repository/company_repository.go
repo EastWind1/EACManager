@@ -25,6 +25,6 @@ func (r *CompanyRepository) FindAllEnabled(ctx context.Context, pageable *result
 }
 
 // FindEnabledByNameContains 根据名称查找启用的公司
-func (r *CompanyRepository) FindEnabledByNameContains(ctx context.Context, name string) (*[]model.Company, error) {
+func (r *CompanyRepository) FindEnabledByNameContains(ctx context.Context, name string) ([]model.Company, error) {
 	return r.FindAll(ctx, "is_disabled = ? and name LIKE ?", false, "%"+name+"%")
 }

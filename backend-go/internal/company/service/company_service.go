@@ -32,8 +32,8 @@ func (s *CompanyService) FindByName(ctx context.Context, name string) ([]model.C
 	if err != nil {
 		return nil, err
 	}
-	res := make([]model.CompanyDTO, len(*companies))
-	for i, c := range *companies {
+	res := make([]model.CompanyDTO, len(companies))
+	for i, c := range companies {
 		res[i] = *c.ToDTO()
 	}
 	return res, nil

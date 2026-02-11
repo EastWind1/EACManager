@@ -75,7 +75,7 @@ func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam)
 		if user != nil {
 			users = append(users, *user.ToDTO())
 		}
-		result.NewPageResult(&users, len(users), 0, 1)
+		result.NewPageResult(users, len(users), 0, 1)
 	}
 	return res, nil
 }

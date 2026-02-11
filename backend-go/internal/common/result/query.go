@@ -86,13 +86,13 @@ type PageResult[T any] struct {
 }
 
 // NewPageResult 创建分页结果
-func NewPageResult[T any](items *[]T, totalCount, pageIndex, pageSize int) *PageResult[T] {
+func NewPageResult[T any](items []T, totalCount, pageIndex, pageSize int) *PageResult[T] {
 	totalPages := totalCount / pageSize
 	if totalCount%pageSize != 0 {
 		totalPages++
 	}
 	return &PageResult[T]{
-		Items:      *items,
+		Items:      items,
 		TotalCount: totalCount,
 		PageIndex:  pageIndex,
 		PageSize:   pageSize,
@@ -101,9 +101,9 @@ func NewPageResult[T any](items *[]T, totalCount, pageIndex, pageSize int) *Page
 }
 
 // NewPageResultFromDB 从数据库查询结果创建分页结果
-func NewPageResultFromDB[E any, DTO any](result *PageResult[E], fn func(*[]E) *[]DTO) *PageResult[DTO] {
+func NewPageResultFromDB[E any, DTO any](result *PageResult[E], fn func([]E) []DTO) *PageResult[DTO] {
 	return &PageResult[DTO]{
-		Items:      *fn(&result.Items),
+		Items:      fn(result.Items),
 		TotalCount: result.TotalCount,
 		PageIndex:  result.PageIndex,
 		PageSize:   result.PageSize,

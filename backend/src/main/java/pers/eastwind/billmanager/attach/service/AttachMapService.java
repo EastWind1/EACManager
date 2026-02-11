@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.attach.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.AttachmentDTO;
 import pers.eastwind.billmanager.attach.model.AttachmentType;
@@ -13,6 +14,7 @@ import java.util.List;
 /**
  * 附件映射服务
  */
+@Slf4j
 @Service
 public class AttachMapService {
     private final OCRService ocrService;
@@ -28,9 +30,10 @@ public class AttachMapService {
     /**
      * 附件映射为对象
      * @param attachment 附件
+     * @param clazz 目标对象类
      * @return 对象
      */
-    public <T> T map(AttachmentDTO attachment) {
+    public <T> T map(AttachmentDTO attachment, Class<T> clazz) {
         Path path = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()), attachment.isTemp());
         switch (attachment.getType()) {
             case IMAGE, PDF -> {
@@ -41,9 +44,13 @@ public class AttachMapService {
                 }
                 List<String> texts = ocrService.parseImage(path);
                 for (AttachMapRule<?> mapRule : mapRules) {
-                    T cur = (T) mapRule.mapFromOCR(texts);
+                    var cur = mapRule.mapFromOCR(texts);
                     if (cur != null) {
-                        return cur;
+                        try {
+                            return clazz.cast(cur);
+                        } catch (ClassCastException _) {
+                            log.error("{} OCR 类型转换失败", mapRule);
+                        }
                     }
                 }
                 throw new BizException("未配置映射规则");
@@ -51,9 +58,13 @@ public class AttachMapService {
             case EXCEL -> {
                 List<List<String>> rows = OfficeFileUtil.parseExcel(path);
                 for (AttachMapRule<?> mapRule : mapRules) {
-                    T cur = (T) mapRule.mapFromExcel(rows);
-                    if  (cur != null) {
-                        return cur;
+                    var cur = mapRule.mapFromExcel(rows);
+                    if (cur != null) {
+                        try {
+                            return clazz.cast(cur);
+                        } catch (ClassCastException _) {
+                            log.error("{} Excel 类型转换失败", mapRule);
+                        }
                     }
                 }
                 throw new BizException("未配置映射规则");

@@ -28,7 +28,7 @@ func (c *AttachmentController) UploadTemp(ctx *fiber.Ctx) error {
 	if len(files) == 0 {
 		return errs.NewBizError("没有文件上传")
 	}
-	temps, err := c.attachService.UploadTemps(&files)
+	temps, err := c.attachService.UploadTemps(files)
 	if err != nil {
 		return err
 	}

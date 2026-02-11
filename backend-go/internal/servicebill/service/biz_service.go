@@ -115,7 +115,7 @@ func (s *BizService) Create(ctx context.Context, dto *model.ServiceBillDTO) (*mo
 		if err = s.billRepo.Create(tx, entity); err != nil {
 			return err
 		}
-		return s.attachSrv.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeServiceBill, &dto.Attachments)
+		return s.attachSrv.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeServiceBill, dto.Attachments)
 	})
 
 	if err != nil {
@@ -151,7 +151,7 @@ func (s *BizService) Update(ctx context.Context, dto *model.ServiceBillDTO) (*mo
 		if err = s.billRepo.Updates(tx, entity); err != nil {
 			return err
 		}
-		return s.attachSrv.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeServiceBill, &dto.Attachments)
+		return s.attachSrv.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeServiceBill, dto.Attachments)
 	})
 
 	if err != nil {
@@ -270,17 +270,17 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 }
 
 func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*model.ServiceBillDTO, error) {
-	attaches, err := s.attachSrv.UploadTemps(&[]*multipart.FileHeader{file})
+	attaches, err := s.attachSrv.UploadTemps([]*multipart.FileHeader{file})
 	if err != nil {
 		return nil, err
 	}
-	attach := (*attaches)[0]
+	attach := (attaches)[0]
 	data, err := s.attachMapSrv.MapTo(&attach)
 	if err != nil {
 		return nil, err
 	}
 	if bill, ok := data.(*model.ServiceBillDTO); ok {
-		bill.Attachments = *attaches
+		bill.Attachments = attaches
 		return bill, nil
 	}
 
@@ -294,7 +294,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 	}
 
 	bills, err := s.billRepo.FindAll(ctx, ids)
-	if bills == nil || len(*bills) == 0 {
+	if bills == nil || len(bills) == 0 {
 		return "", errs.NewBizError("单据不存在")
 	}
 
@@ -312,7 +312,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 	var totalAmount float64
 
 	// 遍历生成 excel行，并拷贝附件
-	for _, bill := range *bills {
+	for _, bill := range bills {
 		// 构建详情字符串
 		detailStr := ""
 		for _, detail := range bill.Details {
@@ -343,7 +343,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 
 		// 创建当前单据附件文件夹
 		curDir := filepath.Join(tempDir, bill.Number)
-		for _, attachment := range *attachments {
+		for _, attachment := range attachments {
 			// 获取原始附件路径
 			originPath, err := s.attachSrv.GetAbsolutePath(attachment.RelativePath, false)
 			if err != nil {
@@ -373,11 +373,11 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 
 	// 生成Excel文件
 	excelPath := filepath.Join(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
-	if err = files.GenerateExcelFromList(&rows, excelPath); err != nil {
+	if err = files.GenerateExcelFromList(rows, excelPath); err != nil {
 		return "", errs.NewBizError("生成Excel失败: " + err.Error())
 	}
 
-	if err = files.Exec(s.cache, &ops); err != nil {
+	if err = files.Exec(s.cache, ops); err != nil {
 		return "", errs.NewBizError("文件操作失败: " + err.Error())
 	}
 	zipPath, err := files.Zip(tempDir, "")

@@ -121,14 +121,14 @@ type ReimburseDetailDTO struct {
 }
 
 // ToDTO 转换为详细 DTO
-func (r *Reimbursement) ToDTO(attaches *[]model.AttachmentDTO) *ReimbursementDTO {
+func (r *Reimbursement) ToDTO(attaches []model.AttachmentDTO) *ReimbursementDTO {
 	details := make([]ReimburseDetailDTO, len(r.Details))
 	for i, d := range r.Details {
 		details[i] = *d.ToDTO()
 	}
 	base := r.ToBaseDTO()
 	base.Details = details
-	base.Attachments = *attaches
+	base.Attachments = attaches
 	return base
 }
 
@@ -146,12 +146,12 @@ func (r *Reimbursement) ToBaseDTO() *ReimbursementDTO {
 }
 
 // ToBaseDTOs 转换为基础 DTO，用于列表展示
-func ToBaseDTOs(entities *[]Reimbursement) *[]ReimbursementDTO {
-	details := make([]ReimbursementDTO, len(*entities))
-	for i, d := range *entities {
+func ToBaseDTOs(entities []Reimbursement) []ReimbursementDTO {
+	details := make([]ReimbursementDTO, len(entities))
+	for i, d := range entities {
 		details[i] = *(d.ToBaseDTO())
 	}
-	return &details
+	return details
 }
 
 func (r *ReimburseDetail) ToDTO() *ReimburseDetailDTO {

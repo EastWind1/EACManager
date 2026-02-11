@@ -7,7 +7,7 @@ import (
 )
 
 // ParseExcel 解析 Excel
-func ParseExcel(path string) (*[][]string, error) {
+func ParseExcel(path string) ([][]string, error) {
 	file, err := excelize.OpenFile(path)
 	if err != nil {
 		return nil, errs.NewFileOpError("", path, err)
@@ -29,12 +29,12 @@ func ParseExcel(path string) (*[][]string, error) {
 		}
 		res = append(res, curRow)
 	}
-	return &res, nil
+	return res, nil
 }
 
 // GenerateExcelFromList 创建 Excel
-func GenerateExcelFromList(rows *[][]string, targetPath string) error {
-	if rows == nil || len(*rows) == 0 {
+func GenerateExcelFromList(rows [][]string, targetPath string) error {
+	if rows == nil || len(rows) == 0 {
 		return nil
 	}
 	if !Exists(targetPath) {
@@ -73,7 +73,7 @@ func GenerateExcelFromList(rows *[][]string, targetPath string) error {
 	if err != nil {
 		return errs.NewFileOpError("", targetPath, err)
 	}
-	for i, row := range *rows {
+	for i, row := range rows {
 		for j, cell := range row {
 			cellIndex, err := excelize.CoordinatesToCellName(j+1, i+1)
 			if err != nil {

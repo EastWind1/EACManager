@@ -75,13 +75,13 @@ func (c *CompanyDTO) ToEntity() *Company {
 }
 
 // ToDTOs 创建公司 DTO 列表
-func ToDTOs(companies *[]Company) *[]CompanyDTO {
+func ToDTOs(companies []Company) []CompanyDTO {
 	if companies == nil {
 		return nil
 	}
-	companyDTOs := make([]CompanyDTO, len(*companies))
-	for i, company := range *companies {
+	companyDTOs := make([]CompanyDTO, len(companies))
+	for i, company := range companies {
 		companyDTOs[i] = *company.ToDTO()
 	}
-	return &companyDTOs
+	return companyDTOs
 }

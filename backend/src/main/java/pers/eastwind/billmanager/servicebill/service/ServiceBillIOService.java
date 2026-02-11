@@ -45,7 +45,7 @@ public class ServiceBillIOService {
      */
     public ServiceBillDTO generateByFile(Resource resource) {
         AttachmentDTO attachment = attachmentService.uploadTemps(List.of(resource)).getFirst();
-        ServiceBillDTO bill = attachMapService.map(attachment);
+        ServiceBillDTO bill = attachMapService.map(attachment, ServiceBillDTO.class);
         bill.setAttachments(List.of(attachment));
         return bill;
     }

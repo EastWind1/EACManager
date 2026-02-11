@@ -80,7 +80,7 @@ func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementD
 			return err
 		}
 
-		if err := s.attachService.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeReimbursement, &dto.Attachments); err != nil {
+		if err := s.attachService.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeReimbursement, dto.Attachments); err != nil {
 			return err
 		}
 		return nil
@@ -112,7 +112,7 @@ func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementD
 		if bill == nil {
 			return errs.NewBizError("单据不存在")
 		}
-		err = s.attachService.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeReimbursement, &dto.Attachments)
+		err = s.attachService.UpdateRelativeAttach(tx, entity.ID, entity.Number, attachModel.BillTypeReimbursement, dto.Attachments)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 	}
 
 	reimbursements, err := s.reimburseRepo.FindAll(ctx, ids)
-	if reimbursements == nil || len(*reimbursements) == 0 {
+	if reimbursements == nil || len(reimbursements) == 0 {
 		return "", errs.NewBizError("单据不存在")
 	}
 
@@ -238,7 +238,7 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 	var totalAmount float64
 
 	// 遍历生成 excel行，并拷贝附件
-	for _, reimbursement := range *reimbursements {
+	for _, reimbursement := range reimbursements {
 		dateStr := ""
 		if reimbursement.ReimburseDate != nil {
 			dateStr = reimbursement.ReimburseDate.Format("2006-01-02")
@@ -269,7 +269,7 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 
 		// 创建当前单据附件文件夹
 		curDir := filepath.Join(tempDir, reimbursement.Number)
-		for _, attachment := range *attachments {
+		for _, attachment := range attachments {
 			// 获取原始附件路径
 			originPath, err := s.attachService.GetAbsolutePath(attachment.RelativePath, false)
 			if err != nil {
@@ -299,11 +299,11 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 
 	// 生成Excel文件
 	excelPath := filepath.Join(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
-	if err = files.GenerateExcelFromList(&rows, excelPath); err != nil {
+	if err = files.GenerateExcelFromList(rows, excelPath); err != nil {
 		return "", err
 	}
 
-	if err = files.Exec(s.cache, &ops); err != nil {
+	if err = files.Exec(s.cache, ops); err != nil {
 		return "", err
 	}
 	zipPath, err := files.Zip(tempDir, "")

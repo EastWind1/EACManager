@@ -18,9 +18,9 @@ type ActionsResult[P any, R any] struct {
 }
 
 // NewActionsResult 创建批量操作结果
-func NewActionsResult[P any, R any](results *[]Row[P, R]) *ActionsResult[P, R] {
+func NewActionsResult[P any, R any](results []Row[P, R]) *ActionsResult[P, R] {
 	res := ActionsResult[P, R]{
-		Results: *results,
+		Results: results,
 	}
 	for _, row := range res.Results {
 		if row.Success {
@@ -65,5 +65,5 @@ func ExecuteActions[P any, R any](params []P, fn func(P) (R, error)) *ActionsRes
 		}
 		results = append(results, result)
 	}
-	return NewActionsResult(&results)
+	return NewActionsResult(results)
 }

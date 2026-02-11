@@ -81,7 +81,7 @@ func (r *ServiceBillRepository) FindByParam(ctx context.Context, param *model.Se
 	if err := q.Find(&serviceBills).Error; err != nil {
 		return nil, errs.Wrap(err)
 	}
-	return result.NewPageResult(&serviceBills, int(count), *param.PageIndex, *param.PageSize), nil
+	return result.NewPageResult(serviceBills, int(count), *param.PageIndex, *param.PageSize), nil
 }
 
 // Updates 更新
@@ -113,7 +113,7 @@ func (r *ServiceBillRepository) CountByState(ctx context.Context, states []model
 }
 
 // SumReceiveAmountByMonth 根据月份分组统计一年的收入
-func (r *ServiceBillRepository) SumReceiveAmountByMonth(ctx context.Context) (*[]model.MonthSumAmount, error) {
+func (r *ServiceBillRepository) SumReceiveAmountByMonth(ctx context.Context) ([]model.MonthSumAmount, error) {
 	var qRes []model.YearMonthSumAmount
 	now := time.Now()
 	end := time.Date(now.Year(), now.Month()+1, 1, 23, 59, 59, 59, now.Location()).AddDate(0, 0, -1)
@@ -144,5 +144,5 @@ func (r *ServiceBillRepository) SumReceiveAmountByMonth(ctx context.Context) (*[
 		})
 	}
 
-	return &res, nil
+	return res, nil
 }

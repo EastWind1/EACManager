@@ -122,14 +122,14 @@ func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
 }
 
 // Exec 执行文件操作
-func Exec(cache cache.Cache, ops *[]model.FileOp) error {
+func Exec(cache cache.Cache, ops []model.FileOp) error {
 	if ops == nil {
 		return errs.NewFileOpError("操作列表为空", "")
 	}
 	var executedOps []model.FileOp
 	// 执行操作
 	var err error
-	for _, op := range *ops {
+	for _, op := range ops {
 		var execOp *model.FileOp
 		execOp, err = execSingleOp(cache, &op)
 		if err != nil {
@@ -139,21 +139,21 @@ func Exec(cache cache.Cache, ops *[]model.FileOp) error {
 	}
 	if err != nil {
 		// 回滚已执行的操作
-		rollback(&executedOps)
+		rollback(executedOps)
 		return errs.NewFileOpError("", "", err)
 	}
 	return nil
 }
 
 // rollback 回滚文件操作
-func rollback(executedOps *[]model.FileOp) {
+func rollback(executedOps []model.FileOp) {
 	if executedOps == nil {
 		return
 	}
 	var rollbackErrs []error
 	// 倒序回滚
-	for i := len(*executedOps) - 1; i >= 0; i-- {
-		op := (*executedOps)[i]
+	for i := len(executedOps) - 1; i >= 0; i-- {
+		op := (executedOps)[i]
 
 		switch op.Type {
 		case model.FileOpCreate, model.FileOpCopy:

@@ -11,9 +11,9 @@ import (
 // AttachMapRule 附件映射规则
 type AttachMapRule interface {
 	// MapFromOCR 从 OCR 识别结果映射到实体, 返回 nil 表示无法映射
-	MapFromOCR(texts *[]string) (any, error)
+	MapFromOCR(texts []string) (any, error)
 	// MapFromExcel 从 Excel 解析结果映射到实体, 返回 nil 表示无法映射
-	MapFromExcel(rows *[][]string) (any, error)
+	MapFromExcel(rows [][]string) (any, error)
 }
 
 // AttachMapService 映射服务

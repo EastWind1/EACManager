@@ -37,9 +37,9 @@ func (s *StatisticService) CountBillsByState(ctx context.Context) (*model.CountB
 }
 
 // SumAmountByMonth 按月份统计应收和已收服务单据金额总和
-func (s *StatisticService) SumAmountByMonth(ctx context.Context) (*[]model.MonthSumAmount, error) {
+func (s *StatisticService) SumAmountByMonth(ctx context.Context) ([]model.MonthSumAmount, error) {
 	if value, ok := s.cache.Get("service-bill", "SumAmountByMonth"); ok {
-		return value.(*[]model.MonthSumAmount), nil
+		return value.([]model.MonthSumAmount), nil
 	}
 	res, err := s.billRepo.SumReceiveAmountByMonth(ctx)
 	if err != nil {

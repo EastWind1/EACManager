@@ -81,5 +81,5 @@ func (r *ReimburseRepository) FindByParam(ctx context.Context, param *model.Reim
 	if err := q.Find(&reimbursements).Error; err != nil {
 		return nil, errs.Wrap(err)
 	}
-	return result.NewPageResult(&reimbursements, int(count), *param.PageIndex, *param.PageSize), nil
+	return result.NewPageResult(reimbursements, int(count), *param.PageIndex, *param.PageSize), nil
 }
