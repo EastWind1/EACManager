@@ -3,8 +3,6 @@ package model
 import (
 	"backend-go/internal/common/audit"
 	"backend-go/internal/common/auth"
-	"backend-go/internal/common/errs"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -18,18 +16,15 @@ type User struct {
 	Phone     string
 	Email     string
 	Authority auth.AuthorityRole `gorm:"default:'ROLE_USER'"`
-	IsEnabled bool               `gorm:"default:true"`
+	Disabled  bool               `gorm:"default:false"`
 	audit.Audit
 }
 
-func (u *User) BeforeCreate(db *gorm.DB) (err error) {
-	var nextId uint
-	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
-	if err != nil {
-		return errs.Wrap(err)
-	}
-	u.ID = nextId
+func (u *User) TableName() string {
+	return "sys_user"
+}
 
+func (u *User) BeforeCreate(db *gorm.DB) (err error) {
 	return u.Audit.SetCreator(db)
 }
 
@@ -54,7 +49,7 @@ type UserDTO struct {
 	Phone     string             `json:"phone"`
 	Email     string             `json:"email"`
 	Authority auth.AuthorityRole `json:"authority"`
-	IsEnabled bool               `json:"isEnabled"`
+	Disabled  bool               `json:"disabled"`
 }
 
 // ToDTO 创建用户 DTO
@@ -67,7 +62,7 @@ func (u *User) ToDTO() *UserDTO {
 		Phone:     u.Phone,
 		Email:     u.Email,
 		Authority: u.Authority,
-		IsEnabled: u.IsEnabled,
+		Disabled:  u.Disabled,
 	}
 }
 
@@ -81,7 +76,7 @@ func (u *UserDTO) ToEntity() *User {
 		Phone:     u.Phone,
 		Email:     u.Email,
 		Authority: u.Authority,
-		IsEnabled: u.IsEnabled,
+		Disabled:  u.Disabled,
 	}
 }
 

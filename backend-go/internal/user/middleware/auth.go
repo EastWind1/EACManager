@@ -37,7 +37,7 @@ func AuthMiddleware(jwtSrv *service.JWTService, userSrv *service.UserService) fi
 		if origin == "" {
 			origin = c.Get("Referer")
 		}
-		if err != nil || !user.IsEnabled || !strings.HasPrefix(origin, token.Subject) {
+		if err != nil || user.Disabled || !strings.HasPrefix(origin, token.Subject) {
 			return errs.NewUnauthError("Token 不合法")
 		}
 

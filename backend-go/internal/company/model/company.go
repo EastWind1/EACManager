@@ -2,8 +2,6 @@ package model
 
 import (
 	"backend-go/internal/common/audit"
-	"backend-go/internal/common/errs"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -18,23 +16,16 @@ type Company struct {
 	ContactPhone string
 	Email        string
 	Address      string
-	IsDisabled   bool `gorm:"defalut:false"`
+	Disabled     bool `gorm:"defalut:false"`
 	audit.Audit
 }
 
-func (a *Company) BeforeCreate(db *gorm.DB) (err error) {
-	var nextId uint
-	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
-	if err != nil {
-		return errs.Wrap(err)
-	}
-	a.ID = nextId
-
-	return a.Audit.SetCreator(db)
+func (c *Company) BeforeCreate(db *gorm.DB) (err error) {
+	return c.Audit.SetCreator(db)
 }
 
-func (a *Company) BeforeUpdate(db *gorm.DB) (err error) {
-	return a.Audit.SetModifier(db)
+func (c *Company) BeforeUpdate(db *gorm.DB) (err error) {
+	return c.Audit.SetModifier(db)
 }
 
 // CompanyDTO 公司 DTO
@@ -45,7 +36,7 @@ type CompanyDTO struct {
 	ContactPhone string `json:"contactPhone"`
 	Email        string `json:"email"`
 	Address      string `json:"address"`
-	IsDisabled   bool   `json:"isDisabled"`
+	Disabled     bool   `json:"disabled"`
 }
 
 // ToDTO 公司 DTO
@@ -57,7 +48,7 @@ func (c *Company) ToDTO() *CompanyDTO {
 		ContactPhone: c.ContactPhone,
 		Email:        c.Email,
 		Address:      c.Address,
-		IsDisabled:   c.IsDisabled,
+		Disabled:     c.Disabled,
 	}
 }
 
@@ -70,7 +61,7 @@ func (c *CompanyDTO) ToEntity() *Company {
 		ContactPhone: c.ContactPhone,
 		Email:        c.Email,
 		Address:      c.Address,
-		IsDisabled:   c.IsDisabled,
+		Disabled:     c.Disabled,
 	}
 }
 

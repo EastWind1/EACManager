@@ -83,7 +83,10 @@ func (r *BaseRepository[T]) BuildQueryWithParam(db *gorm.DB, param *result.Query
 // FindAllWithPage 根据条件分页查询
 func (r *BaseRepository[T]) FindAllWithPage(ctx context.Context, pageParam *result.QueryParam, query any, args ...any) (*result.PageResult[T], error) {
 	var t T
-	q := r.GetDB(ctx).Model(&t).Where(query, args...)
+	q := r.GetDB(ctx).Model(&t)
+	if query != nil {
+		q = q.Where(query, args...)
+	}
 	var total int64
 	res := q.Count(&total)
 	if res.Error != nil {

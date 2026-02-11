@@ -5,7 +5,6 @@ import (
 	"backend-go/internal/common/audit"
 	"backend-go/internal/common/errs"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -69,13 +68,6 @@ type Reimbursement struct {
 }
 
 func (r *Reimbursement) BeforeCreate(db *gorm.DB) (err error) {
-	var nextId uint
-	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
-	if err != nil {
-		return errs.Wrap(err)
-	}
-	r.ID = nextId
-
 	return r.Audit.SetCreator(db)
 }
 
@@ -89,17 +81,6 @@ type ReimburseDetail struct {
 	ReimbursementID int  `gorm:"index"`
 	Name            string
 	Amount          float64
-}
-
-func (r *ReimburseDetail) BeforeCreate(db *gorm.DB) (err error) {
-	var nextId uint
-	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
-	if err != nil {
-		return errs.Wrap(err)
-	}
-	r.ID = nextId
-
-	return
 }
 
 type ReimbursementDTO struct {

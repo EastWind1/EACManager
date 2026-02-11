@@ -13,9 +13,9 @@ type Config struct {
 	Server     *ServerConfig
 	Log        *LogConfig
 	Db         *DatabaseConfig
-	JWT        *JWTConfig
+	JWT        *JWTConfig `mapstructure:"jwt"`
 	Cache      *CacheConfig
-	OCR        *OCRConfig
+	OCR        *OCRConfig `mapstructure:"ocr"`
 	Attachment *AttachmentConfig
 }
 
@@ -37,7 +37,7 @@ type DatabaseConfig struct {
 	Name     string
 	Username string
 	Password string
-	SSLMode  string
+	SSLMode  string `mapstructure:"sslmode"`
 }
 
 // CacheConfig 缓存配置
@@ -48,7 +48,7 @@ type CacheConfig struct {
 
 type OCRConfig struct {
 	// URL 远程 OCR 服务地址
-	URL string
+	URL string `mapstructure:"url"`
 }
 
 // GetDBStr 获取数据库连接字符串

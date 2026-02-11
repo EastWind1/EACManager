@@ -1,6 +1,5 @@
-backend/app
-backend/app.jar
+backend-java
+backend-go
 frontend/cert
 frontend/html
 .env
-backend-go/backend-go

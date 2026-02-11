@@ -11,39 +11,39 @@ fi
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-BACKEND_DIR="$ROOT_DIR/backend"
+BACKEND_JAVA_DIR="$ROOT_DIR/backend-java"
 BACKEND_GO_DIR="$ROOT_DIR/backend-go"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 DEPLOY_DIR="$ROOT_DIR/deploy"
-BACKEND_TARGET_DIR="$BACKEND_DIR/target"
+BACKEND_JAVA_TARGET_DIR="$BACKEND_JAVA_DIR/target"
 BACKEND_GO_TARGET_DIR="$BACKEND_GO_DIR/target"
 FRONTEND_DIST_DIR="$FRONTEND_DIR/dist"
-BACKEND_DEPLOY_DIR="$DEPLOY_DIR/backend"
+BACKEND_JAVA_DEPLOY_DIR="$DEPLOY_DIR/backend-java"
 BACKEND_GO_DEPLOY_DIR="$DEPLOY_DIR/backend-go"
 FRONTEND_DEPLOY_DIR="$DEPLOY_DIR/frontend/html"
 
 echo "当前脚本目录: $SCRIPT_DIR"
 echo "项目根目录: $ROOT_DIR"
-echo "后端目录: $BACKEND_DIR"
-echo "Go 后端目录: $BACKEND_DIR"
+echo "后端目录: $BACKEND_JAVA_DIR"
+echo "Go 后端目录: $BACKEND_JAVA_DIR"
 echo "前端目录: $FRONTEND_DIR"
 echo "交付物目录: $DEPLOY_DIR"
 
 # 检查目录是否存在
-if [ ! -d "$BACKEND_DIR" ]; then
-    echo "错误：后端目录不存在 $BACKEND_DIR"
+if [ ! -d "$BACKEND_JAVA_DIR" ]; then
+    echo "错误：后端目录不存在 $BACKEND_JAVA_DIR"
     exit 1
 fi
 
-# 打包后端
+# 打包 Java 后端
 echo ""
-echo "打包后端..."
-cd "$BACKEND_DIR"
+echo "打包 Java 后端..."
+cd "$BACKEND_JAVA_DIR"
 mvn clean package -DskipTests
 
 
 # 检查后端打包是否成功
-if [ ! -d "$BACKEND_TARGET_DIR" ]; then
+if [ ! -d "$BACKEND_JAVA_TARGET_DIR" ]; then
     echo "错误：后端打包失败"
     exit 1
 fi
@@ -97,29 +97,35 @@ fi
 echo ""
 echo "拷贝交付物..."
 
-# 创建后端部署目录
-mkdir -p "$BACKEND_DEPLOY_DIR/app"
 
-# 清理旧的后端文件
-if [ -d "$BACKEND_DEPLOY_DIR/app" ]; then
-    echo "删除旧的后端app目录..."
-    rm -rf "$BACKEND_DEPLOY_DIR/app"
+# 清理旧的文件
+echo "删除旧的目录..."
+if [ -d "$BACKEND_JAVA_DEPLOY_DIR" ]; then
+    rm -rf "$BACKEND_JAVA_DEPLOY_DIR"
+fi
+
+if [ -d "$BACKEND_GO_DEPLOY_DIR" ]; then
+    rm -rf "$BACKEND_GO_DEPLOY_DIR"
+fi
+
+if [ -d "$FRONTEND_DEPLOY_DIR" ]; then
+    rm -rf "$FRONTEND_DEPLOY_DIR"
 fi
 
 
+
 # 拷贝并展开后端jar文件
-if [ -d "$BACKEND_TARGET_DIR" ]; then
+if [ -d "$BACKEND_JAVA_TARGET_DIR" ]; then
     echo "拷贝后端文件..."
-    
+    mkdir "$BACKEND_JAVA_DEPLOY_DIR"
     # 查找jar文件
-    JAR_FILE=$(find "$BACKEND_TARGET_DIR" -name "*.jar" -type f | head -n 1)
+    JAR_FILE=$(find "$BACKEND_JAVA_TARGET_DIR" -name "*.jar" -type f | head -n 1)
     
     if [ -n "$JAR_FILE" ]; then
         echo "找到jar文件: $JAR_FILE"
-        cp "$JAR_FILE" "$BACKEND_DEPLOY_DIR/app.jar"
         # 使用java命令展开
         if command -v java &> /dev/null; then
-            java -Djarmode=tools -jar "$BACKEND_DEPLOY_DIR/app.jar" extract --destination "$BACKEND_DEPLOY_DIR/app"
+            java -Djarmode=tools -jar "$JAR_FILE" extract --destination "$BACKEND_JAVA_DEPLOY_DIR"
             echo "后端文件展开成功"
         fi
     else

@@ -11,14 +11,16 @@
 
 - Vue3 + Typescript + Vuetify
 
-### 后端
+### 后端 Java
 
-- Spring Boot + Spring Security + Spring Data JPA + PostgreSQL
+- Spring Web MVC + Spring Security + Spring Data JPA + PostgreSQL
 - 默认打包将依赖分离，而非 fat-jar，便于上传
+- 使用 Java RapidOCR 实现 OCR
 
 ### 后端 GO
 
 - Fiber + Gorm + PostgreSQL
+- 由于 Go 没有原生中文 OCR 库，采用 RapidOCR API 镜像远程调用
 
 ## 环境配置
 
@@ -67,6 +69,7 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
         - 使用 postgres 镜像
         - 使用 volume 挂载数据目录
     - ocr-server
+        - 默认不启用
         - 基于 rapidocr 官方 Dockerfile
 
 
@@ -74,11 +77,4 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 
 1. `cd deploy`
 2. 执行目录下的 `build-and-copy.bat` 脚本打包
-3. 执行 `docker-compose up -d` 或 `docker-compose -f docker-compose-go.yml up -d`
-4. 进入数据库容器，执行 `init_user.sql` 初始化管理员 `root`，默认密码 `admin`
-
-```shell
-docker cp init_user.sql eac-postgres:/tmp
-docker exec -it eac-postgres /bin/bash
-psql -U ${DB_NAME} -d ${DB_USERNAME} -f /tmp/init_user.sql
-```
+3. 执行 `docker-compose -f docker-compose-java up -d` 或 `docker-compose -f docker-compose-go.yml up -d`

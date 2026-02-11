@@ -24,7 +24,7 @@ func (s *CompanyService) FindEnabled(ctx context.Context, param *result.QueryPar
 		return nil, err
 	}
 
-	return result.NewPageResultFromDB(companies, model.ToDTOs), nil
+	return result.NewDTOPageResult(companies, model.ToDTOs), nil
 }
 
 func (s *CompanyService) FindByName(ctx context.Context, name string) ([]model.CompanyDTO, error) {
@@ -81,7 +81,7 @@ func (s *CompanyService) Disable(ctx context.Context, id int) error {
 		if company == nil {
 			return errs.NewBizError("公司不存在")
 		}
-		company.IsDisabled = true
+		company.Disabled = true
 		return s.companyRepo.Updates(tx, company)
 	})
 	return err

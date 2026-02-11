@@ -15,7 +15,8 @@ cache:
 jwt:
   secret: -the-security-key-must-be-256-bits-means-32-ASCII-characters
   expire: 604800
-
 attachment:
   path: attachment
   maxFileSize: 52428800
+ocr:
+  url:

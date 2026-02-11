@@ -13,29 +13,21 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database:/docker-entrypoint-initdb.d
-#  ocr-server:
-#    build:
-#      context: ./ocr-server
-#    image: ocr-server:latest
-#    ports:
-#      - "9003:9003"
   backend:
-    image: alpine:3.23.3
-    container_name: eac-backend-go
+    image: eclipse-temurin:25-jre-ubi10-minimal
+    container_name: eac-backend-java
     depends_on:
       - postgres
-#      - ocr-server
     ports:
       - "8080:8080"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
-#      - OCR_URL=http://ocr-server:9003
     env_file:
       - .env
     volumes:
-      - ./backend-go:/app/backend
-    command: sh -c "cd /app/backend/ && ./backend-go"
+      - ./backend-java:/app/backend
+    command: sh -c "cd /app/backend && java -jar app.jar"
   frontend:
     image: caddy:2.11-alpine
     container_name: eac-frontend

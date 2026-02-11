@@ -88,7 +88,7 @@ func (s *BizService) FindByParam(ctx context.Context, param *model.ServiceBillQu
 		return nil, err
 	}
 
-	return result.NewPageResultFromDB(res, model.ToBaseDTOs), nil
+	return result.NewDTOPageResult(res, model.ToBaseDTOs), nil
 }
 
 func (s *BizService) Create(ctx context.Context, dto *model.ServiceBillDTO) (*model.ServiceBillDTO, error) {

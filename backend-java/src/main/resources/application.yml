@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: Elevator AC After-Sale Manager
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+# 自定义配置
+config:
+  # 附件
+  attachment:
+    # 目录
+    path: ${user.dir}${file.separator}attachment
+  # JWT 密钥
+  jwt:
+    # 过期时间，单位秒
+    expire: 604800
+    # 密钥，必须要256位以上,即至少32个ASCII字符
+    key: ${JWT_KEY:-the-security-key-must-be-256-bits-means-32-ASCII-characters}

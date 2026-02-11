@@ -6,7 +6,6 @@ import (
 	"backend-go/internal/common/errs"
 	companyModel "backend-go/internal/company/model"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -124,13 +123,6 @@ type ServiceBill struct {
 }
 
 func (s *ServiceBill) BeforeCreate(db *gorm.DB) (err error) {
-	var nextId uint
-	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
-	if err != nil {
-		return errs.Wrap(err)
-	}
-	s.ID = nextId
-
 	return s.Audit.SetCreator(db)
 }
 
@@ -148,17 +140,6 @@ type ServiceBillDetail struct {
 	UnitPrice float64
 	Subtotal  float64
 	Remark    string
-}
-
-func (s *ServiceBillDetail) BeforeCreate(db *gorm.DB) (err error) {
-	var nextId uint
-	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
-	if err != nil {
-		return errs.Wrap(err)
-	}
-	s.ID = nextId
-
-	return
 }
 
 type ServiceBillDTO struct {

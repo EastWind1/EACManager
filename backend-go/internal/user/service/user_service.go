@@ -33,7 +33,7 @@ func (s *UserService) Login(ctx context.Context, username, password, subject str
 	if err != nil {
 		return nil, err
 	}
-	if !user.IsEnabled {
+	if user.Disabled {
 		return nil, errs.NewBizError("用户已禁用")
 	}
 
@@ -65,7 +65,7 @@ func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam)
 		if err != nil {
 			return nil, err
 		}
-		res = result.NewPageResultFromDB(users, model.ToDTOs)
+		res = result.NewDTOPageResult(users, model.ToDTOs)
 	} else { // 非管理员只能查自己
 		user, err := s.userRepo.FindByID(ctx, curUser.GetID())
 		var users []model.UserDTO
@@ -75,7 +75,7 @@ func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam)
 		if user != nil {
 			users = append(users, *user.ToDTO())
 		}
-		result.NewPageResult(users, len(users), 0, 1)
+		res = result.NewPageResult(users, len(users), 0, 1)
 	}
 	return res, nil
 }
@@ -191,10 +191,10 @@ func (s *UserService) Disable(ctx context.Context, username string) error {
 	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
 		user, err := s.userRepo.FindByUsername(tx, username)
 		if err != nil {
-			return nil
+			return err
 		}
 
-		user.IsEnabled = false
+		user.Disabled = true
 		return s.userRepo.Updates(tx, user)
 	})
 	return err

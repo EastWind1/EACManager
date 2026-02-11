@@ -140,7 +140,7 @@ func (s *ReimburseService) FindByParam(ctx context.Context, param *model.Reimbur
 		return nil, err
 	}
 
-	return result.NewPageResultFromDB(res, model.ToBaseDTOs), nil
+	return result.NewDTOPageResult(res, model.ToBaseDTOs), nil
 }
 
 func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {

@@ -29,7 +29,7 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 	res := r.GetDB(ctx).Where("username = ?", username).Take(&user)
 	if res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, errs.NewBizError("用户不存在")
 		}
 		return nil, errs.Wrap(res.Error)
 	}
@@ -38,7 +38,7 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 
 // FindAllEnabled 查找所有启用的用户
 func (r *UserRepository) FindAllEnabled(ctx context.Context, pageable *result.QueryParam) (*result.PageResult[model.User], error) {
-	return r.FindAllWithPage(ctx, pageable, "is_enabled = ?", true)
+	return r.FindAllWithPage(ctx, pageable, "disabled = ?", false)
 }
 
 // ExistsByUsername 检查用户名是否存在

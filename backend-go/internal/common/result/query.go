@@ -100,8 +100,8 @@ func NewPageResult[T any](items []T, totalCount, pageIndex, pageSize int) *PageR
 	}
 }
 
-// NewPageResultFromDB 从数据库查询结果创建分页结果
-func NewPageResultFromDB[E any, DTO any](result *PageResult[E], fn func([]E) []DTO) *PageResult[DTO] {
+// NewDTOPageResult 从数据库分页结果创建 DTO 分页结果
+func NewDTOPageResult[E any, DTO any](result *PageResult[E], fn func([]E) []DTO) *PageResult[DTO] {
 	return &PageResult[DTO]{
 		Items:      fn(result.Items),
 		TotalCount: result.TotalCount,

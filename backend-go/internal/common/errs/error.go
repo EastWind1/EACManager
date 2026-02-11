@@ -77,7 +77,7 @@ type FileOpError struct {
 
 func (e *FileOpError) Error() string {
 	if e.err != nil {
-		return fmt.Sprintf("%v : %v - %v", e.msg, e.err.Error(), e.path)
+		return fmt.Sprintf("%v : %v", e.msg, e.path)
 	}
 	return e.msg + ": " + e.path
 }
@@ -86,7 +86,7 @@ func (e *FileOpError) ErrorWithoutPath() string {
 	if e.err != nil {
 		return fmt.Sprintf("%v : %v", e.msg, e.err.Error())
 	}
-	return e.msg + ": " + e.path
+	return e.msg
 }
 
 func (e *FileOpError) Unwrap() error {

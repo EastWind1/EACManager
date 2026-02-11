@@ -3,7 +3,6 @@ package model
 import (
 	"backend-go/internal/common/audit"
 	"backend-go/internal/common/errs"
-	"fmt"
 
 	"github.com/bytedance/sonic"
 	"gorm.io/gorm"
@@ -38,7 +37,6 @@ func (s *AttachType) MarshalJSON() ([]byte, error) {
 		str = "EXCEL"
 	case AttachTypeOther:
 		str = "OTHER"
-
 	}
 	return sonic.Marshal(str)
 }
@@ -95,13 +93,6 @@ type Attachment struct {
 }
 
 func (a *Attachment) BeforeCreate(db *gorm.DB) (err error) {
-	var nextId uint
-	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
-	if err != nil {
-		return errs.Wrap(err)
-	}
-	a.ID = nextId
-
 	return a.Audit.SetCreator(db)
 }
 
@@ -174,16 +165,6 @@ type BillAttachRelation struct {
 	BillType BillType `gorm:"index"`
 	AttachId uint
 	Attach   Attachment `gorm:"foreignkey:AttachId"`
-}
-
-func (a *BillAttachRelation) BeforeCreate(db *gorm.DB) (err error) {
-	var nextId uint
-	err = db.Raw(fmt.Sprintf("select nextval('%s_seq')", db.Statement.Table)).Scan(&nextId).Error
-	if err != nil {
-		return errs.Wrap(err)
-	}
-	a.ID = nextId
-	return
 }
 
 // FileOpType 文件操作类型
