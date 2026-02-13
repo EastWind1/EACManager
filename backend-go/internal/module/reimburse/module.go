@@ -27,3 +27,9 @@ func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attachSrv.At
 		companyGroup.Post("/export", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.Export)
 	}
 }
+
+func SetupForTest(ctx *context.AppContext, attachSrv *attachSrv.AttachmentService) *service.ReimburseService {
+	reimburseRepo := repository.NewReimburseRepository(ctx.Db)
+	reimburseService := service.NewReimburseService(reimburseRepo, attachSrv, ctx.Cache) // 测试时不使用附件服务和缓存
+	return reimburseService
+}

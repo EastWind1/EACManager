@@ -1,7 +1,7 @@
 package controller
 
 import (
-	model2 "backend-go/internal/module/reimburse/model"
+	"backend-go/internal/module/reimburse/model"
 	"backend-go/internal/module/reimburse/service"
 	"backend-go/internal/pkg/errs"
 	"backend-go/internal/pkg/result"
@@ -21,7 +21,7 @@ func NewReimburseController(reimburseService *service.ReimburseService) *Reimbur
 }
 
 func (c *ReimburseController) QueryByParam(ctx *fiber.Ctx) error {
-	var param model2.ReimburseQueryParam
+	var param model.ReimburseQueryParam
 	if err := ctx.BodyParser(&param); err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (c *ReimburseController) GetByID(ctx *fiber.Ctx) error {
 }
 
 func (c *ReimburseController) Create(ctx *fiber.Ctx) error {
-	var dto model2.ReimbursementDTO
+	var dto model.ReimbursementDTO
 	if err := ctx.BodyParser(&dto); err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (c *ReimburseController) Create(ctx *fiber.Ctx) error {
 }
 
 func (c *ReimburseController) Update(ctx *fiber.Ctx) error {
-	var dto model2.ReimbursementDTO
+	var dto model.ReimbursementDTO
 	if err := ctx.BodyParser(&dto); err != nil {
 		return err
 	}

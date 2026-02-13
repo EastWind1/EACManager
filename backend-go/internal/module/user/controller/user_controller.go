@@ -2,7 +2,7 @@ package controller
 
 import (
 	"backend-go/config"
-	model2 "backend-go/internal/module/user/model"
+	"backend-go/internal/module/user/model"
 	"backend-go/internal/module/user/service"
 	"backend-go/internal/pkg/errs"
 	"backend-go/internal/pkg/result"
@@ -26,7 +26,7 @@ func NewUserController(cfg *config.JWTConfig, userService *service.UserService) 
 
 // Login 用户登录
 func (c *UserController) Login(ctx *fiber.Ctx) error {
-	var param model2.LoginParam
+	var param model.LoginParam
 	err := ctx.BodyParser(&param)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (c *UserController) GetAll(ctx *fiber.Ctx) error {
 
 // Create 创建用户
 func (c *UserController) Create(ctx *fiber.Ctx) error {
-	var dto model2.UserDTO
+	var dto model.UserDTO
 	if err := ctx.BodyParser(&dto); err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (c *UserController) Create(ctx *fiber.Ctx) error {
 
 // Update 更新用户
 func (c *UserController) Update(ctx *fiber.Ctx) error {
-	var dto model2.UserDTO
+	var dto model.UserDTO
 	if err := ctx.BodyParser(&dto); err != nil {
 		return err
 	}

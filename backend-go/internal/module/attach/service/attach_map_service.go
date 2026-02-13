@@ -1,7 +1,7 @@
 package service
 
 import (
-	files2 "backend-go/internal/module/attach/files"
+	"backend-go/internal/module/attach/files"
 	"backend-go/internal/module/attach/model"
 	"backend-go/internal/pkg/cache"
 	"backend-go/internal/pkg/errs"
@@ -57,7 +57,7 @@ func (s *AttachMapService) MapTo(attach *model.AttachmentDTO) (any, error) {
 			if err != nil {
 				return nil, err
 			}
-			if err = files2.ConvertPDFToImage(path, target); err != nil {
+			if err = files.ConvertPDFToImage(path, target); err != nil {
 				return nil, err
 			}
 			path = target
@@ -75,7 +75,7 @@ func (s *AttachMapService) MapTo(attach *model.AttachmentDTO) (any, error) {
 		}
 		return nil, errs.NewBizError("未配置映射规则")
 	case model.AttachTypeExcel:
-		rows, err := files2.ParseExcel(path)
+		rows, err := files.ParseExcel(path)
 		if err != nil {
 			return nil, err
 		}

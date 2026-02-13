@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	service2 "backend-go/internal/module/user/service"
+	"backend-go/internal/module/user/service"
 	"backend-go/internal/pkg/auth"
 	"backend-go/internal/pkg/errs"
 	"strings"
@@ -13,7 +13,7 @@ import (
 const LoginPath = "/token"
 
 // AuthMiddleware 认证中间件
-func AuthMiddleware(jwtSrv *service2.JWTService, userSrv *service2.UserService) fiber.Handler {
+func AuthMiddleware(jwtSrv *service.JWTService, userSrv *service.UserService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// 放行登录接口
 		if c.Path() == "/api/user"+LoginPath && c.Method() == "POST" {

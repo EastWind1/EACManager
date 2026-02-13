@@ -13,6 +13,6 @@ import java.util.List;
  */
 @Repository
 public interface CompanyRepository extends BaseRepository<Company> {
-    Page<Company> findByIsDisabled(boolean isDisabled, Pageable pageable);
+    Page<Company> findByDisabled(boolean disabled, Pageable pageable);
     List<Company> findByNameContains(String name);
 }

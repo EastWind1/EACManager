@@ -72,7 +72,7 @@ func (s *CompanyService) Update(ctx context.Context, dto *model.CompanyDTO) (*mo
 	return company.ToDTO(), nil
 }
 
-func (s *CompanyService) Disable(ctx context.Context, id int) error {
+func (s *CompanyService) Disable(ctx context.Context, id uint) error {
 	err := s.companyRepo.Transaction(ctx, func(tx context.Context) error {
 		company, err := s.companyRepo.FindByID(tx, id)
 		if err != nil {

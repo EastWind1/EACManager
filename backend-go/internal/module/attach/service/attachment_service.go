@@ -2,7 +2,7 @@ package service
 
 import (
 	"backend-go/config"
-	files2 "backend-go/internal/module/attach/files"
+	"backend-go/internal/module/attach/files"
 	"backend-go/internal/module/attach/hook"
 	"backend-go/internal/module/attach/model"
 	"backend-go/internal/module/attach/repository"
@@ -151,7 +151,7 @@ func (s *AttachmentService) UploadTemps(fileHeaders []*multipart.FileHeader) ([]
 		return nil, errs.NewBizError("文件不能为空")
 	}
 	for _, fileHeader := range fileHeaders {
-		file, err := files2.Upload(s.cache, fileHeader, s.tempPath)
+		file, err := files.Upload(s.cache, fileHeader, s.tempPath)
 		if err != nil {
 			return nil, err
 		}
@@ -280,7 +280,7 @@ func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uin
 				})
 			}
 		}
-		if err = files2.Exec(s.cache, ops); err != nil {
+		if err = files.Exec(s.cache, ops); err != nil {
 			return err
 		}
 		return nil

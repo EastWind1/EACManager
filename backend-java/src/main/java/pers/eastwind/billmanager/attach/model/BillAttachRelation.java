@@ -12,6 +12,7 @@ import lombok.Data;
 public class BillAttachRelation {
     @Id
     @Column(insertable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     /**
      * 单据类型

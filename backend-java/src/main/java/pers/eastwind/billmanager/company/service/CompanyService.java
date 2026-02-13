@@ -22,7 +22,7 @@ public class CompanyService {
         this.companyMapper = companyMapper;
     }
     public PageResult<CompanyDTO> findEnabled(QueryParam queryParam) {
-        return PageResult.fromPage(companyRepository.findByIsDisabled(false, queryParam.getPageable()), companyMapper::toDTO);
+        return PageResult.fromPage(companyRepository.findByDisabled(false, queryParam.getPageable()), companyMapper::toDTO);
     }
     @Transactional
     public CompanyDTO create(CompanyDTO company) {

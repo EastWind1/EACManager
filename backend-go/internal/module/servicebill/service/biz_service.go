@@ -1,10 +1,10 @@
 package service
 
 import (
-	files2 "backend-go/internal/module/attach/files"
+	"backend-go/internal/module/attach/files"
 	attachModel "backend-go/internal/module/attach/model"
-	service2 "backend-go/internal/module/attach/service"
-	model2 "backend-go/internal/module/servicebill/model"
+	"backend-go/internal/module/attach/service"
+	"backend-go/internal/module/servicebill/model"
 	"backend-go/internal/module/servicebill/repository"
 	"backend-go/internal/pkg/cache"
 	"backend-go/internal/pkg/errs"
@@ -20,15 +20,15 @@ import (
 type BizService struct {
 	cache        cache.Cache
 	billRepo     *repository.ServiceBillRepository
-	attachSrv    *service2.AttachmentService
-	attachMapSrv *service2.AttachMapService
+	attachSrv    *service.AttachmentService
+	attachMapSrv *service.AttachMapService
 }
 
 func NewBizService(
 	cache cache.Cache,
 	billRepo *repository.ServiceBillRepository,
-	attachSrv *service2.AttachmentService,
-	attachMapSrv *service2.AttachMapService,
+	attachSrv *service.AttachmentService,
+	attachMapSrv *service.AttachMapService,
 ) *BizService {
 	return &BizService{
 		cache:        cache,
@@ -38,7 +38,7 @@ func NewBizService(
 	}
 }
 
-func (s *BizService) ValidateAmount(bill *model2.ServiceBill) error {
+func (s *BizService) ValidateAmount(bill *model.ServiceBill) error {
 	totalAmount := 0.0
 	for _, detail := range bill.Details {
 		expectedSubtotal := detail.Quantity * detail.UnitPrice
@@ -62,7 +62,7 @@ func (s *BizService) GenerateNumber() string {
 	return fmt.Sprintf("S%s%04d", timestamp, randomNum)
 }
 
-func (s *BizService) FindByID(ctx context.Context, id uint) (*model2.ServiceBillDTO, error) {
+func (s *BizService) FindByID(ctx context.Context, id uint) (*model.ServiceBillDTO, error) {
 	if id == 0 {
 		return nil, errs.NewBizError("ID不能为空")
 	}
@@ -78,7 +78,7 @@ func (s *BizService) FindByID(ctx context.Context, id uint) (*model2.ServiceBill
 	return dto, nil
 }
 
-func (s *BizService) FindByParam(ctx context.Context, param *model2.ServiceBillQueryParam) (*result.PageResult[model2.ServiceBillDTO], error) {
+func (s *BizService) FindByParam(ctx context.Context, param *model.ServiceBillQueryParam) (*result.PageResult[model.ServiceBillDTO], error) {
 	if param == nil {
 		return nil, errs.NewBizError("查询参数为空")
 	}
@@ -88,10 +88,10 @@ func (s *BizService) FindByParam(ctx context.Context, param *model2.ServiceBillQ
 		return nil, err
 	}
 
-	return result.NewDTOPageResult(res, model2.ToBaseDTOs), nil
+	return result.NewDTOPageResult(res, model.ToBaseDTOs), nil
 }
 
-func (s *BizService) Create(ctx context.Context, dto *model2.ServiceBillDTO) (*model2.ServiceBillDTO, error) {
+func (s *BizService) Create(ctx context.Context, dto *model.ServiceBillDTO) (*model.ServiceBillDTO, error) {
 	if dto.ID != 0 {
 		return nil, errs.NewBizError("单据 ID 自动生成")
 	}
@@ -130,7 +130,7 @@ func (s *BizService) Create(ctx context.Context, dto *model2.ServiceBillDTO) (*m
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *BizService) Update(ctx context.Context, dto *model2.ServiceBillDTO) (*model2.ServiceBillDTO, error) {
+func (s *BizService) Update(ctx context.Context, dto *model.ServiceBillDTO) (*model.ServiceBillDTO, error) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("单据 ID 为空")
 	}
@@ -178,7 +178,7 @@ func (s *BizService) Delete(ctx context.Context, ids []uint) (*result.ActionsRes
 			if bill == nil {
 				return errs.NewBizError("单据不存在")
 			}
-			if bill.State != model2.ServiceBillStateCreated {
+			if bill.State != model.ServiceBillStateCreated {
 				return errs.NewBizError("非创建状态不能删除")
 			}
 			if err = s.billRepo.DeleteByID(tx, id); err != nil {
@@ -203,10 +203,10 @@ func (s *BizService) Process(ctx context.Context, ids []uint) (*result.ActionsRe
 			if bill == nil {
 				return errs.NewBizError("单据不存在")
 			}
-			if bill.State != model2.ServiceBillStateCreated {
+			if bill.State != model.ServiceBillStateCreated {
 				return errs.NewBizError("非创建状态的单据不能处理")
 			}
-			bill.State = model2.ServiceBillStateProcessing
+			bill.State = model.ServiceBillStateProcessing
 			return s.billRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -230,10 +230,10 @@ func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *t
 			if bill == nil {
 				return errs.NewBizError("单据不存在")
 			}
-			if bill.State != model2.ServiceBillStateProcessing {
+			if bill.State != model.ServiceBillStateProcessing {
 				return errs.NewBizError("非处理中状态的单据不能处理完成")
 			}
-			bill.State = model2.ServiceBillStateProcessed
+			bill.State = model.ServiceBillStateProcessed
 			bill.ProcessedDate = processedDate
 			return s.billRepo.Updates(tx, bill)
 		})
@@ -258,10 +258,10 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 			if bill == nil {
 				return errs.NewBizError("单据不存在")
 			}
-			if bill.State != model2.ServiceBillStateProcessed {
+			if bill.State != model.ServiceBillStateProcessed {
 				return errs.NewBizError("非处理完成状态的单据不能完成")
 			}
-			bill.State = model2.ServiceBillStateFinished
+			bill.State = model.ServiceBillStateFinished
 			bill.FinishedDate = finishedDate
 			return s.billRepo.Updates(tx, bill)
 		})
@@ -269,7 +269,7 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 	}), nil
 }
 
-func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*model2.ServiceBillDTO, error) {
+func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*model.ServiceBillDTO, error) {
 	attaches, err := s.attachSrv.UploadTemps([]*multipart.FileHeader{file})
 	if err != nil {
 		return nil, err
@@ -279,7 +279,7 @@ func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHea
 	if err != nil {
 		return nil, err
 	}
-	if bill, ok := data.(*model2.ServiceBillDTO); ok {
+	if bill, ok := data.(*model.ServiceBillDTO); ok {
 		bill.Attachments = attaches
 		return bill, nil
 	}
@@ -355,7 +355,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 
 			// 处理可能的重名
 			repeatCount := 1
-			for files2.Exists(targetPath) {
+			for files.Exists(targetPath) {
 				targetPath = fmt.Sprintf("%s/%d-%s", curDir, repeatCount, attachment.Name)
 				repeatCount++
 			}
@@ -373,14 +373,14 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 
 	// 生成Excel文件
 	excelPath := filepath.Join(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
-	if err = files2.GenerateExcelFromList(rows, excelPath); err != nil {
+	if err = files.GenerateExcelFromList(rows, excelPath); err != nil {
 		return "", errs.NewBizError("生成Excel失败: " + err.Error())
 	}
 
-	if err = files2.Exec(s.cache, ops); err != nil {
+	if err = files.Exec(s.cache, ops); err != nil {
 		return "", errs.NewBizError("文件操作失败: " + err.Error())
 	}
-	zipPath, err := files2.Zip(tempDir, "")
+	zipPath, err := files.Zip(tempDir, "")
 	if err != nil {
 		return "", err
 	}

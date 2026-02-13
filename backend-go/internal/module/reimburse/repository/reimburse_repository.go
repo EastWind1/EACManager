@@ -1,37 +1,38 @@
 package repository
 
 import (
-	model2 "backend-go/internal/module/reimburse/model"
+	"backend-go/internal/module/reimburse/model"
 	"backend-go/internal/pkg/database"
 	"backend-go/internal/pkg/errs"
 	"backend-go/internal/pkg/result"
 	"context"
 	"errors"
+	"fmt"
 
 	"gorm.io/gorm"
 )
 
 type ReimburseRepository struct {
-	*database.BaseRepository[model2.Reimbursement]
+	*database.BaseRepository[model.Reimbursement]
 }
 
 func NewReimburseRepository(db *gorm.DB) *ReimburseRepository {
 	return &ReimburseRepository{
-		BaseRepository: database.NewBaseRepository[model2.Reimbursement](db),
+		BaseRepository: database.NewBaseRepository[model.Reimbursement](db),
 	}
 }
 
 // ExistsByNumber 是否存在对应单号
 func (r *ReimburseRepository) ExistsByNumber(ctx context.Context, number string) (bool, error) {
 	var count int64
-	err := r.GetDB(ctx).Model(&model2.Reimbursement{}).Where("number = ?", number).Count(&count).Error
+	err := r.GetDB(ctx).Model(&model.Reimbursement{}).Where("number = ?", number).Count(&count).Error
 	return count > 0, errs.Wrap(err)
 }
 
 // FindFullById 查询完整实体
-func (r *ReimburseRepository) FindFullById(ctx context.Context, id uint) (*model2.Reimbursement, error) {
-	var res model2.Reimbursement
-	if err := r.GetDB(ctx).Preload("Details").Find(&res, "reimbursement.id = ?", id).Error; err != nil {
+func (r *ReimburseRepository) FindFullById(ctx context.Context, id uint) (*model.Reimbursement, error) {
+	var res model.Reimbursement
+	if err := r.GetDB(ctx).Preload("Details").Where("reimbursement.id = ?", id).Take(&res).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -41,23 +42,37 @@ func (r *ReimburseRepository) FindFullById(ctx context.Context, id uint) (*model
 }
 
 // Updates 更新
-func (r *ReimburseRepository) Updates(ctx context.Context, entity *model2.Reimbursement) error {
-	return errs.Wrap(r.GetDB(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(entity).Error)
+func (r *ReimburseRepository) Updates(ctx context.Context, entity *model.Reimbursement) error {
+	res := r.GetDB(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(entity)
+	if res.Error != nil {
+		return errs.Wrap(res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return errs.NewBizError("数据已被更改，稍后重试")
+	}
+	return nil
 }
 
 // Delete 删除整个实体
-func (r *ReimburseRepository) Delete(ctx context.Context, entity *model2.Reimbursement) error {
-	return errs.Wrap(r.GetDB(ctx).Select("Details").Delete(entity).Error)
+func (r *ReimburseRepository) Delete(ctx context.Context, entity *model.Reimbursement) error {
+	res := r.GetDB(ctx).Select("Details").Delete(entity)
+	if res.Error != nil {
+		return errs.Wrap(res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return errs.NewBizError("数据已被更改，稍后重试")
+	}
+	return nil
 }
 
 // FindByParam 根据查询条件查询
-func (r *ReimburseRepository) FindByParam(ctx context.Context, param *model2.ReimburseQueryParam) (*result.PageResult[model2.Reimbursement], error) {
-	q := r.GetDB(ctx).Model(&model2.Reimbursement{}).WithContext(ctx)
+func (r *ReimburseRepository) FindByParam(ctx context.Context, param *model.ReimburseQueryParam) (*result.PageResult[model.Reimbursement], error) {
+	q := r.GetDB(ctx).Model(&model.Reimbursement{}).WithContext(ctx)
 	if param.Number != "" {
 		q = q.Where("number = ?", param.Number)
 	}
 	if param.Summary != "" {
-		q = q.Where("summary like %?%", param.Summary)
+		q = q.Where("summary like ?", fmt.Sprintf("%%%s%%", param.Summary))
 	}
 	if param.States != nil && len(param.States) > 0 {
 		q = q.Where("state in (?)", param.States)
@@ -77,7 +92,7 @@ func (r *ReimburseRepository) FindByParam(ctx context.Context, param *model2.Rei
 	if err != nil {
 		return nil, err
 	}
-	var reimbursements []model2.Reimbursement
+	var reimbursements []model.Reimbursement
 	if err := q.Find(&reimbursements).Error; err != nil {
 		return nil, errs.Wrap(err)
 	}

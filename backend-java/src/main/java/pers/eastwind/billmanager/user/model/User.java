@@ -23,6 +23,7 @@ public class User extends AuditEntity implements UserDetails {
 
     @Id
     @Column(insertable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     /**
@@ -58,9 +59,9 @@ public class User extends AuditEntity implements UserDetails {
     private AuthorityRole authority = AuthorityRole.ROLE_USER;
 
     /**
-     * 是否启用
+     * 是否禁用
      */
-    private boolean disabled = false;
+    private boolean disabled;
 
     @Override
     @NonNull

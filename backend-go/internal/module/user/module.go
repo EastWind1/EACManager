@@ -4,7 +4,7 @@ import (
 	"backend-go/internal/module/user/controller"
 	"backend-go/internal/module/user/middleware"
 	"backend-go/internal/module/user/repository"
-	service2 "backend-go/internal/module/user/service"
+	"backend-go/internal/module/user/service"
 	"backend-go/internal/pkg/auth"
 	"backend-go/internal/pkg/context"
 
@@ -14,8 +14,8 @@ import (
 // Setup 初始化
 func Setup(ctx *context.AppContext, router fiber.Router) {
 	repo := repository.NewUserRepository(ctx.Db)
-	jwtSrv := service2.NewJWTService(ctx.Cfg.JWT)
-	userSrv := service2.NewUserService(repo, jwtSrv)
+	jwtSrv := service.NewJWTService(ctx.Cfg.JWT)
+	userSrv := service.NewUserService(repo, jwtSrv)
 	userController := controller.NewUserController(ctx.Cfg.JWT, userSrv)
 
 	router.Use(middleware.AuthMiddleware(jwtSrv, userSrv))
@@ -28,4 +28,11 @@ func Setup(ctx *context.AppContext, router fiber.Router) {
 		api.Put("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), userController.Update)
 		api.Delete("/:username", auth.RoleMiddleware(auth.RoleAdmin), userController.Disable)
 	}
+}
+
+func SetupForTest(ctx *context.AppContext) *service.UserService {
+	repo := repository.NewUserRepository(ctx.Db)
+	jwtSrv := service.NewJWTService(ctx.Cfg.JWT)
+	userSrv := service.NewUserService(repo, jwtSrv)
+	return userSrv
 }

@@ -1,10 +1,10 @@
 package service
 
 import (
-	files2 "backend-go/internal/module/attach/files"
+	"backend-go/internal/module/attach/files"
 	attachModel "backend-go/internal/module/attach/model"
 	"backend-go/internal/module/attach/service"
-	model2 "backend-go/internal/module/reimburse/model"
+	"backend-go/internal/module/reimburse/model"
 	"backend-go/internal/module/reimburse/repository"
 	"backend-go/internal/pkg/cache"
 	"context"
@@ -44,7 +44,7 @@ func (s *ReimburseService) GenerateNumber() string {
 	return fmt.Sprintf("R%s%04d", timestamp, randomNum)
 }
 
-func (s *ReimburseService) FindByID(ctx context.Context, id uint) (*model2.ReimbursementDTO, error) {
+func (s *ReimburseService) FindByID(ctx context.Context, id uint) (*model.ReimbursementDTO, error) {
 	if id == 0 {
 		return nil, errs.NewBizError("ID不能为空")
 	}
@@ -62,7 +62,7 @@ func (s *ReimburseService) FindByID(ctx context.Context, id uint) (*model2.Reimb
 	return bill.ToDTO(attachments), nil
 }
 
-func (s *ReimburseService) Create(ctx context.Context, dto *model2.ReimbursementDTO) (*model2.ReimbursementDTO, error) {
+func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
 	if dto.ID != 0 {
 		return nil, errs.NewBizError("单据 ID 不为空")
 	}
@@ -97,7 +97,7 @@ func (s *ReimburseService) Create(ctx context.Context, dto *model2.Reimbursement
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *ReimburseService) Update(ctx context.Context, dto *model2.ReimbursementDTO) (*model2.ReimbursementDTO, error) {
+func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementDTO) (*model.ReimbursementDTO, error) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("id不能为空")
 	}
@@ -130,7 +130,7 @@ func (s *ReimburseService) Update(ctx context.Context, dto *model2.Reimbursement
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *ReimburseService) FindByParam(ctx context.Context, param *model2.ReimburseQueryParam) (*result.PageResult[model2.ReimbursementDTO], error) {
+func (s *ReimburseService) FindByParam(ctx context.Context, param *model.ReimburseQueryParam) (*result.PageResult[model.ReimbursementDTO], error) {
 	if param == nil {
 		return nil, errs.NewBizError("查询参数为空")
 	}
@@ -140,7 +140,7 @@ func (s *ReimburseService) FindByParam(ctx context.Context, param *model2.Reimbu
 		return nil, err
 	}
 
-	return result.NewDTOPageResult(res, model2.ToBaseDTOs), nil
+	return result.NewDTOPageResult(res, model.ToBaseDTOs), nil
 }
 
 func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
@@ -156,7 +156,7 @@ func (s *ReimburseService) Delete(ctx context.Context, ids []uint) (*result.Acti
 			if bill == nil {
 				return errs.NewBizError("单据不存在")
 			}
-			if bill.State != model2.ReimburseStateCreated {
+			if bill.State != model.ReimburseStateCreated {
 				return errs.NewBizError("非创建状态不能删除")
 			}
 			if err = s.attachService.UpdateRelativeAttach(tx, bill.ID, bill.Number, attachModel.BillTypeReimbursement, nil); err != nil {
@@ -181,10 +181,10 @@ func (s *ReimburseService) Process(ctx context.Context, ids []uint) (*result.Act
 			if bill == nil {
 				return errs.NewBizError("单据不存在")
 			}
-			if bill.State != model2.ReimburseStateCreated {
+			if bill.State != model.ReimburseStateCreated {
 				return errs.NewBizError("非创建状态不能提交")
 			}
-			bill.State = model2.ReimburseStateProcessing
+			bill.State = model.ReimburseStateProcessing
 			return s.reimburseRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -204,10 +204,10 @@ func (s *ReimburseService) Finish(ctx context.Context, ids []uint) (*result.Acti
 			if bill == nil {
 				return errs.NewBizError("单据不存在")
 			}
-			if bill.State != model2.ReimburseStateProcessing {
+			if bill.State != model.ReimburseStateProcessing {
 				return errs.NewBizError("非处理状态不能完成")
 			}
-			bill.State = model2.ReimburseStateFinished
+			bill.State = model.ReimburseStateFinished
 			return s.reimburseRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -281,7 +281,7 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 
 			// 处理可能的重名
 			repeatCount := 1
-			for files2.Exists(targetPath) {
+			for files.Exists(targetPath) {
 				targetPath = fmt.Sprintf("%s/%d-%s", curDir, repeatCount, attachment.Name)
 				repeatCount++
 			}
@@ -299,14 +299,14 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 
 	// 生成Excel文件
 	excelPath := filepath.Join(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
-	if err = files2.GenerateExcelFromList(rows, excelPath); err != nil {
+	if err = files.GenerateExcelFromList(rows, excelPath); err != nil {
 		return "", err
 	}
 
-	if err = files2.Exec(s.cache, ops); err != nil {
+	if err = files.Exec(s.cache, ops); err != nil {
 		return "", err
 	}
-	zipPath, err := files2.Zip(tempDir, "")
+	zipPath, err := files.Zip(tempDir, "")
 	if err != nil {
 		return "", err
 	}

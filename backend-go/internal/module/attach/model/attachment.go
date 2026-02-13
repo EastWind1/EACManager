@@ -62,6 +62,7 @@ func (s *AttachType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalText 用于查询参数反序列化
 func (s *AttachType) UnmarshalText(data []byte) error {
 	var str string
 	if err := sonic.Unmarshal(data, &str); err == nil {

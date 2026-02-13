@@ -123,8 +123,8 @@ func execSingleOp(cache cache.Cache, op *model.FileOp) (*model.FileOp, error) {
 
 // Exec 执行文件操作
 func Exec(cache cache.Cache, ops []model.FileOp) error {
-	if ops == nil {
-		return errs.NewFileOpError("操作列表为空", "")
+	if ops == nil || len(ops) == 0 {
+		return nil
 	}
 	var executedOps []model.FileOp
 	// 执行操作

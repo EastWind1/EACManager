@@ -20,12 +20,12 @@ func NewBaseRepository[T any](db *gorm.DB) *BaseRepository[T] {
 	return &BaseRepository[T]{db: db}
 }
 
-// txKey 用于在context中存储事务实例的key
-type txKey struct{}
+// TxKey 用于在context中存储事务实例的key
+type TxKey struct{}
 
 // GetDB 从context中获取数据库实例，优先使用事务实例
 func (r *BaseRepository[T]) GetDB(ctx context.Context) *gorm.DB {
-	if tx, ok := ctx.Value(txKey{}).(*gorm.DB); ok {
+	if tx, ok := ctx.Value(TxKey{}).(*gorm.DB); ok {
 		return tx
 	}
 	return r.db.WithContext(ctx)
@@ -122,7 +122,7 @@ func (r *BaseRepository[T]) DeleteByID(ctx context.Context, id any) error {
 // Transaction 开启事务，通过context传递事务实例
 func (r *BaseRepository[T]) Transaction(base context.Context, fn func(ctx context.Context) error) error {
 	return errs.Wrap(r.GetDB(base).Transaction(func(tx *gorm.DB) error {
-		ctx := context.WithValue(tx.Statement.Context, txKey{}, tx)
+		ctx := context.WithValue(tx.Statement.Context, TxKey{}, tx)
 		return fn(ctx)
 	}))
 }

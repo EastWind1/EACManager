@@ -14,6 +14,7 @@ import pers.eastwind.billmanager.common.model.AuditEntity;
 public class Attachment extends AuditEntity {
     @Id
     @Column(insertable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     /**
      * 文件名

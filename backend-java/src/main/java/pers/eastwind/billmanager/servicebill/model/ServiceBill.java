@@ -24,6 +24,7 @@ import java.util.List;
 public class ServiceBill extends AuditEntity {
     @Id
     @Column(insertable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     /**
      * 单号

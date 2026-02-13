@@ -21,6 +21,7 @@ import java.util.List;
 public class Reimbursement extends AuditEntity {
     @Id
     @Column(insertable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     /**
      * 编号

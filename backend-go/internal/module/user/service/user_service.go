@@ -1,7 +1,7 @@
 package service
 
 import (
-	model2 "backend-go/internal/module/user/model"
+	"backend-go/internal/module/user/model"
 	"backend-go/internal/module/user/repository"
 	"backend-go/internal/pkg/auth"
 	"backend-go/internal/pkg/errs"
@@ -28,7 +28,7 @@ func NewUserService(userRepo *repository.UserRepository, jwtSvc *JWTService) *Us
 }
 
 // Login 用户登录
-func (s *UserService) Login(ctx context.Context, username, password, subject string) (*model2.LoginResult, error) {
+func (s *UserService) Login(ctx context.Context, username, password, subject string) (*model.LoginResult, error) {
 	user, err := s.userRepo.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, err
@@ -46,29 +46,29 @@ func (s *UserService) Login(ctx context.Context, username, password, subject str
 		return nil, err
 	}
 
-	return &model2.LoginResult{
+	return &model.LoginResult{
 		Token: token,
 		User:  *user.ToDTO(),
 	}, nil
 }
 
 // GetAll 获取用户列表
-func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam) (*result.PageResult[model2.UserDTO], error) {
+func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam) (*result.PageResult[model.UserDTO], error) {
 	curUser, err := auth.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, err
 	}
 	currentRole := curUser.GetRole()
-	var res *result.PageResult[model2.UserDTO]
+	var res *result.PageResult[model.UserDTO]
 	if currentRole == auth.RoleAdmin {
 		users, err := s.userRepo.FindAllEnabled(ctx, queryParam)
 		if err != nil {
 			return nil, err
 		}
-		res = result.NewDTOPageResult(users, model2.ToDTOs)
+		res = result.NewDTOPageResult(users, model.ToDTOs)
 	} else { // 非管理员只能查自己
 		user, err := s.userRepo.FindByID(ctx, curUser.GetID())
-		var users []model2.UserDTO
+		var users []model.UserDTO
 		if err != nil {
 			return nil, err
 		}
@@ -81,11 +81,11 @@ func (s *UserService) GetAll(ctx context.Context, queryParam *result.QueryParam)
 }
 
 // Create 创建用户
-func (s *UserService) Create(ctx context.Context, dto *model2.UserDTO) (*model2.UserDTO, error) {
+func (s *UserService) Create(ctx context.Context, dto *model.UserDTO) (*model.UserDTO, error) {
 	if dto.Username == "" {
 		return nil, errs.NewBizError("用户名不能为空")
 	}
-	var res *model2.UserDTO
+	var res *model.UserDTO
 	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
 		exists, err := s.userRepo.ExistsByUsername(tx, dto.Username)
 		if err != nil {
@@ -129,7 +129,7 @@ func (s *UserService) Create(ctx context.Context, dto *model2.UserDTO) (*model2.
 }
 
 // Update 更新用户
-func (s *UserService) Update(ctx context.Context, dto *model2.UserDTO) (*model2.UserDTO, error) {
+func (s *UserService) Update(ctx context.Context, dto *model.UserDTO) (*model.UserDTO, error) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("id 不能为空")
 	}
@@ -140,7 +140,7 @@ func (s *UserService) Update(ctx context.Context, dto *model2.UserDTO) (*model2.
 	if curUser.GetRole() != auth.RoleAdmin && curUser.GetID() != dto.ID {
 		return nil, errs.NewAuthError("无权限修改其他用户信息")
 	}
-	var res *model2.UserDTO
+	var res *model.UserDTO
 	err = s.userRepo.Transaction(ctx, func(tx context.Context) error {
 		user, err := s.userRepo.FindByID(tx, dto.ID)
 		if err != nil {
@@ -201,6 +201,6 @@ func (s *UserService) Disable(ctx context.Context, username string) error {
 }
 
 // FindByUsername 加载用户信息
-func (s *UserService) FindByUsername(ctx context.Context, username string) (*model2.User, error) {
+func (s *UserService) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	return s.userRepo.FindByUsername(ctx, username)
 }

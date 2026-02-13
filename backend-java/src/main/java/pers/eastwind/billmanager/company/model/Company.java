@@ -1,8 +1,6 @@
 package pers.eastwind.billmanager.company.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import pers.eastwind.billmanager.common.model.AuditEntity;
@@ -17,6 +15,7 @@ import pers.eastwind.billmanager.common.model.AuditEntity;
 public class Company extends AuditEntity {
     @Id
     @Column(insertable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     /**

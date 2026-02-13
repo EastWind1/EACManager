@@ -1,7 +1,7 @@
 package controller
 
 import (
-	model2 "backend-go/internal/module/servicebill/model"
+	"backend-go/internal/module/servicebill/model"
 	"backend-go/internal/module/servicebill/service"
 	"backend-go/internal/pkg/errs"
 	"backend-go/internal/pkg/result"
@@ -21,7 +21,7 @@ func NewServiceBillController(bizSrv *service.BizService) *ServiceBillController
 }
 
 func (c *ServiceBillController) QueryByParam(ctx *fiber.Ctx) error {
-	var param model2.ServiceBillQueryParam
+	var param model.ServiceBillQueryParam
 	if err := ctx.BodyParser(&param); err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (c *ServiceBillController) GetByID(ctx *fiber.Ctx) error {
 }
 
 func (c *ServiceBillController) Create(ctx *fiber.Ctx) error {
-	var dto model2.ServiceBillDTO
+	var dto model.ServiceBillDTO
 	if err := ctx.BodyParser(&dto); err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (c *ServiceBillController) ImportByFile(ctx *fiber.Ctx) error {
 }
 
 func (c *ServiceBillController) Update(ctx *fiber.Ctx) error {
-	var dto model2.ServiceBillDTO
+	var dto model.ServiceBillDTO
 	if err := ctx.BodyParser(&dto); err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (c *ServiceBillController) Process(ctx *fiber.Ctx) error {
 }
 
 func (c *ServiceBillController) Processed(ctx *fiber.Ctx) error {
-	var param model2.ProcessedParam
+	var param model.ProcessedParam
 	if err := ctx.BodyParser(&param); err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (c *ServiceBillController) Processed(ctx *fiber.Ctx) error {
 }
 
 func (c *ServiceBillController) Finish(ctx *fiber.Ctx) error {
-	var param model2.FinishParam
+	var param model.FinishParam
 	if err := ctx.BodyParser(&param); err != nil {
 		return err
 	}

@@ -109,10 +109,10 @@ public class UserService implements UserDetailsService {
         if (!oldUser.getUsername().equals(user.getUsername())) {
             throw new BizException("用户名不能修改");
         }
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            throw new BizException("密码不能为空");
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            oldUser.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
         }
-        oldUser.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
+
         userMapper.updateEntityFromDTO(user, oldUser);
         return userMapper.toDTO(userRepository.save(oldUser));
     }
@@ -155,8 +155,11 @@ public class UserService implements UserDetailsService {
      */
     public LoginResult login(String username, String password) {
         User user = userRepository.findByUsername(username);
-        if (user == null || !user.isDisabled()) {
+        if (user == null) {
             throw new BizException("用户不存在");
+        }
+        if (user.isDisabled()) {
+            throw new BizException("用户已禁用");
         }
         if (user.getPassword() == null || user.getPassword().isEmpty()) {
             throw new BizException("密码不能为空");
@@ -164,11 +167,8 @@ public class UserService implements UserDetailsService {
         if (!BCrypt.checkpw(password, user.getPassword())) {
             throw new BizException("用户名或密码错误");
         }
-        if (!user.isDisabled()) {
-            throw new BizException("用户已禁用");
-        }
-        String subject = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.HOST);
-        String token = jwtUtil.generateToken(username, subject);
+        String host = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.HOST);
+        String token = jwtUtil.generateToken(username, host);
         return new LoginResult(token, userMapper.toDTO(user));
     }
 

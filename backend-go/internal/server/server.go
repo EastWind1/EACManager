@@ -23,7 +23,7 @@ import (
 // Run 启动服务
 func Run() {
 	// 初始化上下文
-	ctx := &context.AppContext{}
+	ctx := new(context.AppContext)
 	// 加载配置
 	cfg := config.NewConfig()
 	ctx.Cfg = cfg

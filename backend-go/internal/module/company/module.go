@@ -24,3 +24,9 @@ func Setup(ctx *context.AppContext, router fiber.Router) *service.CompanyService
 	}
 	return companyService
 }
+
+func SetupForTest(ctx *context.AppContext) *service.CompanyService {
+	companyRepo := repository.NewCompanyRepository(ctx.Db)
+	companyService := service.NewCompanyService(companyRepo)
+	return companyService
+}

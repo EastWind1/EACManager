@@ -7,8 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// currentUserKey 当前用户在上下文中的 Key
-const currentUserKey = "current_user"
+// CurUserKey 当前用户在上下文中的 Key
+type CurUserKey struct{}
 
 // AuthorityRole 角色
 type AuthorityRole string
@@ -37,12 +37,12 @@ type User interface {
 
 // SetCurrentUser 设置当前用户
 func SetCurrentUser(c *fiber.Ctx, user User) {
-	c.Context().SetUserValue(currentUserKey, user)
+	c.Context().SetUserValue(CurUserKey{}, user)
 }
 
 // GetCurrentUser 获取当前用户
 func GetCurrentUser(c context.Context) (User, error) {
-	data := c.Value(currentUserKey)
+	data := c.Value(CurUserKey{})
 	if data == nil {
 		return nil, errs.NewUnauthError("未登录")
 	}

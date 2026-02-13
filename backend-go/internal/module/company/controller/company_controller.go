@@ -64,7 +64,7 @@ func (c *CompanyController) Disable(ctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	err = c.companyService.Disable(ctx.Context(), id)
+	err = c.companyService.Disable(ctx.Context(), uint(id))
 	if err != nil {
 		return err
 	}
