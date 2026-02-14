@@ -47,7 +47,7 @@ type TokenInfo struct {
 
 // VerifyToken 验证JWT令牌
 func (s *JWTService) VerifyToken(tokenString string) (*TokenInfo, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return s.secret, nil
 	})
 

@@ -75,7 +75,7 @@ func (s *UserServiceTest) TestLogin() {
 }
 
 func (s *UserServiceTest) TestGetAll() {
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		userDTO := &model.UserDTO{
 			Username:  "user" + strconv.Itoa(i),
 			Password:  new("password"),

@@ -45,8 +45,7 @@ func NewBizError(message string, e ...error) *BizError {
 
 	if len(e) > 0 {
 		err.err = e[0]
-		var se StackError
-		if errors.As(e[0], &se) {
+		if se, ok := errors.AsType[StackError](e[0]); ok {
 			err.stack = se.Stack()
 		}
 	}
@@ -60,8 +59,7 @@ func Wrap(err error) error {
 	if err == nil {
 		return nil
 	}
-	var bizErr *BizError
-	if errors.As(err, &bizErr) {
+	if bizErr, ok := errors.AsType[*BizError](err); ok {
 		return bizErr
 	}
 	return NewBizError("", err)
@@ -108,8 +106,7 @@ func NewFileOpError(message string, path string, e ...error) *FileOpError {
 	}
 	if len(e) > 0 {
 		err.err = e[0]
-		var se StackError
-		if errors.As(e[0], &se) {
+		if se, ok := errors.AsType[StackError](e[0]); ok {
 			err.stack = se.Stack()
 		}
 	}

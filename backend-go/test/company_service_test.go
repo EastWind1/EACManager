@@ -47,7 +47,7 @@ func (s *CompanyServiceTest) TestCreate() {
 	s.Equal(s.testCom.ContactName, created.ContactName)
 }
 func (s *CompanyServiceTest) TestFindEnabled() {
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		dto := &model.CompanyDTO{
 			Name:         "公司" + strconv.Itoa(i),
 			ContactName:  "联系人" + strconv.Itoa(i),

@@ -125,7 +125,6 @@ export const useUIStore = defineStore('uiStore', () => {
     showLoading,
     hideLoading,
     notify,
-    showNotify,
     success,
     info,
     warning,

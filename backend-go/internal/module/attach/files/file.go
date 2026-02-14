@@ -143,10 +143,10 @@ func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string)
 		return nil, errs.NewFileOpError("创建目录失败", "", err)
 	}
 	targetFile, err := os.CreateTemp(tempDirPath, "*-"+fileName)
-	hook.RegisterTempFile(c, targetFile.Name())
 	if err != nil {
-		return nil, errs.NewBizError("创建文件失败", err)
+		return nil, errs.NewFileOpError("创建文件失败", "", err)
 	}
+	hook.RegisterTempFile(c, targetFile.Name())
 	defer targetFile.Close()
 	_, err = io.Copy(targetFile, file)
 	if err != nil {

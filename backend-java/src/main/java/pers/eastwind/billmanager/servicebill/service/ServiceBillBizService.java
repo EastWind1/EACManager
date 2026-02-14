@@ -13,7 +13,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import pers.eastwind.billmanager.attach.model.Attachment;
 import pers.eastwind.billmanager.attach.model.AttachmentDTO;
 import pers.eastwind.billmanager.attach.model.BillType;
 import pers.eastwind.billmanager.attach.service.AttachmentService;

@@ -7,8 +7,6 @@ import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
 import pers.eastwind.billmanager.company.service.CompanyService;
 
-import java.util.List;
-
 /**
  * 公司控制器
  */

@@ -74,7 +74,7 @@ func (c *ServiceBillController) ImportByFile(ctx *fiber.Ctx) error {
 	if len(files) == 0 {
 		return errs.NewBizError("没有文件上传")
 	}
-	res, err := c.bizSrv.GenerateByFile(ctx.Context(), files[0])
+	res, err := c.bizSrv.GenerateByFile(files[0])
 	if err != nil {
 		return err
 	}

@@ -14,6 +14,7 @@ import (
 	"math"
 	"mime/multipart"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -218,8 +219,7 @@ func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *t
 		return nil, errs.NewBizError("ID 为空")
 	}
 	if processedDate == nil {
-		now := time.Now()
-		processedDate = &now
+		processedDate = new(time.Now())
 	}
 	return result.ExecuteActions(ids, func(id uint) (any, error) {
 		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
@@ -246,8 +246,7 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 		return nil, errs.NewBizError("ID 为空")
 	}
 	if finishedDate == nil {
-		now := time.Now()
-		finishedDate = &now
+		finishedDate = new(time.Now())
 	}
 	return result.ExecuteActions(ids, func(id uint) (any, error) {
 		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
@@ -269,13 +268,12 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 	}), nil
 }
 
-func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*model.ServiceBillDTO, error) {
+func (s *BizService) GenerateByFile(file *multipart.FileHeader) (*model.ServiceBillDTO, error) {
 	attaches, err := s.attachSrv.UploadTemps([]*multipart.FileHeader{file})
 	if err != nil {
 		return nil, err
 	}
-	attach := (attaches)[0]
-	data, err := s.attachMapSrv.MapTo(&attach)
+	data, err := s.attachMapSrv.MapTo(new((attaches)[0]))
 	if err != nil {
 		return nil, err
 	}
@@ -314,9 +312,9 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 	// 遍历生成 excel行，并拷贝附件
 	for _, bill := range bills {
 		// 构建详情字符串
-		detailStr := ""
+		var detailStr strings.Builder
 		for _, detail := range bill.Details {
-			detailStr += fmt.Sprintf("%s : %.2f * %.2f ; ", detail.Device, detail.UnitPrice, detail.Quantity)
+			detailStr.WriteString(fmt.Sprintf("%s : %.2f * %.2f ; ", detail.Device, detail.UnitPrice, detail.Quantity))
 		}
 		processDateStr := ""
 		if bill.ProcessedDate != nil {
@@ -330,7 +328,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 			bill.ProjectAddress,
 			fmt.Sprintf("%.2f", bill.TotalAmount),
 			processDateStr,
-			detailStr,
+			detailStr.String(),
 		})
 
 		totalAmount += bill.TotalAmount

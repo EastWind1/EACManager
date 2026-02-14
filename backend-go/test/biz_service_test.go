@@ -76,7 +76,7 @@ func (s *BizServiceTest) TestFindByID() {
 }
 
 func (s *BizServiceTest) TestFindByParam() {
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		bill := &model.ServiceBillDTO{
 			State:          model.ServiceBillStateCreated,
 			ProjectName:    "测试项目" + strconv.Itoa(i),

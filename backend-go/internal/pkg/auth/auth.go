@@ -3,6 +3,7 @@ package auth
 import (
 	"backend-go/internal/pkg/errs"
 	"context"
+	"slices"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -59,10 +60,8 @@ func HasRole(ctx context.Context, roles ...AuthorityRole) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, role := range roles {
-		if user.GetRole() == role {
-			return true, nil
-		}
+	if slices.Contains(roles, user.GetRole()) {
+		return true, nil
 	}
 	return false, nil
 }

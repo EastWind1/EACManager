@@ -211,7 +211,7 @@ const queryParam = ref<QueryParam>({
   ],
   orderDateRange: [],
   processedDateRange: [],
-  pageSize: 20,
+  pageSize: 25,
   pageIndex: 0,
   sorts: [
     {
@@ -256,7 +256,7 @@ const data = ref<PageResult<ServiceBill>>({
   items: [],
   totalCount: 0,
   totalPages: 0,
-  pageSize: 20,
+  pageSize: 25,
   pageIndex: 0,
 })
 

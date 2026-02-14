@@ -108,8 +108,8 @@ func (s *AttachmentService) GetAbsolutePath(relativePath string, isTemp bool) (s
 	if relativePath == "" {
 		return "", errs.NewBizError("路径不能为空")
 	}
-	if strings.HasPrefix(relativePath, "/") {
-		relativePath = strings.TrimPrefix(relativePath, "/")
+	if after, ok := strings.CutPrefix(relativePath, "/"); ok {
+		relativePath = after
 	}
 	var absolutePath string
 	if isTemp {

@@ -130,11 +130,9 @@ func (c *InMemoryCache) PutWithExpire(name string, key string, value any, expire
 
 	var expireTime *time.Time
 	if len(expire) != 0 {
-		et := time.Now().Add(expire[0])
-		expireTime = &et
+		expireTime = new(time.Now().Add(expire[0]))
 	} else {
-		et := time.Now().Add(c.expire)
-		expireTime = &et
+		expireTime = new(time.Now().Add(c.expire))
 	}
 	innerMap.Store(key, &cacheValue{
 		value:      value,

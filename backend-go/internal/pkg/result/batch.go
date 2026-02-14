@@ -58,8 +58,7 @@ func ExecuteActions[P any, R any](params []P, fn func(P) (R, error)) *ActionsRes
 			result.Message = err.Error()
 			log.Errorf("操作参数: %v", p)
 			log.Errorf("异常: %v", err)
-			var stackErr errs.StackError
-			if errors.As(err, &stackErr) {
+			if stackErr, ok := errors.AsType[errs.StackError](err); ok {
 				log.Errorf("%+v", stackErr.Stack())
 			}
 		}

@@ -95,9 +95,7 @@ class UserServiceTest extends BaseServiceTest {
     @DisplayName("测试登录失败 - 密码错误")
     void shouldFailLoginWithWrongPassword() {
         userService.create(testUser);
-        assertThrows(RuntimeException.class, () -> {
-          userService.login(testUser.getUsername(), "wrongpassword");
-        });
+        assertThrows(RuntimeException.class, () -> userService.login(testUser.getUsername(), "wrongpassword"));
     }
 
     @Test

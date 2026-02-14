@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math/rand"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"backend-go/internal/pkg/errs"
@@ -245,9 +246,9 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 		}
 
 		// 构建详情字符串
-		detailStr := ""
+		var detailStr strings.Builder
 		for _, detail := range reimbursement.Details {
-			detailStr += fmt.Sprintf("%s : %.2f ; ", detail.Name, detail.Amount)
+			detailStr.WriteString(fmt.Sprintf("%s : %.2f ; ", detail.Name, detail.Amount))
 		}
 
 		// 添加行数据
@@ -256,7 +257,7 @@ func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, erro
 			reimbursement.Summary,
 			fmt.Sprintf("%.2f", reimbursement.TotalAmount),
 			dateStr,
-			detailStr,
+			detailStr.String(),
 		})
 
 		totalAmount += reimbursement.TotalAmount

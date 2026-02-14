@@ -199,7 +199,7 @@ const queryParam = ref<QueryParam>({
   number: '',
   states: [ReimburseState.CREATED.value, ReimburseState.PROCESSING.value],
   reimburseDateRange: [],
-  pageSize: 20,
+  pageSize: 25,
   pageIndex: 0,
   sorts: [
     {
@@ -235,7 +235,7 @@ const data = ref<PageResult<Reimbursement>>({
   items: [],
   totalCount: 0,
   totalPages: 0,
-  pageSize: 20,
+  pageSize: 25,
   pageIndex: 0,
 })
 

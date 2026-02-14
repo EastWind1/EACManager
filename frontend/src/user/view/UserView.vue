@@ -112,7 +112,7 @@ const data = ref<PageResult<User>>({
   items: [],
   totalCount: 0,
   totalPages: 0,
-  pageSize: 0,
+  pageSize: 25,
   pageIndex: 0,
 })
 // 映射选项，禁用管理员选项

@@ -30,7 +30,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { mdiAccount, mdiCash, mdiEye, mdiEyeOff, mdiLock } from '@mdi/js'
+import { mdiAccount, mdiEye, mdiEyeOff, mdiLock } from '@mdi/js'
 import UserApi from '../api/UserApi.ts'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'

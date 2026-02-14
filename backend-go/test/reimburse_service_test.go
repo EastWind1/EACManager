@@ -70,7 +70,7 @@ func (s *ReimburseServiceTest) TestFindByID() {
 }
 
 func (s *ReimburseServiceTest) TestFindByParam() {
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		reim := &model.ReimbursementDTO{
 			Summary:       "测试报销" + strconv.Itoa(i),
 			TotalAmount:   1000.00,

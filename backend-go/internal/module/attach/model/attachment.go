@@ -165,7 +165,7 @@ type BillAttachRelation struct {
 	BillId   uint
 	BillType BillType `gorm:"index"`
 	AttachId uint
-	Attach   Attachment `gorm:"foreignkey:AttachId"`
+	Attach   Attachment `gorm:"foreignKey:AttachId"`
 }
 
 // FileOpType 文件操作类型

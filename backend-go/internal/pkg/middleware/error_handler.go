@@ -13,36 +13,30 @@ import (
 // ErrorHandler 错误处理
 func ErrorHandler() fiber.ErrorHandler {
 	return func(c *fiber.Ctx, err error) error {
-		var stackErr errs.StackError
-		if errors.As(err, &stackErr) {
+		if stackErr, ok := errors.AsType[errs.StackError](err); ok {
 			log.Errorf("%v", stackErr.Error())
 			log.Errorf("%v", string(stackErr.Stack()))
 
 			// 业务异常
-			var bizErr *errs.BizError
-			if errors.As(err, &bizErr) {
+			if bizErr, ok := errors.AsType[*errs.BizError](err); ok {
 				return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any](bizErr.Error()))
 			}
 			// 鉴权异常
-			var authErr *errs.AuthError
-			if errors.As(err, &authErr) {
+			if authErr, ok := errors.AsType[*errs.AuthError](err); ok {
 				return c.Status(fiber.StatusForbidden).JSON(result.Error[any](authErr.Error()))
 			}
 			// 未认证异常
-			var unauthErr *errs.UnauthError
-			if errors.As(err, &unauthErr) {
+			if unauthErr, ok := errors.AsType[*errs.UnauthError](err); ok {
 				return c.Status(fiber.StatusUnauthorized).JSON(result.Error[any](unauthErr.Error()))
 			}
 			// 文件操作异常
-			var fileOpErr *errs.FileOpError
-			if errors.As(err, &fileOpErr) {
+			if fileOpErr, ok := errors.AsType[*errs.FileOpError](err); ok {
 				return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any](fileOpErr.ErrorWithoutPath()))
 			}
 		}
 
 		// 其他未处理异常
-		var internalErr *fiber.Error
-		if errors.As(err, &internalErr) {
+		if internalErr, ok := errors.AsType[*fiber.Error](err); ok {
 			return c.Status(internalErr.Code).JSON(result.Error[any](internalErr.Message))
 		}
 		log.Errorf("%+v", err)

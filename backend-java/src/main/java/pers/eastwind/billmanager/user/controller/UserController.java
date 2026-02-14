@@ -11,8 +11,6 @@ import pers.eastwind.billmanager.user.model.LoginResult;
 import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
 
-import java.util.List;
-
 /**
  * 用户控制器
  */

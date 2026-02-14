@@ -16,7 +16,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
-import pers.eastwind.billmanager.user.model.AuthorityRole;
 import pers.eastwind.billmanager.user.util.AuthUtil;
 import pers.eastwind.billmanager.user.model.*;
 import pers.eastwind.billmanager.user.repository.UserRepository;

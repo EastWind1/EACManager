@@ -16,7 +16,7 @@ func DeleteTempFiles(c cache.Cache) {
 	if !ok {
 		return
 	}
-	for key, _ := range *temps {
+	for key := range *temps {
 		err := os.RemoveAll(key)
 		if err != nil {
 			log.Errorf("删除临时文件失败: %v", err)

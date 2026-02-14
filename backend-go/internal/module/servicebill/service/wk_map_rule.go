@@ -24,8 +24,7 @@ func NewWKMapRule(companySrc *service.CompanyService) *WKMapRule {
 			"下单时间": func(dto *model.ServiceBillDTO, value string) {
 				t, err := util.ParseDateTime(value)
 				if err != nil {
-					now := time.Now()
-					t = &now
+					t = new(time.Now())
 				}
 				dto.OrderDate = t
 			},
@@ -65,8 +64,7 @@ func (r *WKMapRule) SetCompany(target *model.ServiceBillDTO, name string) {
 	if companies == nil || len(companies) == 0 {
 		return
 	}
-	company := companies[0]
-	target.ProductCompany = &company
+	target.ProductCompany = new(companies[0])
 }
 
 func (r *WKMapRule) CanOCR(texts []string) bool {

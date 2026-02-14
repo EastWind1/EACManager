@@ -56,7 +56,7 @@ public class FileUtil {
             if (document.getNumberOfPages() <= 0) {
                 throw new IllegalArgumentException("PDF 文件为空");
             }
-            Path imagePath = target.resolve("PDFImage-" + System.currentTimeMillis() + ".png");;
+            Path imagePath = target.resolve("PDFImage-" + System.currentTimeMillis() + ".png");
             PDFRenderer renderer = new PDFRenderer(document);
             BufferedImage image = renderer.renderImage(0);
             ImageIO.write(image, "png", imagePath.toFile());

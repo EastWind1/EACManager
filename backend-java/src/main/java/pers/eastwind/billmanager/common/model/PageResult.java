@@ -29,7 +29,7 @@ public record PageResult<T>(
      * @param <T> 数据类型
      */
     public static<T> PageResult<T> empty() {
-        return new PageResult<T>(List.of(), 0L, 0, 0, 0);
+        return new PageResult<>(List.of(), 0L, 0, 0, 0);
     }
 
     /**

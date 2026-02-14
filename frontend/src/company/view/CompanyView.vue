@@ -88,7 +88,7 @@ const data = ref<PageResult<Company>>({
   totalPages: 0,
   items: [],
   totalCount: 0,
-  pageSize: 20,
+  pageSize: 25,
 })
 // 当前登录用户，用于权限控制
 const curUser = useUserStore().getUser()

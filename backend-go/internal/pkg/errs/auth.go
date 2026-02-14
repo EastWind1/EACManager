@@ -39,8 +39,7 @@ func NewUnauthError(message string, e ...error) *UnauthError {
 
 	if len(e) > 0 {
 		err.err = e[0]
-		var se StackError
-		if errors.As(e[0], &se) {
+		if se, ok := errors.AsType[StackError](e[0]); ok {
 			err.stack = se.Stack()
 		}
 	}
@@ -83,8 +82,7 @@ func NewAuthError(message string, e ...error) *AuthError {
 	}
 	if len(e) > 0 {
 		err.err = e[0]
-		var se StackError
-		if errors.As(e[0], &se) {
+		if se, ok := errors.AsType[StackError](e[0]); ok {
 			err.stack = se.Stack()
 		}
 	}

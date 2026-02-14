@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.common.controller;
 
 import jakarta.persistence.OptimisticLockException;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -34,7 +35,7 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
      * 除文件下载，对响应进行包装
      */
     @Override
-    public boolean supports(MethodParameter returnType, Class converterType) {
+    public boolean supports(MethodParameter returnType, @NonNull Class converterType) {
         return returnType.getMethod() != null && returnType.getMethod().getReturnType() != Resource.class;
     }
 
@@ -42,7 +43,7 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
      * 响应体包装
      */
     @Override
-    public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType, Class selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
+    public Object beforeBodyWrite(Object body, @NonNull MethodParameter returnType, @NonNull MediaType selectedContentType, @NonNull Class selectedConverterType, @NonNull ServerHttpRequest request, @NonNull ServerHttpResponse response) {
         // 避免二次处理, 不处理文件下载
         if (body instanceof Result || body instanceof Resource) {
             return body;
