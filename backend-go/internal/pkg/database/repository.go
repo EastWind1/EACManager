@@ -56,7 +56,11 @@ func (r *BaseRepository[T]) FindByID(ctx context.Context, id any) (*T, error) {
 // FindAll 根据条件查询
 func (r *BaseRepository[T]) FindAll(ctx context.Context, query any, args ...any) ([]T, error) {
 	var ts []T
-	res := r.GetDB(ctx).Where(query, args...).Find(&ts)
+	q := r.GetDB(ctx)
+	if query != nil {
+		q = q.Where(query, args...)
+	}
+	res := q.Find(&ts)
 	if res.Error != nil {
 		return nil, errs.Wrap(res.Error)
 	}

@@ -17,21 +17,19 @@ func ErrorHandler() fiber.ErrorHandler {
 			log.Errorf("%v", stackErr.Error())
 			log.Errorf("%v", string(stackErr.Stack()))
 
-			// 业务异常
-			if bizErr, ok := errors.AsType[*errs.BizError](err); ok {
-				return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any](bizErr.Error()))
-			}
-			// 鉴权异常
-			if authErr, ok := errors.AsType[*errs.AuthError](err); ok {
-				return c.Status(fiber.StatusForbidden).JSON(result.Error[any](authErr.Error()))
-			}
-			// 未认证异常
-			if unauthErr, ok := errors.AsType[*errs.UnauthError](err); ok {
-				return c.Status(fiber.StatusUnauthorized).JSON(result.Error[any](unauthErr.Error()))
-			}
-			// 文件操作异常
-			if fileOpErr, ok := errors.AsType[*errs.FileOpError](err); ok {
-				return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any](fileOpErr.ErrorWithoutPath()))
+			var bizError *errs.BizError
+			var authError *errs.AuthError
+			var unauthError *errs.UnauthError
+			var fileOpError *errs.FileOpError
+			switch {
+			case errors.As(stackErr, &bizError):
+				return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any](bizError.Error()))
+			case errors.As(stackErr, &authError):
+				return c.Status(fiber.StatusForbidden).JSON(result.Error[any](authError.Error()))
+			case errors.As(stackErr, &unauthError):
+				return c.Status(fiber.StatusUnauthorized).JSON(result.Error[any](unauthError.Error()))
+			case errors.As(stackErr, &fileOpError):
+				return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any](fileOpError.ErrorWithoutPath()))
 			}
 		}
 

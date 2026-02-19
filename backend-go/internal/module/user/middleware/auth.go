@@ -32,12 +32,15 @@ func AuthMiddleware(jwtSrv *service.JWTService, userSrv *service.UserService) fi
 		if err != nil {
 			return err
 		}
-		user, err := userSrv.FindByUsername(c.Context(), token.Username)
 		origin := c.Get("Origin")
 		if origin == "" {
 			origin = c.Get("Referer")
 		}
-		if err != nil || user.Disabled || !strings.HasPrefix(origin, token.Subject) {
+		if err != nil || !strings.HasPrefix(origin, token.Subject) {
+			return errs.NewUnauthError("Token 不合法")
+		}
+		user, err := userSrv.FindByUsername(c.Context(), token.Username)
+		if user.Disabled {
 			return errs.NewUnauthError("Token 不合法")
 		}
 

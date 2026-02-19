@@ -2,7 +2,6 @@ package errs
 
 import (
 	"errors"
-	"runtime/debug"
 )
 
 // UnauthError 未认证异常
@@ -43,8 +42,8 @@ func NewUnauthError(message string, e ...error) *UnauthError {
 			err.stack = se.Stack()
 		}
 	}
-	if err.stack != nil {
-		err.stack = debug.Stack()
+	if err.stack == nil || len(err.stack) == 0 {
+		err.stack = GetStack()
 	}
 	return err
 }
@@ -86,8 +85,8 @@ func NewAuthError(message string, e ...error) *AuthError {
 			err.stack = se.Stack()
 		}
 	}
-	if err.stack != nil {
-		err.stack = debug.Stack()
+	if err.stack == nil || len(err.stack) == 0 {
+		err.stack = GetStack()
 	}
 	return err
 }

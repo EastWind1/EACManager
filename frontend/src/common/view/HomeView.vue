@@ -1,17 +1,17 @@
 <!-- 首页 -->
 <template>
-  <v-app>
-    <!-- 标题栏 -->
-    <v-app-bar height="48" scroll-behavior="hide">
-      <!-- 左侧导航抽屉 -->
-      <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
-      <!-- 标题 -->
-      <img src="/favicon.ico" alt="" style="width:50px;height: 25px">
-      <h2 class="ml-3 mr-3">服务单管理</h2>
-      <v-spacer></v-spacer>
 
+    <!-- 标题栏 -->
+    <v-app-bar scroll-behavior="hide">
+      <template #prepend>
+        <!-- 左侧导航抽屉 -->
+        <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
+        <!-- 标题 -->
+        <img src="/favicon.ico" alt="" style="width: 50px; height: 25px" />
+        <h2 class="ml-3 mr-3">服务单管理</h2>
+      </template>
       <!-- 登录用户图标 -->
-      <v-menu class="ml-3">
+      <v-menu>
         <template #activator="{ props }">
           <v-avatar :icon="mdiAccount" v-bind="props"></v-avatar>
         </template>
@@ -40,7 +40,7 @@
       <!-- 右侧内容区域 -->
       <RouterView />
     </v-main>
-  </v-app>
+
 </template>
 
 <script lang="ts" setup>

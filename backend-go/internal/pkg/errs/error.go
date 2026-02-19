@@ -1,10 +1,46 @@
 package errs
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"runtime/debug"
+	"runtime"
+	"strings"
 )
+
+// GetStack 捕获堆栈
+func GetStack() []byte {
+	// 跳过 NewError + GetStack + runtime.Callers 自身帧
+	const skip = 3
+	const depth = 16
+	pc := make([]uintptr, depth)
+	n := runtime.Callers(skip, pc)
+	if n == 0 {
+		return []byte("unknown")
+	}
+
+	frames := runtime.CallersFrames(pc[:n])
+	var buf bytes.Buffer
+
+	for frame, more := frames.Next(); more || frame.PC != 0; frame, more = frames.Next() {
+		// 过滤第三方库/系统/工具包帧
+		if strings.Contains(frame.Function, "github.com/") ||
+			strings.Contains(frame.Function, "golang.org/") ||
+			strings.Contains(frame.Function, "runtime/") ||
+			strings.Contains(frame.Function, "errutil.") {
+			continue
+		}
+		buf.WriteString(fmt.Sprintf("%s(", frame.Function))
+		buf.WriteString(")\n")
+
+		// 标准格式行：\t绝对路径/文件名:行号
+		buf.WriteString(fmt.Sprintf("\t%s:%d \n",
+			frame.File,
+			frame.Line,
+		))
+	}
+	return buf.Bytes()
+}
 
 type StackError interface {
 	Error() string
@@ -49,8 +85,8 @@ func NewBizError(message string, e ...error) *BizError {
 			err.stack = se.Stack()
 		}
 	}
-	if err.stack != nil {
-		err.stack = debug.Stack()
+	if err.stack == nil || len(err.stack) == 0 {
+		err.stack = GetStack()
 	}
 	return err
 }
@@ -110,8 +146,8 @@ func NewFileOpError(message string, path string, e ...error) *FileOpError {
 			err.stack = se.Stack()
 		}
 	}
-	if err.stack != nil {
-		err.stack = debug.Stack()
+	if err.stack == nil || len(err.stack) == 0 {
+		err.stack = GetStack()
 	}
 	return err
 }
