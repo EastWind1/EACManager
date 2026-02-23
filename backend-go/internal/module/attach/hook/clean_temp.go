@@ -4,7 +4,7 @@ import (
 	"backend-go/internal/pkg/cache"
 	"os"
 
-	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v3/log"
 )
 
 // tempCacheName 临时文件缓存名称

@@ -6,7 +6,7 @@ import (
 	"backend-go/internal/pkg/result"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type CompanyController struct {
@@ -19,12 +19,12 @@ func NewCompanyController(companyService *service.CompanyService) *CompanyContro
 	}
 }
 
-func (c *CompanyController) GetAll(ctx *fiber.Ctx) error {
+func (c *CompanyController) GetAll(ctx fiber.Ctx) error {
 	var param result.QueryParam
-	if err := ctx.QueryParser(&param); err != nil {
+	if err := ctx.Bind().Query(&param); err != nil {
 		return err
 	}
-	res, err := c.companyService.FindEnabled(ctx.Context(), &param)
+	res, err := c.companyService.FindEnabled(ctx, &param)
 	if err != nil {
 		return err
 	}
@@ -32,12 +32,12 @@ func (c *CompanyController) GetAll(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *CompanyController) Create(ctx *fiber.Ctx) error {
+func (c *CompanyController) Create(ctx fiber.Ctx) error {
 	var dto model.CompanyDTO
-	if err := ctx.BodyParser(&dto); err != nil {
+	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
-	res, err := c.companyService.Create(ctx.Context(), &dto)
+	res, err := c.companyService.Create(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -45,12 +45,12 @@ func (c *CompanyController) Create(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *CompanyController) Update(ctx *fiber.Ctx) error {
+func (c *CompanyController) Update(ctx fiber.Ctx) error {
 	var dto model.CompanyDTO
-	if err := ctx.BodyParser(&dto); err != nil {
+	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
-	res, err := c.companyService.Update(ctx.Context(), &dto)
+	res, err := c.companyService.Update(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -58,13 +58,13 @@ func (c *CompanyController) Update(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *CompanyController) Disable(ctx *fiber.Ctx) error {
+func (c *CompanyController) Disable(ctx fiber.Ctx) error {
 	param := ctx.Params("id")
 	id, err := strconv.Atoi(param)
 	if err != nil {
 		return err
 	}
-	err = c.companyService.Disable(ctx.Context(), uint(id))
+	err = c.companyService.Disable(ctx, uint(id))
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,7 @@ package logger
 import (
 	"backend-go/config"
 
-	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v3/log"
 )
 
 var levelStr = []string{

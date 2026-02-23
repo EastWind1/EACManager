@@ -3,12 +3,12 @@ package middleware
 import (
 	"backend-go/internal/pkg/result"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // ResultWrap 响应体包装中间件
 func ResultWrap() fiber.Handler {
-	return func(c *fiber.Ctx) (err error) {
+	return func(c fiber.Ctx) (err error) {
 		err = c.Next()
 		if err != nil {
 			return

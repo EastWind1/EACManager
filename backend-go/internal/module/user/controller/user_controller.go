@@ -7,7 +7,7 @@ import (
 	"backend-go/internal/pkg/errs"
 	"backend-go/internal/pkg/result"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // UserController 用户控制器
@@ -25,14 +25,14 @@ func NewUserController(cfg *config.JWTConfig, userService *service.UserService) 
 }
 
 // Login 用户登录
-func (c *UserController) Login(ctx *fiber.Ctx) error {
+func (c *UserController) Login(ctx fiber.Ctx) error {
 	var param model.LoginParam
-	err := ctx.BodyParser(&param)
+	err := ctx.Bind().Body(&param)
 	if err != nil {
 		return err
 	}
 	origin := ctx.Get("Origin")
-	res, err := c.userService.Login(ctx.Context(), param.Username, param.Password, origin)
+	res, err := c.userService.Login(ctx, param.Username, param.Password, origin)
 	if err != nil {
 		return err
 	}
@@ -51,13 +51,13 @@ func (c *UserController) Login(ctx *fiber.Ctx) error {
 }
 
 // GetAll 获取用户列表
-func (c *UserController) GetAll(ctx *fiber.Ctx) error {
+func (c *UserController) GetAll(ctx fiber.Ctx) error {
 	var param result.QueryParam
-	err := ctx.QueryParser(&param)
+	err := ctx.Bind().Query(&param)
 	if err != nil {
 		return err
 	}
-	res, err := c.userService.GetAll(ctx.Context(), &param)
+	res, err := c.userService.GetAll(ctx, &param)
 	if err != nil {
 		return err
 	}
@@ -66,13 +66,13 @@ func (c *UserController) GetAll(ctx *fiber.Ctx) error {
 }
 
 // Create 创建用户
-func (c *UserController) Create(ctx *fiber.Ctx) error {
+func (c *UserController) Create(ctx fiber.Ctx) error {
 	var dto model.UserDTO
-	if err := ctx.BodyParser(&dto); err != nil {
+	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
 
-	res, err := c.userService.Create(ctx.Context(), &dto)
+	res, err := c.userService.Create(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -82,12 +82,12 @@ func (c *UserController) Create(ctx *fiber.Ctx) error {
 }
 
 // Update 更新用户
-func (c *UserController) Update(ctx *fiber.Ctx) error {
+func (c *UserController) Update(ctx fiber.Ctx) error {
 	var dto model.UserDTO
-	if err := ctx.BodyParser(&dto); err != nil {
+	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
-	res, err := c.userService.Update(ctx.Context(), &dto)
+	res, err := c.userService.Update(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -97,13 +97,13 @@ func (c *UserController) Update(ctx *fiber.Ctx) error {
 }
 
 // Disable 禁用用户
-func (c *UserController) Disable(ctx *fiber.Ctx) error {
+func (c *UserController) Disable(ctx fiber.Ctx) error {
 	username := ctx.Params("username")
 	if username == "" {
 		return errs.NewBizError("用户名为空")
 	}
 
-	if err := c.userService.Disable(ctx.Context(), username); err != nil {
+	if err := c.userService.Disable(ctx, username); err != nil {
 		return err
 	}
 

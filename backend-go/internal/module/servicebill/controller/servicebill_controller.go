@@ -7,7 +7,7 @@ import (
 	"backend-go/internal/pkg/result"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ServiceBillController struct {
@@ -20,13 +20,13 @@ func NewServiceBillController(bizSrv *service.BizService) *ServiceBillController
 	}
 }
 
-func (c *ServiceBillController) QueryByParam(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) QueryByParam(ctx fiber.Ctx) error {
 	var param model.ServiceBillQueryParam
-	if err := ctx.BodyParser(&param); err != nil {
+	if err := ctx.Bind().Body(&param); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.FindByParam(ctx.Context(), &param)
+	res, err := c.bizSrv.FindByParam(ctx, &param)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (c *ServiceBillController) QueryByParam(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) GetByID(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) GetByID(ctx fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	if idStr == "" {
 		return errs.NewBizError("ID 为空")
@@ -43,7 +43,7 @@ func (c *ServiceBillController) GetByID(ctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	res, err := c.bizSrv.FindByID(ctx.Context(), uint(id))
+	res, err := c.bizSrv.FindByID(ctx, uint(id))
 	if err != nil {
 		return err
 	}
@@ -51,13 +51,13 @@ func (c *ServiceBillController) GetByID(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) Create(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) Create(ctx fiber.Ctx) error {
 	var dto model.ServiceBillDTO
-	if err := ctx.BodyParser(&dto); err != nil {
+	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Create(ctx.Context(), &dto)
+	res, err := c.bizSrv.Create(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (c *ServiceBillController) Create(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) ImportByFile(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) ImportByFile(ctx fiber.Ctx) error {
 	form, err := ctx.MultipartForm()
 	if err != nil {
 		return err
@@ -83,13 +83,13 @@ func (c *ServiceBillController) ImportByFile(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) Update(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) Update(ctx fiber.Ctx) error {
 	var dto model.ServiceBillDTO
-	if err := ctx.BodyParser(&dto); err != nil {
+	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Update(ctx.Context(), &dto)
+	res, err := c.bizSrv.Update(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -97,13 +97,13 @@ func (c *ServiceBillController) Update(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) Delete(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) Delete(ctx fiber.Ctx) error {
 	var ids []uint
-	if err := ctx.BodyParser(&ids); err != nil {
+	if err := ctx.Bind().Body(&ids); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Delete(ctx.Context(), ids)
+	res, err := c.bizSrv.Delete(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -111,13 +111,13 @@ func (c *ServiceBillController) Delete(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) Process(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) Process(ctx fiber.Ctx) error {
 	var ids []uint
-	if err := ctx.BodyParser(&ids); err != nil {
+	if err := ctx.Bind().Body(&ids); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Process(ctx.Context(), ids)
+	res, err := c.bizSrv.Process(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -125,13 +125,13 @@ func (c *ServiceBillController) Process(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) Processed(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) Processed(ctx fiber.Ctx) error {
 	var param model.ProcessedParam
-	if err := ctx.BodyParser(&param); err != nil {
+	if err := ctx.Bind().Body(&param); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Processed(ctx.Context(), param.Ids, param.ProcessedDate)
+	res, err := c.bizSrv.Processed(ctx, param.Ids, param.ProcessedDate)
 	if err != nil {
 		return err
 	}
@@ -139,13 +139,13 @@ func (c *ServiceBillController) Processed(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) Finish(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) Finish(ctx fiber.Ctx) error {
 	var param model.FinishParam
-	if err := ctx.BodyParser(&param); err != nil {
+	if err := ctx.Bind().Body(&param); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Finish(ctx.Context(), param.Ids, param.FinishedDate)
+	res, err := c.bizSrv.Finish(ctx, param.Ids, param.FinishedDate)
 	if err != nil {
 		return err
 	}
@@ -153,13 +153,13 @@ func (c *ServiceBillController) Finish(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ServiceBillController) Export(ctx *fiber.Ctx) error {
+func (c *ServiceBillController) Export(ctx fiber.Ctx) error {
 	var ids []uint
-	if err := ctx.BodyParser(&ids); err != nil {
+	if err := ctx.Bind().Body(&ids); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Export(ctx.Context(), ids)
+	res, err := c.bizSrv.Export(ctx, ids)
 	if err != nil {
 		return err
 	}

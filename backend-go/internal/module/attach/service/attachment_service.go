@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v3/log"
 )
 
 // AttachmentService 附件服务

@@ -6,13 +6,13 @@ import (
 	"errors"
 	"runtime/debug"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 )
 
 // ErrorHandler 错误处理
 func ErrorHandler() fiber.ErrorHandler {
-	return func(c *fiber.Ctx, err error) error {
+	return func(c fiber.Ctx, err error) error {
 		if stackErr, ok := errors.AsType[errs.StackError](err); ok {
 			log.Errorf("%v", stackErr.Error())
 			log.Errorf("%v", string(stackErr.Stack()))

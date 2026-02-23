@@ -4,7 +4,7 @@ import (
 	"backend-go/internal/pkg/errs"
 	"errors"
 
-	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v3/log"
 )
 
 // ActionsResult 批量操作结果

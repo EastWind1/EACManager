@@ -5,7 +5,7 @@ import (
 	"backend-go/internal/pkg/errs"
 
 	"github.com/bytedance/sonic"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3/client"
 )
 
 type OCRRequest struct {
@@ -21,12 +21,17 @@ type OCRBlock struct {
 type OCRResult map[string]OCRBlock
 
 type OCRService struct {
-	cfg *config.OCRConfig
+	cfg    *config.OCRConfig
+	client *client.Client
 }
 
 func NewOCRService(cfg *config.OCRConfig) *OCRService {
+	c := client.New()
+	c.SetJSONMarshal(sonic.Marshal)
+	c.SetJSONUnmarshal(sonic.Unmarshal)
 	return &OCRService{
-		cfg: cfg,
+		cfg:    cfg,
+		client: c,
 	}
 }
 
@@ -35,19 +40,18 @@ func (s *OCRService) ParseImage(path string) ([]string, error) {
 	if s.cfg.URL == "" {
 		return nil, errs.NewBizError("未配置 OCR 服务器")
 	}
-	client := fiber.Post(s.cfg.URL)
-	client.JSON(OCRRequest{ImageFile: path})
-	_, body, e := client.Bytes()
-	if len(e) > 0 {
-		return nil, errs.NewFileOpError("", path, e[0])
+	res, err := s.client.Post(s.cfg.URL, client.Config{
+		Body: OCRRequest{ImageFile: path},
+	})
+	if err != nil {
+		return nil, err
 	}
-
-	res := make(OCRResult)
-	if err := sonic.Unmarshal(body, &res); err != nil {
-		return nil, errs.NewFileOpError("", path, err)
+	ocrResult := make(OCRResult)
+	if err = res.JSON(&ocrResult); err != nil {
+		return nil, err
 	}
 	var texts []string
-	for _, block := range res {
+	for _, block := range ocrResult {
 		texts = append(texts, block.RecTxt)
 	}
 

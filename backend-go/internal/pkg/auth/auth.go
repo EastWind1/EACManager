@@ -5,7 +5,7 @@ import (
 	"context"
 	"slices"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // CurUserKey 当前用户在上下文中的 Key
@@ -37,8 +37,8 @@ type User interface {
 }
 
 // SetCurrentUser 设置当前用户
-func SetCurrentUser(c *fiber.Ctx, user User) {
-	c.Context().SetUserValue(CurUserKey{}, user)
+func SetCurrentUser(c fiber.Ctx, user User) {
+	c.Locals(CurUserKey{}, user)
 }
 
 // GetCurrentUser 获取当前用户
@@ -68,8 +68,8 @@ func HasRole(ctx context.Context, roles ...AuthorityRole) (bool, error) {
 
 // RoleMiddleware 角色鉴权中间件
 func RoleMiddleware(roles ...AuthorityRole) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		res, err := HasRole(c.Context(), roles...)
+	return func(c fiber.Ctx) error {
+		res, err := HasRole(c, roles...)
 		if err != nil {
 			return err
 		}

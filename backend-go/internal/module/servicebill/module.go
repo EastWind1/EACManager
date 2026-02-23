@@ -9,7 +9,7 @@ import (
 	"backend-go/internal/pkg/auth"
 	"backend-go/internal/pkg/context"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func Setup(ctx *context.AppContext, router fiber.Router, companySrv *companySrv.CompanyService, attachSrv *attachSrv.AttachmentService, attachMapSrv *attachSrv.AttachMapService) {

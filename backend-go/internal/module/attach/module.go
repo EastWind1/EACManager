@@ -8,7 +8,7 @@ import (
 	"backend-go/internal/pkg/auth"
 	"backend-go/internal/pkg/context"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func Setup(ctx *context.AppContext, router fiber.Router) (*service.AttachmentService, *service.AttachMapService) {
@@ -24,7 +24,7 @@ func Setup(ctx *context.AppContext, router fiber.Router) (*service.AttachmentSer
 		attachGroup.Post("/temp", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), attachmentController.UploadTemp)
 	}
 
-	ctx.Server.Hooks().OnShutdown(func() error {
+	ctx.Server.Hooks().OnPostShutdown(func(err error) error {
 		hook.DeleteTempFiles(ctx.Cache)
 		return nil
 	})

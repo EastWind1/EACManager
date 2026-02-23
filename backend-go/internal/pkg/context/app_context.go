@@ -4,7 +4,7 @@ import (
 	"backend-go/config"
 	"backend-go/internal/pkg/cache"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
 

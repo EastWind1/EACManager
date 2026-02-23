@@ -7,7 +7,7 @@ import (
 	"backend-go/internal/pkg/result"
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ReimburseController struct {
@@ -20,13 +20,13 @@ func NewReimburseController(reimburseService *service.ReimburseService) *Reimbur
 	}
 }
 
-func (c *ReimburseController) QueryByParam(ctx *fiber.Ctx) error {
+func (c *ReimburseController) QueryByParam(ctx fiber.Ctx) error {
 	var param model.ReimburseQueryParam
-	if err := ctx.BodyParser(&param); err != nil {
+	if err := ctx.Bind().Body(&param); err != nil {
 		return err
 	}
 
-	res, err := c.reimburseService.FindByParam(ctx.Context(), &param)
+	res, err := c.reimburseService.FindByParam(ctx, &param)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (c *ReimburseController) QueryByParam(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ReimburseController) GetByID(ctx *fiber.Ctx) error {
+func (c *ReimburseController) GetByID(ctx fiber.Ctx) error {
 	idStr := ctx.Params("id")
 	if idStr == "" {
 		return errs.NewBizError("ID 为空")
@@ -43,7 +43,7 @@ func (c *ReimburseController) GetByID(ctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	res, err := c.reimburseService.FindByID(ctx.Context(), uint(id))
+	res, err := c.reimburseService.FindByID(ctx, uint(id))
 	if err != nil {
 		return err
 	}
@@ -51,13 +51,13 @@ func (c *ReimburseController) GetByID(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ReimburseController) Create(ctx *fiber.Ctx) error {
+func (c *ReimburseController) Create(ctx fiber.Ctx) error {
 	var dto model.ReimbursementDTO
-	if err := ctx.BodyParser(&dto); err != nil {
+	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
 
-	res, err := c.reimburseService.Create(ctx.Context(), &dto)
+	res, err := c.reimburseService.Create(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -65,13 +65,13 @@ func (c *ReimburseController) Create(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ReimburseController) Update(ctx *fiber.Ctx) error {
+func (c *ReimburseController) Update(ctx fiber.Ctx) error {
 	var dto model.ReimbursementDTO
-	if err := ctx.BodyParser(&dto); err != nil {
+	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
 
-	res, err := c.reimburseService.Update(ctx.Context(), &dto)
+	res, err := c.reimburseService.Update(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -79,13 +79,13 @@ func (c *ReimburseController) Update(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ReimburseController) Delete(ctx *fiber.Ctx) error {
+func (c *ReimburseController) Delete(ctx fiber.Ctx) error {
 	var ids []uint
-	if err := ctx.BodyParser(&ids); err != nil {
+	if err := ctx.Bind().Body(&ids); err != nil {
 		return err
 	}
 
-	res, err := c.reimburseService.Delete(ctx.Context(), ids)
+	res, err := c.reimburseService.Delete(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -93,13 +93,13 @@ func (c *ReimburseController) Delete(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ReimburseController) Process(ctx *fiber.Ctx) error {
+func (c *ReimburseController) Process(ctx fiber.Ctx) error {
 	var ids []uint
-	if err := ctx.BodyParser(&ids); err != nil {
+	if err := ctx.Bind().Body(&ids); err != nil {
 		return err
 	}
 
-	res, err := c.reimburseService.Process(ctx.Context(), ids)
+	res, err := c.reimburseService.Process(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -107,13 +107,13 @@ func (c *ReimburseController) Process(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ReimburseController) Finish(ctx *fiber.Ctx) error {
+func (c *ReimburseController) Finish(ctx fiber.Ctx) error {
 	var ids []uint
-	if err := ctx.BodyParser(&ids); err != nil {
+	if err := ctx.Bind().Body(&ids); err != nil {
 		return err
 	}
 
-	res, err := c.reimburseService.Finish(ctx.Context(), ids)
+	res, err := c.reimburseService.Finish(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -121,13 +121,13 @@ func (c *ReimburseController) Finish(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *ReimburseController) Export(ctx *fiber.Ctx) error {
+func (c *ReimburseController) Export(ctx fiber.Ctx) error {
 	var ids []uint
-	if err := ctx.BodyParser(&ids); err != nil {
+	if err := ctx.Bind().Body(&ids); err != nil {
 		return err
 	}
 
-	res, err := c.reimburseService.Export(ctx.Context(), ids)
+	res, err := c.reimburseService.Export(ctx, ids)
 	if err != nil {
 		return err
 	}

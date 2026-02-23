@@ -1,7 +1,7 @@
 package result
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // responseDataKey 逻辑结果在上下文中的 Key
@@ -28,11 +28,11 @@ func Error[T any](message string, data ...T) Result[T] {
 }
 
 // SetResult 设置响应体值，最终由中间件 ResultWrap 序列化为 JSON
-func SetResult(c *fiber.Ctx, data any) {
-	c.Context().SetUserValue(responseDataKey, data)
+func SetResult(c fiber.Ctx, data any) {
+	c.Locals(responseDataKey, data)
 }
 
 // GetResult 获取响应体值
-func GetResult(c *fiber.Ctx) any {
-	return c.Context().Value(responseDataKey)
+func GetResult(c fiber.Ctx) any {
+	return c.Value(responseDataKey)
 }

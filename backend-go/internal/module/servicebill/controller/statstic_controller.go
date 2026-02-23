@@ -4,7 +4,7 @@ import (
 	"backend-go/internal/module/servicebill/service"
 	"backend-go/internal/pkg/result"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type StatisticController struct {
@@ -17,8 +17,8 @@ func NewStatisticController(statisticSrv *service.StatisticService) *StatisticCo
 	}
 }
 
-func (c *StatisticController) CountBillsByState(ctx *fiber.Ctx) error {
-	res, err := c.statisticSrv.CountBillsByState(ctx.Context())
+func (c *StatisticController) CountBillsByState(ctx fiber.Ctx) error {
+	res, err := c.statisticSrv.CountBillsByState(ctx)
 	if err != nil {
 		return err
 	}
@@ -26,8 +26,8 @@ func (c *StatisticController) CountBillsByState(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *StatisticController) SumAmountByMonth(ctx *fiber.Ctx) error {
-	res, err := c.statisticSrv.SumAmountByMonth(ctx.Context())
+func (c *StatisticController) SumAmountByMonth(ctx fiber.Ctx) error {
+	res, err := c.statisticSrv.SumAmountByMonth(ctx)
 	if err != nil {
 		return err
 	}

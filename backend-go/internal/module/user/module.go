@@ -8,7 +8,7 @@ import (
 	"backend-go/internal/pkg/auth"
 	"backend-go/internal/pkg/context"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // Setup 初始化

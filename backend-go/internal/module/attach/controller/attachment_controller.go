@@ -6,7 +6,7 @@ import (
 	"backend-go/internal/pkg/errs"
 	"backend-go/internal/pkg/result"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type AttachmentController struct {
@@ -19,7 +19,7 @@ func NewAttachmentController(attachService *service.AttachmentService) *Attachme
 	}
 }
 
-func (c *AttachmentController) UploadTemp(ctx *fiber.Ctx) error {
+func (c *AttachmentController) UploadTemp(ctx fiber.Ctx) error {
 	form, err := ctx.MultipartForm()
 	if err != nil {
 		return err
@@ -37,12 +37,12 @@ func (c *AttachmentController) UploadTemp(ctx *fiber.Ctx) error {
 	return nil
 }
 
-func (c *AttachmentController) Download(ctx *fiber.Ctx) error {
+func (c *AttachmentController) Download(ctx fiber.Ctx) error {
 	var dto model.AttachmentDTO
-	if err := ctx.QueryParser(&dto); err != nil {
+	if err := ctx.Bind().Query(&dto); err != nil {
 		return err
 	}
-	name, path, err := c.attachService.GetResource(ctx.Context(), &dto)
+	name, path, err := c.attachService.GetResource(ctx, &dto)
 	if err != nil {
 		return err
 	}
