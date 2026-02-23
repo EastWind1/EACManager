@@ -15,6 +15,6 @@ const Crypto = {
     return Array.from(new Uint8Array(array))
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
-  }
+  },
 }
 export default Crypto

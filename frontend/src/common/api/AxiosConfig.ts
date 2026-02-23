@@ -45,13 +45,12 @@ function useAxios(baseURL: string): AxiosInstance {
         switch (err.status) {
           case 401:
             warning('未登录或登录过期')
-            await router
-              .push({
-                path: '/login',
-                query: {
-                  redirect: location.pathname + location.search,
-                },
-              })
+            await router.push({
+              path: '/login',
+              query: {
+                redirect: location.pathname + location.search,
+              },
+            })
             break
           case 403:
             warning('权限不足')

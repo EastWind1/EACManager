@@ -115,7 +115,7 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
     if (!date) {
       return
     }
-    processResult(await ServiceBillApi.finish(ids,  date))
+    processResult(await ServiceBillApi.finish(ids, date))
   }
 
   /**

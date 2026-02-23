@@ -1,91 +1,88 @@
 <!-- 用户管理 -->
 <template>
-  <v-container>
-    <v-data-table
-      :headers="headers"
-      :items="data.items"
-      :items-length="data.totalCount"
-      :items-per-page="data.pageSize ? data.pageSize : 25"
-      :items-per-page-options="[
-        { value: 10, title: '10' },
-        { value: 25, title: '25' },
-        { value: 50, title: '50' },
-        { value: 100, title: '100' },
-      ]"
-      class="mt-2 flex-grow-1"
-      mobile-breakpoint="sm"
-      show-select
-      @update:options="loadItems"
-    >
-      <template #[`item.authority`]="{ item }">
-        {{ AuthorityRole[item.authority].title }}
+  <v-data-table
+    :headers="headers"
+    :items="data.items"
+    :items-length="data.totalCount"
+    :items-per-page="data.pageSize ? data.pageSize : 25"
+    :items-per-page-options="[
+      { value: 10, title: '10' },
+      { value: 25, title: '25' },
+      { value: 50, title: '50' },
+      { value: 100, title: '100' },
+    ]"
+    mobile-breakpoint="sm"
+    show-select
+    @update:options="loadItems"
+  >
+    <template #[`item.authority`]="{ item }">
+      {{ AuthorityRole[item.authority].title }}
+    </template>
+    <template #[`item.actions`]="{ item }">
+      <template
+        v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value || curUser?.id === item.id"
+      >
+        <v-btn :icon="mdiPencil" size="small" variant="plain" @click="edit(item)"></v-btn>
+        <v-btn :icon="mdiClose" size="small" variant="plain" @click="disable(item)"></v-btn>
       </template>
-      <template #[`item.actions`]="{ item }">
-        <template
-          v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value || curUser?.id === item.id"
-        >
-          <v-btn :icon="mdiPencil" @click="edit(item)" size="small" variant="plain"></v-btn>
-          <v-btn :icon="mdiClose" @click="disable(item)" size="small" variant="plain"></v-btn>
-        </template>
+    </template>
+    <!-- 最后一行添加加号按钮 -->
+    <template v-if="AuthorityRole.ROLE_ADMIN.value" #[`body.append`]>
+      <tr>
+        <td :colspan="headers.length" class="align-center">
+          <v-btn block variant="plain" @click="add">
+            <v-icon :icon="mdiPlus"></v-icon>
+          </v-btn>
+        </td>
+      </tr>
+    </template>
+  </v-data-table>
+
+  <!-- 编辑用户弹窗 -->
+  <v-dialog v-model="dialogData.show" max-width="500">
+    <v-card v-if="dialogData.user">
+      <template #title>{{ dialogData.title }}</template>
+      <template #text>
+        <v-form v-model="dialogData.valid">
+          <v-label>基本信息</v-label>
+          <v-divider class="pb-4"></v-divider>
+
+          <v-text-field v-model="dialogData.user.name" label="名称"></v-text-field>
+          <v-text-field v-model="dialogData.user.phone" label="电话"></v-text-field>
+          <v-text-field v-model="dialogData.user.email" label="邮箱"></v-text-field>
+          <v-select v-model="dialogData.user.authority" :items="options" label="角色"></v-select>
+
+          <v-label>登录信息</v-label>
+          <v-divider class="pb-4"></v-divider>
+
+          <v-text-field
+            v-model="dialogData.user.username"
+            :disabled="!!dialogData.user.id"
+            :rules="[required]"
+            label="用户名"
+          ></v-text-field>
+          <v-text-field
+            v-model="dialogData.user.password"
+            :rules="[requiredNew]"
+            label="密码"
+            type="password"
+          ></v-text-field>
+          <v-text-field
+            v-model="dialogData.user.passwordAgain"
+            :rules="[passwordAgainEqual]"
+            label="再次输入密码"
+            type="password"
+          >
+          </v-text-field>
+
+          <div class="text-right mt-4">
+            <v-btn color="primary" @click="saveUser">保存</v-btn>
+            <v-btn @click="dialogData.show = false">取消</v-btn>
+          </div>
+        </v-form>
       </template>
-      <!-- 最后一行添加加号按钮 -->
-      <template #[`body.append`] v-if="AuthorityRole.ROLE_ADMIN.value">
-        <tr>
-          <td :colspan="headers.length" class="align-center">
-            <v-btn block variant="plain" @click="add">
-              <v-icon :icon="mdiPlus"></v-icon>
-            </v-btn>
-          </td>
-        </tr>
-      </template>
-    </v-data-table>
-
-    <!-- 编辑用户弹窗 -->
-    <v-dialog v-model="dialogData.show" max-width="500">
-      <v-card v-if="dialogData.user">
-        <template #title>{{ dialogData.title }}</template>
-        <template #text>
-          <v-form v-model="dialogData.valid">
-            <v-label>基本信息</v-label>
-            <v-divider class="pb-4"></v-divider>
-
-            <v-text-field v-model="dialogData.user.name" label="名称"></v-text-field>
-            <v-text-field v-model="dialogData.user.phone" label="电话"></v-text-field>
-            <v-text-field v-model="dialogData.user.email" label="邮箱"></v-text-field>
-            <v-select v-model="dialogData.user.authority" :items="options" label="角色"></v-select>
-
-            <v-label>登录信息</v-label>
-            <v-divider class="pb-4"></v-divider>
-
-            <v-text-field
-              v-model="dialogData.user.username"
-              :disabled="!!dialogData.user.id"
-              :rules="[required]"
-              label="用户名"
-            ></v-text-field>
-            <v-text-field
-              v-model="dialogData.user.password"
-              :rules="[requiredNew]"
-              label="密码"
-              type="password"
-            ></v-text-field>
-            <v-text-field
-              v-model="dialogData.user.passwordAgain"
-              :rules="[passwordAgainEqual]"
-              label="再次输入密码"
-              type="password"
-            >
-            </v-text-field>
-
-            <div class="text-right mt-4">
-              <v-btn color="primary" @click="saveUser">保存</v-btn>
-              <v-btn @click="dialogData.show = false">取消</v-btn>
-            </div>
-          </v-form>
-        </template>
-      </v-card>
-    </v-dialog>
-  </v-container>
+    </v-card>
+  </v-dialog>
 </template>
 <script lang="ts" setup>
 import { ref } from 'vue'

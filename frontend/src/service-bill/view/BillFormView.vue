@@ -1,116 +1,134 @@
 <!-- 订单表单 -->
 <template>
-  <v-container>
-    <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
-      <!-- 单据头部 -->
-      <v-card>
-        <template #text>
-          <v-row justify="space-between">
-            <!-- 左侧单据头 -->
-            <v-col cols="6">
-              <v-row>
-                <v-col>
-                  <v-text-field
-                    v-if="serviceBill.state === ServiceBillState.CREATED.value"
-                    v-model="serviceBill.number"
-                    label="单号"
-                    placeholder="可生成自动"
-                  ></v-text-field>
-                  <div v-else>
-                    <div class="text-h6">单号: {{ serviceBill.number }}</div>
-                  </div>
-                </v-col>
-                <!-- 单据状态 -->
-                <v-col>
-                  <div class="text-h6">
-                    状态:
-                    <v-chip
-                      :color="ServiceBillState[serviceBill.state].color"
-                      size="small"
-                      class="text-white"
-                    >
-                      {{ ServiceBillState[serviceBill.state].title }}
-                    </v-chip>
-                  </div>
-                </v-col>
-                <!-- 总金额 -->
-                <v-col>
-                  <div class="text-h6">
-                    总金额: ￥{{
-                      serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00'
-                    }}
-                  </div>
-                </v-col>
-              </v-row>
-            </v-col>
-            <!-- 右侧按钮区域 -->
-            <v-col justify-end>
-              <v-row class="ga-2" justify="end">
-                <!-- 非完成状态都可以编辑 -->
-                <v-btn
-                  v-if="serviceBill.id && (serviceBill.state !== ServiceBillState.FINISHED.value || userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))"
-                  :disabled="isEditState"
-                  color="primary"
-                  @click="isEditState = true"
-                  >编辑
-                </v-btn>
-                <v-btn
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
-                  :loading="loading"
-                  @click="process([serviceBill.id!])"
-                  >开始处理
-                </v-btn>
-                <v-btn
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
-                  :loading="loading"
-                  @click="processed([serviceBill.id!])"
-                  >处理完成
-                </v-btn>
-                <v-btn
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
-                  :loading="loading"
-                  @click="finish([serviceBill.id!])"
-                  >回款完成
-                </v-btn>
-                <v-btn
-                  v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
-                  :loading="loading"
-                  @click="removeAndBack(serviceBill.id!)"
-                  >删除
-                </v-btn>
-                <v-btn v-if="isEditState" :loading="loading" type="submit">保存</v-btn>
-                <v-btn v-if="isEditState" @click="cancel" color="warning">取消</v-btn>
-              </v-row>
-            </v-col>
-          </v-row>
-        </template>
-      </v-card>
-      <v-card class="mt-4">
-        <template #title>
-          <v-icon :icon="mdiFileDocument" class="me-2"></v-icon>
-          基本信息
-        </template>
-        <template #text>
+  <!-- 单据头部 -->
+  <v-sheet>
+    <v-container>
+      <v-row>
+        <!-- 左侧：单号和状态信息 -->
+        <!-- 单号显示 -->
+        <v-col
+          v-if="serviceBill.state !== ServiceBillState.CREATED.value"
+          cols="6"
+          sm="4"
+          md="3"
+          xl="2"
+        >
+          <div class="text-caption text-grey-darken-1">单号</div>
+          <div class="text-h6 text-no-wrap">{{ serviceBill.number }}</div>
+        </v-col>
+        <!-- 状态标签 -->
+        <v-col cols="3" md="2" xl="1">
+          <div class="text-caption text-grey-darken-1">状态</div>
+          <v-chip
+            :color="ServiceBillState[serviceBill.state].color"
+            size="small"
+            class="font-weight-bold mt-1"
+          >
+            {{ ServiceBillState[serviceBill.state].title }}
+          </v-chip>
+        </v-col>
+        <!-- 总金额 -->
+        <v-col cols="3" md="2" xl="1">
+          <div class="text-caption text-grey-darken-1">总金额</div>
+          <div class="text-h6 font-weight-bold text-primary">
+            ￥{{ serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00' }}
+          </div>
+        </v-col>
+        <v-spacer></v-spacer>
+        <v-col class="d-flex justify-end align-center">
+          <v-btn
+            v-if="
+              serviceBill.id &&
+              (serviceBill.state !== ServiceBillState.FINISHED.value ||
+                userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))
+            "
+            :disabled="isEditState"
+            color="primary"
+            @click="isEditState = true"
+          >
+            编辑
+          </v-btn>
+          <v-btn
+            v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
+            :loading="loading"
+            color="success"
+            @click="process([serviceBill.id!])"
+          >
+            开始处理
+          </v-btn>
+          <v-btn
+            v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
+            :loading="loading"
+            color="info"
+            @click="processed([serviceBill.id!])"
+          >
+            处理完成
+          </v-btn>
+          <v-btn
+            v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
+            :loading="loading"
+            color="success"
+            @click="finish([serviceBill.id!])"
+          >
+            回款完成
+          </v-btn>
+          <v-btn
+            v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
+            :loading="loading"
+            color="error"
+            @click="removeAndBack(serviceBill.id!)"
+          >
+            删除
+          </v-btn>
+          <v-btn v-if="isEditState" :loading="loading" type="submit" color="primary"> 保存 </v-btn>
+          <v-btn v-if="isEditState" color="grey-lighten-1" variant="text" @click="cancel">
+            取消
+          </v-btn>
+        </v-col>
+      </v-row>
+    </v-container>
+  </v-sheet>
+  <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
+    <v-card class="mt-4">
+      <template #title>
+        <v-icon :icon="mdiFileDocument" class="me-2"></v-icon>
+        基本信息
+      </template>
+      <template #text>
+        <v-container>
           <v-row>
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col
+              cols="12"
+              sm="6"
+              md="4"
+              xl="3"
+              v-if="serviceBill.state === ServiceBillState.CREATED.value"
+            >
+              <v-text-field
+                v-model="serviceBill.number"
+                label="单号"
+                placeholder="可生成自动"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-select
                 v-model="serviceBill.type"
                 :items="billTypeOption"
                 label="单据类型"
               ></v-select>
             </v-col>
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-select
                 v-model="serviceBill.productCompany"
-                label="产品公司"
                 :items="companyData.data"
                 item-title="name"
+                label="产品公司"
                 return-object
                 @update:menu="companySelect"
               ></v-select>
             </v-col>
             <!-- 项目名称 -->
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-text-field
                 v-model="serviceBill.projectName"
                 :rules="[requiredRule]"
@@ -118,7 +136,7 @@
               ></v-text-field>
             </v-col>
             <!-- 项目地址 -->
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-text-field
                 v-model="serviceBill.projectAddress"
                 :rules="[requiredRule]"
@@ -131,43 +149,45 @@
               </v-text-field>
             </v-col>
             <!-- 项目联系人 -->
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-text-field v-model="serviceBill.projectContact" label="项目联系人"></v-text-field>
             </v-col>
             <!-- 项目联系人电话 -->
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-text-field v-model="serviceBill.projectContactPhone" label="项目联系人电话">
-                <template #append v-if="mobile">
+                <template v-if="mobile" #append>
                   <v-icon :icon="mdiPhone" @click="callPhone(serviceBill.projectContactPhone)">
                   </v-icon>
                 </template>
               </v-text-field>
             </v-col>
           </v-row>
-        </template>
-      </v-card>
-      <!-- 现场信息 -->
-      <v-card class="mt-4">
-        <template #title>
-          <v-icon :icon="mdiMapMarker" class="me-2"></v-icon>
-          现场信息
-        </template>
-        <template #text>
+        </v-container>
+      </template>
+    </v-card>
+    <!-- 现场信息 -->
+    <v-card class="mt-4">
+      <template #title>
+        <v-icon :icon="mdiMapMarker" class="me-2"></v-icon>
+        现场信息
+      </template>
+      <template #text>
+        <v-container>
           <v-row>
             <!-- 现场联系人 -->
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-text-field v-model="serviceBill.onSiteContact" label="现场联系人"></v-text-field>
             </v-col>
             <!-- 现场联系人电话 -->
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-text-field v-model="serviceBill.onSitePhone" label="现场联系人电话">
-                <template #append v-if="mobile">
+                <template v-if="mobile" #append>
                   <v-icon :icon="mdiPhone" @click="callPhone(serviceBill.onSitePhone)"> </v-icon>
                 </template>
               </v-text-field>
             </v-col>
             <!-- 电梯信息 -->
-            <v-col cols="12" lg="8" md="12" sm="12" xl="6">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-text-field
                 v-model="serviceBill.elevatorInfo"
                 label="电梯信息"
@@ -175,51 +195,53 @@
               ></v-text-field>
             </v-col>
           </v-row>
-        </template>
-      </v-card>
-      <!-- 明细 -->
-      <v-card class="mt-5">
-        <template #title>
-          <v-tabs v-model="tab">
-            <v-tab value="detail">
-              <v-icon :icon="mdiListBox" class="me-2"></v-icon>
-              明细
-            </v-tab>
-            <v-tab value="attachment">
-              <v-icon :icon="mdiPaperclip" class="me-2"></v-icon>
-              附件
-            </v-tab>
-          </v-tabs>
-        </template>
-        <template #text>
-          <v-tabs-window v-model="tab">
-            <!-- 服务单明细 -->
-            <v-tabs-window-item value="detail">
-              <BillFormDetail v-model="serviceBill" :readonly="!isEditState"></BillFormDetail>
-            </v-tabs-window-item>
-            <!-- 附件 -->
-            <v-tabs-window-item value="attachment">
-              <FormAttachDetail
-                v-model="serviceBill.attachments"
-                :readonly="!isEditState"
-              ></FormAttachDetail>
-            </v-tabs-window-item>
-          </v-tabs-window>
-        </template>
-      </v-card>
-      <!-- 其他字段 -->
-      <v-card class="mt-4">
-        <template #title>
-          <v-icon :icon="mdiInformation" class="me-2"></v-icon>
-          其它信息
-        </template>
-        <template #text>
+        </v-container>
+      </template>
+    </v-card>
+    <!-- 明细 -->
+    <v-card class="mt-5">
+      <template #title>
+        <v-tabs v-model="tab">
+          <v-tab value="detail">
+            <v-icon :icon="mdiListBox" class="me-2"></v-icon>
+            明细
+          </v-tab>
+          <v-tab value="attachment">
+            <v-icon :icon="mdiPaperclip" class="me-2"></v-icon>
+            附件
+          </v-tab>
+        </v-tabs>
+      </template>
+      <template #text>
+        <v-tabs-window v-model="tab">
+          <!-- 服务单明细 -->
+          <v-tabs-window-item value="detail">
+            <BillFormDetail v-model="serviceBill" :readonly="!isEditState"></BillFormDetail>
+          </v-tabs-window-item>
+          <!-- 附件 -->
+          <v-tabs-window-item value="attachment">
+            <FormAttachDetail
+              v-model="serviceBill.attachments"
+              :readonly="!isEditState"
+            ></FormAttachDetail>
+          </v-tabs-window-item>
+        </v-tabs-window>
+      </template>
+    </v-card>
+    <!-- 其他字段 -->
+    <v-card class="mt-4">
+      <template #title>
+        <v-icon :icon="mdiInformation" class="me-2"></v-icon>
+        其它信息
+      </template>
+      <template #text>
+        <v-container>
           <v-row>
             <v-col cols="12">
               <v-textarea v-model="serviceBill.remark" label="备注"></v-textarea>
             </v-col>
             <!-- 创建时间 -->
-            <v-col cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <div
                 v-if="serviceBill.state !== ServiceBillState.CREATED.value"
                 class="text-subtitle-2 mb-1"
@@ -235,27 +257,27 @@
                 v-else
                 v-model="serviceBill.orderDate"
                 :readonly="!isEditState"
+                density="compact"
                 label="创建时间"
                 variant="outlined"
-                density="compact"
               ></v-date-input>
             </v-col>
             <!-- 处理完成时间 -->
-            <v-col v-if="serviceBill.processedDate" cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col v-if="serviceBill.processedDate" cols="12" sm="6" md="4" xl="3">
               <div class="text-subtitle-2 mb-1">
                 处理完成时间 {{ dateUtil.format(serviceBill.processedDate, 'keyboardDate') }}
               </div>
             </v-col>
-            <v-col v-if="serviceBill.finishedDate" cols="12" lg="4" md="6" sm="12" xl="3">
+            <v-col v-if="serviceBill.finishedDate" cols="12" sm="6" md="4" xl="3">
               <div class="text-subtitle-2 mb-1">
                 回款完成时间 {{ dateUtil.format(serviceBill.finishedDate, 'keyboardDate') }}
               </div>
             </v-col>
           </v-row>
-        </template>
-      </v-card>
-    </v-form>
-  </v-container>
+        </v-container>
+      </template>
+    </v-card>
+  </v-form>
 </template>
 
 <script lang="ts" setup>
@@ -273,12 +295,12 @@ import { useBillActions } from '../composable/BillActions.ts'
 import { VDateInput } from 'vuetify/labs/components'
 import {
   mdiFileDocument,
-  mdiPhone,
-  mdiNavigation,
-  mdiMapMarker,
-  mdiListBox,
-  mdiPaperclip,
   mdiInformation,
+  mdiListBox,
+  mdiMapMarker,
+  mdiNavigation,
+  mdiPaperclip,
+  mdiPhone,
 } from '@mdi/js'
 import { useDate, useDisplay, useHotkey } from 'vuetify/framework'
 import type { Company } from '@/company/model/Company.ts'
@@ -373,7 +395,7 @@ async function cancel() {
     isEditState.value = false
   } else {
     // 新增单据跳转回列表
-    await router.push('/serviceBill')
+    await router.push('/services')
   }
 }
 /**
@@ -430,7 +452,7 @@ function callPhone(phone?: string) {
 
 const { process, processed, finish, remove } = useBillActions(processResult)
 
-async function removeAndBack(id :number) {
+async function removeAndBack(id: number) {
   await remove([id])
   router.back()
 }

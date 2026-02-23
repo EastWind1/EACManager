@@ -22,7 +22,7 @@ const CompanyApi = {
    */
   async getAll(param: QueryParam) {
     const res = await getAxios().get('', {
-      params: param
+      params: param,
     })
     return res.data as PageResult<Company>
   },
@@ -50,6 +50,6 @@ const CompanyApi = {
    */
   async disable(id: number) {
     return getAxios().delete(`/${id}`)
-  }
+  },
 }
 export default CompanyApi

@@ -1,13 +1,13 @@
 <template>
-  <v-container fluid>
+  <v-container>
     <!-- 卡片布局 -->
     <v-row>
       <!-- 待处理单据与处理中单据 -->
-      <v-col cols="12" md="6">
+      <v-col md="6">
         <v-card class="h-100">
           <template #title>
             <div class="d-flex align-center">
-              <v-icon :icon="mdiMonitorDashboard" color="primary" class="mr-2"></v-icon>
+              <v-icon :icon="mdiMonitorDashboard" class="mr-2" color="primary"></v-icon>
               <span>单据统计</span>
             </div>
           </template>
@@ -38,11 +38,11 @@
         </v-card>
       </v-col>
 
-      <v-col cols="12" md="6">
+      <v-col md="6">
         <v-card class="h-100">
           <template #title>
             <div class="d-flex align-center">
-              <v-icon :icon="mdiCash" color="primary" class="mr-2"></v-icon>
+              <v-icon :icon="mdiCash" class="mr-2" color="primary"></v-icon>
               <span>近一年收入</span>
             </div>
           </template>

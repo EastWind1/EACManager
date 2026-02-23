@@ -1,68 +1,65 @@
 <!-- 公司管理 -->
 <template>
-  <v-container>
-    <v-data-table
-      :headers="headers"
-      :items="data.items"
-      :items-length="data.totalCount"
-      :items-per-page="data.pageSize ? data.pageSize : 25"
-      :items-per-page-options="[
-        { value: 10, title: '10' },
-        { value: 25, title: '25' },
-        { value: 50, title: '50' },
-        { value: 100, title: '100' },
-      ]"
-      class="mt-2 flex-grow-1"
-      mobile-breakpoint="sm"
-      show-select
-      @update:options="loadItems"
-    >
-      <template #[`item.actions`]="{ item }">
-        <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value">
-          <v-btn :icon="mdiPencil" @click="edit(item)" size="small" variant="plain"></v-btn>
-          <v-btn :icon="mdiClose" @click="disable(item)" size="small" variant="plain"></v-btn>
-        </template>
+  <v-data-table
+    :headers="headers"
+    :items="data.items"
+    :items-length="data.totalCount"
+    :items-per-page="data.pageSize ? data.pageSize : 25"
+    :items-per-page-options="[
+      { value: 10, title: '10' },
+      { value: 25, title: '25' },
+      { value: 50, title: '50' },
+      { value: 100, title: '100' },
+    ]"
+    mobile-breakpoint="sm"
+    show-select
+    @update:options="loadItems"
+  >
+    <template #[`item.actions`]="{ item }">
+      <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value">
+        <v-btn :icon="mdiPencil" size="small" variant="plain" @click="edit(item)"></v-btn>
+        <v-btn :icon="mdiClose" size="small" variant="plain" @click="disable(item)"></v-btn>
       </template>
-      <!-- 最后一行添加加号按钮 -->
-      <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value" #[`body.append`]>
-        <tr>
-          <td :colspan="headers.length" class="align-center">
-            <v-btn block variant="plain" @click="add">
-              <v-icon :icon="mdiPlus"></v-icon>
-            </v-btn>
-          </td>
-        </tr>
-      </template>
-    </v-data-table>
+    </template>
+    <!-- 最后一行添加加号按钮 -->
+    <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value" #[`body.append`]>
+      <tr>
+        <td :colspan="headers.length" class="align-center">
+          <v-btn block variant="plain" @click="add">
+            <v-icon :icon="mdiPlus"></v-icon>
+          </v-btn>
+        </td>
+      </tr>
+    </template>
+  </v-data-table>
 
-    <!-- 编辑用户弹窗 -->
-    <v-dialog v-model="dialogData.show" max-width="500">
-      <v-card v-if="dialogData.company">
-        <template #title>{{ dialogData.title }}</template>
-        <template #text>
-          <v-form v-model="dialogData.valid">
-            <v-text-field
-              v-model="dialogData.company.name"
-              label="名称"
-              :rules="[required]"
-            ></v-text-field>
-            <v-text-field v-model="dialogData.company.contactName" label="联系人"></v-text-field>
-            <v-text-field v-model="dialogData.company.contactPhone" label="电话"></v-text-field>
-            <v-text-field
-              v-model="dialogData.company.email"
-              label="邮箱"
-              :rules="[emailValid]"
-            ></v-text-field>
-            <v-text-field v-model="dialogData.company.address" label="地址"></v-text-field>
-            <div class="text-right mt-4">
-              <v-btn color="primary" @click="save">保存</v-btn>
-              <v-btn @click="dialogData.show = false">取消</v-btn>
-            </div>
-          </v-form>
-        </template>
-      </v-card>
-    </v-dialog>
-  </v-container>
+  <!-- 编辑用户弹窗 -->
+  <v-dialog v-model="dialogData.show" max-width="500">
+    <v-card v-if="dialogData.company">
+      <template #title>{{ dialogData.title }}</template>
+      <template #text>
+        <v-form v-model="dialogData.valid">
+          <v-text-field
+            v-model="dialogData.company.name"
+            :rules="[required]"
+            label="名称"
+          ></v-text-field>
+          <v-text-field v-model="dialogData.company.contactName" label="联系人"></v-text-field>
+          <v-text-field v-model="dialogData.company.contactPhone" label="电话"></v-text-field>
+          <v-text-field
+            v-model="dialogData.company.email"
+            :rules="[emailValid]"
+            label="邮箱"
+          ></v-text-field>
+          <v-text-field v-model="dialogData.company.address" label="地址"></v-text-field>
+          <div class="text-right mt-4">
+            <v-btn color="primary" @click="save">保存</v-btn>
+            <v-btn @click="dialogData.show = false">取消</v-btn>
+          </div>
+        </v-form>
+      </template>
+    </v-card>
+  </v-dialog>
 </template>
 <script lang="ts" setup>
 import { ref } from 'vue'

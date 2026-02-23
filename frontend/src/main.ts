@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 
+import './assets/style.css'
 import App from '@/App.vue'
 import router from '@/router.ts'
 
@@ -9,7 +10,6 @@ import { zhHans } from 'vuetify/locale'
 import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 import { createPinia } from 'pinia'
 import { useUserStore } from '@/user/store/UserStore.ts'
-
 
 const vuetify = createVuetify({
   // 中文
@@ -31,7 +31,7 @@ const vuetify = createVuetify({
   // UI 默认样式
   defaults: {
     global: {
-      density: 'comfortable',
+      density: 'comfortable'
     },
     VContainer: {
       fluid: true,
@@ -39,26 +39,24 @@ const vuetify = createVuetify({
     VRow: {
       dense: true,
     },
+    VCol: {
+      dense: true,
+    },
     VTextField: {
       variant: 'outlined',
-      density: 'compact',
     },
     VSelect: {
       variant: 'outlined',
-      density: 'compact',
     },
     VTextarea: {
       variant: 'outlined',
-      density: 'compact',
     },
     VNumberInput: {
       variant: 'outlined',
-      density: 'compact',
       controlVariant: 'stacked',
     },
     VDateInput: {
       variant: 'outlined',
-      density: 'compact',
     },
   },
 })

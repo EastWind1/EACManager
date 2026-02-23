@@ -2,14 +2,14 @@
 <template>
   <v-container>
     <v-row
-      class="overflow-auto"
       :class="{ 'border-xl': !readonly && isDragging }"
+      class="overflow-auto"
       @dragenter.prevent="isDragging = true"
       @dragleave.prevent="isDragging = false"
       @dragover.prevent
       @drop.prevent="!readonly && drop($event)"
     >
-      <v-col v-for="attach in attachments" :key="attach.name" cols="12" lg="3" md="4" sm="6">
+      <v-col v-for="attach in attachments" :key="attach.name" cols="12" sm="6" md="4" xl="3">
         <v-hover v-slot="{ isHovering, props }">
           <v-card v-bind="props">
             <template v-if="!isHovering" #text>

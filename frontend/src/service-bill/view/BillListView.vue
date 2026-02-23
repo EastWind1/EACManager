@@ -1,148 +1,144 @@
 <template>
-  <v-container class="fill-height d-flex flex-column">
-    <v-expansion-panels>
-      <v-expansion-panel>
-        <template #title>
-          <v-icon :icon="mdiFilter" class="me-2"></v-icon>
-          过滤条件
-        </template>
-        <template #text>
-          <v-container>
-            <v-row>
-              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-                <v-text-field v-model="queryParam.number" clearable label="单号" />
-              </v-col>
-              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-                <v-select
-                  v-model="queryParam.states"
-                  :items="stateOptions"
-                  chips
-                  clearable
-                  closable-chips
-                  label="状态"
-                  multiple
-                />
-              </v-col>
-              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-                <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
-              </v-col>
-              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-                <v-date-input
-                  v-model="queryParam.orderDateRange"
-                  clearable
-                  label="创建日期"
-                  multiple="range"
-                  prepend-icon=""
-                  prepend-inner-icon="$calendar"
-                ></v-date-input>
-              </v-col>
-              <v-col cols="12" lg="4" md="6" sm="12" xl="3">
-                <v-date-input
-                  v-model="queryParam.processedDateRange"
-                  clearable
-                  label="完工日期"
-                  multiple="range"
-                  prepend-icon=""
-                  prepend-inner-icon="$calendar"
-                ></v-date-input>
-              </v-col>
-              <v-col cols="12" class="text-right">
-                <v-btn @click="search = new Date().toString()">
-                  <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
-                  查询
-                </v-btn>
-              </v-col>
-            </v-row>
-          </v-container>
-        </template>
-      </v-expansion-panel>
-    </v-expansion-panels>
-    <v-toolbar class="mt-2" density="compact">
-      <template #append>
-        <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
-        <v-btn :disabled="loading" @click="importFile">导入</v-btn>
-        <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
-        <v-btn :disabled="loading" @click="process(selectedIds)">开始处理</v-btn>
-        <v-btn :disabled="loading" @click="processed(selectedIds)">处理完成</v-btn>
-        <v-btn :disabled="loading" @click="finish(selectedIds)">回款完成</v-btn>
-        <v-btn :disabled="loading" color="red" @click="remove(selectedIds)">删除</v-btn>
+  <v-expansion-panels>
+    <v-expansion-panel>
+      <template #title>
+        <v-icon :icon="mdiFilter" class="me-2"></v-icon>
+        过滤条件
+      </template>
+      <template #text>
+        <v-container>
+          <v-row>
+            <v-col cols="12" sm="6" md="4" xl="3">
+              <v-text-field v-model="queryParam.number" clearable label="单号" />
+            </v-col>
+            <v-col cols="12" sm="6" md="4" xl="3">
+              <v-select
+                v-model="queryParam.states"
+                :items="stateOptions"
+                chips
+                clearable
+                closable-chips
+                label="状态"
+                multiple
+              />
+            </v-col>
+            <v-col cols="12" sm="6" md="4" xl="3">
+              <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
+            </v-col>
+            <v-col cols="12" sm="6" md="4" xl="3">
+              <v-date-input
+                v-model="queryParam.orderDateRange"
+                clearable
+                label="创建日期"
+                multiple="range"
+                prepend-icon=""
+                prepend-inner-icon="$calendar"
+              ></v-date-input>
+            </v-col>
+            <v-col cols="12" sm="6" md="4" xl="3">
+              <v-date-input
+                v-model="queryParam.processedDateRange"
+                clearable
+                label="完工日期"
+                multiple="range"
+                prepend-icon=""
+                prepend-inner-icon="$calendar"
+              ></v-date-input>
+            </v-col>
+            <v-spacer></v-spacer>
+            <v-col class="d-flex justify-end align-center">
+              <v-btn @click="search = new Date().toString()">
+                <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
+                查询
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-container>
+      </template>
+    </v-expansion-panel>
+  </v-expansion-panels>
+  <v-toolbar class="mt-2">
+    <div v-if="selectedIds.length > 0" class="text-caption ml-5">
+      已选中 {{ selectedIds.length }} 项
+    </div>
+    <template #append>
+      <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
+      <v-btn :disabled="loading" @click="importFile">导入</v-btn>
+      <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
+      <v-btn :disabled="loading" @click="process(selectedIds)">开始处理</v-btn>
+      <v-btn :disabled="loading" @click="processed(selectedIds)">处理完成</v-btn>
+      <v-btn :disabled="loading" @click="finish(selectedIds)">回款完成</v-btn>
+      <v-btn :disabled="loading" color="red" @click="remove(selectedIds)">删除</v-btn>
+    </template>
+  </v-toolbar>
+  <v-data-table-server
+    v-model="selectedIds"
+    :headers="headers"
+    :items="data.items"
+    :items-length="data.totalCount"
+    :items-per-page="data.pageSize ? data.pageSize : 25"
+    :items-per-page-options="[
+      { value: 10, title: '10' },
+      { value: 25, title: '25' },
+      { value: 50, title: '50' },
+      { value: 100, title: '100' },
+    ]"
+    :search="search"
+    :sort-by="queryParam.sorts"
+    mobile-breakpoint="sm"
+    show-select
+    @update:options="loadItems"
+  >
+    <template #[`item.number`]="{ item }">
+      <RouterLink :to="`/service/${item.id}`" class="">{{ item.number }}</RouterLink>
+    </template>
+    <template #[`item.state`]="{ item }">
+      <v-chip :color="ServiceBillState[item.state].color" class="text-white" size="small">
+        {{ ServiceBillState[item.state].title }}
+      </v-chip>
+    </template>
+    <template #[`item.type`]="{ item }">
+      <v-chip :color="ServiceBillType[item.type].color" class="text-white" size="small">
+        {{ ServiceBillType[item.type].title }}
+      </v-chip>
+    </template>
+    <template #[`item.totalAmount`]="{ item }">
+      <div class="text-right">{{ item.totalAmount.toFixed(2) }}</div>
+    </template>
+    <template #[`item.orderDate`]="{ item }">
+      {{ item.orderDate ? dateUtil.format(item.orderDate, 'keyboardDate') : '' }}
+    </template>
+    <template #[`item.processedDate`]="{ item }">
+      {{ item.processedDate ? dateUtil.format(item.processedDate, 'keyboardDate') : '' }}
+    </template>
+  </v-data-table-server>
 
-        <v-spacer></v-spacer>
-        <div v-if="selectedIds.length > 0" class="text-caption mr-4">
-          已选中 {{ selectedIds.length }} 项
-        </div>
+  <v-dialog v-model="resultDialog.show">
+    <v-card>
+      <template #title>
+        <v-icon :icon="mdiInformation" class="me-2"></v-icon>
+        批量处理结果
       </template>
-    </v-toolbar>
-    <v-data-table-server
-      v-model="selectedIds"
-      :headers="headers"
-      :items="data.items"
-      :items-length="data.totalCount"
-      :items-per-page="data.pageSize ? data.pageSize : 25"
-      :items-per-page-options="[
-        { value: 10, title: '10' },
-        { value: 25, title: '25' },
-        { value: 50, title: '50' },
-        { value: 100, title: '100' },
-      ]"
-      :search="search"
-      :sort-by="queryParam.sorts"
-      class="mt-2 flex-grow-1"
-      mobile-breakpoint="sm"
-      show-select
-      @update:options="loadItems"
-    >
-      <template #[`item.number`]="{ item }">
-        <RouterLink :to="`/service/${item.id}`">{{ item.number }}</RouterLink>
+      <template #subtitle>
+        成功: {{ resultDialog.successCount }} 条，失败: {{ resultDialog.failedCount }} 条
       </template>
-      <template #[`item.state`]="{ item }">
-        <v-chip :color="ServiceBillState[item.state].color" size="small" class="text-white">
-          {{ ServiceBillState[item.state].title }}
-        </v-chip>
+      <template #text>
+        <v-data-table
+          :headers="[
+            { title: '单号', key: 'number', sortable: false },
+            { title: '原因', key: 'message', sortable: false },
+          ]"
+          :items="resultDialog.rows"
+        ></v-data-table>
       </template>
-      <template #[`item.type`]="{ item }">
-        <v-chip :color="ServiceBillType[item.type].color" size="small" class="text-white">
-          {{ ServiceBillType[item.type].title }}
-        </v-chip>
+      <template #actions>
+        <v-btn @click="resultDialog.show = false">
+          <v-icon :icon="mdiClose" class="me-2"></v-icon>
+          关闭
+        </v-btn>
       </template>
-      <template #[`item.totalAmount`]="{ item }">
-        <div class="text-right">{{ item.totalAmount.toFixed(2) }}</div>
-      </template>
-      <template #[`item.orderDate`]="{ item }">
-        {{ item.orderDate ? dateUtil.format(item.orderDate, 'keyboardDate') : '' }}
-      </template>
-      <template #[`item.processedDate`]="{ item }">
-        {{ item.processedDate ? dateUtil.format(item.processedDate, 'keyboardDate') : '' }}
-      </template>
-    </v-data-table-server>
-
-    <v-dialog v-model="resultDialog.show">
-      <v-card>
-        <template #title>
-          <v-icon :icon="mdiInformation" class="me-2"></v-icon>
-          批量处理结果
-        </template>
-        <template #subtitle>
-          成功: {{ resultDialog.successCount }} 条，失败: {{ resultDialog.failedCount }} 条
-        </template>
-        <template #text>
-          <v-data-table
-            :headers="[
-              { title: '单号', key: 'number', sortable: false },
-              { title: '原因', key: 'message', sortable: false },
-            ]"
-            :items="resultDialog.rows"
-          ></v-data-table>
-        </template>
-        <template #actions>
-          <v-btn @click="resultDialog.show = false">
-            <v-icon :icon="mdiClose" class="me-2"></v-icon>
-            关闭
-          </v-btn>
-        </template>
-      </v-card>
-    </v-dialog>
-  </v-container>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -164,7 +160,7 @@ import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 import { useBillActions } from '../composable/BillActions.ts'
 import { storeToRefs } from 'pinia'
 import { useRouterStore } from '@/common/store/RouterStore.ts'
-import { mdiFilter, mdiMagnify, mdiInformation, mdiClose } from '@mdi/js'
+import { mdiClose, mdiFilter, mdiInformation, mdiMagnify } from '@mdi/js'
 import { useDate, useHotkey } from 'vuetify/framework'
 
 const store = useUIStore()

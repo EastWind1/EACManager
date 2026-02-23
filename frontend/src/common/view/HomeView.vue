@@ -1,13 +1,13 @@
 <!-- 首页 -->
 <template>
-
+  <v-responsive>
     <!-- 标题栏 -->
     <v-app-bar scroll-behavior="hide">
       <template #prepend>
         <!-- 左侧导航抽屉 -->
         <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
         <!-- 标题 -->
-        <img src="/favicon.ico" alt="" style="width: 50px; height: 25px" />
+        <img alt="" src="/favicon.ico" style="width: 50px; height: 25px" />
         <h2 class="ml-3 mr-3">服务单管理</h2>
       </template>
       <!-- 登录用户图标 -->
@@ -32,21 +32,20 @@
         </v-list>
       </v-menu>
     </v-app-bar>
+    <!-- 左侧导航栏 -->
+    <v-navigation-drawer v-model="drawer">
+      <v-list :items="menuItems" density="compact" nav slim> </v-list>
+    </v-navigation-drawer>
     <v-main>
-      <!-- 左侧导航栏 -->
-      <v-navigation-drawer v-model="drawer">
-        <v-list :items="menuItems" density="compact" nav slim> </v-list>
-      </v-navigation-drawer>
-      <!-- 右侧内容区域 -->
       <RouterView />
     </v-main>
-
+  </v-responsive>
 </template>
 
 <script lang="ts" setup>
 import { RouterView, useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
-import { mdiAccount, mdiCash, mdiMenu, mdiMonitorDashboard, mdiDomain } from '@mdi/js'
+import { mdiAccount, mdiCash, mdiDomain, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
 import { useUserStore } from '@/user/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
 

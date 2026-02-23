@@ -58,10 +58,10 @@ func (r *ServiceBillRepository) FindByParam(ctx context.Context, param *model.Se
 		q = q.Where("project_name like ?", fmt.Sprintf("%%%s%%", param.ProjectName))
 	}
 	if param.OrderStartDate != nil {
-		q = q.Where("reimburse_date >= ?", param.OrderStartDate)
+		q = q.Where("order_date >= ?", param.OrderStartDate)
 	}
 	if param.OrderEndDate != nil {
-		q = q.Where("reimburse_date <= ?", param.OrderEndDate)
+		q = q.Where("order_date <= ?", param.OrderEndDate)
 	}
 	if param.ProcessedStartDate != nil {
 		q = q.Where("processed_date >= ?", param.ProcessedStartDate)

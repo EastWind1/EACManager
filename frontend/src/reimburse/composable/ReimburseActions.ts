@@ -1,4 +1,4 @@
-import type {ActionsResult} from '@/common/model/ActionsResult.ts'
+import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 import ReimburseApi from '../api/ReimburseApi.ts'
 
 /**

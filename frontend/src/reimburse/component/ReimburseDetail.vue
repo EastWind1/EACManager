@@ -1,45 +1,45 @@
 <template>
-  <v-container>
-    <!-- 条数大于 10 时才显示分页 -->
-    <v-data-table
-      :headers="detailHeaders"
-      :hide-default-footer="reimbursement!.details.length <= 10"
-      :items="reimbursement!.details"
-      item-key="id"
-    >
-      <!-- 最后一列显示操作按钮 -->
-      <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
-      <template #[`item.actions`]="{ item }">
-        <div class="d-flex ga-3">
-          <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
-          <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
-        </div>
-      </template>
+  <!-- 条数大于 10 时才显示分页 -->
+  <v-data-table
+    :headers="detailHeaders"
+    :hide-default-footer="reimbursement!.details.length <= 10"
+    :items="reimbursement!.details"
+    item-key="id"
+  >
+    <!-- 最后一列显示操作按钮 -->
+    <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
+    <template #[`item.actions`]="{ item }">
+      <div class="d-flex ga-3">
+        <v-icon :icon="mdiPencil" size="small" @click="editDetail(item)"></v-icon>
+        <v-icon :icon="mdiDelete" size="small" @click="deleteDetail(item)"></v-icon>
+      </div>
+    </template>
 
-      <!-- 最后一行添加加号按钮 -->
-      <template v-if="!readonly" #[`body.append`]>
-        <tr>
-          <td :colspan="detailHeaders.length" class="align-center">
-            <v-btn :disabled="readonly" block variant="plain" @click="addDetail">
-              <v-icon :icon="mdiPlus"></v-icon>
-            </v-btn>
-          </td>
-        </tr>
-      </template>
-    </v-data-table>
-    <!-- 模态框，用于新增或编辑时更改数据 -->
-    <v-dialog v-model="showDialog" width="50rem">
-      <v-card title="明细">
-        <template #text>
+    <!-- 最后一行添加加号按钮 -->
+    <template v-if="!readonly" #[`body.append`]>
+      <tr>
+        <td :colspan="detailHeaders.length" class="align-center">
+          <v-btn :disabled="readonly" block variant="plain" @click="addDetail">
+            <v-icon :icon="mdiPlus"></v-icon>
+          </v-btn>
+        </td>
+      </tr>
+    </template>
+  </v-data-table>
+  <!-- 模态框，用于新增或编辑时更改数据 -->
+  <v-dialog v-model="showDialog" width="50rem">
+    <v-card title="明细">
+      <template #text>
+        <v-container>
           <v-row>
-            <v-col cols="12" lg="6" md="6" sm="12">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-text-field
                 v-model="dialogData.name"
                 :rules="[requiredRule]"
                 label="项目名称"
               ></v-text-field>
             </v-col>
-            <v-col cols="12" lg="6" md="6" sm="12">
+            <v-col cols="12" sm="6" md="4" xl="3">
               <v-number-input
                 v-model="dialogData.amount"
                 :precision="2"
@@ -48,13 +48,13 @@
               ></v-number-input>
             </v-col>
           </v-row>
-        </template>
-        <template #actions>
-          <v-btn text="保存" @click="saveDialog"></v-btn>
-        </template>
-      </v-card>
-    </v-dialog>
-  </v-container>
+        </v-container>
+      </template>
+      <template #actions>
+        <v-btn text="保存" class="primary" @click="saveDialog"></v-btn>
+      </template>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -64,7 +64,7 @@ import { computed, ref, toRefs } from 'vue'
 
 // 表单标题
 const detailHeaders = computed(() => {
-  const base: {title:string, key: string, sortable?:boolean}[] = [
+  const base: { title: string; key: string; sortable?: boolean }[] = [
     { title: '项目名称', key: 'name' },
     { title: '金额', key: 'amount' },
   ]

@@ -36,7 +36,7 @@ const UserApi = {
    */
   async getAll(param: QueryParam) {
     const res = await getAxios().get('', {
-      params: param
+      params: param,
     })
     return res.data as PageResult<User>
   },
