@@ -77,12 +77,13 @@ public class ReimburseService {
             reimbursementDTO.setId(null);
         }
         if (reimbursementDTO.getNumber() == null || reimbursementDTO.getNumber().isEmpty()) {
-            reimbursementDTO.setNumber("R" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + new SecureRandom().nextInt(1000));
+            reimbursementDTO.setNumber("R" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + Math.round(Math.random() * 1000));
         } else {
             if (reimburseRepository.existsByNumber(reimbursementDTO.getNumber())) {
                 throw new BizException("单据编号已存在");
             }
         }
+        reimbursementDTO.setState(ReimburseState.CREATED);
         Reimbursement bill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
         attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
         return reimburseMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.REIMBURSEMENT));
@@ -104,7 +105,9 @@ public class ReimburseService {
         if (bill == null) {
             throw new BizException("单据不存在");
         }
+        var originState = bill.getState();
         reimburseMapper.updateEntityFromDTO(reimbursementDTO, bill);
+        bill.setState(originState);
         bill = reimburseRepository.save(bill);
         attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
         return reimburseMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.REIMBURSEMENT));

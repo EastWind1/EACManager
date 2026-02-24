@@ -101,7 +101,7 @@ public class ServiceBillBizService {
             throw new BizException("单据已存在");
         }
         if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {
-            serviceBillDTO.setNumber("S" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + new SecureRandom().nextInt(1000));
+            serviceBillDTO.setNumber("S" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + Math.round(Math.random() * 1000));
         } else {
             if (serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())) {
                 throw new BizException("单据编号已存在");
@@ -109,6 +109,7 @@ public class ServiceBillBizService {
         }
         ServiceBill bill = serviceBillMapper.toEntity(serviceBillDTO);
         validateAmount(bill);
+        bill.setState(ServiceBillState.CREATED);
         bill = serviceBillRepository.save(bill);
         attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
         return serviceBillMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL));
@@ -135,7 +136,9 @@ public class ServiceBillBizService {
         if (bill == null) {
             throw new BizException("单据不存在");
         }
+        var originState = bill.getState();
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
+        bill.setState(originState);
         // 公司关联单独处理, 直接使用 MapStruct 会因为代理对象 ID 变化触发关联变更（即使未设置 Cascade）
         if (serviceBillDTO.getProductCompany() != null
                 && serviceBillDTO.getProductCompany().getId() != null

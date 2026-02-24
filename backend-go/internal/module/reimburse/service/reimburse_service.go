@@ -71,7 +71,7 @@ func (s *ReimburseService) Create(ctx context.Context, dto *model.ReimbursementD
 	if entity.Number == "" {
 		entity.Number = s.GenerateNumber()
 	}
-
+	entity.State = model.ReimburseStateCreated
 	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
 		exists, _ := s.reimburseRepo.ExistsByNumber(ctx, dto.Number)
 		if exists {
@@ -117,6 +117,7 @@ func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementD
 		if err != nil {
 			return err
 		}
+		entity.State = bill.State
 		return s.reimburseRepo.Updates(tx, bill)
 	})
 

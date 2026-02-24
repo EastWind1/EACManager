@@ -279,43 +279,27 @@ async function loadItems(options: {
   sessionStorage.setItem(QUERY_PARAM_CACHE_KEY, JSON.stringify(queryParam.value))
   // 组装查询参数
   const param: ServiceBillQueryParam = {}
-  if (queryParam.value.number) {
-    param.number = queryParam.value.number
-  }
-  if (queryParam.value.projectName) {
-    param.projectName = queryParam.value.projectName
-  }
-  if (queryParam.value.states && queryParam.value.states.length) {
-    param.states = queryParam.value.states
-  }
+  param.number ??= queryParam.value.number
+  param.projectName ??= queryParam.value.projectName
+  param.states ??= queryParam.value.states?.length ? queryParam.value.states : undefined
+  
   param.pageIndex = options.page - 1
   param.pageSize = options.itemsPerPage
-  if (queryParam.value.orderDateRange) {
-    if (queryParam.value.orderDateRange.length >= 1) {
-      param.orderStartDate = queryParam.value.orderDateRange[0]
-    }
-    if (queryParam.value.orderDateRange.length >= 2) {
-      param.orderEndDate =
-        queryParam.value.orderDateRange[queryParam.value.orderDateRange.length - 1]
-    }
+
+  const orderDateRange = queryParam.value.orderDateRange
+  if (orderDateRange?.length) {
+    param.orderStartDate = orderDateRange[0]
+    param.orderEndDate = orderDateRange[orderDateRange.length - 1]
   }
-  if (queryParam.value.processedDateRange) {
-    if (queryParam.value.processedDateRange.length >= 1) {
-      param.processedStartDate = queryParam.value.processedDateRange[0]
-    }
-    if (queryParam.value.processedDateRange.length >= 2) {
-      param.processedEndDate =
-        queryParam.value.processedDateRange[queryParam.value.processedDateRange.length - 1]
-    }
+  const processedDateRange = queryParam.value.processedDateRange
+  if (processedDateRange?.length) {
+    param.processedStartDate = processedDateRange[0]
+    param.processedEndDate = processedDateRange[processedDateRange.length - 1]
   }
-  if (queryParam.value.sorts && queryParam.value.sorts.length) {
-    param.sorts = queryParam.value.sorts.map((item) => {
-      return {
-        field: item.key,
-        direction: item.order === true || item.order === 'asc' ? 'ASC' : 'DESC',
-      }
-    })
-  }
+  param.sorts ??= queryParam.value.sorts?.map((item) => ({
+    field: item.key,
+    direction: item.order === true || item.order === 'asc' ? 'ASC' : 'DESC',
+  }))
   selectedIds.value = []
   data.value = (await ServiceBillApi.getByQueryParam(param)) ?? {
     items: [],
@@ -400,18 +384,14 @@ async function importFile() {
  * @param result
  */
 function setResultDialogData(result: ActionsResult<number, void>) {
-  const rows = []
   resultDialog.value.successCount = result.successCount
   resultDialog.value.failedCount = result.failCount
-  for (const res of result.results) {
-    if (!res.success) {
-      rows.push({
-        number: data.value.items.find((item) => item.id === res.param)?.number,
-        message: res.message,
-      })
-    }
-  }
-  resultDialog.value.rows = rows
+  resultDialog.value.rows = result.results
+    .filter((res) => !res.success)
+    .map((res) => ({
+      number: data.value.items.find((item) => item.id === res.param)?.number,
+      message: res.message,
+    }))
 }
 
 /**

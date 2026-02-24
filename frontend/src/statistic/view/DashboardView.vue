@@ -3,7 +3,7 @@
     <!-- 卡片布局 -->
     <v-row>
       <!-- 待处理单据与处理中单据 -->
-      <v-col md="6">
+      <v-col cols="12" md="6">
         <v-card class="h-100">
           <template #title>
             <div class="d-flex align-center">
@@ -12,33 +12,31 @@
             </div>
           </template>
           <template #text>
-            <v-container>
               <v-row>
                 <v-col cols="6" @click="stateClick(ServiceBillState.CREATED.value)">
                   <div class="text-subtitle-2 text-center">待处理单据</div>
                   <div class="text-h4 text-center">
-                    {{ countByState && countByState.CREATED ? countByState.CREATED : 0 }}
+                    {{ countByState?.CREATED ?? 0 }}
                   </div>
                 </v-col>
                 <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSING.value)">
                   <div class="text-subtitle-2 text-center">处理中单据</div>
                   <div class="text-h4 text-center">
-                    {{ countByState && countByState.PROCESSING ? countByState.PROCESSING : 0 }}
+                    {{ countByState?.PROCESSING ?? 0 }}
                   </div>
                 </v-col>
                 <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSED.value)">
                   <div class="text-subtitle-2 text-center">处理完成单据</div>
                   <div class="text-h4 text-center">
-                    {{ countByState && countByState.PROCESSED ? countByState.PROCESSED : 0 }}
+                    {{ countByState?.PROCESSED ?? 0 }}
                   </div>
                 </v-col>
               </v-row>
-            </v-container>
           </template>
         </v-card>
       </v-col>
 
-      <v-col md="6">
+      <v-col cols="12" md="6">
         <v-card class="h-100">
           <template #title>
             <div class="d-flex align-center">

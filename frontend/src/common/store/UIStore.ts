@@ -24,7 +24,7 @@ export const useUIStore = defineStore('uiStore', () => {
   }
 
   // 通知状态
-  const notify = ref({
+  const notifyData = ref({
     show: false,
     text: '',
     color: 'info',
@@ -38,11 +38,11 @@ export const useUIStore = defineStore('uiStore', () => {
    * @param timeout 超时
    */
   function showNotify(color: string, text: string, timeout: number) {
-    notify.value.color = color
-    notify.value.text = text
-    notify.value.timeout = timeout
+    notifyData.value.color = color
+    notifyData.value.text = text
+    notifyData.value.timeout = timeout
 
-    notify.value.show = true
+    notifyData.value.show = true
   }
 
   /**
@@ -75,7 +75,7 @@ export const useUIStore = defineStore('uiStore', () => {
   /**
    * 确认框属性
    */
-  const dialogData = ref({
+  const confirmData = ref({
     /**
      * 是否显示
      */
@@ -105,30 +105,87 @@ export const useUIStore = defineStore('uiStore', () => {
    * @return Promise<boolean> 是否确认
    */
   function confirm(title: string, content: string): Promise<boolean> {
-    dialogData.value.show = true
-    dialogData.value.title = title
-    dialogData.value.text = content
+    confirmData.value.show = true
+    confirmData.value.title = title
+    confirmData.value.text = content
     return new Promise<boolean>((resolve) => {
-      dialogData.value.confirm = () => {
-        dialogData.value.show = false
+      confirmData.value.confirm = () => {
+        confirmData.value.show = false
         resolve(true)
       }
-      dialogData.value.cancel = () => {
-        dialogData.value.show = false
+      confirmData.value.cancel = () => {
+        confirmData.value.show = false
         resolve(false)
       }
     })
   }
 
+  /**
+   * 日期选择框
+   */
+  const dataPickerData = ref<{
+    show: boolean
+    title: string
+    minDate: Date | undefined
+    maxDate: Date | undefined
+    confirm: (date: Date) => void
+    cancel: () => void
+  }>({
+    /**
+     * 是否显示
+     */
+    show: false,
+    /**
+     * 标题
+     */
+    title: '选择日期',
+    /**
+     * 最小值
+     */
+    minDate: undefined,
+    /**
+     * 最大值
+     */
+    maxDate: undefined,
+    /**
+     * 确认回调
+     */
+    confirm: () => {},
+    /**
+     * 取消回调
+     */
+    cancel: () => {},
+  })
+  /**
+   * 选择日期
+   */
+  function selectDate(title?: string, minDate?: Date, maxDate?: Date):Promise<Date | undefined> {
+    dataPickerData.value.minDate = minDate ?? undefined
+    dataPickerData.value.maxDate = maxDate ?? undefined
+    dataPickerData.value.title = title ?? "选择日期"
+    dataPickerData.value.show = true
+    return new Promise((resolve, reject) => {
+      dataPickerData.value.confirm = (date: Date) => {
+        dataPickerData.value.show = false
+        resolve(date)
+      }
+      dataPickerData.value.cancel = () => {
+        dataPickerData.value.show = false
+        reject()
+      }
+    })
+  }
   return {
     loading,
     showLoading,
     hideLoading,
-    notify,
+    notifyData,
     success,
     info,
     warning,
-    dialogData,
+    confirmData,
     confirm,
+    dataPickerData,
+    selectDate
   }
 })

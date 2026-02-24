@@ -104,6 +104,7 @@ func (s *BizService) Create(ctx context.Context, dto *model.ServiceBillDTO) (*mo
 	if err := s.ValidateAmount(entity); err != nil {
 		return nil, err
 	}
+	entity.State = model.ServiceBillStateCreated
 
 	err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
 		exist, err := s.billRepo.ExistsByNumber(tx, entity.Number)
@@ -149,6 +150,7 @@ func (s *BizService) Update(ctx context.Context, dto *model.ServiceBillDTO) (*mo
 		if bill == nil {
 			return errs.NewBizError("单据不存在")
 		}
+		entity.State = bill.State
 		if err = s.billRepo.Updates(tx, entity); err != nil {
 			return err
 		}
