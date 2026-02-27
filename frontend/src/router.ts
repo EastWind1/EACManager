@@ -16,7 +16,6 @@ const router = createRouter({
             query: { redirect: to.fullPath },
           }
         }
-        return true
       },
       children: [
         // 仪表盘

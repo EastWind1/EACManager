@@ -1,6 +1,6 @@
 <!-- 用户管理 -->
 <template>
-  <v-data-table
+  <v-data-table-server
     :headers="headers"
     :items="data.items"
     :items-length="data.totalCount"
@@ -11,7 +11,6 @@
       { value: 50, title: '50' },
       { value: 100, title: '100' },
     ]"
-    mobile-breakpoint="sm"
     show-select
     @update:options="loadItems"
   >
@@ -36,7 +35,7 @@
         </td>
       </tr>
     </template>
-  </v-data-table>
+  </v-data-table-server>
 
   <!-- 编辑用户弹窗 -->
   <v-dialog v-model="dialogData.show" max-width="500">

@@ -5,7 +5,7 @@
       :active="loading"
       absolute
       indeterminate
-      style="z-index: 9999"
+      class="z-9999"
     ></v-progress-linear>
     <!-- 全局通知 -->
     <v-snackbar

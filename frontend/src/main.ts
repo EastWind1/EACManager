@@ -36,12 +36,6 @@ const vuetify = createVuetify({
     VContainer: {
       fluid: true,
     },
-    VRow: {
-      dense: true,
-    },
-    VCol: {
-      dense: true,
-    },
     VTextField: {
       variant: 'outlined',
     },

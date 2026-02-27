@@ -14,7 +14,7 @@
           xl="2"
         >
           <div class="text-caption text-grey-darken-1">单号</div>
-          <div class="text-h6 text-no-wrap">{{ serviceBill.number }}</div>
+          <div class="text-headline-small text-no-wrap">{{ serviceBill.number }}</div>
         </v-col>
         <!-- 状态标签 -->
         <v-col cols="3" md="2" xl="1">
@@ -30,7 +30,7 @@
         <!-- 总金额 -->
         <v-col cols="3" md="2" xl="1">
           <div class="text-caption text-grey-darken-1">总金额</div>
-          <div class="text-h6 font-weight-bold text-primary">
+          <div class="text-headline-small font-weight-bold text-primary">
             ￥{{ serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00' }}
           </div>
         </v-col>
@@ -403,6 +403,9 @@ async function cancel() {
  */
 async function processResult(result: ActionsResult<number, void>) {
   const res = result.results[0]
+  if (!res) {
+    return
+  }
   if (res.success) {
     success('操作成功')
     serviceBill.value = await ServiceBillApi.getById(serviceBill.value.id!)

@@ -1,10 +1,10 @@
 <template>
   <v-container class="fill-height d-flex justify-center align-center">
     <v-card class="pa-8" elevation="4" width="420">
-      <v-card-title class="text-h4 text-center mb-6">
-        <div class="text-h5">服务单管理系统</div>
+      <v-card-title class="text-headline-large text-center mb-6">
+        <div class="text-headline-medium">服务单管理系统</div>
       </v-card-title>
-      <v-form v-model="valid" @submit.prevent="login">
+      <v-form v-model="valid">
         <v-text-field
           v-model="username"
           :prepend-inner-icon="mdiAccount"
@@ -20,7 +20,7 @@
           label="密码"
           @click:append-inner="showPassword = !showPassword"
         ></v-text-field>
-        <v-btn :loading="loading" block class="mt-6" color="primary" size="large" type="submit"
+        <v-btn :loading="loading" block class="mt-6" color="primary" size="large" @click="login"
           >登录</v-btn
         >
       </v-form>

@@ -282,7 +282,7 @@ async function loadItems(options: {
   param.number ??= queryParam.value.number
   param.projectName ??= queryParam.value.projectName
   param.states ??= queryParam.value.states?.length ? queryParam.value.states : undefined
-  
+
   param.pageIndex = options.page - 1
   param.pageSize = options.itemsPerPage
 
@@ -366,7 +366,11 @@ function create() {
  */
 async function importFile() {
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.xls,.xlsx', false)
-  const bill = await ServiceBillApi.import(fileList[0]).catch(() => undefined)
+  const file = fileList[0]
+  if (!file) {
+    return
+  }
+  const bill = await ServiceBillApi.import(file).catch(() => undefined)
   if (!bill) {
     return
   }
