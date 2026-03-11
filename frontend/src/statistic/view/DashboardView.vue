@@ -7,7 +7,7 @@
         <v-card class="h-100">
           <template #title>
             <div class="d-flex align-center">
-              <v-icon :icon="mdiMonitorDashboard" class="mr-2" color="primary"></v-icon>
+              <v-icon :icon="mdiMonitorDashboard" color="primary"></v-icon>
               <span>单据统计</span>
             </div>
           </template>
@@ -40,7 +40,7 @@
         <v-card class="h-100">
           <template #title>
             <div class="d-flex align-center">
-              <v-icon :icon="mdiCash" class="mr-2" color="primary"></v-icon>
+              <v-icon :icon="mdiCash" color="primary"></v-icon>
               <span>近一年收入</span>
             </div>
           </template>
@@ -50,7 +50,6 @@
               :model-value="amountValue"
               color="primary"
               line-width="2"
-              padding="8"
               smooth
             ></v-sparkline>
           </template>

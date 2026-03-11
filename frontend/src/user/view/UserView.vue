@@ -74,7 +74,7 @@
           >
           </v-text-field>
 
-          <div class="text-right mt-4">
+          <div class="text-right">
             <v-btn color="primary" @click="saveUser">保存</v-btn>
             <v-btn @click="dialogData.show = false">取消</v-btn>
           </div>

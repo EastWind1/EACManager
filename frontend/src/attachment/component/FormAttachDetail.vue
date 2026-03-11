@@ -29,7 +29,7 @@
         </v-hover>
       </v-col>
       <v-col v-if="!readonly" cols="1">
-        <v-card width="53">
+        <v-card width="53" variant="outlined">
           <template #text>
             <v-icon :icon="mdiPlus" @click="upload"></v-icon>
           </template>

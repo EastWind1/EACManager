@@ -51,7 +51,7 @@
             label="邮箱"
           ></v-text-field>
           <v-text-field v-model="dialogData.company.address" label="地址"></v-text-field>
-          <div class="text-right mt-4">
+          <div class="text-right">
             <v-btn color="primary" @click="save">保存</v-btn>
             <v-btn @click="dialogData.show = false">取消</v-btn>
           </div>

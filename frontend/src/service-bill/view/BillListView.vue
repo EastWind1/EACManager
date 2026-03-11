@@ -57,7 +57,7 @@
       </template>
     </v-expansion-panel>
   </v-expansion-panels>
-  <v-toolbar class="mt-2">
+  <v-toolbar>
     <div v-if="selectedIds.length > 0" class="text-caption ml-5">
       已选中 {{ selectedIds.length }} 项
     </div>
@@ -90,7 +90,7 @@
     @update:options="loadItems"
   >
     <template #[`item.number`]="{ item }">
-      <RouterLink :to="`/service/${item.id}`" class="">{{ item.number }}</RouterLink>
+      <RouterLink :to="`/service/${item.id}`">{{ item.number }}</RouterLink>
     </template>
     <template #[`item.state`]="{ item }">
       <v-chip :color="ServiceBillState[item.state].color" class="text-white" size="small">

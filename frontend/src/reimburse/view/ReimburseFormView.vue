@@ -22,7 +22,7 @@
             <v-chip
               :color="ReimburseState[reimbursement.state].color"
               size="small"
-              class="font-weight-bold mt-1"
+              class="font-weight-bold"
             >
               {{ ReimburseState[reimbursement.state].title }}
             </v-chip>
@@ -87,9 +87,9 @@
         </v-row>
       </v-container>
     </v-sheet>
-    <v-card class="mt-4">
+    <v-card>
       <template #title>
-        <v-icon :icon="mdiFileDocument" class="me-2"></v-icon>
+        <v-icon :icon="mdiFileDocument" size="small"></v-icon>
         基本信息
       </template>
       <template #text>
@@ -146,7 +146,7 @@
         </v-container>
       </template>
     </v-card>
-    <v-card class="mt-4">
+    <v-card>
       <template #title>
         <v-tabs v-model="tab">
           <v-tab value="detail">

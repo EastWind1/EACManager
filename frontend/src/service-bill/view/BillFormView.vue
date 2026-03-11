@@ -22,7 +22,7 @@
           <v-chip
             :color="ServiceBillState[serviceBill.state].color"
             size="small"
-            class="font-weight-bold mt-1"
+            class="font-weight-bold"
           >
             {{ ServiceBillState[serviceBill.state].title }}
           </v-chip>
@@ -89,9 +89,9 @@
     </v-container>
   </v-sheet>
   <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
-    <v-card class="mt-4">
+    <v-card>
       <template #title>
-        <v-icon :icon="mdiFileDocument" class="me-2"></v-icon>
+        <v-icon :icon="mdiFileDocument" size="small"></v-icon>
         基本信息
       </template>
       <template #text>
@@ -166,9 +166,9 @@
       </template>
     </v-card>
     <!-- 现场信息 -->
-    <v-card class="mt-4">
+    <v-card>
       <template #title>
-        <v-icon :icon="mdiMapMarker" class="me-2"></v-icon>
+        <v-icon :icon="mdiMapMarker" size="small"></v-icon>
         现场信息
       </template>
       <template #text>
@@ -199,15 +199,15 @@
       </template>
     </v-card>
     <!-- 明细 -->
-    <v-card class="mt-5">
+    <v-card>
       <template #title>
         <v-tabs v-model="tab">
           <v-tab value="detail">
-            <v-icon :icon="mdiListBox" class="me-2"></v-icon>
+            <v-icon :icon="mdiListBox" size="small"></v-icon>
             明细
           </v-tab>
           <v-tab value="attachment">
-            <v-icon :icon="mdiPaperclip" class="me-2"></v-icon>
+            <v-icon :icon="mdiPaperclip" size="small"></v-icon>
             附件
           </v-tab>
         </v-tabs>
@@ -229,9 +229,9 @@
       </template>
     </v-card>
     <!-- 其他字段 -->
-    <v-card class="mt-4">
+    <v-card >
       <template #title>
-        <v-icon :icon="mdiInformation" class="me-2"></v-icon>
+        <v-icon :icon="mdiInformation" size="small"></v-icon>
         其它信息
       </template>
       <template #text>

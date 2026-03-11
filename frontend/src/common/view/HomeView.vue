@@ -8,7 +8,7 @@
         <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
         <!-- 标题 -->
         <img alt="" src="/favicon.ico" style="width: 50px; height: 25px" />
-        <h2 class="ml-3 mr-3">服务单管理</h2>
+        <h2 class="ma-auto">服务单管理</h2>
       </template>
       <!-- 登录用户图标 -->
       <v-menu>

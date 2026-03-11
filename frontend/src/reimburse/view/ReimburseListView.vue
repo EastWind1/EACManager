@@ -46,7 +46,7 @@
       </template>
     </v-expansion-panel>
   </v-expansion-panels>
-  <v-toolbar class="mt-2" density="compact">
+  <v-toolbar density="compact">
     <div v-if="selectedIds.length > 0" class="text-caption ml-5">
       已选中 {{ selectedIds.length }} 项
     </div>
@@ -94,7 +94,7 @@
     ]"
     :search="search"
     :sort-by="queryParam.sorts"
-    class="mt-2 flex-grow-1"
+    class="flex-grow-1"
     mobile-breakpoint="sm"
     show-select
     @update:options="loadItems"
@@ -261,10 +261,10 @@ async function loadItems(options: {
   param.number ??= queryParam.value.number
   param.states ??= queryParam.value.states?.length ? queryParam.value.states : undefined
   param.summary ??= queryParam.value.summary
-  
+
   param.pageIndex = options.page - 1
   param.pageSize = options.itemsPerPage
-  
+
   // 日期范围处理
   const reimburseDateRange = queryParam.value.reimburseDateRange
   if (reimburseDateRange?.length) {
