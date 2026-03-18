@@ -1,5 +1,16 @@
 <template>
   <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
+    <!-- 单据状态 -->
+    <v-stepper v-model="reimbursement.state">
+      <v-stepper-header>
+        <template v-for="(state, key, index) in ReimburseState" :key="index">
+          <v-divider v-if="index"></v-divider>
+          <v-stepper-item :value="key" :title="state.title" :color="state.color">
+            <template #icon>{{ index + 1 }}</template>
+          </v-stepper-item>
+        </template>
+      </v-stepper-header>
+    </v-stepper>
     <!-- 单据头部 -->
     <v-sheet>
       <v-container>
@@ -15,17 +26,6 @@
           >
             <div class="text-caption text-grey-darken-1">单号</div>
             <div class="text-headline-small text-no-wrap">{{ reimbursement.number }}</div>
-          </v-col>
-          <!-- 状态标签 -->
-          <v-col cols="3" md="2" xl="1">
-            <div class="text-caption text-grey-darken-1">状态</div>
-            <v-chip
-              :color="ReimburseState[reimbursement.state].color"
-              size="small"
-              class="font-weight-bold"
-            >
-              {{ ReimburseState[reimbursement.state].title }}
-            </v-chip>
           </v-col>
           <!-- 总金额 -->
           <v-col cols="3" md="2" xl="1">
@@ -109,7 +109,7 @@
               ></v-text-field>
             </v-col>
             <!-- 摘要 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col>
               <v-text-field
                 v-model="reimbursement.summary"
                 :rules="[requiredRule]"

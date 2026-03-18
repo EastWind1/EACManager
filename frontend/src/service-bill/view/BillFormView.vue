@@ -1,5 +1,16 @@
 <!-- 订单表单 -->
 <template>
+  <!-- 单据状态 -->
+  <v-stepper v-model="serviceBill.state">
+    <v-stepper-header>
+      <template v-for="(state, key, index) in ServiceBillState" :key="index">
+        <v-divider v-if="index"></v-divider>
+        <v-stepper-item :value="key" :title="state.title" :color="state.color">
+          <template #icon>{{ index + 1 }}</template>
+        </v-stepper-item>
+      </template>
+    </v-stepper-header>
+  </v-stepper>
   <!-- 单据头部 -->
   <v-sheet>
     <v-container>
@@ -16,17 +27,6 @@
           <div class="text-caption text-grey-darken-1">单号</div>
           <div class="text-headline-small text-no-wrap">{{ serviceBill.number }}</div>
         </v-col>
-        <!-- 状态标签 -->
-        <v-col cols="3" md="2" xl="1">
-          <div class="text-caption text-grey-darken-1">状态</div>
-          <v-chip
-            :color="ServiceBillState[serviceBill.state].color"
-            size="small"
-            class="font-weight-bold"
-          >
-            {{ ServiceBillState[serviceBill.state].title }}
-          </v-chip>
-        </v-col>
         <!-- 总金额 -->
         <v-col cols="3" md="2" xl="1">
           <div class="text-caption text-grey-darken-1">总金额</div>
@@ -34,7 +34,6 @@
             ￥{{ serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00' }}
           </div>
         </v-col>
-        <v-spacer></v-spacer>
         <v-col class="d-flex justify-end align-center">
           <v-btn
             v-if="
@@ -229,7 +228,7 @@
       </template>
     </v-card>
     <!-- 其他字段 -->
-    <v-card >
+    <v-card>
       <template #title>
         <v-icon :icon="mdiInformation" size="small"></v-icon>
         其它信息

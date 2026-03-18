@@ -54,6 +54,10 @@
           :src="previewInfo.objectUrl"
           style="object-fit: contain; max-width: 100%"
         />
+        <div
+          v-if="previewInfo.attachment.type === AttachmentType.EXCEL.value"
+          v-html="previewInfo.html"
+        ></div>
       </v-card-text>
       <v-card-actions>
         <v-btn @click="download(previewInfo.attachment)">下载</v-btn>
@@ -70,6 +74,7 @@ import { onUnmounted, ref, toRefs } from 'vue'
 import AttachmentApi from '../api/AttachmentApi.ts'
 import { useUIStore } from '@/common/store/UIStore.ts'
 import { useFileSelector } from '../composable/FileSelector.ts'
+import { read, utils } from 'xlsx'
 
 const attachments = defineModel<Attachment[]>()
 const { warning } = useUIStore()
@@ -88,9 +93,12 @@ const previewInfo = ref<{
   attachment: Attachment
   // 对象 URL
   objectUrl: string
+  // HTML
+  html: string
 }>({
   attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER.value },
   objectUrl: '',
+  html: '',
 })
 // 文件缓存，避免多次从服务器获取同一文件
 const fileCache = new Map<string, string>()
@@ -134,10 +142,6 @@ async function preview(attach: Attachment) {
     warning('文件为空')
     return
   }
-  if (attach.type !== AttachmentType.IMAGE.value && attach.type !== AttachmentType.PDF.value) {
-    warning('暂不支持预览该文件, 请直接下载')
-    return
-  }
 
   if (fileCache.has(attach.relativePath)) {
     previewInfo.value.objectUrl = fileCache.get(attach.relativePath)!
@@ -148,6 +152,18 @@ async function preview(attach: Attachment) {
     previewInfo.value.objectUrl = url
   }
   previewInfo.value.attachment = attach
+
+  if (attach.type === AttachmentType.EXCEL.value) {
+    const response = await fetch(previewInfo.value.objectUrl)
+    if (!response.ok) throw new Error('请求Object URL失败')
+    const blob = await response.blob()
+    const arrayBuffer = await blob.arrayBuffer()
+    const workBook = read(arrayBuffer, { type: 'array' })
+    previewInfo.value.html = utils.sheet_to_html(workBook.Sheets[workBook.SheetNames[0]])
+  } else {
+    previewInfo.value.html = ''
+  }
+
   previewDialog.value = true
 }
 
