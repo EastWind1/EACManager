@@ -54,10 +54,13 @@
           :src="previewInfo.objectUrl"
           style="object-fit: contain; max-width: 100%"
         />
-        <div
-          v-if="previewInfo.attachment.type === AttachmentType.EXCEL.value"
-          v-html="previewInfo.html"
-        ></div>
+        <v-table striped="even" v-if="previewInfo.attachment.type === AttachmentType.EXCEL.value">
+          <tbody>
+            <tr v-for="(row, index) in previewInfo.excelRows" :key="index">
+              <td v-for="cell in row" :key="cell">{{ cell }}</td>
+            </tr>
+          </tbody>
+        </v-table>
       </v-card-text>
       <v-card-actions>
         <v-btn @click="download(previewInfo.attachment)">下载</v-btn>
@@ -93,12 +96,12 @@ const previewInfo = ref<{
   attachment: Attachment
   // 对象 URL
   objectUrl: string
-  // HTML
-  html: string
+  // Excel 预览
+  excelRows: string[][]
 }>({
   attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER.value },
   objectUrl: '',
-  html: '',
+  excelRows: [],
 })
 // 文件缓存，避免多次从服务器获取同一文件
 const fileCache = new Map<string, string>()
@@ -143,6 +146,11 @@ async function preview(attach: Attachment) {
     return
   }
 
+  if (attach.type == AttachmentType.WORD.value || attach.type == AttachmentType.OTHER.value) {
+    warning('该文件类型暂不支持预览，请直接下载')
+    return
+  }
+  // 若本地没有，先尝试下载
   if (fileCache.has(attach.relativePath)) {
     previewInfo.value.objectUrl = fileCache.get(attach.relativePath)!
   } else {
@@ -151,19 +159,23 @@ async function preview(attach: Attachment) {
     fileCache.set(attach.relativePath, url)
     previewInfo.value.objectUrl = url
   }
-  previewInfo.value.attachment = attach
 
-  if (attach.type === AttachmentType.EXCEL.value) {
+  // Excel 解析，若已解析过则跳过
+  if (attach.type === AttachmentType.EXCEL.value
+    && attach.id !== previewInfo.value.attachment.id) {
     const response = await fetch(previewInfo.value.objectUrl)
-    if (!response.ok) throw new Error('请求Object URL失败')
+    if (!response.ok) {
+      throw new Error('请求Object URL失败')
+    }
     const blob = await response.blob()
     const arrayBuffer = await blob.arrayBuffer()
     const workBook = read(arrayBuffer, { type: 'array' })
-    previewInfo.value.html = utils.sheet_to_html(workBook.Sheets[workBook.SheetNames[0]])
-  } else {
-    previewInfo.value.html = ''
-  }
+    const sheetName = workBook.SheetNames[0]
+    const worksheet = workBook.Sheets[sheetName]
 
+    previewInfo.value.excelRows = utils.sheet_to_json(worksheet) as string[][]
+  }
+  previewInfo.value.attachment = attach
   previewDialog.value = true
 }
 
