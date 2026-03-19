@@ -54,13 +54,10 @@
           :src="previewInfo.objectUrl"
           style="object-fit: contain; max-width: 100%"
         />
-        <v-table striped="even" v-if="previewInfo.attachment.type === AttachmentType.EXCEL.value">
-          <tbody>
-            <tr v-for="(row, index) in previewInfo.excelRows" :key="index">
-              <td v-for="cell in row" :key="cell">{{ cell }}</td>
-            </tr>
-          </tbody>
-        </v-table>
+        <ExcelPreview
+          v-if="previewInfo.attachment.type === AttachmentType.EXCEL.value"
+          :src="previewInfo.objectUrl"
+        />
       </v-card-text>
       <v-card-actions>
         <v-btn @click="download(previewInfo.attachment)">下载</v-btn>
@@ -73,11 +70,11 @@
 <script lang="ts" setup>
 import { type Attachment, AttachmentType } from '../model/Attachment.ts'
 import { mdiPlus } from '@mdi/js'
-import { onUnmounted, ref, toRefs } from 'vue'
+import { defineAsyncComponent, onUnmounted, ref, toRefs } from 'vue'
 import AttachmentApi from '../api/AttachmentApi.ts'
 import { useUIStore } from '@/common/store/UIStore.ts'
 import { useFileSelector } from '../composable/FileSelector.ts'
-import { read, utils } from 'xlsx'
+const ExcelPreview = defineAsyncComponent(() => import('./ExcelPreview.vue'))
 
 const attachments = defineModel<Attachment[]>()
 const { warning } = useUIStore()
@@ -96,12 +93,9 @@ const previewInfo = ref<{
   attachment: Attachment
   // 对象 URL
   objectUrl: string
-  // Excel 预览
-  excelRows: string[][]
 }>({
   attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER.value },
   objectUrl: '',
-  excelRows: [],
 })
 // 文件缓存，避免多次从服务器获取同一文件
 const fileCache = new Map<string, string>()
@@ -160,21 +154,6 @@ async function preview(attach: Attachment) {
     previewInfo.value.objectUrl = url
   }
 
-  // Excel 解析，若已解析过则跳过
-  if (attach.type === AttachmentType.EXCEL.value
-    && attach.id !== previewInfo.value.attachment.id) {
-    const response = await fetch(previewInfo.value.objectUrl)
-    if (!response.ok) {
-      throw new Error('请求Object URL失败')
-    }
-    const blob = await response.blob()
-    const arrayBuffer = await blob.arrayBuffer()
-    const workBook = read(arrayBuffer, { type: 'array' })
-    const sheetName = workBook.SheetNames[0]
-    const worksheet = workBook.Sheets[sheetName]
-
-    previewInfo.value.excelRows = utils.sheet_to_json(worksheet) as string[][]
-  }
   previewInfo.value.attachment = attach
   previewDialog.value = true
 }
