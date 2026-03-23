@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.3</version>
+        <version>4.0.4</version>
         <relativePath/>
     </parent>
     <groupId>pers.eastwind</groupId>
@@ -16,7 +16,7 @@
     <properties>
         <java.version>25</java.version>
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
-        <jose.jwt.version>10.7</jose.jwt.version>
+        <jose.jwt.version>10.8</jose.jwt.version>
         <rapidocr.version>0.0.7</rapidocr.version>
         <rapidocr.onnx.version>1.2.2</rapidocr.onnx.version>
         <pdfbox.version>3.0.6</pdfbox.version>
