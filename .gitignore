@@ -1,10 +1,2 @@
-.idea
-.vscode
-*.iml
-.classpath
-.factorypath
-.project
-.settings
-
 .env
 attachment

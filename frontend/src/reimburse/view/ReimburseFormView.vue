@@ -35,7 +35,7 @@
             </div>
           </v-col>
           <v-spacer></v-spacer>
-          <v-col class="d-flex justify-end align-center">
+          <v-col cols="4" md="3" xl="2" class="d-flex justify-end align-center">
             <v-btn
               v-if="
                 reimbursement.id &&

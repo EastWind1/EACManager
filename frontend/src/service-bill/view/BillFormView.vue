@@ -34,7 +34,8 @@
             ￥{{ serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00' }}
           </div>
         </v-col>
-        <v-col class="d-flex justify-end align-center">
+        <v-spacer></v-spacer>
+        <v-col cols="4" md="3" xl="2" class="d-flex justify-end align-center">
           <v-btn
             v-if="
               serviceBill.id &&
