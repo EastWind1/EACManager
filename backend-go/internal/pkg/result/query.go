@@ -73,7 +73,7 @@ func (p *QueryParam) GetPageSize() int {
 
 // HasSort 是否有排序参数
 func (p *QueryParam) HasSort() bool {
-	return p.Sorts != nil && len(p.Sorts) > 0
+	return len(p.Sorts) > 0
 }
 
 // PageResult 分页结果

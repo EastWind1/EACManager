@@ -147,7 +147,7 @@ func (s *AttachmentService) GetRelativePath(absolutePath string, isTemp bool) (s
 // UploadTemps 上传临时文件
 func (s *AttachmentService) UploadTemps(fileHeaders []*multipart.FileHeader) ([]model.AttachmentDTO, error) {
 	var attachments []model.AttachmentDTO
-	if fileHeaders == nil || len(fileHeaders) == 0 {
+	if len(fileHeaders) == 0 {
 		return nil, errs.NewBizError("文件不能为空")
 	}
 	for _, fileHeader := range fileHeaders {
@@ -224,41 +224,39 @@ func (s *AttachmentService) UpdateRelativeAttach(ctx context.Context, billID uin
 	}
 	var ops []model.FileOp
 	return s.billAttachRepo.Transaction(ctx, func(tx context.Context) error {
-		if attachmentDTOs != nil {
-			for _, dto := range attachmentDTOs {
-				// 新增
-				if dto.ID == 0 {
-					addAttach := dto.TOEntity()
-					originPath, err := s.GetAbsolutePath(dto.RelativePath, dto.Temp)
-					if err != nil {
-						return err
-					}
-					targetRelPath := filepath.Join(billType.String(), billNumber, fmt.Sprintf("%v-%v", time.Now().UnixMilli(), addAttach.Name))
-					targetPath, err := s.GetAbsolutePath(targetRelPath, false)
-					if err != nil {
-						return err
-					}
-					// 设置业务单据关联关系
-					addAttach.RelativePath = targetRelPath
-
-					billAttachRel := &model.BillAttachRelation{
-						BillId:   billID,
-						BillType: billType,
-						AttachId: addAttach.ID,
-						Attach:   *addAttach,
-					}
-					if err = s.billAttachRepo.Create(tx, billAttachRel); err != nil {
-						return err
-					}
-
-					ops = append(ops, model.FileOp{
-						Type:   model.FileOpMove,
-						Origin: originPath,
-						Target: targetPath,
-					})
-				} else {
-					delete(removedIDs, dto.ID)
+		for _, dto := range attachmentDTOs {
+			// 新增
+			if dto.ID == 0 {
+				addAttach := dto.TOEntity()
+				originPath, err := s.GetAbsolutePath(dto.RelativePath, dto.Temp)
+				if err != nil {
+					return err
 				}
+				targetRelPath := filepath.Join(billType.String(), billNumber, fmt.Sprintf("%v-%v", time.Now().UnixMilli(), addAttach.Name))
+				targetPath, err := s.GetAbsolutePath(targetRelPath, false)
+				if err != nil {
+					return err
+				}
+				// 设置业务单据关联关系
+				addAttach.RelativePath = targetRelPath
+
+				billAttachRel := &model.BillAttachRelation{
+					BillId:   billID,
+					BillType: billType,
+					AttachId: addAttach.ID,
+					Attach:   *addAttach,
+				}
+				if err = s.billAttachRepo.Create(tx, billAttachRel); err != nil {
+					return err
+				}
+
+				ops = append(ops, model.FileOp{
+					Type:   model.FileOpMove,
+					Origin: originPath,
+					Target: targetPath,
+				})
+			} else {
+				delete(removedIDs, dto.ID)
 			}
 		}
 

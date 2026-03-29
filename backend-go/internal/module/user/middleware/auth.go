@@ -36,7 +36,7 @@ func AuthMiddleware(jwtSrv *service.JWTService, userSrv *service.UserService) fi
 		if origin == "" {
 			origin = c.Get("Referer")
 		}
-		if err != nil || !strings.HasPrefix(origin, token.Subject) {
+		if !strings.HasPrefix(origin, token.Subject) {
 			return errs.NewUnauthError("Token 不合法")
 		}
 		user, err := userSrv.FindByUsername(c, token.Username)

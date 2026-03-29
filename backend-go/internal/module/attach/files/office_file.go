@@ -34,7 +34,7 @@ func ParseExcel(path string) ([][]string, error) {
 
 // GenerateExcelFromList 创建 Excel
 func GenerateExcelFromList(rows [][]string, targetPath string) error {
-	if rows == nil || len(rows) == 0 {
+	if len(rows) == 0 {
 		return nil
 	}
 	if !Exists(targetPath) {

@@ -61,7 +61,7 @@ func (r *WKMapRule) SetCompany(target *model.ServiceBillDTO, name string) {
 	if err != nil {
 		return
 	}
-	if companies == nil || len(companies) == 0 {
+	if len(companies) == 0 {
 		return
 	}
 	target.ProductCompany = new(companies[0])

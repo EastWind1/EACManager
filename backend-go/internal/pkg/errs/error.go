@@ -85,7 +85,7 @@ func NewBizError(message string, e ...error) *BizError {
 			err.stack = se.Stack()
 		}
 	}
-	if err.stack == nil || len(err.stack) == 0 {
+	if len(err.stack) == 0 {
 		err.stack = GetStack()
 	}
 	return err
@@ -146,7 +146,7 @@ func NewFileOpError(message string, path string, e ...error) *FileOpError {
 			err.stack = se.Stack()
 		}
 	}
-	if err.stack == nil || len(err.stack) == 0 {
+	if len(err.stack) == 0 {
 		err.stack = GetStack()
 	}
 	return err

@@ -103,7 +103,7 @@ func (s *UserService) Create(ctx context.Context, dto *model.UserDTO) (*model.Us
 			return errs.NewBizError("密码过长")
 		}
 		hashedPassword, e := bcrypt.GenerateFromPassword(passwordByte, bcrypt.DefaultCost)
-		if err != nil {
+		if e != nil {
 			return errs.Wrap(e)
 		}
 

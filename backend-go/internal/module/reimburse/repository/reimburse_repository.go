@@ -74,7 +74,7 @@ func (r *ReimburseRepository) FindByParam(ctx context.Context, param *model.Reim
 	if param.Summary != "" {
 		q = q.Where("summary like ?", fmt.Sprintf("%%%s%%", param.Summary))
 	}
-	if param.States != nil && len(param.States) > 0 {
+	if len(param.States) > 0 {
 		q = q.Where("state in (?)", param.States)
 	}
 	if param.ReimburseStartDate != nil {

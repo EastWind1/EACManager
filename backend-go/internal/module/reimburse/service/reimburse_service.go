@@ -217,12 +217,12 @@ func (s *ReimburseService) Finish(ctx context.Context, ids []uint) (*result.Acti
 }
 
 func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, error) {
-	if ids == nil || len(ids) == 0 {
+	if len(ids) == 0 {
 		return "", errs.NewBizError("ID 不能为空")
 	}
 
 	reimbursements, err := s.reimburseRepo.FindAll(ctx, ids)
-	if reimbursements == nil || len(reimbursements) == 0 {
+	if len(reimbursements) == 0 {
 		return "", errs.NewBizError("单据不存在")
 	}
 

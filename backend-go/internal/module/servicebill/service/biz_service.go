@@ -289,12 +289,12 @@ func (s *BizService) GenerateByFile(file *multipart.FileHeader) (*model.ServiceB
 }
 
 func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
-	if ids == nil || len(ids) == 0 {
+	if len(ids) == 0 {
 		return "", errs.NewBizError("ID 不能为空")
 	}
 
 	bills, err := s.billRepo.FindAll(ctx, ids)
-	if bills == nil || len(bills) == 0 {
+	if len(bills) == 0 {
 		return "", errs.NewBizError("单据不存在")
 	}
 

@@ -51,7 +51,7 @@ func (r *ServiceBillRepository) FindByParam(ctx context.Context, param *model.Se
 	if param.Number != "" {
 		q = q.Where("number = ?", param.Number)
 	}
-	if param.States != nil && len(param.States) > 0 {
+	if len(param.States) > 0 {
 		q = q.Where("state in (?)", param.States)
 	}
 	if param.ProjectName != "" {
