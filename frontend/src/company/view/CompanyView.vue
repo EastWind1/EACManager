@@ -117,6 +117,7 @@ const required = (v: string) => !!v || '必填'
 // 邮箱验证
 const emailValid = (v: string) =>
   !v || /^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/.test(v) || '邮箱格式错误'
+
 // 添加
 function add() {
   dialogData.value.company = { ...COMPANY_DEFAULT }

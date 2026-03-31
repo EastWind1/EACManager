@@ -31,7 +31,7 @@ const vuetify = createVuetify({
   // UI 默认样式
   defaults: {
     global: {
-      density: 'comfortable'
+      density: 'comfortable',
     },
     VContainer: {
       fluid: true,

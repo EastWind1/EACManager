@@ -16,9 +16,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
-import pers.eastwind.billmanager.user.util.AuthUtil;
 import pers.eastwind.billmanager.user.model.*;
 import pers.eastwind.billmanager.user.repository.UserRepository;
+import pers.eastwind.billmanager.user.util.AuthUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +37,7 @@ public class UserService implements UserDetailsService {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
     }
+
     /**
      * 获取启用用户
      */
@@ -148,8 +149,8 @@ public class UserService implements UserDetailsService {
     /**
      * 登录，生成 token
      *
-     * @param username       用户名
-     * @param password       密码
+     * @param username 用户名
+     * @param password 密码
      * @return 登录结果
      */
     public LoginResult login(String username, String password) {

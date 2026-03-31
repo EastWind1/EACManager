@@ -23,7 +23,7 @@
           <v-list-item>
             <!-- 暗色模式切换 -->
             <v-switch v-model="isDark" color="primary" hide-details @click="isDark = !isDark">
-              <template #prepend> 暗色模式 </template>
+              <template #prepend> 暗色模式</template>
             </v-switch>
           </v-list-item>
           <v-list-item @click="logout">
@@ -34,7 +34,7 @@
     </v-app-bar>
     <!-- 左侧导航栏 -->
     <v-navigation-drawer v-model="drawer">
-      <v-list :items="menuItems" density="compact" nav slim> </v-list>
+      <v-list :items="menuItems" density="compact" nav slim></v-list>
     </v-navigation-drawer>
     <!-- 全局确认框 -->
     <v-dialog v-model="confirmData.show" persistent width="auto">
@@ -55,11 +55,11 @@
     <!-- 日期选择框 -->
     <DatePickerDialog
       v-model="dataPickerData.show"
-      :min-date="dataPickerData.minDate"
       :max-date="dataPickerData.maxDate"
+      :min-date="dataPickerData.minDate"
       :title="dataPickerData.title"
-      @confirm="confirmData.confirm"
       @cancel="confirmData.cancel"
+      @confirm="confirmData.confirm"
     >
     </DatePickerDialog>
     <v-main>

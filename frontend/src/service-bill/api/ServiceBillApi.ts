@@ -3,14 +3,7 @@ import type { PageResult } from '@/common/model/PageResult.ts'
 import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let http: HttpClient
-
-function getHttp() {
-  if (!http) {
-    http = new HttpClient('/api/serviceBill')
-  }
-  return http
-}
+const http = new HttpClient('/api/serviceBill')
 
 /**
  * 服务单 API
@@ -21,20 +14,20 @@ const ServiceBillApi = {
    * @param queryParam 查询参数
    */
   async getByQueryParam(queryParam: ServiceBillQueryParam) {
-    return await getHttp().post<PageResult<ServiceBill>>(`/query`, queryParam)
+    return await http.post<PageResult<ServiceBill>>(`/query`, queryParam)
   },
   /**
    * 根据 id 获取
    * @param id 单据 ID
    */
   async getById(id: number) {
-    return await getHttp().get<ServiceBill>(`/${id}`)
+    return await http.get<ServiceBill>(`/${id}`)
   },
   /**
    * 导入
    */
   async import(file: File) {
-    return await getHttp().postForm<ServiceBill>(`/import`, {
+    return await http.postForm<ServiceBill>(`/import`, {
       file,
     })
   },
@@ -43,28 +36,28 @@ const ServiceBillApi = {
    * @param serviceBill 单据
    */
   async create(serviceBill: ServiceBill) {
-    return await getHttp().post<ServiceBill>('', serviceBill)
+    return await http.post<ServiceBill>('', serviceBill)
   },
   /**
    * 保存
    * @param serviceBill 单据
    */
   async save(serviceBill: ServiceBill) {
-    return await getHttp().put<ServiceBill>('', serviceBill)
+    return await http.put<ServiceBill>('', serviceBill)
   },
   /**
    * 删除
    * @param ids 单据 ID 列表
    */
   async delete(ids: number[]) {
-    return await getHttp().delete<ActionsResult<number, void>>('', { data: ids })
+    return await http.delete<ActionsResult<number, void>>('', { data: ids })
   },
   /**
    * 处理
    * @param ids 单据 ID 列表
    */
   async process(ids: number[]) {
-    return await getHttp().put<ActionsResult<number, void>>(`/process`, ids)
+    return await http.put<ActionsResult<number, void>>(`/process`, ids)
   },
   /**
    * 处理完成
@@ -72,7 +65,7 @@ const ServiceBillApi = {
    * @param processedDate 处理完成时间
    */
   async processed(ids: number[], processedDate: Date) {
-    return await getHttp().put<ActionsResult<number, void>>(`/processed`, { ids, processedDate })
+    return await http.put<ActionsResult<number, void>>(`/processed`, { ids, processedDate })
   },
   /**
    * 完成
@@ -80,14 +73,14 @@ const ServiceBillApi = {
    * @param finishedDate 完成时间
    */
   async finish(ids: number[], finishedDate: Date) {
-    return await getHttp().put<ActionsResult<number, void>>(`/finish`, { ids, finishedDate })
+    return await http.put<ActionsResult<number, void>>(`/finish`, { ids, finishedDate })
   },
   /**
    * 导出
    * @param ids 单据 ID 列表
    */
   async export(ids: number[]) {
-    return await getHttp().post<Blob>(`/export`, ids)
+    return await http.post<Blob>(`/export`, ids)
   },
 }
 export default ServiceBillApi

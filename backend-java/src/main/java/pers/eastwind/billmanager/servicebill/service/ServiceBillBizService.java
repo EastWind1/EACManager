@@ -24,7 +24,6 @@ import pers.eastwind.billmanager.servicebill.model.*;
 import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -38,13 +37,20 @@ import java.util.Objects;
 @Slf4j
 @Service
 public class ServiceBillBizService {
+
     private final ServiceBillRepository serviceBillRepository;
     private final ServiceBillMapper serviceBillMapper;
     private final AttachmentService attachmentService;
     private final TransactionTemplate transactionTemplate;
     private final CompanyRepository companyRepository;
 
-    public ServiceBillBizService(ServiceBillRepository serviceBillRepository, ServiceBillMapper serviceBillMapper, AttachmentService attachmentService, TransactionTemplate transactionTemplate, CompanyRepository companyRepository) {
+    public ServiceBillBizService(
+            ServiceBillRepository serviceBillRepository,
+            ServiceBillMapper serviceBillMapper,
+            AttachmentService attachmentService,
+            TransactionTemplate transactionTemplate,
+            CompanyRepository companyRepository
+    ) {
         this.serviceBillRepository = serviceBillRepository;
         this.serviceBillMapper = serviceBillMapper;
         this.attachmentService = attachmentService;
@@ -66,7 +72,10 @@ public class ServiceBillBizService {
         if (bill == null) {
             throw new BizException("单据不存在");
         }
-        List<AttachmentDTO> attachments = attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL);
+        List<AttachmentDTO> attachments = attachmentService.getByBill(
+                bill.getId(),
+                BillType.SERVICE_BILL
+        );
         return serviceBillMapper.toDTO(bill, attachments);
     }
 
@@ -76,7 +85,13 @@ public class ServiceBillBizService {
     private void validateAmount(ServiceBill serviceBill) {
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (ServiceBillDetail detail : serviceBill.getDetails()) {
-            if (detail.getQuantity().multiply(detail.getUnitPrice()).compareTo(detail.getSubtotal()) != 0) {
+            if (
+                    detail
+                            .getQuantity()
+                            .multiply(detail.getUnitPrice())
+                            .compareTo(detail.getSubtotal()) !=
+                            0
+            ) {
                 throw new BizException("明细金额有误");
             }
             totalAmount = totalAmount.add(detail.getSubtotal());
@@ -85,25 +100,45 @@ public class ServiceBillBizService {
             throw new BizException("总金额有误");
         }
     }
+
     /**
      * 创建单据
      *
      * @param serviceBillDTO 单据
      * @return 保存后的单据
      */
-    @Caching(evict = {
-            @CacheEvict(value = "serviceBill_query", allEntries = true),
-            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
-    })
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'countBillsByState'"
+                    ),
+            }
+    )
     @Transactional
     public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
-        if (serviceBillDTO.getId() != null && serviceBillRepository.existsById(serviceBillDTO.getId())) {
+        if (
+                serviceBillDTO.getId() != null &&
+                        serviceBillRepository.existsById(serviceBillDTO.getId())
+        ) {
             throw new BizException("单据已存在");
         }
-        if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {
-            serviceBillDTO.setNumber("S" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + Math.round(Math.random() * 1000));
+        if (
+                serviceBillDTO.getNumber() == null ||
+                        serviceBillDTO.getNumber().isEmpty()
+        ) {
+            serviceBillDTO.setNumber(
+                    "S" +
+                            DateTimeFormatter.ofPattern("yyyyMMdd")
+                                    .withZone(ZoneId.systemDefault())
+                                    .format(Instant.now()) +
+                            Math.round(Math.random() * 1000)
+            );
         } else {
-            if (serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())) {
+            if (
+                    serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())
+            ) {
                 throw new BizException("单据编号已存在");
             }
         }
@@ -111,11 +146,17 @@ public class ServiceBillBizService {
         validateAmount(bill);
         bill.setState(ServiceBillState.CREATED);
         bill = serviceBillRepository.save(bill);
-        attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
-        return serviceBillMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL));
+        attachmentService.updateRelativeAttach(
+                bill.getId(),
+                bill.getNumber(),
+                BillType.SERVICE_BILL,
+                serviceBillDTO.getAttachments()
+        );
+        return serviceBillMapper.toDTO(
+                bill,
+                attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL)
+        );
     }
-
-
 
     /**
      * 更新单据
@@ -123,16 +164,23 @@ public class ServiceBillBizService {
      * @param serviceBillDTO 单据
      * @return 更新后的单据
      */
-    @Caching(evict = {
-            @CacheEvict(value = "serviceBill_query", allEntries = true),
-            @CacheEvict(value = "serviceBill_statistic", key = "'sumTotalAmountByMonth'")
-    })
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'sumTotalAmountByMonth'"
+                    ),
+            }
+    )
     @Transactional
     public ServiceBillDTO update(ServiceBillDTO serviceBillDTO) {
         if (serviceBillDTO.getId() == null) {
             throw new BizException("id 不能为空");
         }
-        ServiceBill bill = serviceBillRepository.findById(serviceBillDTO.getId()).orElse(null);
+        ServiceBill bill = serviceBillRepository
+                .findById(serviceBillDTO.getId())
+                .orElse(null);
         if (bill == null) {
             throw new BizException("单据不存在");
         }
@@ -140,10 +188,18 @@ public class ServiceBillBizService {
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
         bill.setState(originState);
         // 公司关联单独处理, 直接使用 MapStruct 会因为代理对象 ID 变化触发关联变更（即使未设置 Cascade）
-        if (serviceBillDTO.getProductCompany() != null
-                && serviceBillDTO.getProductCompany().getId() != null
-                && (bill.getProductCompany() == null || !Objects.equals(bill.getProductCompany().getId(), serviceBillDTO.getProductCompany().getId()))) {
-            Company targetCompany = companyRepository.findById(serviceBillDTO.getProductCompany().getId()).orElse(null);
+        if (
+                serviceBillDTO.getProductCompany() != null &&
+                        serviceBillDTO.getProductCompany().getId() != null &&
+                        (bill.getProductCompany() == null ||
+                                !Objects.equals(
+                                        bill.getProductCompany().getId(),
+                                        serviceBillDTO.getProductCompany().getId()
+                                ))
+        ) {
+            Company targetCompany = companyRepository
+                    .findById(serviceBillDTO.getProductCompany().getId())
+                    .orElse(null);
             if (targetCompany == null) {
                 throw new BizException("公司不存在");
             }
@@ -154,11 +210,18 @@ public class ServiceBillBizService {
         validateAmount(bill);
         bill = serviceBillRepository.save(bill);
 
-        attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.SERVICE_BILL, serviceBillDTO.getAttachments());
+        attachmentService.updateRelativeAttach(
+                bill.getId(),
+                bill.getNumber(),
+                BillType.SERVICE_BILL,
+                serviceBillDTO.getAttachments()
+        );
 
-        return serviceBillMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL));
+        return serviceBillMapper.toDTO(
+                bill,
+                attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL)
+        );
     }
-
 
     /**
      * 根据条件查询
@@ -166,7 +229,10 @@ public class ServiceBillBizService {
      * @param param 查询参数
      * @return 分页结果
      */
-    @Cacheable(value = "serviceBill_query", key = "'findByParam_' + #param.hashCode()")
+    @Cacheable(
+            value = "serviceBill_query",
+            key = "'findByParam_' + #param.hashCode()"
+    )
     public Page<ServiceBillDTO> findByParam(ServiceBillQueryParam param) {
         if (param == null) {
             throw new BizException("查询参数为空");
@@ -174,40 +240,90 @@ public class ServiceBillBizService {
         Specification<ServiceBill> specification = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (param.getNumber() != null) {
-                predicates.add(cb.like(root.get("number"), param.getNumber() + "%"));
+                predicates.add(
+                        cb.like(root.get("number"), param.getNumber() + "%")
+                );
             }
             if (param.getStates() != null && !param.getStates().isEmpty()) {
                 if (param.getStates().size() == 1) {
-                    predicates.add(cb.equal(root.get("state"), param.getStates().getFirst()));
+                    predicates.add(
+                            cb.equal(
+                                    root.get("state"),
+                                    param.getStates().getFirst()
+                            )
+                    );
                 } else {
                     predicates.add(root.get("state").in(param.getStates()));
                 }
             }
             if (param.getProjectName() != null) {
-                predicates.add(cb.like(root.get("projectName"), "%" + param.getProjectName() + "%"));
+                predicates.add(
+                        cb.like(
+                                root.get("projectName"),
+                                "%" + param.getProjectName() + "%"
+                        )
+                );
             }
             if (param.getOrderStartDate() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("orderDate"), param.getOrderStartDate()));
+                predicates.add(
+                        cb.greaterThanOrEqualTo(
+                                root.get("orderDate"),
+                                param.getOrderStartDate()
+                        )
+                );
             }
             if (param.getOrderEndDate() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("orderDate"), param.getOrderEndDate()));
+                predicates.add(
+                        cb.lessThanOrEqualTo(
+                                root.get("orderDate"),
+                                param.getOrderEndDate()
+                        )
+                );
             }
             if (param.getProcessedStartDate() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("processedDate"), param.getProcessedStartDate()));
+                predicates.add(
+                        cb.greaterThanOrEqualTo(
+                                root.get("processedDate"),
+                                param.getProcessedStartDate()
+                        )
+                );
             }
             if (param.getProcessedEndDate() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("processedDate"), param.getProcessedEndDate()));
+                predicates.add(
+                        cb.lessThanOrEqualTo(
+                                root.get("processedDate"),
+                                param.getProcessedEndDate()
+                        )
+                );
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         // 默认取前 20 行，创建时间降序排序
         int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
         int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
-        List<Sort.Order> orders = param.getSorts() == null ? List.of(Sort.Order.desc("orderDate")) :
-                param.getSorts().stream().map(sortParam -> Sort.Order.by(sortParam.getField())
-                        .with(Sort.Direction.fromString(sortParam.getDirection()))).toList();
-        Pageable pageable = PageRequest.of(pageIndex, pageSize, Sort.by(orders));
-        Page<ServiceBill> pageResult = serviceBillRepository.findAll(specification, pageable);
+        List<Sort.Order> orders =
+                param.getSorts() == null
+                        ? List.of(Sort.Order.desc("orderDate"))
+                        : param
+                          .getSorts()
+                          .stream()
+                          .map(sortParam ->
+                                  Sort.Order.by(sortParam.getField()).with(
+                                          Sort.Direction.fromString(
+                                                  sortParam.getDirection()
+                                          )
+                                  )
+                          )
+                          .toList();
+        Pageable pageable = PageRequest.of(
+                pageIndex,
+                pageSize,
+                Sort.by(orders)
+        );
+        Page<ServiceBill> pageResult = serviceBillRepository.findAll(
+                specification,
+                pageable
+        );
         return pageResult.map(serviceBillMapper::toBaseDTO);
     }
 
@@ -217,17 +333,24 @@ public class ServiceBillBizService {
      * @param ids 单据 ID 列表
      * @return 批量操作结果
      */
-    @Caching(evict = {
-            @CacheEvict(value = "serviceBill_query", allEntries = true),
-            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
-    })
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'countBillsByState'"
+                    ),
+            }
+    )
     public ActionsResult<Integer, Void> delete(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+                ServiceBill bill = serviceBillRepository
+                        .findById(id)
+                        .orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }
@@ -235,7 +358,12 @@ public class ServiceBillBizService {
                     throw new BizException("非创建状态的单据不能删除");
                 }
                 serviceBillRepository.deleteById(id);
-                attachmentService.updateRelativeAttach(id, bill.getNumber(), BillType.SERVICE_BILL, new ArrayList<>());
+                attachmentService.updateRelativeAttach(
+                        id,
+                        bill.getNumber(),
+                        BillType.SERVICE_BILL,
+                        new ArrayList<>()
+                );
             });
             return null;
         });
@@ -247,17 +375,24 @@ public class ServiceBillBizService {
      * @param ids 单据 ID 列表
      * @return 批量操作结果
      */
-    @Caching(evict = {
-            @CacheEvict(value = "serviceBill_query", allEntries = true),
-            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
-    })
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'countBillsByState'"
+                    ),
+            }
+    )
     public ActionsResult<Integer, Void> process(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+                ServiceBill bill = serviceBillRepository
+                        .findById(id)
+                        .orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }
@@ -277,19 +412,33 @@ public class ServiceBillBizService {
      * @param ids           单据 ID
      * @param processedDate 完成日期，默认为当前时间
      */
-    @Caching(evict = {
-            @CacheEvict(value = "serviceBill_query", allEntries = true),
-            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'"),
-            @CacheEvict(value = "serviceBill_statistic", key = "'sumReceiveAmountByMonth'")
-    })
-    public ActionsResult<Integer, Void> processed(List<Integer> ids, Instant processedDate) {
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'countBillsByState'"
+                    ),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'sumReceiveAmountByMonth'"
+                    ),
+            }
+    )
+    public ActionsResult<Integer, Void> processed(
+            List<Integer> ids,
+            Instant processedDate
+    ) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
         }
-        final Instant finalProcessedDate = processedDate == null ? Instant.now() : processedDate;
+        final Instant finalProcessedDate =
+                processedDate == null ? Instant.now() : processedDate;
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+                ServiceBill bill = serviceBillRepository
+                        .findById(id)
+                        .orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }
@@ -297,7 +446,7 @@ public class ServiceBillBizService {
                     throw new BizException("非处理中状态的单据不能处理完成");
                 }
                 bill.setState(ServiceBillState.PROCESSED);
-                bill.setProcessedDate(processedDate);
+                bill.setProcessedDate(finalProcessedDate);
                 serviceBillRepository.save(bill);
             });
             return null;
@@ -307,18 +456,29 @@ public class ServiceBillBizService {
     /**
      * 批量更改为完成
      */
-    @Caching(evict = {
-            @CacheEvict(value = "serviceBill_query", allEntries = true),
-            @CacheEvict(value = "serviceBill_statistic", key = "'countBillsByState'")
-    })
-    public ActionsResult<Integer, Void> finish(List<Integer> ids, Instant finishedDate) {
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'countBillsByState'"
+                    ),
+            }
+    )
+    public ActionsResult<Integer, Void> finish(
+            List<Integer> ids,
+            Instant finishedDate
+    ) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
         }
-        final Instant finalFinishedDate = finishedDate == null ? Instant.now() : finishedDate;
+        final Instant finalFinishedDate =
+                finishedDate == null ? Instant.now() : finishedDate;
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+                ServiceBill bill = serviceBillRepository
+                        .findById(id)
+                        .orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }
@@ -332,5 +492,4 @@ public class ServiceBillBizService {
             return null;
         });
     }
-
 }

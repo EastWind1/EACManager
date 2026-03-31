@@ -5,7 +5,7 @@
       <v-stepper-header>
         <template v-for="(state, key, index) in ReimburseState" :key="index">
           <v-divider v-if="index"></v-divider>
-          <v-stepper-item :value="key" :title="state.title" :color="state.color">
+          <v-stepper-item :color="state.color" :title="state.title" :value="key">
             <template #icon>{{ index + 1 }}</template>
           </v-stepper-item>
         </template>
@@ -20,8 +20,8 @@
           <v-col
             v-if="reimbursement.state !== ReimburseState.CREATED.value"
             cols="6"
-            sm="4"
             md="3"
+            sm="4"
             xl="2"
           >
             <div class="text-caption text-grey-darken-1">单号</div>
@@ -35,7 +35,7 @@
             </div>
           </v-col>
           <v-spacer></v-spacer>
-          <v-col cols="4" md="3" xl="2" class="d-flex justify-end align-center">
+          <v-col class="d-flex justify-end align-center" cols="4" md="3" xl="2">
             <v-btn
               v-if="
                 reimbursement.id &&
@@ -96,11 +96,11 @@
         <v-container>
           <v-row>
             <v-col
-              cols="12"
-              sm="6"
-              md="4"
-              xl="3"
               v-if="reimbursement.state === ReimburseState.CREATED.value"
+              cols="12"
+              md="4"
+              sm="6"
+              xl="3"
             >
               <v-text-field
                 v-model="reimbursement.number"
@@ -121,7 +121,7 @@
               <v-textarea v-model="reimbursement.remark" label="备注"></v-textarea>
             </v-col>
             <!-- 报销日期 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <div
                 v-if="reimbursement.state !== ReimburseState.CREATED.value"
                 class="text-subtitle-2 mb-1"
@@ -242,6 +242,7 @@ async function save() {
     reimbursement.value = bill
   }
 }
+
 /**
  * 取消编辑
  */
@@ -260,6 +261,7 @@ async function cancel() {
     await router.push('/serviceBill')
   }
 }
+
 /**
  * 处理动作结果
  */

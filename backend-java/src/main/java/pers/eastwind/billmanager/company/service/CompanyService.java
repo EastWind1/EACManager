@@ -21,9 +21,11 @@ public class CompanyService {
         this.companyRepository = companyRepository;
         this.companyMapper = companyMapper;
     }
+
     public PageResult<CompanyDTO> findEnabled(QueryParam queryParam) {
         return PageResult.fromPage(companyRepository.findByDisabled(false, queryParam.getPageable()), companyMapper::toDTO);
     }
+
     @Transactional
     public CompanyDTO create(CompanyDTO company) {
         if (company.getName() == null || company.getName().isEmpty()) {
@@ -31,9 +33,11 @@ public class CompanyService {
         }
         return companyMapper.toDTO(companyRepository.save(companyMapper.toEntity(company)));
     }
+
     public List<CompanyDTO> findByName(String name) {
         return companyRepository.findByNameContains(name).stream().map(companyMapper::toDTO).toList();
     }
+
     @Transactional
     public CompanyDTO update(CompanyDTO company) {
         if (!companyRepository.existsById(company.getId())) {
@@ -41,6 +45,7 @@ public class CompanyService {
         }
         return companyMapper.toDTO(companyRepository.save(companyMapper.toEntity(company)));
     }
+
     @Transactional
     public void disable(Integer id) {
         Company company = companyRepository.findById(id)

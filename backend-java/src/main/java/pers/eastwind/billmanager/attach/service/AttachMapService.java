@@ -29,8 +29,9 @@ public class AttachMapService {
 
     /**
      * 附件映射为对象
+     *
      * @param attachment 附件
-     * @param clazz 目标对象类
+     * @param clazz      目标对象类
      * @return 对象
      */
     public <T> T map(AttachmentDTO attachment, Class<T> clazz) {

@@ -30,6 +30,35 @@ public class QueryParam {
     private List<SortParam> sorts;
 
     /**
+     * 获取分页参数
+     *
+     * @return 分页参数
+     */
+    public Pageable getPageable() {
+        Sort sort;
+        if (sorts == null || sorts.isEmpty()) {
+            sort = Sort.unsorted();
+        } else {
+            List<Sort.Order> orders = new ArrayList<>();
+            for (SortParam sortParam : sorts) {
+                switch (sortParam.getDirection()) {
+                    case "asc" -> orders.add(Sort.Order.asc(sortParam.getField()));
+                    case "desc" -> orders.add(Sort.Order.desc(sortParam.getField()));
+                }
+            }
+            sort = Sort.by(orders);
+        }
+        if (pageSize == null && pageIndex == null) {
+            return Pageable.unpaged(sort);
+        } else {
+            if (pageSize == null || pageIndex == null) {
+                throw new BizException("分页参数不能只有一个为空");
+            }
+            return PageRequest.of(pageIndex, pageSize, sort);
+        }
+    }
+
+    /**
      * 排序参数
      */
     @Data
@@ -54,39 +83,12 @@ public class QueryParam {
             }
             this.direction = direction;
         }
+
         public void setField(String field) {
             if (field == null || field.isEmpty()) {
                 throw new BizException("排序字段不能为空");
             }
             this.field = field;
-        }
-    }
-
-    /**
-     * 获取分页参数
-     * @return 分页参数
-     */
-    public Pageable getPageable() {
-        Sort sort;
-        if (sorts == null || sorts.isEmpty()) {
-            sort = Sort.unsorted();
-        } else {
-            List<Sort.Order> orders = new ArrayList<>();
-            for (SortParam sortParam : sorts) {
-                switch (sortParam.getDirection()) {
-                    case "asc" -> orders.add(Sort.Order.asc(sortParam.getField()));
-                    case "desc" -> orders.add(Sort.Order.desc(sortParam.getField()));
-                }
-            }
-            sort = Sort.by(orders);
-        }
-        if (pageSize == null && pageIndex == null) {
-            return Pageable.unpaged(sort);
-        } else {
-            if (pageSize == null || pageIndex == null) {
-                throw new BizException("分页参数不能只有一个为空");
-            }
-            return PageRequest.of(pageIndex, pageSize, sort);
         }
     }
 }

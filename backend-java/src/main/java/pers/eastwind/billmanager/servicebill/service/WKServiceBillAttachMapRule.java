@@ -20,13 +20,9 @@ import java.util.function.BiConsumer;
 @Service
 public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO> {
     private final CompanyService companyService;
-    public WKServiceBillAttachMapRule(CompanyService companyService) {
-        this.companyService = companyService;
-    }
-
     private final Map<String, BiConsumer<ServiceBillDTO, String>> mapRules = Map.of(
             "合同编号", ServiceBillDTO::setNumber,
-            "下单时间", ( target,  text) -> target.setOrderDate(AttachMapRule.parseDateString(text)),
+            "下单时间", (target, text) -> target.setOrderDate(AttachMapRule.parseDateString(text)),
             "项目名称", ServiceBillDTO::setProjectName,
             "监理、站长", ServiceBillDTO::setProjectContact,
             "现场联系人", ServiceBillDTO::setOnSiteContact,
@@ -34,7 +30,9 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
             "备注", ServiceBillDTO::setRemark
     );
 
-
+    public WKServiceBillAttachMapRule(CompanyService companyService) {
+        this.companyService = companyService;
+    }
 
     protected void setByText(ServiceBillDTO target, String text) {
         if (text == null || text.isEmpty()) {
@@ -73,12 +71,14 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
         }
         return false;
     }
+
     protected void setCompany(ServiceBillDTO target, String name) {
         List<CompanyDTO> company = companyService.findByName(name);
         if (!company.isEmpty()) {
             target.setProductCompany(company.getFirst());
         }
     }
+
     @Override
     public ServiceBillDTO mapFromOCR(List<String> texts) {
         if (!canOCR(texts)) {
@@ -131,7 +131,7 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
                     detail.setQuantity(new BigDecimal(row.get(5)));
                     detail.setUnitPrice(row.get(7).isEmpty() ? BigDecimal.ZERO : new BigDecimal(row.get(7)));
                     detail.setSubtotal(row.get(8).isEmpty() ? BigDecimal.ZERO : new BigDecimal(row.get(8)));
-                  
+
                     serviceBill.getDetails().add(detail);
                 } else {
                     // 特殊子项

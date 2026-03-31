@@ -3,12 +3,12 @@
     <v-card>
       <v-card-title>{{ title }}</v-card-title>
       <v-card-text>
-        <v-date-picker v-model="internalDate" :min="minDate" :max="maxDate" />
+        <v-date-picker v-model="internalDate" :max="maxDate" :min="minDate" />
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="primary" text @click="handleConfirm"> 确定 </v-btn>
-        <v-btn text @click="handleCancel"> 取消 </v-btn>
+        <v-btn color="primary" text @click="handleConfirm"> 确定</v-btn>
+        <v-btn text @click="handleCancel"> 取消</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -23,8 +23,10 @@ interface Props {
 
 interface Emits {
   (e: 'confirm', value: Date): void
+
   (e: 'cancel'): void
 }
+
 withDefaults(defineProps<Props>(), {
   title: '请选择日期',
   minDate: undefined,

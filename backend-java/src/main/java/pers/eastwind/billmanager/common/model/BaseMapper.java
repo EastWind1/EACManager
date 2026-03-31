@@ -36,6 +36,7 @@ public interface BaseMapper<E, DTO> {
      * @return 基础 DTO
      */
     DTO toBaseDTO(E entity);
+
     /**
      * 转换为基础 DTO 列表
      */
@@ -54,16 +55,20 @@ public interface BaseMapper<E, DTO> {
      * 更新实体
      */
     void updateEntityFromDTO(DTO dto, @MappingTarget E entity);
+
     /**
      * 权限判断
+     *
      * @param roles 角色
      * @see AuthorityRole
      */
     default boolean hasRole(AuthorityRole... roles) {
         return AuthUtil.hasAnyRole(roles);
     }
+
     /**
      * 权限判断
+     *
      * @param roles 角色名称，对应 {@link AuthorityRole} 的枚举名称，不含 ROLE_ 前缀
      * @see AuthorityRole
      */

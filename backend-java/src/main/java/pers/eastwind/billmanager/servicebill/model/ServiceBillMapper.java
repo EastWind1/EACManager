@@ -18,7 +18,8 @@ public interface ServiceBillMapper extends BaseMapper<ServiceBill, ServiceBillDT
     ServiceBillDTO toBaseDTO(ServiceBill serviceBill);
 
     @Override
-    @Mapping(target = "productCompany", ignore = true) // MapStruct 默认逻辑是直接在关联对象上赋值，而非新建，这会导致触发 JPA 的上下文检测，误认为是要更改关联对象 ID
+    @Mapping(target = "productCompany", ignore = true)
+        // MapStruct 默认逻辑是直接在关联对象上赋值，而非新建，这会导致触发 JPA 的上下文检测，误认为是要更改关联对象 ID
     void updateEntityFromDTO(ServiceBillDTO dto, @MappingTarget ServiceBill entity);
 
     ServiceBillDTO toDTO(ServiceBill serviceBill, List<AttachmentDTO> attachments);

@@ -74,6 +74,7 @@ public class UserController {
 
     /**
      * 禁用
+     *
      * @param username 用户名
      */
     @DeleteMapping("/{username}")

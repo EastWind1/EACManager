@@ -19,7 +19,10 @@ import pers.eastwind.billmanager.common.exception.FileOpException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * 附件服务
@@ -27,6 +30,7 @@ import java.util.*;
 @Slf4j
 @Service
 public class AttachmentService implements InitializingBean {
+    private static final String TEMP_PREFIX = "eac-";
     private final AttachConfigProperties properties;
     private final AttachmentRepository attachmentRepository;
     private final BillAttachRelationRepository billAttachRelationRepository;
@@ -41,7 +45,7 @@ public class AttachmentService implements InitializingBean {
      */
     @Getter
     private Path tempPath;
-    private static final String TEMP_PREFIX = "eac-";
+
     public AttachmentService(AttachConfigProperties properties, AttachmentRepository attachmentRepository, BillAttachRelationRepository billAttachRelationRepository, AttachmentMapper attachmentMapper) {
         this.properties = properties;
         this.attachmentRepository = attachmentRepository;
@@ -63,8 +67,10 @@ public class AttachmentService implements InitializingBean {
             throw new FileOpException("创建附件目录失败", e);
         }
     }
+
     /**
      * 创建临时文件
+     *
      * @param prefix 前缀
      * @param suffix 后缀, 为空时默认为 .tmp
      */
@@ -77,8 +83,10 @@ public class AttachmentService implements InitializingBean {
             throw new FileOpException("创建临时文件失败", e);
         }
     }
+
     /**
      * 创建临时文件夹
+     *
      * @param prefix 前缀
      */
     public Path createTempDir(String prefix) {
@@ -90,6 +98,7 @@ public class AttachmentService implements InitializingBean {
             throw new FileOpException("创建临时文件失败", e);
         }
     }
+
     /**
      * 校验绝对路径
      */
@@ -105,6 +114,7 @@ public class AttachmentService implements InitializingBean {
             }
         }
     }
+
     /**
      * 获取绝对路径
      *
@@ -119,10 +129,11 @@ public class AttachmentService implements InitializingBean {
         if (relativePath.startsWith("/")) {
             relativePath = Path.of(relativePath.toString().substring(1));
         }
-        Path absolutePath =  isTemp ? tempPath.resolve(relativePath).normalize() : rootPath.resolve(relativePath).normalize();
+        Path absolutePath = isTemp ? tempPath.resolve(relativePath).normalize() : rootPath.resolve(relativePath).normalize();
         validAbsolutePath(absolutePath, isTemp);
         return absolutePath;
     }
+
     /**
      * 获取相对路径
      *
@@ -134,8 +145,9 @@ public class AttachmentService implements InitializingBean {
             throw new BizException("路径不能为空");
         }
         validAbsolutePath(absolutePath, isTemp);
-        return isTemp? tempPath.relativize(absolutePath).normalize() : rootPath.relativize(absolutePath).normalize();
+        return isTemp ? tempPath.relativize(absolutePath).normalize() : rootPath.relativize(absolutePath).normalize();
     }
+
     /**
      * 获取 Resource
      */
@@ -160,6 +172,7 @@ public class AttachmentService implements InitializingBean {
         }
         return new FileSystemResource(path);
     }
+
     /**
      * 上传临时文件
      */
@@ -216,7 +229,7 @@ public class AttachmentService implements InitializingBean {
             if (attachmentDTO.getId() == null) {
                 Attachment addAttach = attachmentMapper.toEntity(attachmentDTO);
                 Path originPath = getAbsolutePath(Path.of(attachmentDTO.getRelativePath()), attachmentDTO.isTemp());
-                Path targetRelativePath = Path.of(billType.name()).resolve(billNumber).resolve(System.currentTimeMillis()+ "-"+ addAttach.getName());
+                Path targetRelativePath = Path.of(billType.name()).resolve(billNumber).resolve(System.currentTimeMillis() + "-" + addAttach.getName());
                 Path targetPath = getAbsolutePath(targetRelativePath, false);
                 // 设置业务单据关联关系
                 addAttach.setRelativePath(targetRelativePath.toString());

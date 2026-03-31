@@ -25,18 +25,20 @@ public record PageResult<T>(
 ) {
     /**
      * 空分页结果
-     * @return 空分页结果
+     *
      * @param <T> 数据类型
+     * @return 空分页结果
      */
-    public static<T> PageResult<T> empty() {
+    public static <T> PageResult<T> empty() {
         return new PageResult<>(List.of(), 0L, 0, 0, 0);
     }
 
     /**
      * 从 Page 转换为 PageResult
+     *
      * @param page Page
+     * @param <T>  数据类型
      * @return PageResult
-     * @param <T> 数据类型
      */
     public static <T> PageResult<T> fromPage(Page<T> page) {
         return new PageResult<>(
@@ -50,11 +52,12 @@ public record PageResult<T>(
 
     /**
      * 从 Page 转换为 PageResult
-     * @param page Page
+     *
+     * @param page   Page
      * @param mapper 转换函数
+     * @param <T>    数据类型
+     * @param <DTO>  DTO 类型
      * @return PageResult
-     * @param <T> 数据类型
-     * @param <DTO> DTO 类型
      */
     public static <T, DTO> PageResult<DTO> fromPage(Page<T> page, Function<T, DTO> mapper) {
         List<DTO> items = new ArrayList<>();

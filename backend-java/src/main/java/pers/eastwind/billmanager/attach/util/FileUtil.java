@@ -64,19 +64,11 @@ public class FileUtil {
             throw new FileOpException("提取 PDF 图片失败", e);
         }
     }
-    /**
-     * 上传结果
-     * @param filename 文件名
-     * @param type     类型
-     * @param path     相对路径
-     */
-    public record UploadResult(String filename, AttachmentType type, Path path) {
-    }
 
     /**
      * 上传单个文件
      *
-     * @param resource 文件资源
+     * @param resource    文件资源
      * @param tempDirPath 临时目录路径, 为空时使用系统临时目录
      * @return 上传结果
      */
@@ -122,7 +114,7 @@ public class FileUtil {
      * @return 压缩后的文件路径
      */
     public static Path zip(Path source, Path target) {
-        if (source == null ||!Files.exists(source)) {
+        if (source == null || !Files.exists(source)) {
             throw new FileOpException("源文件不存在");
         }
         if (target == null) {
@@ -158,5 +150,15 @@ public class FileUtil {
             throw new FileOpException("压缩文件失败", e);
         }
         return target;
+    }
+
+    /**
+     * 上传结果
+     *
+     * @param filename 文件名
+     * @param type     类型
+     * @param path     相对路径
+     */
+    public record UploadResult(String filename, AttachmentType type, Path path) {
     }
 }

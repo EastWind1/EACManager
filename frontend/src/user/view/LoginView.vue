@@ -20,9 +20,7 @@
           label="密码"
           @click:append-inner="showPassword = !showPassword"
         ></v-text-field>
-        <v-btn :loading="loading" block  color="primary" size="large" @click="login"
-          >登录</v-btn
-        >
+        <v-btn :loading="loading" block color="primary" size="large" @click="login">登录</v-btn>
       </v-form>
     </v-card>
   </v-container>
@@ -57,6 +55,7 @@ const valid = ref(true)
 // 必填
 const required = (value: string) => !!value || '不能为空'
 useHotkey('enter', login)
+
 // 登陆
 async function login() {
   if (!valid.value) {

@@ -15,7 +15,7 @@ import pers.eastwind.billmanager.user.model.User;
 public class BaseServiceTest {
     @BeforeEach
     void setUp() {
-       setAdmin();
+        setAdmin();
     }
 
     /**
@@ -26,7 +26,7 @@ public class BaseServiceTest {
         admin.setId(1);
         admin.setUsername("admin");
         admin.setAuthority(AuthorityRole.ROLE_ADMIN);
-        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(admin, "",admin.getAuthorities()));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(admin, "", admin.getAuthorities()));
     }
 
     /**
@@ -37,6 +37,6 @@ public class BaseServiceTest {
         user.setId(1);
         user.setUsername("admin");
         user.setAuthority(AuthorityRole.ROLE_USER);
-        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user,"", user.getAuthorities()));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user, "", user.getAuthorities()));
     }
 }

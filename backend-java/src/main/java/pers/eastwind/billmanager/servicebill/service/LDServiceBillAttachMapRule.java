@@ -37,6 +37,7 @@ public class LDServiceBillAttachMapRule extends WKServiceBillAttachMapRule {
         }
         return false;
     }
+
     @Override
     public ServiceBillDTO mapFromOCR(List<String> texts) {
         if (!canOCR(texts)) {

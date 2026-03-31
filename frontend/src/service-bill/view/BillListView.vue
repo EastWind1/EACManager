@@ -8,10 +8,10 @@
       <template #text>
         <v-container>
           <v-row>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="queryParam.number" clearable label="单号" />
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-select
                 v-model="queryParam.states"
                 :items="stateOptions"
@@ -22,10 +22,10 @@
                 multiple
               />
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-date-input
                 v-model="queryParam.orderDateRange"
                 clearable
@@ -35,7 +35,7 @@
                 prepend-inner-icon="$calendar"
               ></v-date-input>
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-date-input
                 v-model="queryParam.processedDateRange"
                 clearable

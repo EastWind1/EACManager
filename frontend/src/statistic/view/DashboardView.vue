@@ -12,26 +12,26 @@
             </div>
           </template>
           <template #text>
-              <v-row>
-                <v-col cols="6" @click="stateClick(ServiceBillState.CREATED.value)">
-                  <div class="text-subtitle-2 text-center">待处理单据</div>
-                  <div class="text-headline-large text-center">
-                    {{ countByState?.CREATED ?? 0 }}
-                  </div>
-                </v-col>
-                <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSING.value)">
-                  <div class="text-subtitle-2 text-center">处理中单据</div>
-                  <div class="text-headline-large text-center">
-                    {{ countByState?.PROCESSING ?? 0 }}
-                  </div>
-                </v-col>
-                <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSED.value)">
-                  <div class="text-subtitle-2 text-center">处理完成单据</div>
-                  <div class="text-headline-large text-center">
-                    {{ countByState?.PROCESSED ?? 0 }}
-                  </div>
-                </v-col>
-              </v-row>
+            <v-row>
+              <v-col cols="6" @click="stateClick(ServiceBillState.CREATED.value)">
+                <div class="text-subtitle-2 text-center">待处理单据</div>
+                <div class="text-headline-large text-center">
+                  {{ countByState?.CREATED ?? 0 }}
+                </div>
+              </v-col>
+              <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSING.value)">
+                <div class="text-subtitle-2 text-center">处理中单据</div>
+                <div class="text-headline-large text-center">
+                  {{ countByState?.PROCESSING ?? 0 }}
+                </div>
+              </v-col>
+              <v-col cols="6" @click="stateClick(ServiceBillState.PROCESSED.value)">
+                <div class="text-subtitle-2 text-center">处理完成单据</div>
+                <div class="text-headline-large text-center">
+                  {{ countByState?.PROCESSED ?? 0 }}
+                </div>
+              </v-col>
+            </v-row>
           </template>
         </v-card>
       </v-col>

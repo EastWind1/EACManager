@@ -5,7 +5,7 @@
     <v-stepper-header>
       <template v-for="(state, key, index) in ServiceBillState" :key="index">
         <v-divider v-if="index"></v-divider>
-        <v-stepper-item :value="key" :title="state.title" :color="state.color">
+        <v-stepper-item :color="state.color" :title="state.title" :value="key">
           <template #icon>{{ index + 1 }}</template>
         </v-stepper-item>
       </template>
@@ -20,8 +20,8 @@
         <v-col
           v-if="serviceBill.state !== ServiceBillState.CREATED.value"
           cols="6"
-          sm="4"
           md="3"
+          sm="4"
           xl="2"
         >
           <div class="text-caption text-grey-darken-1">单号</div>
@@ -35,7 +35,7 @@
           </div>
         </v-col>
         <v-spacer></v-spacer>
-        <v-col cols="4" md="3" xl="2" class="d-flex justify-end align-center">
+        <v-col class="d-flex justify-end align-center" cols="4" md="3" xl="2">
           <v-btn
             v-if="
               serviceBill.id &&
@@ -80,7 +80,7 @@
           >
             删除
           </v-btn>
-          <v-btn v-if="isEditState" :loading="loading" type="submit" color="primary"> 保存 </v-btn>
+          <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit"> 保存</v-btn>
           <v-btn v-if="isEditState" color="grey-lighten-1" variant="text" @click="cancel">
             取消
           </v-btn>
@@ -98,11 +98,11 @@
         <v-container>
           <v-row>
             <v-col
-              cols="12"
-              sm="6"
-              md="4"
-              xl="3"
               v-if="serviceBill.state === ServiceBillState.CREATED.value"
+              cols="12"
+              md="4"
+              sm="6"
+              xl="3"
             >
               <v-text-field
                 v-model="serviceBill.number"
@@ -110,14 +110,14 @@
                 placeholder="可生成自动"
               ></v-text-field>
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-select
                 v-model="serviceBill.type"
                 :items="billTypeOption"
                 label="单据类型"
               ></v-select>
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-select
                 v-model="serviceBill.productCompany"
                 :items="companyData.data"
@@ -128,7 +128,7 @@
               ></v-select>
             </v-col>
             <!-- 项目名称 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field
                 v-model="serviceBill.projectName"
                 :rules="[requiredRule]"
@@ -136,7 +136,7 @@
               ></v-text-field>
             </v-col>
             <!-- 项目地址 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field
                 v-model="serviceBill.projectAddress"
                 :rules="[requiredRule]"
@@ -149,11 +149,11 @@
               </v-text-field>
             </v-col>
             <!-- 项目联系人 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="serviceBill.projectContact" label="项目联系人"></v-text-field>
             </v-col>
             <!-- 项目联系人电话 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="serviceBill.projectContactPhone" label="项目联系人电话">
                 <template v-if="mobile" #append>
                   <v-icon :icon="mdiPhone" @click="callPhone(serviceBill.projectContactPhone)">
@@ -175,19 +175,19 @@
         <v-container>
           <v-row>
             <!-- 现场联系人 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="serviceBill.onSiteContact" label="现场联系人"></v-text-field>
             </v-col>
             <!-- 现场联系人电话 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="serviceBill.onSitePhone" label="现场联系人电话">
                 <template v-if="mobile" #append>
-                  <v-icon :icon="mdiPhone" @click="callPhone(serviceBill.onSitePhone)"> </v-icon>
+                  <v-icon :icon="mdiPhone" @click="callPhone(serviceBill.onSitePhone)"></v-icon>
                 </template>
               </v-text-field>
             </v-col>
             <!-- 电梯信息 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field
                 v-model="serviceBill.elevatorInfo"
                 label="电梯信息"
@@ -241,7 +241,7 @@
               <v-textarea v-model="serviceBill.remark" label="备注"></v-textarea>
             </v-col>
             <!-- 创建时间 -->
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <div
                 v-if="serviceBill.state !== ServiceBillState.CREATED.value"
                 class="text-subtitle-2 mb-1"
@@ -263,12 +263,12 @@
               ></v-date-input>
             </v-col>
             <!-- 处理完成时间 -->
-            <v-col v-if="serviceBill.processedDate" cols="12" sm="6" md="4" xl="3">
+            <v-col v-if="serviceBill.processedDate" cols="12" md="4" sm="6" xl="3">
               <div class="text-subtitle-2 mb-1">
                 处理完成时间 {{ dateUtil.format(serviceBill.processedDate, 'keyboardDate') }}
               </div>
             </v-col>
-            <v-col v-if="serviceBill.finishedDate" cols="12" sm="6" md="4" xl="3">
+            <v-col v-if="serviceBill.finishedDate" cols="12" md="4" sm="6" xl="3">
               <div class="text-subtitle-2 mb-1">
                 回款完成时间 {{ dateUtil.format(serviceBill.finishedDate, 'keyboardDate') }}
               </div>
@@ -358,8 +358,10 @@ async function companySelect() {
   companyData.value.data = await CompanyApi.getAll({}).then((res) => res.items)
   companyData.value.loaded = true
 }
+
 // 保存快捷键
 useHotkey('ctrl+s', save)
+
 /**
  * 提交表单
  */
@@ -398,6 +400,7 @@ async function cancel() {
     await router.push('/services')
   }
 }
+
 /**
  * 处理动作结果
  */
@@ -459,6 +462,7 @@ async function removeAndBack(id: number) {
   await remove([id])
   router.back()
 }
+
 // 初始化
 async function init() {
   // 链接查看

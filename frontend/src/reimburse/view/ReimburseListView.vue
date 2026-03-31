@@ -8,10 +8,10 @@
       <template #text>
         <v-container>
           <v-row>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="queryParam.number" clearable label="单号" />
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-select
                 v-model="queryParam.states"
                 :items="stateOptions"
@@ -22,7 +22,7 @@
                 multiple
               />
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-date-input
                 v-model="queryParam.reimburseDateRange"
                 clearable
@@ -32,7 +32,7 @@
                 prepend-inner-icon="$calendar"
               ></v-date-input>
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="queryParam.summary" clearable label="摘要" />
             </v-col>
             <v-col class="d-flex justify-end align-center">
@@ -56,28 +56,28 @@
         :disabled="loading"
         color="primary"
         @click="create"
-        >新增</v-btn
-      >
+        >新增
+      </v-btn>
       <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
       <v-btn
         v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
         :disabled="loading"
         @click="process(selectedIds)"
-        >提交</v-btn
-      >
+        >提交
+      </v-btn>
       <v-btn
         v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
         :disabled="loading"
         @click="finish(selectedIds)"
-        >完成</v-btn
-      >
+        >完成
+      </v-btn>
       <v-btn
         v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
         :disabled="loading"
         color="error"
         @click="remove(selectedIds)"
-        >删除</v-btn
-      >
+        >删除
+      </v-btn>
     </template>
   </v-toolbar>
   <v-data-table-server

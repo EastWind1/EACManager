@@ -22,6 +22,7 @@ public class AuthUtil {
 
     /**
      * 判断当前用户是否有指定角色
+     *
      * @param roles 角色列表
      * @return 是否有指定角色
      */
@@ -29,8 +30,10 @@ public class AuthUtil {
         var curUser = getCurUser();
         return hasAnyRole(curUser, roles);
     }
+
     /**
      * 判断用户是否有指定角色
+     *
      * @param roles 角色列表
      * @return 是否有指定角色
      */

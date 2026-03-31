@@ -1,14 +1,7 @@
 import type { Attachment } from '../model/Attachment.ts'
 import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let http: HttpClient
-
-function getHttp() {
-  if (!http) {
-    http = new HttpClient('/api/attachment')
-  }
-  return http
-}
+const http = new HttpClient('/api/attachment')
 
 /**
  * 附件 API
@@ -26,7 +19,7 @@ const AttachmentApi = {
     for (const file of files) {
       formData.append('files', file)
     }
-    return await getHttp().postForm<Attachment[]>(`/temp`, formData)
+    return await http.postForm<Attachment[]>(`/temp`, formData)
   },
   /**
    * 下载文件
@@ -34,7 +27,7 @@ const AttachmentApi = {
    * @param attach 文件
    */
   async download(attach: Attachment) {
-    return (await getHttp().get<Blob>('/', { params: attach }))
+    return await http.get<Blob>('/', { params: attach })
   },
 }
 export default AttachmentApi

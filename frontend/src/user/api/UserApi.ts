@@ -3,14 +3,7 @@ import type { QueryParam } from '@/common/model/QueryParam.ts'
 import type { PageResult } from '@/common/model/PageResult.ts'
 import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let http: HttpClient
-
-function getHttp() {
-  if (!http) {
-    http = new HttpClient('/api/user')
-  }
-  return http
-}
+const http = new HttpClient('/api/user')
 
 /**
  * 用户 API
@@ -23,7 +16,7 @@ const UserApi = {
    * @param password 密码
    */
   async login(username: string, password: string) {
-    return await getHttp().post<User>(`/token`, {
+    return await http.post<User>(`/token`, {
       username,
       password,
     })
@@ -33,7 +26,7 @@ const UserApi = {
    * 获取所有用户
    */
   async getAll(param: QueryParam) {
-    return await getHttp().get<PageResult<User>>('', {
+    return await http.get<PageResult<User>>('', {
       params: param,
     })
   },
@@ -43,7 +36,7 @@ const UserApi = {
    * @param user 用户数据
    */
   async create(user: User) {
-    return await getHttp().post<User>('', user)
+    return await http.post<User>('', user)
   },
 
   /**
@@ -51,7 +44,7 @@ const UserApi = {
    * @param user 用户数据
    */
   async update(user: User) {
-    return await getHttp().put<User>('', user)
+    return await http.put<User>('', user)
   },
 
   /**
@@ -59,7 +52,7 @@ const UserApi = {
    * @param username 用户名
    */
   async disable(username: string) {
-    return await getHttp().delete(`/${username}`)
+    return await http.delete(`/${username}`)
   },
 }
 export default UserApi

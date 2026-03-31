@@ -3,14 +3,7 @@ import type { QueryParam } from '@/common/model/QueryParam.ts'
 import type { PageResult } from '@/common/model/PageResult.ts'
 import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let http: HttpClient
-
-function getHttp() {
-  if (!http) {
-    http = new HttpClient('/api/company')
-  }
-  return http
-}
+const http = new HttpClient('/api/company')
 
 /**
  * 公司 API
@@ -20,7 +13,7 @@ const CompanyApi = {
    * 获取所有公司
    */
   async getAll(param: QueryParam) {
-    return await getHttp().get<PageResult<Company>>('', {
+    return await http.get<PageResult<Company>>('', {
       params: param,
     })
   },
@@ -29,7 +22,7 @@ const CompanyApi = {
    * @param company 公司数据
    */
   async create(company: Company) {
-    return await getHttp().post<Company>('', company)
+    return await http.post<Company>('', company)
   },
 
   /**
@@ -37,7 +30,7 @@ const CompanyApi = {
    * @param company 公司数据
    */
   async update(company: Company) {
-    return await getHttp().put<Company>('', company)
+    return await http.put<Company>('', company)
   },
 
   /**
@@ -45,7 +38,7 @@ const CompanyApi = {
    * @param id 公司 ID
    */
   async disable(id: number) {
-    return getHttp().delete(`/${id}`)
+    return http.delete(`/${id}`)
   },
 }
 export default CompanyApi

@@ -18,7 +18,7 @@ public class OfficeFileUtil {
     /**
      * 读取 Excel 文件, 范围二维数据
      *
-     * @param path   文件相对路径
+     * @param path 文件相对路径
      */
     public static List<List<String>> parseExcel(Path path) {
         List<List<String>> res = new ArrayList<>();
@@ -62,6 +62,7 @@ public class OfficeFileUtil {
     /**
      * 生成 Excel 文件
      * 只支持简单的二维数据
+     *
      * @param rows       数据
      * @param targetFile 目标文件, 若存在则替换
      */

@@ -1,12 +1,7 @@
 <template>
   <v-app>
     <!-- 全局进度条 -->
-    <v-progress-linear
-      :active="loading"
-      absolute
-      indeterminate
-      class="z-9999"
-    ></v-progress-linear>
+    <v-progress-linear :active="loading" absolute class="z-9999" indeterminate></v-progress-linear>
     <!-- 全局通知 -->
     <v-snackbar
       v-model="notifyData.show"

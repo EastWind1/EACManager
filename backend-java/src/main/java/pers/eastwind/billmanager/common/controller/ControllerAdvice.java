@@ -69,26 +69,30 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         log.warn("数据已被更改", e);
         return Result.error("数据已被更改，请稍后刷新重试");
     }
+
     /**
      * 业务异常处理
+     *
      * @param e 错误
      * @return 错误结果
      */
     @ExceptionHandler(BizException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleBizException(BizException e) {
-        log.error(e.getMessage(),e);
+        log.error(e.getMessage(), e);
         return Result.error(e.getMessage());
     }
+
     /**
      * 文件操作异常处理
+     *
      * @param e 错误
      * @return 错误结果
      */
     @ExceptionHandler(FileOpException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleBizException(FileOpException e) {
-        log.error(e.getMessage(),e);
+        log.error(e.getMessage(), e);
         return Result.error("文件操作异常");
     }
 }

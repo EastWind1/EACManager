@@ -23,7 +23,7 @@ public class OCRService {
     /**
      * 转换图像为字符串集合
      *
-     * @param path   图像相对路径
+     * @param path 图像相对路径
      * @return 文本列表
      */
     public List<String> parseImage(Path path) {

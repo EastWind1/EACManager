@@ -81,7 +81,7 @@ public class ServiceBillController {
      * 通过文件创建
      */
     @PostMapping("/import")
-    public ServiceBillDTO importByFile(MultipartFile file)  {
+    public ServiceBillDTO importByFile(MultipartFile file) {
         return serviceBillIOService.generateByFile(file.getResource());
     }
 
@@ -134,8 +134,10 @@ public class ServiceBillController {
      */
     public record ProcessedParam(List<Integer> ids, Instant processedDate) {
     }
+
     /**
      * 完成参数
      */
-    public record FinishParam(List<Integer> ids, Instant finishedDate) {}
+    public record FinishParam(List<Integer> ids, Instant finishedDate) {
+    }
 }

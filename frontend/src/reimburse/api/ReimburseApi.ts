@@ -3,14 +3,7 @@ import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 import type { Reimbursement, ReimburseQueryParam } from '../model/Reimbursement.ts'
 import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let http: HttpClient
-
-function getHttp() {
-  if (!http) {
-    http = new HttpClient('/api/reimburse')
-  }
-  return http
-}
+const http = new HttpClient('/api/reimburse')
 
 /**
  * 报销单 API
@@ -21,7 +14,7 @@ const ReimburseApi = {
    * @param queryParam 查询参数
    */
   async getByQueryParam(queryParam: ReimburseQueryParam) {
-    return await getHttp().post<PageResult<Reimbursement>>(`/query`, queryParam)
+    return await http.post<PageResult<Reimbursement>>(`/query`, queryParam)
   },
 
   /**
@@ -29,7 +22,7 @@ const ReimburseApi = {
    * @param id 单据 ID
    */
   async getById(id: number) {
-    return  await getHttp().get<Reimbursement>(`/${id}`)
+    return await http.get<Reimbursement>(`/${id}`)
   },
 
   /**
@@ -37,7 +30,7 @@ const ReimburseApi = {
    * @param reimbursement 单据
    */
   async create(reimbursement: Reimbursement) {
-    return await getHttp().post<Reimbursement>('', reimbursement)
+    return await http.post<Reimbursement>('', reimbursement)
   },
 
   /**
@@ -45,7 +38,7 @@ const ReimburseApi = {
    * @param reimbursement 单据
    */
   async save(reimbursement: Reimbursement) {
-    return await getHttp().put<Reimbursement>('', reimbursement)
+    return await http.put<Reimbursement>('', reimbursement)
   },
 
   /**
@@ -53,7 +46,7 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async delete(ids: number[]) {
-    return await getHttp().delete<ActionsResult<number, void>>('', { data: ids })
+    return await http.delete<ActionsResult<number, void>>('', { data: ids })
   },
 
   /**
@@ -61,7 +54,7 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async process(ids: number[]) {
-    return await getHttp().put<ActionsResult<number, void>>(`/process`, ids)
+    return await http.put<ActionsResult<number, void>>(`/process`, ids)
   },
 
   /**
@@ -69,7 +62,7 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async finish(ids: number[]) {
-    return await getHttp().put<ActionsResult<number, void>>(`/finish`, ids)
+    return await http.put<ActionsResult<number, void>>(`/finish`, ids)
   },
 
   /**
@@ -77,7 +70,7 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async export(ids: number[]) {
-    return await getHttp().post<Blob>(`/export`, ids)
+    return await http.post<Blob>(`/export`, ids)
   },
 }
 export default ReimburseApi

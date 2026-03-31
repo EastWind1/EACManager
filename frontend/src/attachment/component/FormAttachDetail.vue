@@ -9,7 +9,7 @@
       @dragover.prevent
       @drop.prevent="!readonly && drop($event)"
     >
-      <v-col v-for="attach in attachments" :key="attach.name" cols="12" sm="6" md="4" xl="3">
+      <v-col v-for="attach in attachments" :key="attach.name" cols="12" md="4" sm="6" xl="3">
         <v-hover v-slot="{ isHovering, props }">
           <v-card v-bind="props">
             <template v-if="!isHovering" #text>
@@ -29,7 +29,7 @@
         </v-hover>
       </v-col>
       <v-col v-if="!readonly" cols="1">
-        <v-card width="53" variant="outlined">
+        <v-card variant="outlined" width="53">
           <template #text>
             <v-icon :icon="mdiPlus" @click="upload"></v-icon>
           </template>
@@ -74,6 +74,7 @@ import { defineAsyncComponent, onUnmounted, ref, toRefs } from 'vue'
 import AttachmentApi from '../api/AttachmentApi.ts'
 import { useUIStore } from '@/common/store/UIStore.ts'
 import { useFileSelector } from '../composable/FileSelector.ts'
+
 const ExcelPreview = defineAsyncComponent(() => import('./ExcelPreview.vue'))
 
 const attachments = defineModel<Attachment[]>()

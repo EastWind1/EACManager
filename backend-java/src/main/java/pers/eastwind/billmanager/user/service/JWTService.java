@@ -37,8 +37,8 @@ public class JWTService {
     /**
      * 生成 TOKEN
      *
-     * @param userName       用户名
-     * @param subject        摘要
+     * @param userName 用户名
+     * @param subject  摘要
      * @return TOKEN
      */
     public String generateToken(String userName, String subject) {
@@ -79,5 +79,5 @@ public class JWTService {
             throw new BizException("验证 JWT 异常");
         }
     }
-    
+
 }

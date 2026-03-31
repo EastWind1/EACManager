@@ -29,6 +29,7 @@ public record Result<T>(String message, T data) {
     public static Result<Object> error(String message) {
         return new Result<>(message, null);
     }
+
     /**
      * 创建失败结果, 含内容
      *

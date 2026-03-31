@@ -2,7 +2,10 @@ package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.*;
+import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.attach.model.BillType;
+import pers.eastwind.billmanager.attach.model.FileOp;
+import pers.eastwind.billmanager.attach.model.FileOpType;
 import pers.eastwind.billmanager.attach.service.AttachMapService;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
@@ -31,7 +34,7 @@ public class ServiceBillIOService {
     private final AttachmentService attachmentService;
     private final AttachMapService attachMapService;
 
-    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService,  AttachMapService attachMapService) {
+    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService, AttachMapService attachMapService) {
         this.serviceBillRepository = serviceBillRepository;
         this.attachmentService = attachmentService;
         this.attachMapService = attachMapService;
@@ -49,6 +52,7 @@ public class ServiceBillIOService {
         bill.setAttachments(List.of(attachment));
         return bill;
     }
+
     /**
      * 导出单据
      *

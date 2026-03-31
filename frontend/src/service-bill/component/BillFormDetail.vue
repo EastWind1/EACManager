@@ -10,8 +10,8 @@
     <!-- 最后一列显示操作按钮 -->
     <!-- 使用字符串表示插槽名称，防止 ESLint 报错 -->
     <template #[`item.actions`]="{ item }">
-      <v-btn :icon="mdiPencil" size="small" @click="editDetail(item)" variant="plain"></v-btn>
-      <v-btn :icon="mdiDelete" size="small" @click="deleteDetail(item)" variant="plain"></v-btn>
+      <v-btn :icon="mdiPencil" size="small" variant="plain" @click="editDetail(item)"></v-btn>
+      <v-btn :icon="mdiDelete" size="small" variant="plain" @click="deleteDetail(item)"></v-btn>
     </template>
 
     <!-- 最后一行添加加号按钮 -->
@@ -31,21 +31,21 @@
       <template #text>
         <v-container>
           <v-row>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field
                 v-model="dialogData.device"
                 :rules="[requiredRule]"
                 label="设备类型"
               ></v-text-field>
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-number-input v-model="dialogData.unitPrice" label="单价"></v-number-input>
             </v-col>
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-number-input v-model="dialogData.quantity" label="数量"></v-number-input>
             </v-col>
 
-            <v-col cols="12" sm="6" md="4" xl="3">
+            <v-col cols="12" md="4" sm="6" xl="3">
               <v-text-field v-model="dialogData.remark" label="备注"></v-text-field>
             </v-col>
           </v-row>
@@ -53,12 +53,12 @@
       </template>
       <template #actions>
         <v-container>
-          <v-row justify="end" align="center">
+          <v-row align="center" justify="end">
             <v-spacer></v-spacer>
             <v-col>
               <v-number-input v-model="dialogData.subtotal" label="小计"></v-number-input>
             </v-col>
-            <v-btn text="保存" color="primary" @click="saveDialog"></v-btn>
+            <v-btn color="primary" text="保存" @click="saveDialog"></v-btn>
           </v-row>
         </v-container>
       </template>
