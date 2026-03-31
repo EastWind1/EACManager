@@ -1,16 +1,15 @@
 import type { ServiceBill, ServiceBillQueryParam } from '../model/ServiceBill.ts'
 import type { PageResult } from '@/common/model/PageResult.ts'
-import { useAxios } from '@/common/api/AxiosConfig.ts'
 import type { ActionsResult } from '@/common/model/ActionsResult.ts'
-import type { AxiosInstance } from 'axios'
+import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let axiosInstance: AxiosInstance
+let http: HttpClient
 
-function getAxios() {
-  if (!axiosInstance) {
-    axiosInstance = useAxios('/api/serviceBill')
+function getHttp() {
+  if (!http) {
+    http = new HttpClient('/api/serviceBill')
   }
-  return axiosInstance
+  return http
 }
 
 /**
@@ -22,57 +21,50 @@ const ServiceBillApi = {
    * @param queryParam 查询参数
    */
   async getByQueryParam(queryParam: ServiceBillQueryParam) {
-    const res = await getAxios().post(`/query`, queryParam)
-    return res.data as PageResult<ServiceBill>
+    return await getHttp().post<PageResult<ServiceBill>>(`/query`, queryParam)
   },
   /**
    * 根据 id 获取
    * @param id 单据 ID
    */
   async getById(id: number) {
-    const res = await getAxios().get(`/${id}`)
-    return res.data as ServiceBill
+    return await getHttp().get<ServiceBill>(`/${id}`)
   },
   /**
    * 导入
    */
   async import(file: File) {
-    const res = await getAxios().postForm(`/import`, {
+    return await getHttp().postForm<ServiceBill>(`/import`, {
       file,
     })
-    return res.data as ServiceBill
   },
   /**
    * 新建
    * @param serviceBill 单据
    */
   async create(serviceBill: ServiceBill) {
-    const res = await getAxios().post('', serviceBill)
-    return res.data as ServiceBill
+    return await getHttp().post<ServiceBill>('', serviceBill)
   },
   /**
    * 保存
    * @param serviceBill 单据
    */
   async save(serviceBill: ServiceBill) {
-    const res = await getAxios().put('', serviceBill)
-    return res.data as ServiceBill
+    return await getHttp().put<ServiceBill>('', serviceBill)
   },
   /**
    * 删除
    * @param ids 单据 ID 列表
    */
   async delete(ids: number[]) {
-    const res = await getAxios().delete('', { data: ids })
-    return res.data as ActionsResult<number, void>
+    return await getHttp().delete<ActionsResult<number, void>>('', { data: ids })
   },
   /**
    * 处理
    * @param ids 单据 ID 列表
    */
   async process(ids: number[]) {
-    const res = await getAxios().put(`/process`, ids)
-    return res.data as ActionsResult<number, void>
+    return await getHttp().put<ActionsResult<number, void>>(`/process`, ids)
   },
   /**
    * 处理完成
@@ -80,8 +72,7 @@ const ServiceBillApi = {
    * @param processedDate 处理完成时间
    */
   async processed(ids: number[], processedDate: Date) {
-    const res = await getAxios().put(`/processed`, { ids, processedDate })
-    return res.data as ActionsResult<number, void>
+    return await getHttp().put<ActionsResult<number, void>>(`/processed`, { ids, processedDate })
   },
   /**
    * 完成
@@ -89,16 +80,14 @@ const ServiceBillApi = {
    * @param finishedDate 完成时间
    */
   async finish(ids: number[], finishedDate: Date) {
-    const res = await getAxios().put(`/finish`, { ids, finishedDate })
-    return res.data as ActionsResult<number, void>
+    return await getHttp().put<ActionsResult<number, void>>(`/finish`, { ids, finishedDate })
   },
   /**
    * 导出
    * @param ids 单据 ID 列表
    */
   async export(ids: number[]) {
-    const res = await getAxios().post(`/export`, ids, { responseType: 'blob' })
-    return res as never as Blob
+    return await getHttp().post<Blob>(`/export`, ids)
   },
 }
 export default ServiceBillApi

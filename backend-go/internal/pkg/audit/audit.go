@@ -15,9 +15,7 @@ type Audit struct {
 	LastModifiedByID uint
 }
 
-// 由于 Gorm 嵌套同名钩子会相互抵消，由使用方显式调用
-
-func (a *Audit) SetCreator(db *gorm.DB) (err error) {
+func (a *Audit) BeforeCreate(db *gorm.DB) (err error) {
 	user, err := auth.GetCurrentUser(db.Statement.Context)
 	if err != nil {
 		return
@@ -27,7 +25,7 @@ func (a *Audit) SetCreator(db *gorm.DB) (err error) {
 	return
 }
 
-func (a *Audit) SetModifier(db *gorm.DB) (err error) {
+func (a *Audit) BeforeUpdate(db *gorm.DB) (err error) {
 	user, err := auth.GetCurrentUser(db.Statement.Context)
 	if err != nil {
 		return

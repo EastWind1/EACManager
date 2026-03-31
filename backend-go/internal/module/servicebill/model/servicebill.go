@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"gorm.io/gorm"
 	"gorm.io/plugin/optimisticlock"
 )
 
@@ -120,14 +119,6 @@ type ServiceBill struct {
 	Remark       string
 	Details      []ServiceBillDetail `gorm:"foreignKey:ServiceBillID"`
 	Version      optimisticlock.Version
-}
-
-func (s *ServiceBill) BeforeCreate(db *gorm.DB) (err error) {
-	return s.Audit.SetCreator(db)
-}
-
-func (s *ServiceBill) BeforeUpdate(db *gorm.DB) (err error) {
-	return s.Audit.SetModifier(db)
 }
 
 type ServiceBillDetail struct {

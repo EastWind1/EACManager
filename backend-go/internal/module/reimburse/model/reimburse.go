@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"gorm.io/gorm"
 	"gorm.io/plugin/optimisticlock"
 )
 
@@ -65,14 +64,6 @@ type Reimbursement struct {
 	Remark  string
 	Details []ReimburseDetail `gorm:"foreignKey:ReimbursementID"`
 	Version optimisticlock.Version
-}
-
-func (r *Reimbursement) BeforeCreate(db *gorm.DB) (err error) {
-	return r.Audit.SetCreator(db)
-}
-
-func (r *Reimbursement) BeforeUpdate(db *gorm.DB) (err error) {
-	return r.Audit.SetModifier(db)
 }
 
 // ReimburseDetail 摘要明细

@@ -20,7 +20,6 @@ public class AuditConfig {
      */
     @Bean
     public AuditorAware<Integer> auditorProvider() {
-        User user = AuthUtil.getCurUser();
-        return () -> Optional.ofNullable(user).map(User::getId);
+        return () -> Optional.ofNullable(AuthUtil.getCurUser()).map(User::getId);
     }
 }

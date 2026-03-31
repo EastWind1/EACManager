@@ -1,14 +1,14 @@
-import { useAxios } from '@/common/api/AxiosConfig.ts'
+
 import { type ServiceBillStateValue } from '@/service-bill/model/ServiceBill.ts'
-import type { AxiosInstance } from 'axios'
+import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let axiosInstance: AxiosInstance
+let http: HttpClient
 
-function getAxios() {
-  if (!axiosInstance) {
-    axiosInstance = useAxios('/api/statistic')
+function getHttp() {
+  if (!http) {
+    http = new HttpClient('/api/statistic')
   }
-  return axiosInstance
+  return http
 }
 
 /**
@@ -19,19 +19,12 @@ export const StatisticApi = {
    * 统计服务单状态数量
    */
   async countBillsByState() {
-    const res = await getAxios().get(`/billCountByState`)
-    return res.data as {
-      [key in ServiceBillStateValue]?: number
-    }
+    return await getHttp().get<{[key in ServiceBillStateValue]?: number}>(`/billCountByState`)
   },
   /**
    * 按月统计服务单收入总金额
    */
   async sumTotalAmountByMonth() {
-    const res = await getAxios().get(`/billTotalAmountGroupByMonth`)
-    return res.data as {
-      month: string
-      amount: number
-    }[]
+    return await getHttp().get<{month: string, amount: number}[]>(`/billTotalAmountGroupByMonth`)
   },
 }

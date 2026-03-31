@@ -5,7 +5,6 @@ import (
 	"backend-go/internal/pkg/errs"
 
 	"github.com/bytedance/sonic"
-	"gorm.io/gorm"
 )
 
 // AttachType 附件类型
@@ -91,14 +90,6 @@ type Attachment struct {
 	Type         AttachType `gorm:"default:4"`
 	RelativePath string
 	audit.Audit
-}
-
-func (a *Attachment) BeforeCreate(db *gorm.DB) (err error) {
-	return a.Audit.SetCreator(db)
-}
-
-func (a *Attachment) BeforeUpdate(db *gorm.DB) (err error) {
-	return a.Audit.SetModifier(db)
 }
 
 // AttachmentDTO 附件DTO

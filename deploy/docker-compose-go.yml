@@ -13,6 +13,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      start_period: 5s
 #  ocr-server:
 #    build:
 #      context: ./ocr-server
@@ -23,7 +26,8 @@ services:
     image: alpine:3.23.3
     container_name: eac-backend-go
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 #      - ocr-server
     ports:
       - "8080:8080"
@@ -36,11 +40,15 @@ services:
     volumes:
       - ./backend-go:/app/backend
     command: sh -c "cd /app/backend/ && ./backend-go"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
+      start_period: 5s
   frontend:
     image: caddy:2.11-alpine
     container_name: eac-frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     env_file:
       - .env
     ports:

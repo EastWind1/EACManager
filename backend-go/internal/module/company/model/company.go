@@ -2,8 +2,6 @@ package model
 
 import (
 	"backend-go/internal/pkg/audit"
-
-	"gorm.io/gorm"
 )
 
 // Company 公司
@@ -18,14 +16,6 @@ type Company struct {
 	Address      string
 	Disabled     bool `gorm:"default:false"`
 	audit.Audit
-}
-
-func (c *Company) BeforeCreate(db *gorm.DB) (err error) {
-	return c.Audit.SetCreator(db)
-}
-
-func (c *Company) BeforeUpdate(db *gorm.DB) (err error) {
-	return c.Audit.SetModifier(db)
 }
 
 // CompanyDTO 公司 DTO

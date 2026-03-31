@@ -13,11 +13,15 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      start_period: 5s
   backend:
     image: eclipse-temurin:25-jre-ubi10-minimal
     container_name: eac-backend-java
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -28,11 +32,15 @@ services:
     volumes:
       - ./backend-java:/app/backend
     command: sh -c "cd /app/backend && java -jar app.jar"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
+      start_period: 5s
   frontend:
     image: caddy:2.11-alpine
     container_name: eac-frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     env_file:
       - .env
     ports:

@@ -1,14 +1,13 @@
 import type { Attachment } from '../model/Attachment.ts'
-import { useAxios } from '@/common/api/AxiosConfig.ts'
-import type { AxiosInstance } from 'axios'
+import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let axiosInstance: AxiosInstance
+let http: HttpClient
 
-function getAxios() {
-  if (!axiosInstance) {
-    axiosInstance = useAxios('/api/attachment')
+function getHttp() {
+  if (!http) {
+    http = new HttpClient('/api/attachment')
   }
-  return axiosInstance
+  return http
 }
 
 /**
@@ -27,12 +26,7 @@ const AttachmentApi = {
     for (const file of files) {
       formData.append('files', file)
     }
-    const res = await getAxios().post(`/temp`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return res.data as Attachment[]
+    return await getHttp().postForm<Attachment[]>(`/temp`, formData)
   },
   /**
    * 下载文件
@@ -40,7 +34,7 @@ const AttachmentApi = {
    * @param attach 文件
    */
   async download(attach: Attachment) {
-    return (await getAxios().get('/', { responseType: 'blob', params: attach })) as Blob
+    return (await getHttp().get<Blob>('/', { params: attach }))
   },
 }
 export default AttachmentApi

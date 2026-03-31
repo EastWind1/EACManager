@@ -3,8 +3,6 @@ package model
 import (
 	"backend-go/internal/pkg/audit"
 	"backend-go/internal/pkg/auth"
-
-	"gorm.io/gorm"
 )
 
 // User 用户实体
@@ -22,14 +20,6 @@ type User struct {
 
 func (u *User) TableName() string {
 	return "sys_user"
-}
-
-func (u *User) BeforeCreate(db *gorm.DB) (err error) {
-	return u.Audit.SetCreator(db)
-}
-
-func (u *User) BeforeUpdate(db *gorm.DB) (err error) {
-	return u.Audit.SetModifier(db)
 }
 
 func (u *User) GetID() uint {

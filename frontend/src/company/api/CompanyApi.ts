@@ -1,16 +1,15 @@
-import type { AxiosInstance } from 'axios'
-import { useAxios } from '@/common/api/AxiosConfig.ts'
 import type { Company } from '../model/Company.ts'
 import type { QueryParam } from '@/common/model/QueryParam.ts'
 import type { PageResult } from '@/common/model/PageResult.ts'
+import { HttpClient } from '@/common/api/HttpClient.ts'
 
-let axiosInstance: AxiosInstance
+let http: HttpClient
 
-function getAxios() {
-  if (!axiosInstance) {
-    axiosInstance = useAxios('/api/company')
+function getHttp() {
+  if (!http) {
+    http = new HttpClient('/api/company')
   }
-  return axiosInstance
+  return http
 }
 
 /**
@@ -21,18 +20,16 @@ const CompanyApi = {
    * 获取所有公司
    */
   async getAll(param: QueryParam) {
-    const res = await getAxios().get('', {
+    return await getHttp().get<PageResult<Company>>('', {
       params: param,
     })
-    return res.data as PageResult<Company>
   },
   /**
    * 创建公司
    * @param company 公司数据
    */
   async create(company: Company) {
-    const res = await getAxios().post('', company)
-    return res.data as Company
+    return await getHttp().post<Company>('', company)
   },
 
   /**
@@ -40,8 +37,7 @@ const CompanyApi = {
    * @param company 公司数据
    */
   async update(company: Company) {
-    const res = await getAxios().put('', company)
-    return res.data as Company
+    return await getHttp().put<Company>('', company)
   },
 
   /**
@@ -49,7 +45,7 @@ const CompanyApi = {
    * @param id 公司 ID
    */
   async disable(id: number) {
-    return getAxios().delete(`/${id}`)
+    return getHttp().delete(`/${id}`)
   },
 }
 export default CompanyApi
