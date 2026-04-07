@@ -170,8 +170,8 @@ func (c *InMemoryCache) clearExpired() {
 		}
 
 		innerMap.Range(func(key, value any) bool {
-			cacheVal, ok2 := value.(*cacheValue)
-			if !ok2 {
+			cacheVal, ok := value.(*cacheValue)
+			if !ok {
 				return true
 			}
 

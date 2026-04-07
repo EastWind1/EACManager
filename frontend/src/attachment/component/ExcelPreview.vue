@@ -1,5 +1,4 @@
 <template>
-  <div class="excel-preview">
     <v-table density="compact" striped="even">
       <thead>
         <tr>
@@ -27,7 +26,6 @@
         </tr>
       </tbody>
     </v-table>
-  </div>
 </template>
 
 <script lang="ts" setup>

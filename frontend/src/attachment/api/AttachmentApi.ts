@@ -23,7 +23,7 @@ const AttachmentApi = {
   },
   /**
    * 下载文件
-   * 由于已在拦截器中获取了 data, 此处实际返回类型为 Blob, 需要强转
+   * 由于已在拦截器中获取了 data
    * @param attach 文件
    */
   async download(attach: Attachment) {

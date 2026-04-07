@@ -15,20 +15,21 @@
     "format": "oxfmt src/"
   },
   "dependencies": {
+    "pdfjs-dist": "^5.6.205",
     "pinia": "^3.0.4",
-    "vue": "^3.5.31",
+    "vue": "^3.5.32",
     "vue-router": "^5.0.4",
-    "vuetify": "^4.0.4",
+    "vuetify": "^4.0.5",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@mdi/js": "^7.4.47",
     "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^25.5.0",
+    "@types/node": "^24.12.2",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/eslint-config-typescript": "^14.7.0",
     "@vue/tsconfig": "^0.9.1",
-    "eslint": "^10.1.0",
+    "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-oxlint": "~1.57.0",
     "eslint-plugin-vue": "~10.8.0",
@@ -36,8 +37,8 @@
     "npm-run-all2": "^8.0.4",
     "oxfmt": "^0.42.0",
     "oxlint": "~1.57.0",
-    "typescript": "~5.9.3",
-    "vite": "^8.0.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.5",
     "vite-plugin-vue-devtools": "^8.1.1",
     "vite-plugin-vuetify": "^2.1.3",
     "vue-tsc": "^3.2.6"

@@ -37,16 +37,15 @@
       </v-col>
     </v-row>
   </v-container>
-  <v-dialog v-model="previewDialog" height="90vh" min-width="50vw" width="auto">
+  <v-dialog v-model="previewDialog" height="90vh" min-width="60vw" width="auto">
     <v-card>
       <template #title>
         {{ previewInfo.attachment.name }}
       </template>
       <v-card-text class="overflow-auto d-flex justify-center">
-        <embed
+        <PDFPreview
           v-if="previewInfo.attachment.type === AttachmentType.PDF.value"
           :src="previewInfo.objectUrl"
-          class="w-100 h-100"
         />
         <img
           v-if="previewInfo.attachment.type === AttachmentType.IMAGE.value"
@@ -68,22 +67,23 @@
 </template>
 
 <script lang="ts" setup>
-import { type Attachment, AttachmentType } from '../model/Attachment.ts'
-import { mdiPlus } from '@mdi/js'
-import { defineAsyncComponent, onUnmounted, ref, toRefs } from 'vue'
+import {type Attachment, AttachmentType} from '../model/Attachment.ts'
+import {mdiPlus} from '@mdi/js'
+import {defineAsyncComponent, onUnmounted, ref, toRefs} from 'vue'
 import AttachmentApi from '../api/AttachmentApi.ts'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import { useFileSelector } from '../composable/FileSelector.ts'
+import {useUIStore} from '@/common/store/UIStore.ts'
+import {useFileSelector} from '../composable/FileSelector.ts'
 
 const ExcelPreview = defineAsyncComponent(() => import('./ExcelPreview.vue'))
+const PDFPreview = defineAsyncComponent(() => import('./PDFPreview.vue'))
 
 const attachments = defineModel<Attachment[]>()
-const { warning } = useUIStore()
+const {warning} = useUIStore()
 // 是否可编辑
 const props = defineProps<{
   readonly: boolean
 }>()
-const { readonly } = toRefs(props)
+const {readonly} = toRefs(props)
 // 预览窗口
 const previewDialog = ref(false)
 // 是否有拖拽
@@ -95,7 +95,7 @@ const previewInfo = ref<{
   // 对象 URL
   objectUrl: string
 }>({
-  attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER.value },
+  attachment: {id: 0, name: '', relativePath: '', type: AttachmentType.OTHER.value},
   objectUrl: '',
 })
 // 文件缓存，避免多次从服务器获取同一文件
