@@ -188,9 +188,7 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         invalidBill.setDetails(List.of(detail));
         invalidBill.setAttachments(new ArrayList<>());
 
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.create(invalidBill);
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.create(invalidBill));
 
         ServiceBillDTO invalidBill2 = new ServiceBillDTO();
         invalidBill2.setState(ServiceBillState.CREATED);
@@ -208,17 +206,13 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         invalidBill2.setDetails(List.of(detail2));
         invalidBill2.setAttachments(new ArrayList<>());
 
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.create(invalidBill2);
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.create(invalidBill2));
     }
 
     @Test
     @DisplayName("测试使用空参数查询")
     void shouldNotFindWithEmptyParam() {
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.findByParam(null);
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.findByParam(null));
     }
 
     @Test
@@ -241,9 +235,7 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         bill.setDetails(List.of(detail));
         bill.setAttachments(new ArrayList<>());
 
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.create(bill);
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.create(bill));
     }
 
     @Test
@@ -265,9 +257,7 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         bill.setDetails(List.of(detail));
         bill.setAttachments(new ArrayList<>());
 
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.update(bill);
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.update(bill));
     }
 
     @Test
@@ -290,17 +280,13 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         bill.setDetails(List.of(detail));
         bill.setAttachments(new ArrayList<>());
 
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.update(bill);
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.update(bill));
     }
 
     @Test
     @DisplayName("测试查找不存在的ID")
     void shouldNotFindNonExistentID() {
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.findById(999999);
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.findById(999999));
     }
 
     @Test
@@ -318,16 +304,14 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         assertEquals(1, result.getFailCount());
 
         assertEquals(1, result.getResults().size());
-        assertFalse(result.getResults().get(0).isSuccess());
-        assertTrue(result.getResults().get(0).getMessage().contains("非创建状态不能删除"));
+        assertFalse(result.getResults().getFirst().getSuccess());
+        assertTrue(result.getResults().getFirst().getMessage().contains("非创建状态不能删除"));
     }
 
     @Test
     @DisplayName("测试处理空ID列表")
     void shouldNotProcessWithEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.process(new ArrayList<>());
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.process(new ArrayList<>()));
     }
 
     @Test
@@ -344,8 +328,8 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         assertEquals(1, result.getFailCount());
 
         assertEquals(1, result.getResults().size());
-        assertFalse(result.getResults().get(0).isSuccess());
-        assertTrue(result.getResults().get(0).getMessage().contains("非创建状态的单据不能处理"));
+        assertFalse(result.getResults().getFirst().getSuccess());
+        assertTrue(result.getResults().getFirst().getMessage().contains("非创建状态的单据不能处理"));
     }
 
     @Test
@@ -362,8 +346,8 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         assertEquals(1, result.getFailCount());
 
         assertEquals(1, result.getResults().size());
-        assertFalse(result.getResults().get(0).isSuccess());
-        assertTrue(result.getResults().get(0).getMessage().contains("非处理中状态的单据不能处理完成"));
+        assertFalse(result.getResults().getFirst().getSuccess());
+        assertTrue(result.getResults().getFirst().getMessage().contains("非处理中状态的单据不能处理完成"));
     }
 
     @Test
@@ -378,31 +362,25 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         assertEquals(1, result.getFailCount());
 
         assertEquals(1, result.getResults().size());
-        assertFalse(result.getResults().get(0).isSuccess());
-        assertTrue(result.getResults().get(0).getMessage().contains("非处理完成状态的单据不能完成"));
+        assertFalse(result.getResults().getFirst().getSuccess());
+        assertTrue(result.getResults().getFirst().getMessage().contains("非处理完成状态的单据不能完成"));
     }
 
     @Test
     @DisplayName("测试删除空ID列表")
     void shouldNotDeleteWithEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.delete(new ArrayList<>());
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.delete(new ArrayList<>()));
     }
 
     @Test
     @DisplayName("测试处理完成空ID列表")
     void shouldNotProcessedWithEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.processed(new ArrayList<>(), Instant.now());
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.processed(new ArrayList<>(), Instant.now()));
     }
 
     @Test
     @DisplayName("测试完成空ID列表")
     void shouldNotFinishWithEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> {
-            serviceBillBizService.finish(new ArrayList<>(), Instant.now());
-        });
+        assertThrows(RuntimeException.class, () -> serviceBillBizService.finish(new ArrayList<>(), Instant.now()));
     }
 }

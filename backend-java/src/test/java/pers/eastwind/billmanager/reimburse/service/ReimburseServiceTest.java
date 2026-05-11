@@ -154,9 +154,7 @@ class ReimburseServiceTest extends BaseServiceTest {
         invalidReimburse.setId(0); // 无效ID
         invalidReimburse.setSummary("无效ID的更新");
         
-        assertThrows(RuntimeException.class, () -> {
-            reimburseService.update(invalidReimburse);
-        });
+        assertThrows(RuntimeException.class, () -> reimburseService.update(invalidReimburse));
     }
 
     @Test
@@ -176,8 +174,8 @@ class ReimburseServiceTest extends BaseServiceTest {
         assertEquals(0, deleteResult.getSuccessCount());
         assertEquals(1, deleteResult.getFailCount());
         assertEquals(1, deleteResult.getResults().size());
-        assertFalse(deleteResult.getResults().get(0).isSuccess());
-        assertTrue(deleteResult.getResults().get(0).getMessage().contains("非创建状态不能删除"));
+        assertFalse(deleteResult.getResults().getFirst().getSuccess());
+        assertTrue(deleteResult.getResults().getFirst().getMessage().contains("非创建状态不能删除"));
     }
 
     @Test
@@ -191,7 +189,7 @@ class ReimburseServiceTest extends BaseServiceTest {
         ActionsResult<Integer, Void> finishResult1 = reimburseService.finish(ids);
         assertEquals(0, finishResult1.getSuccessCount());
         assertEquals(1, finishResult1.getFailCount());
-        assertTrue(finishResult1.getResults().get(0).getMessage().contains("非处理状态不能完成"));
+        assertTrue(finishResult1.getResults().getFirst().getMessage().contains("非处理状态不能完成"));
 
         // 提交到处理状态
         ActionsResult<Integer, Void> processResult = reimburseService.process(ids);
@@ -202,7 +200,7 @@ class ReimburseServiceTest extends BaseServiceTest {
         ActionsResult<Integer, Void> processResult2 = reimburseService.process(ids);
         assertEquals(0, processResult2.getSuccessCount());
         assertEquals(1, processResult2.getFailCount());
-        assertTrue(processResult2.getResults().get(0).getMessage().contains("非创建状态不能提交"));
+        assertTrue(processResult2.getResults().getFirst().getMessage().contains("非创建状态不能提交"));
 
         // 完成后再次完成
         ActionsResult<Integer, Void> finishResult2 = reimburseService.finish(ids);
@@ -213,55 +211,43 @@ class ReimburseServiceTest extends BaseServiceTest {
         ActionsResult<Integer, Void> finishResult3 = reimburseService.finish(ids);
         assertEquals(0, finishResult3.getSuccessCount());
         assertEquals(1, finishResult3.getFailCount());
-        assertTrue(finishResult3.getResults().get(0).getMessage().contains("非处理状态不能完成"));
+        assertTrue(finishResult3.getResults().getFirst().getMessage().contains("非处理状态不能完成"));
     }
 
     @Test
     @DisplayName("测试删除空ID列表")
     void shouldNotDeleteEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> {
-            reimburseService.delete(new ArrayList<>());
-        });
+        assertThrows(RuntimeException.class, () -> reimburseService.delete(new ArrayList<>()));
     }
 
     @Test
     @DisplayName("测试处理空ID列表")
     void shouldNotProcessEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> {
-            reimburseService.process(new ArrayList<>());
-        });
+        assertThrows(RuntimeException.class, () -> reimburseService.process(new ArrayList<>()));
     }
 
     @Test
     @DisplayName("测试完成空ID列表")
     void shouldNotFinishEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> {
-            reimburseService.finish(new ArrayList<>());
-        });
+        assertThrows(RuntimeException.class, () -> reimburseService.finish(new ArrayList<>()));
     }
 
     @Test
     @DisplayName("测试导出空ID列表")
     void shouldNotExportEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> {
-            reimburseService.export(new ArrayList<>());
-        });
+        assertThrows(RuntimeException.class, () -> reimburseService.export(new ArrayList<>()));
     }
 
     @Test
     @DisplayName("测试导出不存在的记录")
     void shouldNotExportNonExistentRecords() {
-        assertThrows(RuntimeException.class, () -> {
-            reimburseService.export(List.of(999999));
-        });
+        assertThrows(RuntimeException.class, () -> reimburseService.export(List.of(999999)));
     }
 
     @Test
     @DisplayName("测试使用无效参数查询")
     void shouldNotFindByParamWithInvalidParam() {
-        assertThrows(RuntimeException.class, () -> {
-            reimburseService.findByParam(null);
-        });
+        assertThrows(RuntimeException.class, () -> reimburseService.findByParam(null));
     }
 
     /**
