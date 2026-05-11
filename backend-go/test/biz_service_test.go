@@ -147,3 +147,222 @@ func (s *BizServiceTest) TestFinish() {
 	s.NoError(err)
 	s.Equal(model.ServiceBillStateFinished, found.State)
 }
+
+func (s *BizServiceTest) TestValidateAmountError() {
+	invalidBill := &model.ServiceBillDTO{
+		State:          model.ServiceBillStateCreated,
+		ProjectName:    "测试项目",
+		ProjectAddress: "测试地址",
+		TotalAmount:    2000.00,
+		OrderDate:      new(time.Time),
+		Details: []model.ServiceBillDetailDTO{
+			{
+				Device:    "测试设备",
+				UnitPrice: 1000.00,
+				Quantity:  1,
+				Subtotal:  1500.00,
+			},
+		},
+	}
+
+	_, err := s.bizSrv.Create(s.ctx, invalidBill)
+	s.Error(err)
+	s.Contains(err.Error(), "明细金额有误")
+
+	invalidBill2 := &model.ServiceBillDTO{
+		State:          model.ServiceBillStateCreated,
+		ProjectName:    "测试项目",
+		ProjectAddress: "测试地址",
+		TotalAmount:    1500.00,
+		OrderDate:      new(time.Time),
+		Details: []model.ServiceBillDetailDTO{
+			{
+				Device:    "测试设备",
+				UnitPrice: 1000.00,
+				Quantity:  1,
+				Subtotal:  1000.00,
+			},
+		},
+	}
+
+	_, err = s.bizSrv.Create(s.ctx, invalidBill2)
+	s.Error(err)
+	s.Contains(err.Error(), "总金额有误")
+}
+
+func (s *BizServiceTest) TestFindWithEmptyParam() {
+	_, err := s.bizSrv.FindByParam(s.ctx, nil)
+	s.Error(err)
+	s.Contains(err.Error(), "查询参数为空")
+}
+
+func (s *BizServiceTest) TestCreateWithExistingID() {
+	bill := &model.ServiceBillDTO{
+		ID:             123, // 提供了ID，应该报错
+		State:          model.ServiceBillStateCreated,
+		ProjectName:    "测试项目",
+		ProjectAddress: "测试地址",
+		TotalAmount:    2000.00,
+		OrderDate:      new(time.Time),
+		Details: []model.ServiceBillDetailDTO{
+			{
+				Device:    "测试设备",
+				UnitPrice: 1000.00,
+				Quantity:  2,
+				Subtotal:  2000.00,
+			},
+		},
+	}
+
+	_, err := s.bizSrv.Create(s.ctx, bill)
+	s.Error(err)
+	s.Contains(err.Error(), "单据 ID 自动生成")
+}
+
+func (s *BizServiceTest) TestUpdateWithEmptyID() {
+	bill := &model.ServiceBillDTO{
+		State:          model.ServiceBillStateCreated,
+		ProjectName:    "测试项目",
+		ProjectAddress: "测试地址",
+		TotalAmount:    2000.00,
+		OrderDate:      new(time.Time),
+		Details: []model.ServiceBillDetailDTO{
+			{
+				Device:    "测试设备",
+				UnitPrice: 1000.00,
+				Quantity:  2,
+				Subtotal:  2000.00,
+			},
+		},
+	}
+
+	_, err := s.bizSrv.Update(s.ctx, bill)
+	s.Error(err)
+	s.Contains(err.Error(), "单据 ID 为空")
+}
+
+func (s *BizServiceTest) TestUpdateNonExistentBill() {
+	bill := &model.ServiceBillDTO{
+		ID:             999999, 
+		State:          model.ServiceBillStateCreated,
+		ProjectName:    "测试项目",
+		ProjectAddress: "测试地址",
+		TotalAmount:    2000.00,
+		OrderDate:      new(time.Time),
+		Details: []model.ServiceBillDetailDTO{
+			{
+				Device:    "测试设备",
+				UnitPrice: 1000.00,
+				Quantity:  2,
+				Subtotal:  2000.00,
+			},
+		},
+	}
+
+	_, err := s.bizSrv.Update(s.ctx, bill)
+	s.Error(err)
+	s.Contains(err.Error(), "单据不存在")
+}
+
+func (s *BizServiceTest) TestFindNonExistentID() {
+	_, err := s.bizSrv.FindByID(s.ctx, 999999)
+	s.Error(err)
+	s.Contains(err.Error(), "单据不存在")
+}
+
+
+func (s *BizServiceTest) TestDeleteNonCreatedState() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+	_, err = s.bizSrv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+
+	res, err := s.bizSrv.Delete(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount) 
+	s.Equal(1, res.FailCount)   
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "非创建状态不能删除")
+}
+
+
+func (s *BizServiceTest) TestProcessWithEmptyIDs() {
+	res, err := s.bizSrv.Process(s.ctx, []uint{})
+	s.Error(err)
+	s.Contains(err.Error(), "ID 为空")
+	s.Nil(res)
+}
+
+func (s *BizServiceTest) TestProcessNonCreatedState() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+	_, err = s.bizSrv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+
+	res, err := s.bizSrv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount) 
+	s.Equal(1, res.FailCount) 
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "非创建状态的单据不能处理")
+}
+
+func (s *BizServiceTest) TestProcessedNonProcessingState() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+
+	res, err := s.bizSrv.Processed(s.ctx, []uint{created.ID}, new(time.Now()))
+	s.NoError(err) 
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)   
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "非处理中状态的单据不能处理完成")
+}
+
+
+func (s *BizServiceTest) TestFinishNonProcessedState() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+	res, err := s.bizSrv.Finish(s.ctx, []uint{created.ID}, new(time.Now()))
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount) 
+	s.Equal(1, res.FailCount)  
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "非处理完成状态的单据不能完成")
+}
+
+func (s *BizServiceTest) TestDeleteWithEmptyIDs() {
+	res, err := s.bizSrv.Delete(s.ctx, []uint{})
+	s.Error(err)
+	s.Contains(err.Error(), "ID 为空")
+	s.Nil(res)
+}
+
+func (s *BizServiceTest) TestProcessedWithEmptyIDs() {
+	res, err := s.bizSrv.Processed(s.ctx, []uint{}, nil)
+	s.Error(err)
+	s.Contains(err.Error(), "ID 为空")
+	s.Nil(res)
+}
+
+func (s *BizServiceTest) TestFinishWithEmptyIDs() {
+	res, err := s.bizSrv.Finish(s.ctx, []uint{}, nil)
+	s.Error(err)
+	s.Contains(err.Error(), "ID 为空")
+	s.Nil(res)
+}

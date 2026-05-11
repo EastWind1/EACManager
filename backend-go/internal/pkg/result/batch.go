@@ -1,9 +1,6 @@
 package result
 
 import (
-	"backend-go/internal/pkg/errs"
-	"errors"
-
 	"github.com/gofiber/fiber/v3/log"
 )
 
@@ -58,9 +55,6 @@ func ExecuteActions[P any, R any](params []P, fn func(P) (R, error)) *ActionsRes
 			result.Message = err.Error()
 			log.Errorf("操作参数: %v", p)
 			log.Errorf("异常: %v", err)
-			if stackErr, ok := errors.AsType[errs.StackError](err); ok {
-				log.Errorf("%+v", stackErr.Stack())
-			}
 		}
 		results = append(results, result)
 	}

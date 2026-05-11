@@ -139,6 +139,131 @@ class ReimburseServiceTest extends BaseServiceTest {
         assertNotNull(exportPath);
     }
 
+    @Test
+    @DisplayName("测试查找不存在的报销单")
+    void shouldNotFindNonExistentReimbursement() {
+        assertThrows(RuntimeException.class, () -> {
+            reimburseService.findById(999999); // 假设这个ID不存在
+        });
+    }
+
+    @Test
+    @DisplayName("测试使用无效ID更新报销单")
+    void shouldNotUpdateWithInvalidID() {
+        ReimbursementDTO invalidReimburse = new ReimbursementDTO();
+        invalidReimburse.setId(0); // 无效ID
+        invalidReimburse.setSummary("无效ID的更新");
+        
+        assertThrows(RuntimeException.class, () -> {
+            reimburseService.update(invalidReimburse);
+        });
+    }
+
+    @Test
+    @DisplayName("测试删除非创建状态的报销单")
+    void shouldNotDeleteInvalidStateReimbursement() {
+        ReimbursementDTO newReimburse = createTestReimbursement();
+        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        
+        // 先提交，使其变为处理中状态
+        List<Integer> idsToProcess = List.of(createdReimburse.getId());
+        ActionsResult<Integer, Void> processResult = reimburseService.process(idsToProcess);
+        assertEquals(1, processResult.getSuccessCount());
+        assertEquals(0, processResult.getFailCount());
+        
+        // 尝试删除非创建状态的记录
+        ActionsResult<Integer, Void> deleteResult = reimburseService.delete(List.of(createdReimburse.getId()));
+        assertEquals(0, deleteResult.getSuccessCount());
+        assertEquals(1, deleteResult.getFailCount());
+        assertEquals(1, deleteResult.getResults().size());
+        assertFalse(deleteResult.getResults().get(0).isSuccess());
+        assertTrue(deleteResult.getResults().get(0).getMessage().contains("非创建状态不能删除"));
+    }
+
+    @Test
+    @DisplayName("测试无效的状态转换")
+    void shouldHandleInvalidStateTransitions() {
+        ReimbursementDTO newReimburse = createTestReimbursement();
+        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        List<Integer> ids = List.of(createdReimburse.getId());
+        
+        // 测试从创建直接到完成（跳过处理状态）
+        ActionsResult<Integer, Void> finishResult1 = reimburseService.finish(ids);
+        assertEquals(0, finishResult1.getSuccessCount());
+        assertEquals(1, finishResult1.getFailCount());
+        assertTrue(finishResult1.getResults().get(0).getMessage().contains("非处理状态不能完成"));
+
+        // 提交到处理状态
+        ActionsResult<Integer, Void> processResult = reimburseService.process(ids);
+        assertEquals(1, processResult.getSuccessCount());
+        assertEquals(0, processResult.getFailCount());
+
+        // 再次尝试提交（已经是处理状态）
+        ActionsResult<Integer, Void> processResult2 = reimburseService.process(ids);
+        assertEquals(0, processResult2.getSuccessCount());
+        assertEquals(1, processResult2.getFailCount());
+        assertTrue(processResult2.getResults().get(0).getMessage().contains("非创建状态不能提交"));
+
+        // 完成后再次完成
+        ActionsResult<Integer, Void> finishResult2 = reimburseService.finish(ids);
+        assertEquals(1, finishResult2.getSuccessCount());
+        assertEquals(0, finishResult2.getFailCount());
+
+        // 尝试从完成状态再次完成
+        ActionsResult<Integer, Void> finishResult3 = reimburseService.finish(ids);
+        assertEquals(0, finishResult3.getSuccessCount());
+        assertEquals(1, finishResult3.getFailCount());
+        assertTrue(finishResult3.getResults().get(0).getMessage().contains("非处理状态不能完成"));
+    }
+
+    @Test
+    @DisplayName("测试删除空ID列表")
+    void shouldNotDeleteEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> {
+            reimburseService.delete(new ArrayList<>());
+        });
+    }
+
+    @Test
+    @DisplayName("测试处理空ID列表")
+    void shouldNotProcessEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> {
+            reimburseService.process(new ArrayList<>());
+        });
+    }
+
+    @Test
+    @DisplayName("测试完成空ID列表")
+    void shouldNotFinishEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> {
+            reimburseService.finish(new ArrayList<>());
+        });
+    }
+
+    @Test
+    @DisplayName("测试导出空ID列表")
+    void shouldNotExportEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> {
+            reimburseService.export(new ArrayList<>());
+        });
+    }
+
+    @Test
+    @DisplayName("测试导出不存在的记录")
+    void shouldNotExportNonExistentRecords() {
+        assertThrows(RuntimeException.class, () -> {
+            reimburseService.export(List.of(999999));
+        });
+    }
+
+    @Test
+    @DisplayName("测试使用无效参数查询")
+    void shouldNotFindByParamWithInvalidParam() {
+        assertThrows(RuntimeException.class, () -> {
+            reimburseService.findByParam(null);
+        });
+    }
+
     /**
      * 创建测试用的报销单DTO
      */

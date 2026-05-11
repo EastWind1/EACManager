@@ -117,8 +117,10 @@ func (s *ReimburseServiceTest) TestDelete() {
 	created, err := s.srv.Create(s.ctx, s.testReim)
 	s.NoError(err)
 
-	_, err = s.srv.Delete(s.ctx, []uint{created.ID})
+	deleteResult, err := s.srv.Delete(s.ctx, []uint{created.ID})
 	s.NoError(err)
+	s.Equal(1, deleteResult.SuccessCount)
+	s.Equal(0, deleteResult.FailCount)
 
 	_, err = s.srv.FindByID(s.ctx, created.ID)
 	s.Error(err)
@@ -128,8 +130,10 @@ func (s *ReimburseServiceTest) TestProcess() {
 	created, err := s.srv.Create(s.ctx, s.testReim)
 	s.NoError(err)
 
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	processResult, err := s.srv.Process(s.ctx, []uint{created.ID})
 	s.NoError(err)
+	s.Equal(1, processResult.SuccessCount)
+	s.Equal(0, processResult.FailCount)
 
 	found, err := s.srv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
@@ -139,15 +143,120 @@ func (s *ReimburseServiceTest) TestProcess() {
 func (s *ReimburseServiceTest) TestFinish() {
 	created, err := s.srv.Create(s.ctx, s.testReim)
 	s.NoError(err)
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
-	s.NoError(err)
 
-	_, err = s.srv.Finish(s.ctx, []uint{created.ID})
+	processResult, err := s.srv.Process(s.ctx, []uint{created.ID})
 	s.NoError(err)
+	s.Equal(1, processResult.SuccessCount)
+	s.Equal(0, processResult.FailCount)
+
+	finishResult, err := s.srv.Finish(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(1, finishResult.SuccessCount)
+	s.Equal(0, finishResult.FailCount)
 
 	found, err := s.srv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
 	s.Equal(model.ReimburseStateFinished, found.State)
+}
+
+func (s *ReimburseServiceTest) TestFindNonExistentRecord() {
+	_, err := s.srv.FindByID(s.ctx, 999999) // 假设这个ID不存在
+	s.Error(err)
+}
+
+func (s *ReimburseServiceTest) TestUpdateWithInvalidID() {
+	invalidReim := &model.ReimbursementDTO{
+		ID:      0,
+		Summary: "无效ID的更新",
+	}
+	_, err := s.srv.Update(s.ctx, invalidReim)
+	s.Error(err)
+}
+
+func (s *ReimburseServiceTest) TestDeleteInvalidState() {
+	created, err := s.srv.Create(s.ctx, s.testReim)
+	s.NoError(err)
+
+	// 先提交，使其变为处理中状态
+	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+
+	// 尝试删除非创建状态的记录
+	deleteResult, err := s.srv.Delete(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(0, deleteResult.SuccessCount)
+	s.Equal(1, deleteResult.FailCount)
+	s.Equal(1, len(deleteResult.Results))
+	s.False(deleteResult.Results[0].Success)
+	s.Contains(deleteResult.Results[0].Message, "非创建状态不能删除")
+}
+
+func (s *ReimburseServiceTest) TestInvalidStateTransitions() {
+	created, err := s.srv.Create(s.ctx, s.testReim)
+	s.NoError(err)
+
+	// 测试从创建直接到完成（跳过处理状态）
+	finishResult1, err := s.srv.Finish(s.ctx, []uint{created.ID})
+	s.NoError(err) 
+	s.Equal(0, finishResult1.SuccessCount)
+	s.Equal(1, finishResult1.FailCount)
+	s.Contains(finishResult1.Results[0].Message, "非处理状态不能完成")
+
+	// 提交到处理状态
+	processResult, err := s.srv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err) 
+	s.Equal(1, processResult.SuccessCount)
+	s.Equal(0, processResult.FailCount)
+
+	// 再次尝试提交（已经是处理状态）
+	processResult2, err := s.srv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err) 
+	s.Equal(0, processResult2.SuccessCount)
+	s.Equal(1, processResult2.FailCount)
+	s.Contains(processResult2.Results[0].Message, "非创建状态不能提交")
+
+	// 完成后再次完成
+	finishResult2, err := s.srv.Finish(s.ctx, []uint{created.ID})
+	s.NoError(err) 
+	s.Equal(1, finishResult2.SuccessCount)
+	s.Equal(0, finishResult2.FailCount)
+
+	// 尝试从完成状态再次完成
+	finishResult3, err := s.srv.Finish(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(0, finishResult3.SuccessCount)
+	s.Equal(1, finishResult3.FailCount)
+	s.Contains(finishResult3.Results[0].Message, "非处理状态不能完成")
+}
+
+func (s *ReimburseServiceTest) TestDeleteEmptyIDs() {
+	_, err := s.srv.Delete(s.ctx, []uint{})
+	s.Error(err)
+}
+
+func (s *ReimburseServiceTest) TestProcessEmptyIDs() {
+	_, err := s.srv.Process(s.ctx, []uint{})
+	s.Error(err)
+}
+
+func (s *ReimburseServiceTest) TestFinishEmptyIDs() {
+	_, err := s.srv.Finish(s.ctx, []uint{})
+	s.Error(err)
+}
+
+func (s *ReimburseServiceTest) TestExportEmptyIDs() {
+	_, err := s.srv.Export(s.ctx, []uint{})
+	s.Error(err)
+}
+
+func (s *ReimburseServiceTest) TestExportNonExistentRecords() {
+	_, err := s.srv.Export(s.ctx, []uint{999999})
+	s.Error(err)
+}
+
+func (s *ReimburseServiceTest) TestFindByParamWithInvalidParam() {
+	_, err := s.srv.FindByParam(s.ctx, nil)
+	s.Error(err)
 }
 
 func (s *ReimburseServiceTest) TestExport() {
@@ -158,10 +267,4 @@ func (s *ReimburseServiceTest) TestExport() {
 	s.NoError(err)
 
 	s.NotEmpty(path)
-}
-
-func (s *ReimburseServiceTest) TestGenerateNumber() {
-	number := s.srv.GenerateNumber()
-
-	s.NotEmpty(number)
 }

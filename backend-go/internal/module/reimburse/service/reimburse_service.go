@@ -118,7 +118,7 @@ func (s *ReimburseService) Update(ctx context.Context, dto *model.ReimbursementD
 			return err
 		}
 		entity.State = bill.State
-		return s.reimburseRepo.Updates(tx, bill)
+		return s.reimburseRepo.Updates(tx, entity)
 	})
 
 	if err != nil {

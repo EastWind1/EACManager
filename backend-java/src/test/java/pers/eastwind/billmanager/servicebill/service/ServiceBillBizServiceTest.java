@@ -27,6 +27,29 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
     @Autowired
     private ServiceBillBizService serviceBillBizService;
 
+        /**
+     * 创建测试用的服务单DTO
+     */
+    private ServiceBillDTO createTestServiceBill() {
+        ServiceBillDTO bill = new ServiceBillDTO();
+        bill.setState(ServiceBillState.CREATED);
+        bill.setProjectName("集成测试项目");
+        bill.setProjectAddress("测试地址");
+        bill.setTotalAmount(new BigDecimal("2000.00"));
+        bill.setOrderDate(Instant.now());
+
+        ServiceBillDetailDTO detail = new ServiceBillDetailDTO();
+        detail.setDevice("测试设备");
+        detail.setUnitPrice(new BigDecimal("1000.00"));
+        detail.setQuantity(BigDecimal.valueOf(2));
+        detail.setSubtotal(new BigDecimal("2000.00"));
+
+        bill.setDetails(List.of(detail));
+        bill.setAttachments(new ArrayList<>());
+
+        return bill;
+    }
+
     @Test
     @DisplayName("测试根据ID查找服务单")
     void shouldFindServiceBillById() {
@@ -141,19 +164,70 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         serviceBillBizService.processed(idsToProcess, cur);
 
         ActionsResult<Integer, Void> result = serviceBillBizService.finish(idsToProcess, cur);
-
         assertNotNull(result);
         ServiceBillDTO finishedBill = serviceBillBizService.findById(createdBill.getId());
         assertEquals(ServiceBillState.FINISHED, finishedBill.getState());
     }
 
-    /**
-     * 创建测试用的服务单DTO
-     */
-    private ServiceBillDTO createTestServiceBill() {
+    @Test
+    @DisplayName("测试金额验证错误")
+    void shouldValidateAmountError() {
+        ServiceBillDTO invalidBill = new ServiceBillDTO();
+        invalidBill.setState(ServiceBillState.CREATED);
+        invalidBill.setProjectName("测试项目");
+        invalidBill.setProjectAddress("测试地址");
+        invalidBill.setTotalAmount(new BigDecimal("2000.00"));
+        invalidBill.setOrderDate(Instant.now());
+
+        ServiceBillDetailDTO detail = new ServiceBillDetailDTO();
+        detail.setDevice("测试设备");
+        detail.setUnitPrice(new BigDecimal("1000.00"));
+        detail.setQuantity(BigDecimal.ONE);
+        detail.setSubtotal(new BigDecimal("1500.00")); // 明细金额与数量不匹配
+
+        invalidBill.setDetails(List.of(detail));
+        invalidBill.setAttachments(new ArrayList<>());
+
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.create(invalidBill);
+        });
+
+        ServiceBillDTO invalidBill2 = new ServiceBillDTO();
+        invalidBill2.setState(ServiceBillState.CREATED);
+        invalidBill2.setProjectName("测试项目");
+        invalidBill2.setProjectAddress("测试地址");
+        invalidBill2.setTotalAmount(new BigDecimal("1500.00")); // 总金额与明细不符
+        invalidBill2.setOrderDate(Instant.now());
+
+        ServiceBillDetailDTO detail2 = new ServiceBillDetailDTO();
+        detail2.setDevice("测试设备");
+        detail2.setUnitPrice(new BigDecimal("1000.00"));
+        detail2.setQuantity(BigDecimal.ONE);
+        detail2.setSubtotal(new BigDecimal("1000.00"));
+
+        invalidBill2.setDetails(List.of(detail2));
+        invalidBill2.setAttachments(new ArrayList<>());
+
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.create(invalidBill2);
+        });
+    }
+
+    @Test
+    @DisplayName("测试使用空参数查询")
+    void shouldNotFindWithEmptyParam() {
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.findByParam(null);
+        });
+    }
+
+    @Test
+    @DisplayName("测试使用已有ID创建服务单")
+    void shouldNotCreateWithExistingID() {
         ServiceBillDTO bill = new ServiceBillDTO();
+        bill.setId(123); // 提供了ID，应该报错
         bill.setState(ServiceBillState.CREATED);
-        bill.setProjectName("集成测试项目");
+        bill.setProjectName("测试项目");
         bill.setProjectAddress("测试地址");
         bill.setTotalAmount(new BigDecimal("2000.00"));
         bill.setOrderDate(Instant.now());
@@ -167,6 +241,168 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
         bill.setDetails(List.of(detail));
         bill.setAttachments(new ArrayList<>());
 
-        return bill;
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.create(bill);
+        });
+    }
+
+    @Test
+    @DisplayName("测试使用空ID更新服务单")
+    void shouldNotUpdateWithEmptyID() {
+        ServiceBillDTO bill = new ServiceBillDTO();
+        bill.setState(ServiceBillState.CREATED);
+        bill.setProjectName("测试项目");
+        bill.setProjectAddress("测试地址");
+        bill.setTotalAmount(new BigDecimal("2000.00"));
+        bill.setOrderDate(Instant.now());
+
+        ServiceBillDetailDTO detail = new ServiceBillDetailDTO();
+        detail.setDevice("测试设备");
+        detail.setUnitPrice(new BigDecimal("1000.00"));
+        detail.setQuantity(BigDecimal.valueOf(2));
+        detail.setSubtotal(new BigDecimal("2000.00"));
+
+        bill.setDetails(List.of(detail));
+        bill.setAttachments(new ArrayList<>());
+
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.update(bill);
+        });
+    }
+
+    @Test
+    @DisplayName("测试更新不存在的服务单")
+    void shouldNotUpdateNonExistentBill() {
+        ServiceBillDTO bill = new ServiceBillDTO();
+        bill.setId(999999); // 不存在的ID
+        bill.setState(ServiceBillState.CREATED);
+        bill.setProjectName("测试项目");
+        bill.setProjectAddress("测试地址");
+        bill.setTotalAmount(new BigDecimal("2000.00"));
+        bill.setOrderDate(Instant.now());
+
+        ServiceBillDetailDTO detail = new ServiceBillDetailDTO();
+        detail.setDevice("测试设备");
+        detail.setUnitPrice(new BigDecimal("1000.00"));
+        detail.setQuantity(BigDecimal.valueOf(2));
+        detail.setSubtotal(new BigDecimal("2000.00"));
+
+        bill.setDetails(List.of(detail));
+        bill.setAttachments(new ArrayList<>());
+
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.update(bill);
+        });
+    }
+
+    @Test
+    @DisplayName("测试查找不存在的ID")
+    void shouldNotFindNonExistentID() {
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.findById(999999);
+        });
+    }
+
+    @Test
+    @DisplayName("测试删除非创建状态的服务单")
+    void shouldNotDeleteNonCreatedStateBill() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        List<Integer> idsToProcess = List.of(createdBill.getId());
+        serviceBillBizService.process(idsToProcess);
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.delete(List.of(createdBill.getId()));
+        assertNotNull(result);
+        assertEquals(0, result.getSuccessCount());
+        assertEquals(1, result.getFailCount());
+
+        assertEquals(1, result.getResults().size());
+        assertFalse(result.getResults().get(0).isSuccess());
+        assertTrue(result.getResults().get(0).getMessage().contains("非创建状态不能删除"));
+    }
+
+    @Test
+    @DisplayName("测试处理空ID列表")
+    void shouldNotProcessWithEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.process(new ArrayList<>());
+        });
+    }
+
+    @Test
+    @DisplayName("测试处理非创建状态的服务单")
+    void shouldNotProcessNonCreatedStateBill() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        List<Integer> idsToProcess = List.of(createdBill.getId());
+        serviceBillBizService.process(idsToProcess);
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.process(idsToProcess);
+        assertEquals(0, result.getSuccessCount());
+        assertEquals(1, result.getFailCount());
+
+        assertEquals(1, result.getResults().size());
+        assertFalse(result.getResults().get(0).isSuccess());
+        assertTrue(result.getResults().get(0).getMessage().contains("非创建状态的单据不能处理"));
+    }
+
+    @Test
+    @DisplayName("测试对非处理中状态执行处理完成操作")
+    void shouldNotProcessedNonProcessingStateBill() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        List<Integer> idsToProcess = List.of(createdBill.getId());
+        Instant processedDate = Instant.now();
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.processed(idsToProcess, processedDate);
+        assertEquals(0, result.getSuccessCount());
+        assertEquals(1, result.getFailCount());
+
+        assertEquals(1, result.getResults().size());
+        assertFalse(result.getResults().get(0).isSuccess());
+        assertTrue(result.getResults().get(0).getMessage().contains("非处理中状态的单据不能处理完成"));
+    }
+
+    @Test
+    @DisplayName("测试对非处理完成状态执行完成操作")
+    void shouldNotFinishNonProcessedStateBill() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        Instant cur = Instant.now();
+        ActionsResult<Integer, Void> result = serviceBillBizService.finish(List.of(createdBill.getId()), cur);
+        assertEquals(0, result.getSuccessCount());
+        assertEquals(1, result.getFailCount());
+
+        assertEquals(1, result.getResults().size());
+        assertFalse(result.getResults().get(0).isSuccess());
+        assertTrue(result.getResults().get(0).getMessage().contains("非处理完成状态的单据不能完成"));
+    }
+
+    @Test
+    @DisplayName("测试删除空ID列表")
+    void shouldNotDeleteWithEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.delete(new ArrayList<>());
+        });
+    }
+
+    @Test
+    @DisplayName("测试处理完成空ID列表")
+    void shouldNotProcessedWithEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.processed(new ArrayList<>(), Instant.now());
+        });
+    }
+
+    @Test
+    @DisplayName("测试完成空ID列表")
+    void shouldNotFinishWithEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> {
+            serviceBillBizService.finish(new ArrayList<>(), Instant.now());
+        });
     }
 }

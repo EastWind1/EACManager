@@ -73,6 +73,8 @@ type AttachmentConfig struct {
 func NewConfig() *Config {
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("../config")
+	viper.AddConfigPath("..")
 
 	// 读取 yaml
 	viper.SetConfigName("config")
