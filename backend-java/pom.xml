@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.5</version>
+        <version>4.0.6</version>
         <relativePath/>
     </parent>
     <groupId>pers.eastwind</groupId>
@@ -16,7 +16,7 @@
     <properties>
         <java.version>25</java.version>
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
-        <jose.jwt.version>10.9</jose.jwt.version>
+        <jwt.version>4.5.2</jwt.version>
         <rapidocr.version>0.0.7</rapidocr.version>
         <rapidocr.onnx.version>1.2.2</rapidocr.onnx.version>
         <pdfbox.version>3.0.7</pdfbox.version>
@@ -81,9 +81,9 @@
         </dependency>
         <!-- JWT -->
         <dependency>
-            <groupId>com.nimbusds</groupId>
-            <artifactId>nimbus-jose-jwt</artifactId>
-            <version>${jose.jwt.version}</version>
+            <groupId>com.auth0</groupId>
+            <artifactId>java-jwt</artifactId>
+            <version>${jwt.version}</version>
         </dependency>
         <!-- 实体映射 -->
         <dependency>

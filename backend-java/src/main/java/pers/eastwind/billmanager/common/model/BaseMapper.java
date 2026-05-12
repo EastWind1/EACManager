@@ -1,9 +1,6 @@
 package pers.eastwind.billmanager.common.model;
 
 import org.mapstruct.MappingTarget;
-import pers.eastwind.billmanager.common.exception.BizException;
-import pers.eastwind.billmanager.user.model.AuthorityRole;
-import pers.eastwind.billmanager.user.util.AuthUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,36 +52,4 @@ public interface BaseMapper<E, DTO> {
      * 更新实体
      */
     void updateEntityFromDTO(DTO dto, @MappingTarget E entity);
-
-    /**
-     * 权限判断
-     *
-     * @param roles 角色
-     * @see AuthorityRole
-     */
-    default boolean hasRole(AuthorityRole... roles) {
-        return AuthUtil.hasAnyRole(roles);
-    }
-
-    /**
-     * 权限判断
-     *
-     * @param roles 角色名称，对应 {@link AuthorityRole} 的枚举名称，不含 ROLE_ 前缀
-     * @see AuthorityRole
-     */
-    default boolean hasRole(String... roles) {
-        if (roles == null || roles.length == 0) {
-            return true;
-        }
-        String rolePrefix = "ROLE_";
-        AuthorityRole[] roleEnums = new AuthorityRole[roles.length];
-        for (int i = 0; i < roles.length; i++) {
-            try {
-                roleEnums[i] = AuthorityRole.valueOf(rolePrefix + roles[i]);
-            } catch (IllegalArgumentException e) {
-                throw new BizException("权限角色不存在: " + roles[i]);
-            }
-        }
-        return hasRole(roleEnums);
-    }
 }

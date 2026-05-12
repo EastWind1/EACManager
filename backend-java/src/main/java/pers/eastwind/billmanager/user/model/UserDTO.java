@@ -1,6 +1,7 @@
 package pers.eastwind.billmanager.user.model;
 
 import lombok.Data;
+import pers.eastwind.billmanager.common.model.AuthorityRole;
 
 
 /**

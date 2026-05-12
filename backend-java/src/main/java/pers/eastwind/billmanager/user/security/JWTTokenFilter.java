@@ -1,6 +1,5 @@
-package pers.eastwind.billmanager.user.filter;
+package pers.eastwind.billmanager.user.security;
 
-import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -14,12 +13,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import pers.eastwind.billmanager.common.exception.BizException;
+import pers.eastwind.billmanager.user.config.UserProperties;
 import pers.eastwind.billmanager.user.model.User;
-import pers.eastwind.billmanager.user.service.JWTService;
 import pers.eastwind.billmanager.user.service.UserService;
+import pers.eastwind.billmanager.user.util.JWTUtil;
 
 import java.io.IOException;
-import java.text.ParseException;
+import java.util.Objects;
 
 /**
  * JWT 过滤器
@@ -28,12 +29,12 @@ import java.text.ParseException;
 @Slf4j
 @Component
 public class JWTTokenFilter extends OncePerRequestFilter {
-    private final JWTService jwtUtil;
     private final UserService userService;
+    private final UserProperties properties;
 
-    public JWTTokenFilter(JWTService jwtUtil, UserService userService) {
-        this.jwtUtil = jwtUtil;
+    public JWTTokenFilter(UserService userService, UserProperties properties) {
         this.userService = userService;
+        this.properties = properties;
     }
 
     @Override
@@ -48,12 +49,15 @@ public class JWTTokenFilter extends OncePerRequestFilter {
                 }
             }
         }
-        if (token != null && jwtUtil.verifyToken(token, request.getHeader(HttpHeaders.HOST))) {
+        if (token != null) {
             String userName = null;
             try {
-                SignedJWT jwt = SignedJWT.parse(token);
-                userName = jwt.getJWTClaimsSet().getAudience().getFirst();
-            } catch (ParseException _) {
+                var jwt = JWTUtil.verifyToken(properties.getKey(), token);
+                String host = request.getHeader(HttpHeaders.HOST);
+                if (Objects.equals(host, jwt.getSubject())) {
+                    userName = jwt.getAudience().getFirst();
+                }
+            } catch (BizException _) {
                 log.error("JWT 解析失败: {}", token);
             }
             if (userName != null) {

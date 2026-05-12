@@ -1,9 +1,9 @@
-package pers.eastwind.billmanager.user.util;
+package pers.eastwind.billmanager.common.util;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import pers.eastwind.billmanager.user.model.AuthorityRole;
-import pers.eastwind.billmanager.user.model.User;
+import pers.eastwind.billmanager.common.model.AuthorityRole;
+import pers.eastwind.billmanager.common.model.BaseUser;
 
 /**
  * 鉴权工具
@@ -12,10 +12,10 @@ public class AuthUtil {
     /**
      * 获取当前用户
      */
-    public static User getCurUser() {
+    public static BaseUser getCurUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof UserDetails) {
-            return (User) auth.getPrincipal();
+            return (BaseUser) auth.getPrincipal();
         }
         return null;
     }
@@ -37,7 +37,7 @@ public class AuthUtil {
      * @param roles 角色列表
      * @return 是否有指定角色
      */
-    public static boolean hasAnyRole(User user, AuthorityRole... roles) {
+    public static boolean hasAnyRole(UserDetails user, AuthorityRole... roles) {
         if (user == null) {
             return false;
         }

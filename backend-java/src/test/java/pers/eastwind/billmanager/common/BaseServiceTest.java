@@ -6,7 +6,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-import pers.eastwind.billmanager.user.model.AuthorityRole;
+import pers.eastwind.billmanager.common.model.AuthorityRole;
 import pers.eastwind.billmanager.user.model.User;
 
 @SpringBootTest

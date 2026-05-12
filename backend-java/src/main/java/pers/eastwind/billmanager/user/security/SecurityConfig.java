@@ -1,4 +1,4 @@
-package pers.eastwind.billmanager.user.config;
+package pers.eastwind.billmanager.user.security;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -11,14 +11,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import pers.eastwind.billmanager.common.model.Result;
-import pers.eastwind.billmanager.user.filter.JWTTokenFilter;
-import pers.eastwind.billmanager.user.service.UserService;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Security配置类
  *
- * <p>自定义UserDetailService由 {@link UserService} 实现
  */
 @Configuration
 @EnableMethodSecurity

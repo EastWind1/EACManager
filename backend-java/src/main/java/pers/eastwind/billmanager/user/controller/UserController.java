@@ -6,7 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
-import pers.eastwind.billmanager.user.config.UserConfigProperties;
+import pers.eastwind.billmanager.user.config.UserProperties;
 import pers.eastwind.billmanager.user.model.LoginResult;
 import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
@@ -17,10 +17,10 @@ import pers.eastwind.billmanager.user.service.UserService;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
-    private final UserConfigProperties config;
+    private final UserProperties config;
     private final UserService userService;
 
-    public UserController(UserConfigProperties config, UserService userService) {
+    public UserController(UserProperties config, UserService userService) {
         this.config = config;
         this.userService = userService;
     }

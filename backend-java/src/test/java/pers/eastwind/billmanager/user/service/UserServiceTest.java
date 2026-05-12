@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import pers.eastwind.billmanager.common.BaseServiceTest;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
-import pers.eastwind.billmanager.user.model.AuthorityRole;
+import pers.eastwind.billmanager.common.model.AuthorityRole;
 import pers.eastwind.billmanager.user.model.UserDTO;
 
 import static org.junit.jupiter.api.Assertions.*;

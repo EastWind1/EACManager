@@ -1,4 +1,4 @@
-package pers.eastwind.billmanager.user.model;
+package pers.eastwind.billmanager.common.model;
 
 import org.springframework.security.core.GrantedAuthority;
 

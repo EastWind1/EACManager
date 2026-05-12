@@ -27,7 +27,7 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
     @Autowired
     private ServiceBillBizService serviceBillBizService;
 
-        /**
+    /**
      * 创建测试用的服务单DTO
      */
     private ServiceBillDTO createTestServiceBill() {
@@ -305,7 +305,7 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
 
         assertEquals(1, result.getResults().size());
         assertFalse(result.getResults().getFirst().getSuccess());
-        assertTrue(result.getResults().getFirst().getMessage().contains("非创建状态不能删除"));
+        assertTrue(result.getResults().getFirst().getMessage().contains("非创建状态的单据不能删除"));
     }
 
     @Test

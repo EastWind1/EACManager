@@ -14,11 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import pers.eastwind.billmanager.common.exception.BizException;
+import pers.eastwind.billmanager.common.model.AuthorityRole;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
+import pers.eastwind.billmanager.user.config.UserProperties;
 import pers.eastwind.billmanager.user.model.*;
 import pers.eastwind.billmanager.user.repository.UserRepository;
-import pers.eastwind.billmanager.user.util.AuthUtil;
+import pers.eastwind.billmanager.common.util.AuthUtil;
+import pers.eastwind.billmanager.user.util.JWTUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -28,21 +31,21 @@ import java.util.Objects;
  */
 @Service
 public class UserService implements UserDetailsService {
-    private final JWTService jwtUtil;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final UserProperties properties;
 
-    public UserService(JWTService jwtUtil, UserRepository userRepository, UserMapper userMapper) {
-        this.jwtUtil = jwtUtil;
+    public UserService(UserRepository userRepository, UserMapper userMapper, UserProperties properties) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.properties = properties;
     }
 
     /**
      * 获取启用用户
      */
     public PageResult<UserDTO> getAll(QueryParam queryParam) {
-        User curUser = AuthUtil.getCurUser();
+        User curUser = (User)AuthUtil.getCurUser();
         if (curUser == null || queryParam == null) {
             return PageResult.empty();
         }
@@ -94,7 +97,7 @@ public class UserService implements UserDetailsService {
         if (user.getId() == null) {
             throw new BizException("id 不能为空");
         }
-        User curUser = AuthUtil.getCurUser();
+        User curUser = (User)AuthUtil.getCurUser();
         if (curUser == null) {
             throw new AccessDeniedException("未登录");
         }
@@ -168,7 +171,7 @@ public class UserService implements UserDetailsService {
             throw new BizException("用户名或密码错误");
         }
         String host = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.HOST);
-        String token = jwtUtil.generateToken(username, host);
+        String token = JWTUtil.generateToken(properties.getKey(), properties.getExpire(), username, host);
         return new LoginResult(token, userMapper.toDTO(user));
     }
 

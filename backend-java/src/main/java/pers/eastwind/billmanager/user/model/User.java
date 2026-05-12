@@ -7,6 +7,8 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import pers.eastwind.billmanager.common.model.AuditEntity;
+import pers.eastwind.billmanager.common.model.AuthorityRole;
+import pers.eastwind.billmanager.common.model.BaseUser;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -19,13 +21,7 @@ import java.util.Collections;
         indexes = @Index(columnList = "username"))
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class User extends AuditEntity implements UserDetails {
-
-    @Id
-    @Column(insertable = false, updatable = false)
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-
+public class User extends BaseUser {
     /**
      * 用户名
      */
@@ -53,21 +49,9 @@ public class User extends AuditEntity implements UserDetails {
     private String email;
 
     /**
-     * 授权
-     */
-    @Enumerated(EnumType.STRING)
-    private AuthorityRole authority = AuthorityRole.ROLE_USER;
-
-    /**
      * 是否禁用
      */
     private boolean disabled;
-
-    @Override
-    @NonNull
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singleton(authority);
-    }
 
     @Override
     public String getPassword() {
