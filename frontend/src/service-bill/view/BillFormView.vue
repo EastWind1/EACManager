@@ -11,84 +11,84 @@
       </template>
     </v-stepper-header>
   </v-stepper>
-  <!-- 单据头部 -->
-  <v-sheet>
-    <v-container>
-      <v-row>
-        <!-- 左侧：单号和状态信息 -->
-        <!-- 单号显示 -->
-        <v-col
-          v-if="serviceBill.state !== ServiceBillState.CREATED.value"
-          cols="6"
-          md="3"
-          sm="4"
-          xl="2"
-        >
-          <div class="text-caption text-grey-darken-1">单号</div>
-          <div class="text-headline-small text-no-wrap">{{ serviceBill.number }}</div>
-        </v-col>
-        <!-- 总金额 -->
-        <v-col cols="3" md="2" xl="1">
-          <div class="text-caption text-grey-darken-1">总金额</div>
-          <div class="text-headline-small font-weight-bold text-primary">
-            ￥{{ serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00' }}
-          </div>
-        </v-col>
-        <v-spacer></v-spacer>
-        <v-col class="d-flex justify-end align-center" cols="4" md="3" xl="2">
-          <v-btn
-            v-if="
+  <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
+    <v-sheet>
+      <v-container>
+        <v-row>
+          <!-- 左侧：单号和状态信息 -->
+          <!-- 单号显示 -->
+          <v-col
+            v-if="serviceBill.state !== ServiceBillState.CREATED.value"
+            cols="6"
+            md="3"
+            sm="4"
+            xl="2"
+          >
+            <div class="text-caption text-grey-darken-1">单号</div>
+            <div class="text-headline-small text-no-wrap">{{ serviceBill.number }}</div>
+          </v-col>
+          <!-- 总金额 -->
+          <v-col cols="3" md="2" xl="1">
+            <div class="text-caption text-grey-darken-1">总金额</div>
+            <div class="text-headline-small font-weight-bold text-primary">
+              ￥{{ serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00' }}
+            </div>
+          </v-col>
+          <v-spacer></v-spacer>
+          <v-col class="d-flex justify-end align-center" cols="4" md="3" xl="2">
+            <v-btn
+              v-if="
               serviceBill.id &&
               (serviceBill.state !== ServiceBillState.FINISHED.value ||
                 userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))
             "
-            :disabled="isEditState"
-            color="primary"
-            @click="isEditState = true"
-          >
-            编辑
-          </v-btn>
-          <v-btn
-            v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
-            :loading="loading"
-            color="success"
-            @click="process([serviceBill.id!])"
-          >
-            开始处理
-          </v-btn>
-          <v-btn
-            v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
-            :loading="loading"
-            color="info"
-            @click="processed([serviceBill.id!])"
-          >
-            处理完成
-          </v-btn>
-          <v-btn
-            v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
-            :loading="loading"
-            color="success"
-            @click="finish([serviceBill.id!])"
-          >
-            回款完成
-          </v-btn>
-          <v-btn
-            v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
-            :loading="loading"
-            color="error"
-            @click="removeAndBack(serviceBill.id!)"
-          >
-            删除
-          </v-btn>
-          <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit"> 保存</v-btn>
-          <v-btn v-if="isEditState" color="grey-lighten-1" variant="text" @click="cancel">
-            取消
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-container>
-  </v-sheet>
-  <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
+              :disabled="isEditState"
+              color="primary"
+              @click="isEditState = true"
+            >
+              编辑
+            </v-btn>
+            <v-btn
+              v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
+              :loading="loading"
+              color="success"
+              @click="process([serviceBill.id!])"
+            >
+              开始处理
+            </v-btn>
+            <v-btn
+              v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
+              :loading="loading"
+              color="info"
+              @click="processed([serviceBill.id!])"
+            >
+              处理完成
+            </v-btn>
+            <v-btn
+              v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
+              :loading="loading"
+              color="success"
+              @click="finish([serviceBill.id!])"
+            >
+              回款完成
+            </v-btn>
+            <v-btn
+              v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
+              :loading="loading"
+              color="error"
+              @click="removeAndBack(serviceBill.id!)"
+            >
+              删除
+            </v-btn>
+            <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit"> 保存</v-btn>
+            <v-btn v-if="isEditState" color="grey-lighten-1" variant="text" @click="cancel">
+              取消
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-container>
+    </v-sheet>
+
     <v-card>
       <template #title>
         <v-icon :icon="mdiFileDocument" size="small"></v-icon>
@@ -125,6 +125,7 @@
                 label="产品公司"
                 return-object
                 @update:menu="companySelect"
+                clearable
               ></v-select>
             </v-col>
             <!-- 项目名称 -->
@@ -281,18 +282,18 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { type ServiceBill, ServiceBillState, ServiceBillType } from '../model/ServiceBill.ts'
+import {ref} from 'vue'
+import {type ServiceBill, ServiceBillState, ServiceBillType} from '../model/ServiceBill.ts'
 import BillFormDetail from '../component/BillFormDetail.vue'
 import ServiceBillApi from '../api/ServiceBillApi.ts'
-import { storeToRefs } from 'pinia'
+import {storeToRefs} from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import { useRouterStore } from '@/common/store/RouterStore.ts'
-import type { ActionsResult } from '@/common/model/ActionsResult.ts'
-import { useBillActions } from '../composable/BillActions.ts'
-import { VDateInput } from 'vuetify/labs/components'
+import {useRoute, useRouter} from 'vue-router'
+import {useUIStore} from '@/common/store/UIStore.ts'
+import {useRouterStore} from '@/common/store/RouterStore.ts'
+import type {ActionsResult} from '@/common/model/ActionsResult.ts'
+import {useBillActions} from '../composable/BillActions.ts'
+import {VDateInput} from 'vuetify/labs/components'
 import {
   mdiFileDocument,
   mdiInformation,
@@ -302,18 +303,18 @@ import {
   mdiPaperclip,
   mdiPhone,
 } from '@mdi/js'
-import { useDate, useDisplay, useHotkey } from 'vuetify/framework'
-import type { Company } from '@/company/model/Company.ts'
+import {useDate, useDisplay, useHotkey} from 'vuetify/framework'
+import type {Company} from '@/company/model/Company.ts'
 import CompanyApi from '@/company/api/CompanyApi.ts'
-import { useUserStore } from '@/user/store/UserStore.ts'
-import { AuthorityRole } from '@/user/model/User.ts'
+import {useUserStore} from '@/user/store/UserStore.ts'
+import {AuthorityRole} from '@/user/model/User.ts'
 
 const store = useUIStore()
-const { loading } = storeToRefs(store)
-const { warning, success } = store
+const {loading} = storeToRefs(store)
+const {warning, success} = store
 const route = useRoute()
 const router = useRouter()
-const { mobile } = useDisplay()
+const {mobile} = useDisplay()
 const dateUtil = useDate()
 const userStore = useUserStore()
 // 页面是否编辑状态
@@ -447,7 +448,7 @@ function callPhone(phone?: string) {
   if (!phone) {
     return
   }
-  const { confirm } = useUIStore()
+  const {confirm} = useUIStore()
   confirm('拨打电话', `是否拨打电话 ${phone}`).then((res) => {
     if (!res) {
       return
@@ -456,7 +457,7 @@ function callPhone(phone?: string) {
   })
 }
 
-const { process, processed, finish, remove } = useBillActions(processResult)
+const {process, processed, finish, remove} = useBillActions(processResult)
 
 async function removeAndBack(id: number) {
   await remove([id])
@@ -484,7 +485,7 @@ async function init() {
         break
       // 导入
       case 'import':
-        const { getData } = useRouterStore()
+        const {getData} = useRouterStore()
         const data = getData() as ServiceBill
         if (!data) {
           warning('未获取到识别结果')

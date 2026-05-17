@@ -150,7 +150,7 @@ export const useUIStore = defineStore('uiStore', () => {
     /**
      * 确认回调
      */
-    confirm: () => {},
+    confirm: (data) => {console.log(data)},
     /**
      * 取消回调
      */
@@ -161,19 +161,17 @@ export const useUIStore = defineStore('uiStore', () => {
    * 选择日期
    */
   function selectDate(title?: string, minDate?: Date, maxDate?: Date): Promise<Date | undefined> {
-    dataPickerData.value.minDate = minDate ?? undefined
-    dataPickerData.value.maxDate = maxDate ?? undefined
-    dataPickerData.value.title = title ?? '选择日期'
-    dataPickerData.value.show = true
     return new Promise((resolve, reject) => {
       dataPickerData.value.confirm = (date: Date) => {
-        dataPickerData.value.show = false
         resolve(date)
       }
       dataPickerData.value.cancel = () => {
-        dataPickerData.value.show = false
         reject()
       }
+      dataPickerData.value.minDate = minDate ?? undefined
+      dataPickerData.value.maxDate = maxDate ?? undefined
+      dataPickerData.value.title = title ?? '选择日期'
+      dataPickerData.value.show = true
     })
   }
 

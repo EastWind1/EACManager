@@ -15,24 +15,19 @@
 </template>
 
 <script lang="ts" setup>
-interface Props {
+withDefaults(defineProps<{
   title: string
   minDate: unknown
   maxDate: unknown
-}
-
-interface Emits {
-  (e: 'confirm', value: Date): void
-
-  (e: 'cancel'): void
-}
-
-withDefaults(defineProps<Props>(), {
+}>(), {
   title: '请选择日期',
   minDate: undefined,
   maxDate: undefined,
 })
-const emit = defineEmits<Emits>()
+const emit = defineEmits<{
+  confirm: [value: Date],
+  cancel: []
+}>()
 
 const internalShow = defineModel<boolean>()
 const internalDate = defineModel<string | number | Date>('date')
@@ -42,8 +37,6 @@ function handleConfirm() {
   if (dateValue) {
     emit('confirm', new Date(dateValue))
     internalShow.value = false
-  } else {
-    emit('cancel')
   }
 }
 

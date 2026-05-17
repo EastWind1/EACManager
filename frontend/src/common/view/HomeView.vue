@@ -58,8 +58,8 @@
       :max-date="dataPickerData.maxDate"
       :min-date="dataPickerData.minDate"
       :title="dataPickerData.title"
-      @cancel="confirmData.cancel"
-      @confirm="confirmData.confirm"
+      @cancel="dataPickerData.cancel"
+      @confirm="dataPickerData.confirm"
     >
     </DatePickerDialog>
     <v-main>
