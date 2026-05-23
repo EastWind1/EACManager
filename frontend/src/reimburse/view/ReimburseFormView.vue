@@ -16,73 +16,73 @@
       <v-container>
         <v-row>
           <!-- 左侧：单号和状态信息 -->
-          <!-- 单号显示 -->
-          <v-col
-            v-if="reimbursement.state !== ReimburseState.CREATED.value"
-            cols="6"
-            md="3"
-            sm="4"
-            xl="2"
-          >
-            <div class="text-caption text-grey-darken-1">单号</div>
-            <div class="text-headline-small text-no-wrap">{{ reimbursement.number }}</div>
+          <v-col cols="12" md="6">
+            <v-row>
+              <v-col
+                v-if="reimbursement.state !== ReimburseState.CREATED.value"
+              >
+                <div class="text-caption text-grey-darken-1">单号</div>
+                <div class="text-headline-small text-no-wrap">{{ reimbursement.number }}</div>
+              </v-col>
+              <v-col>
+                <div class="text-caption text-grey-darken-1">总金额</div>
+                <div class="text-headline-small font-weight-bold text-primary">
+                  ￥{{ reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00' }}
+                </div>
+              </v-col>
+            </v-row>
           </v-col>
-          <!-- 总金额 -->
-          <v-col cols="3" md="2" xl="1">
-            <div class="text-caption text-grey-darken-1">总金额</div>
-            <div class="text-headline-small font-weight-bold text-primary">
-              ￥{{ reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00' }}
-            </div>
-          </v-col>
-          <v-spacer></v-spacer>
-          <v-col class="d-flex justify-end align-center" cols="4" md="3" xl="2">
-            <v-btn
-              v-if="
+
+          <v-col cols="12" md="6">
+            <v-row justify="end" align-content="center">
+              <v-btn
+                v-if="
                 reimbursement.id &&
                 (reimbursement.state !== ReimburseState.FINISHED.value ||
                   userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))
               "
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :disabled="isEditState"
-              color="primary"
-              @click="isEditState = true"
+                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+                :disabled="isEditState"
+                color="primary"
+                @click="isEditState = true"
               >编辑
-            </v-btn>
-            <v-btn
-              v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :loading="loading"
-              color="info"
-              @click="process([reimbursement.id!])"
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
+                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+                :loading="loading"
+                color="info"
+                @click="process([reimbursement.id!])"
               >提交
-            </v-btn>
-            <v-btn
-              v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :loading="loading"
-              color="success"
-              @click="finish([reimbursement.id!])"
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
+                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+                :loading="loading"
+                color="success"
+                @click="finish([reimbursement.id!])"
               >处理完成
-            </v-btn>
-            <v-btn
-              v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :loading="loading"
-              color="error"
-              @click="removeAndBack(reimbursement.id!)"
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
+                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+                :loading="loading"
+                color="error"
+                @click="removeAndBack(reimbursement.id!)"
               >删除
-            </v-btn>
-            <v-btn
-              v-if="isEditState"
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :loading="loading"
-              color="primary"
-              type="submit"
+              </v-btn>
+              <v-btn
+                v-if="isEditState"
+                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+                :loading="loading"
+                color="primary"
+                type="submit"
               >保存
-            </v-btn>
-            <v-btn v-if="isEditState" :loading="loading" color="warning" @click="cancel"
+              </v-btn>
+              <v-btn v-if="isEditState" :loading="loading" color="warning" @click="cancel"
               >取消
-            </v-btn>
+              </v-btn>
+            </v-row>
           </v-col>
         </v-row>
       </v-container>
@@ -179,27 +179,28 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { type Reimbursement, ReimburseState } from '../model/Reimbursement.ts'
+import {ref} from 'vue'
+import {type Reimbursement, ReimburseState} from '../model/Reimbursement.ts'
 import ReimburseDetail from '../component/ReimburseDetail.vue'
 import ReimburseApi from '../api/ReimburseApi.ts'
-import { storeToRefs } from 'pinia'
+import {storeToRefs} from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import type { ActionsResult } from '@/common/model/ActionsResult.ts'
-import { useReimburseActions } from '../composable/ReimburseActions.ts'
-import { VDateInput } from 'vuetify/labs/components'
-import { AuthorityRole } from '@/user/model/User.ts'
-import { useDate } from 'vuetify/framework'
-import { mdiFileDocument, mdiListBox, mdiPaperclip } from '@mdi/js'
-import { useUserStore } from '@/user/store/UserStore.ts'
+import {useRoute, useRouter} from 'vue-router'
+import {useUIStore} from '@/common/store/UIStore.ts'
+import type {ActionsResult} from '@/common/model/ActionsResult.ts'
+import {useReimburseActions} from '../composable/ReimburseActions.ts'
+import {VDateInput} from 'vuetify/labs/components'
+import {AuthorityRole} from '@/user/model/User.ts'
+import {useDate, useDisplay} from 'vuetify/framework'
+import {mdiFileDocument, mdiListBox, mdiPaperclip} from '@mdi/js'
+import {useUserStore} from '@/user/store/UserStore.ts'
 
 const store = useUIStore()
-const { loading } = storeToRefs(store)
-const { warning, success } = store
+const {loading} = storeToRefs(store)
+const {warning, success} = store
 const route = useRoute()
 const router = useRouter()
+const {mobile} = useDisplay()
 const dateUtil = useDate()
 const userStore = useUserStore()
 // 页面是否编辑状态
@@ -278,7 +279,7 @@ async function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const { process, finish, remove } = useReimburseActions(processResult)
+const {process, finish, remove} = useReimburseActions(processResult)
 
 async function removeAndBack(id: number) {
   await remove([id])

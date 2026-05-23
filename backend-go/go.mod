@@ -1,16 +1,16 @@
 module backend-go
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/bytedance/sonic v1.15.1
 	github.com/gabriel-vasile/mimetype v1.4.13
-	github.com/gofiber/fiber/v3 v3.2.0
+	github.com/gofiber/fiber/v3 v3.3.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/xuri/excelize/v2 v2.10.1
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
 	gorm.io/plugin/optimisticlock v1.1.3
@@ -26,7 +26,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/gofiber/schema v1.7.1 // indirect
-	github.com/gofiber/utils/v2 v2.0.4 // indirect
+	github.com/gofiber/utils/v2 v2.0.6 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -60,9 +60,9 @@ require (
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/arch v0.27.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

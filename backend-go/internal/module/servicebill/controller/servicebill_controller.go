@@ -153,6 +153,48 @@ func (c *ServiceBillController) Finish(ctx fiber.Ctx) error {
 	return nil
 }
 
+func (c *ServiceBillController) CancelProcess(ctx fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.Bind().Body(&ids); err != nil {
+		return err
+	}
+
+	res, err := c.bizSrv.CancelProcess(ctx, ids)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
+}
+
+func (c *ServiceBillController) CancelProcessed(ctx fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.Bind().Body(ids); err != nil {
+		return err
+	}
+
+	res, err := c.bizSrv.CancelProcessed(ctx, ids)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
+}
+
+func (c *ServiceBillController) CancelFinish(ctx fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.Bind().Body(&ids); err != nil {
+		return err
+	}
+
+	res, err := c.bizSrv.CancelFinish(ctx, ids)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
+}
+
 func (c *ServiceBillController) Export(ctx fiber.Ctx) error {
 	var ids []uint
 	if err := ctx.Bind().Body(&ids); err != nil {

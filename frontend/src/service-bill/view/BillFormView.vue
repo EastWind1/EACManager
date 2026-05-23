@@ -16,74 +16,97 @@
       <v-container>
         <v-row>
           <!-- 左侧：单号和状态信息 -->
-          <!-- 单号显示 -->
-          <v-col
-            v-if="serviceBill.state !== ServiceBillState.CREATED.value"
-            cols="6"
-            md="3"
-            sm="4"
-            xl="2"
-          >
-            <div class="text-caption text-grey-darken-1">单号</div>
-            <div class="text-headline-small text-no-wrap">{{ serviceBill.number }}</div>
+          <v-col cols="12" md="6">
+            <v-row>
+              <v-col
+                v-if="serviceBill.state !== ServiceBillState.CREATED.value"
+              >
+                <div class="text-caption text-grey-darken-1">单号</div>
+                <div class="text-headline-small text-no-wrap">{{ serviceBill.number }}</div>
+              </v-col>
+              <v-col>
+                <div class="text-caption text-grey-darken-1">总金额</div>
+                <div class="text-headline-small font-weight-bold text-primary">
+                  ￥{{ serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00' }}
+                </div>
+              </v-col>
+            </v-row>
           </v-col>
-          <!-- 总金额 -->
-          <v-col cols="3" md="2" xl="1">
-            <div class="text-caption text-grey-darken-1">总金额</div>
-            <div class="text-headline-small font-weight-bold text-primary">
-              ￥{{ serviceBill.totalAmount ? serviceBill.totalAmount.toFixed(2) : '0.00' }}
-            </div>
-          </v-col>
-          <v-spacer></v-spacer>
-          <v-col class="d-flex justify-end align-center" cols="4" md="3" xl="2">
-            <v-btn
-              v-if="
+          <v-col cols="12" md="6">
+            <v-row justify="end" align-content="center">
+              <v-btn
+                v-if="
               serviceBill.id &&
               (serviceBill.state !== ServiceBillState.FINISHED.value ||
                 userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))
             "
-              :disabled="isEditState"
-              color="primary"
-              @click="isEditState = true"
-            >
-              编辑
-            </v-btn>
-            <v-btn
-              v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
-              :loading="loading"
-              color="success"
-              @click="process([serviceBill.id!])"
-            >
-              开始处理
-            </v-btn>
-            <v-btn
-              v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
-              :loading="loading"
-              color="info"
-              @click="processed([serviceBill.id!])"
-            >
-              处理完成
-            </v-btn>
-            <v-btn
-              v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
-              :loading="loading"
-              color="success"
-              @click="finish([serviceBill.id!])"
-            >
-              回款完成
-            </v-btn>
-            <v-btn
-              v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
-              :loading="loading"
-              color="error"
-              @click="removeAndBack(serviceBill.id!)"
-            >
-              删除
-            </v-btn>
-            <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit"> 保存</v-btn>
-            <v-btn v-if="isEditState" color="grey-lighten-1" variant="text" @click="cancel">
-              取消
-            </v-btn>
+                :disabled="isEditState"
+                color="primary"
+                @click="isEditState = true"
+              >
+                编辑
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
+                :loading="loading"
+                color="success"
+                @click="process([serviceBill.id!])"
+              >
+                开始处理
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
+                :loading="loading"
+                color="info"
+                @click="processed([serviceBill.id!])"
+              >
+                处理完成
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
+                :loading="loading"
+                color="success"
+                @click="finish([serviceBill.id!])"
+              >
+                回款完成
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
+                :loading="loading"
+                color="error"
+                @click="removeAndBack(serviceBill.id!)"
+              >
+                删除
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
+                :loading="loading"
+                color="warning"
+                @click="cancelProcess([serviceBill.id!])"
+              >
+                取消处理
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
+                :loading="loading"
+                color="warning"
+                @click="cancelProcessed([serviceBill.id!])"
+              >
+                取消处理完成
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && serviceBill.state === ServiceBillState.FINISHED.value"
+                :loading="loading"
+                color="warning"
+                @click="cancelFinish([serviceBill.id!])"
+              >
+                取消完成
+              </v-btn>
+              <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit"> 保存</v-btn>
+              <v-btn v-if="isEditState" color="grey-lighten-1" variant="text" @click="cancel">
+                取消
+              </v-btn>
+            </v-row>
           </v-col>
         </v-row>
       </v-container>
@@ -457,7 +480,7 @@ function callPhone(phone?: string) {
   })
 }
 
-const {process, processed, finish, remove} = useBillActions(processResult)
+const {process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish} = useBillActions(processResult)
 
 async function removeAndBack(id: number) {
   await remove([id])

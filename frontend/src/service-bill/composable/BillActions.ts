@@ -65,10 +65,58 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
     processResult(await ServiceBillApi.delete(ids))
   }
 
+  /**
+   * 取消处理
+   */
+  async function cancelProcess(ids: number[]) {
+    if (ids.length === 0) {
+      warning('请选择要操作的单据')
+      return
+    }
+    const confirmResult = await confirm('确认取消处理', `确认取消处理 ${ids.length} 条单据？`)
+    if (!confirmResult) {
+      return
+    }
+    processResult(await ServiceBillApi.cancelProcess(ids))
+  }
+
+  /**
+   * 取消处理完成
+   */
+  async function cancelProcessed(ids: number[]) {
+    if (ids.length === 0) {
+      warning('请选择要操作的单据')
+      return
+    }
+    const confirmResult = await confirm('确认取消处理完成', `确认取消处理完成 ${ids.length} 条单据？`)
+    if (!confirmResult) {
+      return
+    }
+    processResult(await ServiceBillApi.cancelProcessed(ids))
+  }
+
+  /**
+   * 取消完成
+   */
+  async function cancelFinish(ids: number[]) {
+    if (ids.length === 0) {
+      warning('请选择要操作的单据')
+      return
+    }
+    const confirmResult = await confirm('确认取消完成', `确认取消完成 ${ids.length} 条单据？`)
+    if (!confirmResult) {
+      return
+    }
+    processResult(await ServiceBillApi.cancelFinish(ids))
+  }
+
   return {
     process,
     processed,
     finish,
     remove,
+    cancelProcess,
+    cancelProcessed,
+    cancelFinish,
   }
 }

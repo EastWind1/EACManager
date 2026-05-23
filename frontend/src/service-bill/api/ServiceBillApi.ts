@@ -82,5 +82,26 @@ const ServiceBillApi = {
   async export(ids: number[]) {
     return await http.post<Blob>(`/export`, ids)
   },
+  /**
+   * 取消处理
+   * @param ids 单据 ID 列表
+   */
+  async cancelProcess(ids: number[]) {
+    return await http.put<ActionsResult<number, void>>(`/cancel-process`, ids)
+  },
+  /**
+   * 取消处理完成
+   * @param ids 单据 ID 列表
+   */
+  async cancelProcessed(ids: number[]) {
+    return await http.put<ActionsResult<number, void>>(`/cancel-processed`, ids)
+  },
+  /**
+   * 取消完成
+   * @param ids 单据 ID 列表
+   */
+  async cancelFinish(ids: number[]) {
+    return await http.put<ActionsResult<number, void>>(`/cancel-finish`, ids)
+  },
 }
 export default ServiceBillApi

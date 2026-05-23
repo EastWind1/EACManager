@@ -366,3 +366,200 @@ func (s *BizServiceTest) TestFinishWithEmptyIDs() {
 	s.Contains(err.Error(), "ID 为空")
 	s.Nil(res)
 }
+
+// TestCancelProcess tests CancelProcess business logic
+func (s *BizServiceTest) TestCancelProcessWithEmptyIDs() {
+	res, err := s.bizSrv.CancelProcess(s.ctx, []uint{})
+	s.Error(err)
+	s.Contains(err.Error(), "ID 为空")
+	s.Nil(res)
+}
+
+func (s *BizServiceTest) TestCancelProcessNonExistentBill() {
+	res, err := s.bizSrv.CancelProcess(s.ctx, []uint{999999})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "单据不存在")
+}
+
+func (s *BizServiceTest) TestCancelProcessNonProcessingState() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+	res, err := s.bizSrv.CancelProcess(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "非处理中状态的单据不能取消处理")
+}
+
+func (s *BizServiceTest) TestCancelProcessSuccess() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+	_, err = s.bizSrv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+
+	now := new(time.Time)
+	_, err = s.bizSrv.Processed(s.ctx, []uint{created.ID}, now)
+	s.NoError(err)
+
+	res, err := s.bizSrv.CancelProcess(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(1, res.SuccessCount)
+	s.Equal(0, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.True(res.Results[0].Success)
+
+	found, err := s.bizSrv.FindByID(s.ctx, created.ID)
+	s.NoError(err)
+	s.Equal(model.ServiceBillStateCreated, found.State)
+	// ProcessedDate should be nil after cancel
+	s.Nil(found.ProcessedDate)
+}
+
+// TestCancelProcessed tests CancelProcessed business logic
+func (s *BizServiceTest) TestCancelProcessedWithEmptyIDs() {
+	res, err := s.bizSrv.CancelProcessed(s.ctx, []uint{})
+	s.Error(err)
+	s.Contains(err.Error(), "ID 为空")
+	s.Nil(res)
+}
+
+func (s *BizServiceTest) TestCancelProcessedNonExistentBill() {
+	res, err := s.bizSrv.CancelProcessed(s.ctx, []uint{999999})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "单据不存在")
+}
+
+func (s *BizServiceTest) TestCancelProcessedNonProcessedState() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+	res, err := s.bizSrv.CancelProcessed(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "非处理完成状态的单据不能取消处理完成")
+}
+
+func (s *BizServiceTest) TestCancelProcessedSuccess() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+	_, err = s.bizSrv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+
+	now := new(time.Time)
+	_, err = s.bizSrv.Processed(s.ctx, []uint{created.ID}, now)
+	s.NoError(err)
+
+	res, err := s.bizSrv.CancelProcessed(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(1, res.SuccessCount)
+	s.Equal(0, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.True(res.Results[0].Success)
+
+	found, err := s.bizSrv.FindByID(s.ctx, created.ID)
+	s.NoError(err)
+	s.Equal(model.ServiceBillStateProcessing, found.State)
+	// ProcessedDate should be nil after cancel
+	s.Nil(found.ProcessedDate)
+}
+
+// TestCancelFinish tests CancelFinish business logic
+func (s *BizServiceTest) TestCancelFinishWithEmptyIDs() {
+	res, err := s.bizSrv.CancelFinish(s.ctx, []uint{})
+	s.Error(err)
+	s.Contains(err.Error(), "ID 为空")
+	s.Nil(res)
+}
+
+func (s *BizServiceTest) TestCancelFinishNonExistentBill() {
+	res, err := s.bizSrv.CancelFinish(s.ctx, []uint{999999})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "单据不存在")
+}
+
+func (s *BizServiceTest) TestCancelFinishNonFinishedState() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+	_, err = s.bizSrv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+
+	now := new(time.Time)
+	_, err = s.bizSrv.Processed(s.ctx, []uint{created.ID}, now)
+	s.NoError(err)
+
+	res, err := s.bizSrv.CancelFinish(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.False(res.Results[0].Success)
+	s.Contains(res.Results[0].Message, "非完成状态的单据不能取消完成")
+}
+
+func (s *BizServiceTest) TestCancelFinishSuccess() {
+	created, err := s.bizSrv.Create(s.ctx, s.testBill)
+	s.NoError(err)
+
+	_, err = s.bizSrv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+
+	now := new(time.Time)
+	_, err = s.bizSrv.Processed(s.ctx, []uint{created.ID}, now)
+	s.NoError(err)
+
+	finishTime := new(time.Time)
+	_, err = s.bizSrv.Finish(s.ctx, []uint{created.ID}, finishTime)
+	s.NoError(err)
+
+	res, err := s.bizSrv.CancelFinish(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.NotNil(res)
+	s.Equal(1, res.SuccessCount)
+	s.Equal(0, res.FailCount)
+
+	s.Len(res.Results, 1)
+	s.True(res.Results[0].Success)
+
+	found, err := s.bizSrv.FindByID(s.ctx, created.ID)
+	s.NoError(err)
+	s.Equal(model.ServiceBillStateProcessing, found.State)
+	// FinishedDate should be nil after cancel
+	s.Nil(found.FinishedDate)
+}

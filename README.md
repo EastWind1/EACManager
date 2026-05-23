@@ -76,5 +76,5 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 ## 运行
 
 1. `cd deploy`
-2. 执行目录下的 `build-and-copy.bat` 脚本打包
+2. 执行目录下的 `build.bat` 脚本打包
 3. 执行 `docker-compose -f docker-compose-java up -d` 或 `docker-compose -f docker-compose-go.yml up -d`

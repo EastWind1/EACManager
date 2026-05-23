@@ -455,6 +455,8 @@ public class ServiceBillBizService {
 
     /**
      * 批量更改为完成
+     * @param ids 单据 ID
+     * @param finishedDate 完成时间
      */
     @Caching(
             evict = {
@@ -487,6 +489,120 @@ public class ServiceBillBizService {
                 }
                 bill.setState(ServiceBillState.FINISHED);
                 bill.setFinishedDate(finalFinishedDate);
+                serviceBillRepository.save(bill);
+            });
+            return null;
+        });
+    }
+
+    /**
+     * 取消处理
+     *
+     * @param ids 单据 ID 列表
+     * @return 批量操作结果
+     */
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'countBillsByState'"
+                    ),
+            }
+    )
+    public ActionsResult<Integer, Void> cancelProcess(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            transactionTemplate.executeWithoutResult(status -> {
+                ServiceBill bill = serviceBillRepository
+                        .findById(id)
+                        .orElse(null);
+                if (bill == null) {
+                    throw new BizException("单据不存在");
+                }
+                if (bill.getState() != ServiceBillState.PROCESSING) {
+                    throw new BizException("非处理中状态的单据不能取消处理");
+                }
+                bill.setState(ServiceBillState.CREATED);
+                bill.setProcessedDate(null);
+                serviceBillRepository.save(bill);
+            });
+            return null;
+        });
+    }
+
+    /**
+     * 取消处理完成
+     *
+     * @param ids 单据 ID 列表
+     * @return 批量操作结果
+     */
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'countBillsByState'"
+                    ),
+            }
+    )
+    public ActionsResult<Integer, Void> cancelProcessed(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            transactionTemplate.executeWithoutResult(status -> {
+                ServiceBill bill = serviceBillRepository
+                        .findById(id)
+                        .orElse(null);
+                if (bill == null) {
+                    throw new BizException("单据不存在");
+                }
+                if (bill.getState() != ServiceBillState.PROCESSED) {
+                    throw new BizException("非处理完成状态的单据不能取消处理完成");
+                }
+                bill.setState(ServiceBillState.PROCESSING);
+                bill.setProcessedDate(null);
+                serviceBillRepository.save(bill);
+            });
+            return null;
+        });
+    }
+
+    /**
+     * 取消完成
+     *
+     * @param ids 单据 ID 列表
+     * @return 批量操作结果
+     */
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(
+                            value = "serviceBill_statistic",
+                            key = "'countBillsByState'"
+                    ),
+            }
+    )
+    public ActionsResult<Integer, Void> cancelFinish(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            transactionTemplate.executeWithoutResult(status -> {
+                ServiceBill bill = serviceBillRepository
+                        .findById(id)
+                        .orElse(null);
+                if (bill == null) {
+                    throw new BizException("单据不存在");
+                }
+                if (bill.getState() != ServiceBillState.FINISHED) {
+                    throw new BizException("非完成状态的单据不能取消完成");
+                }
+                bill.setState(ServiceBillState.PROCESSED);
+                bill.setFinishedDate(null);
                 serviceBillRepository.save(bill);
             });
             return null;

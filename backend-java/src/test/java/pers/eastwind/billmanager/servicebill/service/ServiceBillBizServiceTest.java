@@ -383,4 +383,123 @@ class ServiceBillBizServiceTest extends BaseServiceTest {
     void shouldNotFinishWithEmptyIDs() {
         assertThrows(RuntimeException.class, () -> serviceBillBizService.finish(new ArrayList<>(), Instant.now()));
     }
+
+    @Test
+    @DisplayName("测试取消处理")
+    void shouldCancelProcessFromProcessing() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        List<Integer> idsToProcess = List.of(createdBill.getId());
+        serviceBillBizService.process(idsToProcess);
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.cancelProcess(idsToProcess);
+
+        assertNotNull(result);
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(0, result.getFailCount());
+
+        ServiceBillDTO canceledBill = serviceBillBizService.findById(createdBill.getId());
+        assertEquals(ServiceBillState.CREATED, canceledBill.getState());
+        assertNull(canceledBill.getProcessedDate());
+    }
+
+    @Test
+    @DisplayName("测试取消处理完成")
+    void shouldCancelProcessedFromProcessed() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        List<Integer> idsToProcess = List.of(createdBill.getId());
+        serviceBillBizService.process(idsToProcess);
+
+        Instant processedDate = Instant.now();
+        serviceBillBizService.processed(idsToProcess, processedDate);
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.cancelProcessed(idsToProcess);
+
+        assertNotNull(result);
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(0, result.getFailCount());
+
+        ServiceBillDTO canceledBill = serviceBillBizService.findById(createdBill.getId());
+        assertEquals(ServiceBillState.PROCESSING, canceledBill.getState());
+        assertNull(canceledBill.getProcessedDate());
+    }
+
+    @Test
+    @DisplayName("测试取消完成")
+    void shouldCancelFinishFromFinished() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        List<Integer> idsToProcess = List.of(createdBill.getId());
+        serviceBillBizService.process(idsToProcess);
+        Instant processedDate = Instant.now();
+        serviceBillBizService.processed(idsToProcess, processedDate);
+        serviceBillBizService.finish(idsToProcess, processedDate);
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.cancelFinish(idsToProcess);
+
+        assertNotNull(result);
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(0, result.getFailCount());
+
+        ServiceBillDTO canceledBill = serviceBillBizService.findById(createdBill.getId());
+        assertEquals(ServiceBillState.PROCESSED, canceledBill.getState());
+        assertNull(canceledBill.getFinishedDate());
+    }
+
+    @Test
+    @DisplayName("对非处理中状态执行取消处理操作")
+    void shouldNotCancelProcessNonProcessingStateBill() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.cancelProcess(List.of(createdBill.getId()));
+        assertEquals(0, result.getSuccessCount());
+        assertEquals(1, result.getFailCount());
+
+        assertEquals(1, result.getResults().size());
+        assertFalse(result.getResults().getFirst().getSuccess());
+        assertTrue(result.getResults().getFirst().getMessage().contains("非处理中状态的单据不能取消处理"));
+    }
+
+    @Test
+    @DisplayName("对非处理完成状态执行取消处理完成操作")
+    void shouldNotCancelProcessedNonProcessedStateBill() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        List<Integer> idsToProcess = List.of(createdBill.getId());
+        serviceBillBizService.process(idsToProcess);
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.cancelProcessed(idsToProcess);
+        assertEquals(0, result.getSuccessCount());
+        assertEquals(1, result.getFailCount());
+
+        assertEquals(1, result.getResults().size());
+        assertFalse(result.getResults().getFirst().getSuccess());
+        assertTrue(result.getResults().getFirst().getMessage().contains("非处理完成状态的单据不能取消处理完成"));
+    }
+
+    @Test
+    @DisplayName("对非完成状态执行取消完成操作")
+    void shouldNotCancelFinishNonFinishedStateBill() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDTO createdBill = serviceBillBizService.create(newBill);
+
+        List<Integer> idsToProcess = List.of(createdBill.getId());
+        serviceBillBizService.process(idsToProcess);
+        Instant processedDate = Instant.now();
+        serviceBillBizService.processed(idsToProcess, processedDate);
+
+        ActionsResult<Integer, Void> result = serviceBillBizService.cancelFinish(idsToProcess);
+        assertEquals(0, result.getSuccessCount());
+        assertEquals(1, result.getFailCount());
+
+        assertEquals(1, result.getResults().size());
+        assertFalse(result.getResults().getFirst().getSuccess());
+        assertTrue(result.getResults().getFirst().getMessage().contains("非完成状态的单据不能取消完成"));
+    }
 }

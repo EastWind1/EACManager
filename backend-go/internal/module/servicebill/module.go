@@ -32,6 +32,9 @@ func Setup(ctx *context.AppContext, router fiber.Router, companySrv *companySrv.
 		serviceBillGroup.Put("/process", serviceBillController.Process)
 		serviceBillGroup.Put("/processed", serviceBillController.Processed)
 		serviceBillGroup.Put("/finish", serviceBillController.Finish)
+		serviceBillGroup.Put("/cancel-process", auth.RoleMiddleware(auth.RoleAdmin), serviceBillController.CancelProcess)
+		serviceBillGroup.Put("/cancel-processed", auth.RoleMiddleware(auth.RoleAdmin), serviceBillController.CancelProcessed)
+		serviceBillGroup.Put("/cancel-finish", auth.RoleMiddleware(auth.RoleAdmin), serviceBillController.CancelFinish)
 		serviceBillGroup.Post("/export", serviceBillController.Export)
 	}
 	statisticSrv := service.NewStatisticService(ctx.Cache, serviceBillRepo)

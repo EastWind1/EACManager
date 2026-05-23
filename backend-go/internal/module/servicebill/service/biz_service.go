@@ -270,6 +270,78 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 	}), nil
 }
 
+func (s *BizService) CancelProcess(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+			bill, err := s.billRepo.FindByID(tx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if bill.State != model.ServiceBillStateProcessing {
+				return errs.NewBizError("非处理中状态的单据不能取消处理")
+			}
+			bill.State = model.ServiceBillStateCreated
+			bill.ProcessedDate = nil
+			return s.billRepo.Updates(tx, bill)
+		})
+		return nil, err
+	}), nil
+}
+
+func (s *BizService) CancelProcessed(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+			bill, err := s.billRepo.FindByID(tx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if bill.State != model.ServiceBillStateProcessed {
+				return errs.NewBizError("非处理完成状态的单据不能取消处理完成")
+			}
+			bill.State = model.ServiceBillStateProcessing
+			bill.ProcessedDate = nil
+			return s.billRepo.Updates(tx, bill)
+		})
+		return nil, err
+	}), nil
+}
+
+func (s *BizService) CancelFinish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.billRepo.Transaction(ctx, func(tx context.Context) error {
+			bill, err := s.billRepo.FindByID(tx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if bill.State != model.ServiceBillStateFinished {
+				return errs.NewBizError("非完成状态的单据不能取消完成")
+			}
+			bill.State = model.ServiceBillStateProcessed
+			bill.FinishedDate = nil
+			return s.billRepo.Updates(tx, bill)
+		})
+		return nil, err
+	}), nil
+}
+
 func (s *BizService) GenerateByFile(file *multipart.FileHeader) (*model.ServiceBillDTO, error) {
 	attaches, err := s.attachSrv.UploadTemps([]*multipart.FileHeader{file})
 	if err != nil {

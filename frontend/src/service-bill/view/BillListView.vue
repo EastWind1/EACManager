@@ -68,6 +68,22 @@
       <v-btn :disabled="loading" @click="process(selectedIds)">开始处理</v-btn>
       <v-btn :disabled="loading" @click="processed(selectedIds)">处理完成</v-btn>
       <v-btn :disabled="loading" @click="finish(selectedIds)">回款完成</v-btn>
+       <v-menu location="bottom">
+        <template #activator="{ props }">
+          <v-btn :disabled="loading" v-bind="props">取消操作</v-btn>
+        </template>
+        <v-list density="compact">
+          <v-list-item @click="cancelProcess(selectedIds)">
+            <v-list-item-title>取消处理</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="cancelProcessed(selectedIds)">
+            <v-list-item-title>取消处理完成</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="cancelFinish(selectedIds)">
+            <v-list-item-title>取消完成</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-btn :disabled="loading" color="red" @click="remove(selectedIds)">删除</v-btn>
     </template>
   </v-toolbar>
@@ -413,5 +429,5 @@ function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const { process, processed, finish, remove } = useBillActions(processResult)
+const { process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish } = useBillActions(processResult)
 </script>

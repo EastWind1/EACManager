@@ -118,6 +118,33 @@ public class ServiceBillController {
     }
 
     /**
+     * 取消处理服务单 - 管理员权限
+     */
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("/cancel-process")
+    public ActionsResult<Integer, Void> cancelProcess(@RequestBody List<Integer> ids) {
+        return serviceBillBizService.cancelProcess(ids);
+    }
+
+    /**
+     * 取消处理完成 - 管理员权限
+     */
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("/cancel-processed")
+    public ActionsResult<Integer, Void> cancelProcessed(@RequestBody List<Integer> ids) {
+        return serviceBillBizService.cancelProcessed(ids);
+    }
+
+    /**
+     * 取消完成 - 管理员权限
+     */
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("/cancel-finish")
+    public ActionsResult<Integer, Void> cancelFinish(@RequestBody List<Integer> ids) {
+        return serviceBillBizService.cancelFinish(ids);
+    }
+
+    /**
      * 导出
      */
     @PostMapping(value = "/export", produces = "application/octet-stream")
