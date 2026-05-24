@@ -68,7 +68,7 @@
       <v-btn :disabled="loading" @click="process(selectedIds)">开始处理</v-btn>
       <v-btn :disabled="loading" @click="processed(selectedIds)">处理完成</v-btn>
       <v-btn :disabled="loading" @click="finish(selectedIds)">回款完成</v-btn>
-       <v-menu location="bottom">
+      <v-menu location="bottom" v-role="[AuthorityRole.ROLE_ADMIN.value]">
         <template #activator="{ props }">
           <v-btn :disabled="loading" v-bind="props">取消操作</v-btn>
         </template>
@@ -178,6 +178,7 @@ import { storeToRefs } from 'pinia'
 import { useRouterStore } from '@/common/store/RouterStore.ts'
 import { mdiClose, mdiFilter, mdiInformation, mdiMagnify } from '@mdi/js'
 import { useDate, useHotkey } from 'vuetify/framework'
+import { AuthorityRole } from '@/user/model/User.ts'
 
 const store = useUIStore()
 const { success, warning } = store

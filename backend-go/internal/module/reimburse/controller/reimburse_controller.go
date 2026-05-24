@@ -121,6 +121,34 @@ func (c *ReimburseController) Finish(ctx fiber.Ctx) error {
 	return nil
 }
 
+func (c *ReimburseController) CancelProcess(ctx fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.Bind().Body(&ids); err != nil {
+		return err
+	}
+
+	res, err := c.reimburseService.CancelProcess(ctx, ids)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
+}
+
+func (c *ReimburseController) CancelFinish(ctx fiber.Ctx) error {
+	var ids []uint
+	if err := ctx.Bind().Body(&ids); err != nil {
+		return err
+	}
+
+	res, err := c.reimburseService.CancelFinish(ctx, ids)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
+}
+
 func (c *ReimburseController) Export(ctx fiber.Ctx) error {
 	var ids []uint
 	if err := ctx.Bind().Body(&ids); err != nil {

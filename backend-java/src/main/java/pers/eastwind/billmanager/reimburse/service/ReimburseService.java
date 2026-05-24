@@ -225,6 +225,53 @@ public class ReimburseService {
     }
 
     /**
+     * 取消处理状态
+     */
+    public ActionsResult<Integer, Void> cancelProcess(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            transactionTemplate.executeWithoutResult(status -> {
+                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                if (bill == null) {
+                    throw new BizException("单据不存在");
+                }
+                if (bill.getState() != ReimburseState.PROCESSING) {
+                    throw new BizException("非处理状态不能取消处理");
+                }
+                bill.setState(ReimburseState.CREATED);
+                reimburseRepository.save(bill);
+            });
+            return null;
+        });
+    }
+
+    /**
+     * 取消完成状态
+     */
+    public ActionsResult<Integer, Void> cancelFinish(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("id不能为空");
+        }
+        return ActionsResult.executeActions(ids, id -> {
+            transactionTemplate.executeWithoutResult(status -> {
+                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                if (bill == null) {
+                    throw new BizException("单据不存在");
+                }
+                if (bill.getState() != ReimburseState.FINISHED) {
+                    throw new BizException("非完成状态不能取消");
+                }
+                bill.setState(ReimburseState.PROCESSING);
+                reimburseRepository.save(bill);
+            });
+            return null;
+        });
+    }
+
+
+    /**
      * 导出单据
      *
      * @param ids 单据列表

@@ -233,6 +233,95 @@ class ReimburseServiceTest extends BaseServiceTest {
     }
 
     @Test
+    @DisplayName("测试取消处理状态")
+    void shouldCancelProcessReimbursements() {
+        ReimbursementDTO newReimburse = createTestReimbursement();
+        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        List<Integer> idsToProcess = List.of(createdReimburse.getId());
+
+        // 提交到处理状态
+        ActionsResult<Integer, Void> processResult = reimburseService.process(idsToProcess);
+        assertEquals(1, processResult.getSuccessCount());
+        assertEquals(0, processResult.getFailCount());
+
+        // 验证状态为处理中
+        ReimbursementDTO processedReimburse = reimburseService.findById(createdReimburse.getId());
+        assertEquals(ReimburseState.PROCESSING, processedReimburse.getState());
+
+        // 取消处理（处理中 -> 新建）
+        ActionsResult<Integer, Void> cancelProcessResult = reimburseService.cancelProcess(idsToProcess);
+        assertEquals(1, cancelProcessResult.getSuccessCount());
+        assertEquals(0, cancelProcessResult.getFailCount());
+
+        // 验证状态回退到新建
+        ReimbursementDTO cancelledReimburse = reimburseService.findById(createdReimburse.getId());
+        assertEquals(ReimburseState.CREATED, cancelledReimburse.getState());
+    }
+
+    @Test
+    @DisplayName("测试取消处理状态时使用无效ID列表")
+    void shouldNotCancelProcessWithEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> reimburseService.cancelProcess(new ArrayList<>()));
+    }
+
+    @Test
+    @DisplayName("测试取消处理完成状态")
+    void shouldCancelFinishReimbursements() {
+        ReimbursementDTO newReimburse = createTestReimbursement();
+        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        List<Integer> idsToProcess = List.of(createdReimburse.getId());
+
+        // 提交到处理状态
+        reimburseService.process(idsToProcess);
+
+        // 完成到完成状态
+        ActionsResult<Integer, Void> finishResult = reimburseService.finish(idsToProcess);
+        assertEquals(1, finishResult.getSuccessCount());
+        assertEquals(0, finishResult.getFailCount());
+
+        // 验证状态为完成
+        ReimbursementDTO finishedReimburse = reimburseService.findById(createdReimburse.getId());
+        assertEquals(ReimburseState.FINISHED, finishedReimburse.getState());
+
+        // 取消完成（完成 -> 处理中）
+        ActionsResult<Integer, Void> cancelFinishRes = reimburseService.cancelFinish(idsToProcess);
+        assertEquals(1, cancelFinishRes.getSuccessCount());
+        assertEquals(0, cancelFinishRes.getFailCount());
+
+        // 验证状态回退到处理中
+        ReimbursementDTO cancelledReimburse = reimburseService.findById(createdReimburse.getId());
+        assertEquals(ReimburseState.PROCESSING, cancelledReimburse.getState());
+    }
+
+    @Test
+    @DisplayName("测试取消处理完成状态时使用无效ID列表")
+    void shouldNotCancelFinishWithEmptyIDs() {
+        assertThrows(RuntimeException.class, () -> reimburseService.cancelFinish(new ArrayList<>()));
+    }
+
+    @Test
+    @DisplayName("测试取消处理完成状态时使用无效状态")
+    void shouldNotCancelFinishWithInvalidState() {
+        ReimbursementDTO newReimburse = createTestReimbursement();
+        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+
+        // 创建状态不能取消完成
+        ActionsResult<Integer, Void> cancelFinishRes = reimburseService.cancelFinish(List.of(createdReimburse.getId()));
+        assertEquals(0, cancelFinishRes.getSuccessCount());
+        assertEquals(1, cancelFinishRes.getFailCount());
+        assertTrue(cancelFinishRes.getResults().getFirst().getMessage().contains("非完成状态不能取消"));
+
+        // 提交到处理状态
+        reimburseService.process(List.of(createdReimburse.getId()));
+
+        // 处理中状态也不能取消完成
+        ActionsResult<Integer, Void> cancelFinishRes2 = reimburseService.cancelFinish(List.of(createdReimburse.getId()));
+        assertEquals(0, cancelFinishRes2.getSuccessCount());
+        assertEquals(1, cancelFinishRes2.getFailCount());
+        assertTrue(cancelFinishRes2.getResults().getFirst().getMessage().contains("非完成状态不能取消"));
+    }
+
+    @Test
     @DisplayName("测试导出空ID列表")
     void shouldNotExportEmptyIDs() {
         assertThrows(RuntimeException.class, () -> reimburseService.export(new ArrayList<>()));

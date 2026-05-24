@@ -66,6 +66,22 @@ const ReimburseApi = {
   },
 
   /**
+   * 取消处理状态
+   * @param ids 单据 ID 列表
+   */
+  async cancelProcess(ids: number[]) {
+    return await http.put<ActionsResult<number, void>>(`/cancel-process`, ids)
+  },
+
+  /**
+   * 取消处理完成状态
+   * @param ids 单据 ID 列表
+   */
+  async cancelFinish(ids: number[]) {
+    return await http.put<ActionsResult<number, void>>(`/cancel-finish`, ids)
+  },
+
+  /**
    * 导出
    * @param ids 单据 ID 列表
    */

@@ -24,6 +24,8 @@ func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attachSrv.At
 		companyGroup.Delete("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Delete)
 		companyGroup.Put("/process", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Process)
 		companyGroup.Put("/finish", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Finish)
+		companyGroup.Put("/cancel-process", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.CancelProcess)
+		companyGroup.Put("/cancel-finish", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.CancelFinish)
 		companyGroup.Post("/export", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.Export)
 	}
 }

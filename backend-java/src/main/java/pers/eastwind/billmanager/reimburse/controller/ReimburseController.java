@@ -103,6 +103,24 @@ public class ReimburseController {
     }
 
     /**
+     * 取消处理状态
+     */
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("/cancel-process")
+    public ActionsResult<Integer, Void> cancelProcess(@RequestBody List<Integer> ids) {
+        return reimburseService.cancelProcess(ids);
+    }
+
+    /**
+     * 取消处理完成状态
+     */
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("/cancel-finish")
+    public ActionsResult<Integer, Void> cancelFinish(@RequestBody List<Integer> ids) {
+        return reimburseService.cancelFinish(ids);
+    }
+
+    /**
      * 导出
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")

@@ -71,6 +71,19 @@
         @click="finish(selectedIds)"
         >完成
       </v-btn>
+      <v-menu location="bottom" v-role="[AuthorityRole.ROLE_ADMIN.value]">
+        <template #activator="{ props }">
+          <v-btn :disabled="loading" v-bind="props">取消操作</v-btn>
+        </template>
+        <v-list density="compact">
+          <v-list-item @click="cancelProcess(selectedIds)">
+            <v-list-item-title>取消处理</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="cancelFinish(selectedIds)">
+            <v-list-item-title>取消处理完成</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-btn
         v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
         :disabled="loading"
@@ -364,5 +377,5 @@ function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const { process, finish, remove } = useReimburseActions(processResult)
+const { process, finish, cancelProcess, cancelFinish, remove } = useReimburseActions(processResult)
 </script>

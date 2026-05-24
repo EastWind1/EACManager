@@ -409,10 +409,6 @@ func (s *BizServiceTest) TestCancelProcessSuccess() {
 	_, err = s.bizSrv.Process(s.ctx, []uint{created.ID})
 	s.NoError(err)
 
-	now := new(time.Time)
-	_, err = s.bizSrv.Processed(s.ctx, []uint{created.ID}, now)
-	s.NoError(err)
-
 	res, err := s.bizSrv.CancelProcess(s.ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
@@ -559,7 +555,7 @@ func (s *BizServiceTest) TestCancelFinishSuccess() {
 
 	found, err := s.bizSrv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ServiceBillStateProcessing, found.State)
+	s.Equal(model.ServiceBillStateProcessed, found.State)
 	// FinishedDate should be nil after cancel
 	s.Nil(found.FinishedDate)
 }

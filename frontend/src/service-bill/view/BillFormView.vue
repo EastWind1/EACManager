@@ -79,6 +79,7 @@
                 删除
               </v-btn>
               <v-btn
+                v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
                 :loading="loading"
                 color="warning"
@@ -87,6 +88,7 @@
                 取消处理
               </v-btn>
               <v-btn
+                v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
                 :loading="loading"
                 color="warning"
@@ -95,6 +97,7 @@
                 取消处理完成
               </v-btn>
               <v-btn
+                v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 v-if="!isEditState && serviceBill.state === ServiceBillState.FINISHED.value"
                 :loading="loading"
                 color="warning"

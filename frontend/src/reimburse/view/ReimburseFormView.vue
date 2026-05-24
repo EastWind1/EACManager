@@ -72,6 +72,22 @@
               >删除
               </v-btn>
               <v-btn
+                v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
+                v-role="[AuthorityRole.ROLE_ADMIN.value]"
+                :loading="loading"
+                color="warning"
+                @click="cancelProcess([reimbursement.id!])"
+              >取消处理
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && reimbursement.state === ReimburseState.FINISHED.value"
+                v-role="[AuthorityRole.ROLE_ADMIN.value]"
+                :loading="loading"
+                color="warning"
+                @click="cancelFinish([reimbursement.id!])"
+              >取消完成
+              </v-btn>
+              <v-btn
                 v-if="isEditState"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                 :loading="loading"
@@ -191,7 +207,7 @@ import type {ActionsResult} from '@/common/model/ActionsResult.ts'
 import {useReimburseActions} from '../composable/ReimburseActions.ts'
 import {VDateInput} from 'vuetify/labs/components'
 import {AuthorityRole} from '@/user/model/User.ts'
-import {useDate, useDisplay} from 'vuetify/framework'
+import {useDate} from 'vuetify/framework'
 import {mdiFileDocument, mdiListBox, mdiPaperclip} from '@mdi/js'
 import {useUserStore} from '@/user/store/UserStore.ts'
 
@@ -200,7 +216,6 @@ const {loading} = storeToRefs(store)
 const {warning, success} = store
 const route = useRoute()
 const router = useRouter()
-const {mobile} = useDisplay()
 const dateUtil = useDate()
 const userStore = useUserStore()
 // 页面是否编辑状态
@@ -259,7 +274,7 @@ async function cancel() {
     isEditState.value = false
   } else {
     // 新增单据跳转回列表
-    await router.push('/serviceBill')
+    await router.push('/reimburse')
   }
 }
 
@@ -279,7 +294,7 @@ async function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const {process, finish, remove} = useReimburseActions(processResult)
+const {process, finish, cancelProcess, cancelFinish, remove} = useReimburseActions(processResult)
 
 async function removeAndBack(id: number) {
   await remove([id])

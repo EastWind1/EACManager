@@ -159,6 +159,106 @@ func (s *ReimburseServiceTest) TestFinish() {
 	s.Equal(model.ReimburseStateFinished, found.State)
 }
 
+func (s *ReimburseServiceTest) TestCancelProcess() {
+	created, err := s.srv.Create(s.ctx, s.testReim)
+	s.NoError(err)
+	s.Equal(model.ReimburseStateCreated, created.State)
+
+	// 提交到处理状态
+	processResult, err := s.srv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(1, processResult.SuccessCount)
+
+	// 验证状态为处理中
+	found, err := s.srv.FindByID(s.ctx, created.ID)
+	s.NoError(err)
+	s.Equal(model.ReimburseStateProcessing, found.State)
+
+	// 取消处理（处理中 -> 新建）
+	cancelProcessResult, err := s.srv.CancelProcess(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(1, cancelProcessResult.SuccessCount)
+	s.Equal(0, cancelProcessResult.FailCount)
+
+	// 验证状态回退到新建
+	found, err = s.srv.FindByID(s.ctx, created.ID)
+	s.NoError(err)
+	s.Equal(model.ReimburseStateCreated, found.State)
+}
+
+func (s *ReimburseServiceTest) TestCancelProcessInvalidState() {
+	created, err := s.srv.Create(s.ctx, s.testReim)
+	s.NoError(err)
+
+	// 创建状态不能取消处理
+	cancelProcessResult, err := s.srv.CancelProcess(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(0, cancelProcessResult.SuccessCount)
+	s.Equal(1, cancelProcessResult.FailCount)
+	s.Contains(cancelProcessResult.Results[0].Message, "非处理中状态不能取消")
+}
+
+func (s *ReimburseServiceTest) TestCancelProcessed() {
+	created, err := s.srv.Create(s.ctx, s.testReim)
+	s.NoError(err)
+
+	// 提交到处理状态
+	processResult, err := s.srv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(1, processResult.SuccessCount)
+
+	// 完成到完成状态
+	finishResult, err := s.srv.Finish(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(1, finishResult.SuccessCount)
+
+	// 验证状态为完成
+	found, err := s.srv.FindByID(s.ctx, created.ID)
+	s.NoError(err)
+	s.Equal(model.ReimburseStateFinished, found.State)
+
+	// 取消完成（完成 -> 处理中）
+	cancelFinishResult, err := s.srv.CancelFinish(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(1, cancelFinishResult.SuccessCount)
+	s.Equal(0, cancelFinishResult.FailCount)
+
+	// 验证状态回退到处理中
+	found, err = s.srv.FindByID(s.ctx, created.ID)
+	s.NoError(err)
+	s.Equal(model.ReimburseStateProcessing, found.State)
+}
+
+func (s *ReimburseServiceTest) TestCancelProcessedInvalidState() {
+	created, err := s.srv.Create(s.ctx, s.testReim)
+	s.NoError(err)
+
+	// 创建状态不能取消完成
+	cancelFinishResult, err := s.srv.CancelFinish(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(0, cancelFinishResult.SuccessCount)
+	s.Equal(1, cancelFinishResult.FailCount)
+	s.Contains(cancelFinishResult.Results[0].Message, "非完成状态不能取消")
+
+	// 处理中状态也不能取消完成
+	s.srv.Process(s.ctx, []uint{created.ID})
+	
+
+	cancelFinishResult2, err := s.srv.CancelFinish(s.ctx, []uint{created.ID})
+	s.NoError(err)
+	s.Equal(0, cancelFinishResult2.SuccessCount)
+	s.Equal(1, cancelFinishResult2.FailCount)
+	s.Contains(cancelFinishResult2.Results[0].Message, "非完成状态不能取消")
+}
+
+func (s *ReimburseServiceTest) TestCancelEmptyIDs() {
+	_, err := s.srv.CancelProcess(s.ctx, []uint{})
+	s.Error(err)
+
+	_, err = s.srv.CancelFinish(s.ctx, []uint{})
+	s.Error(err)
+}
+
 func (s *ReimburseServiceTest) TestFindNonExistentRecord() {
 	_, err := s.srv.FindByID(s.ctx, 999999) // 假设这个ID不存在
 	s.Error(err)

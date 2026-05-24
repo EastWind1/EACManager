@@ -25,6 +25,24 @@ export function useReimburseActions(callback: (result: ActionsResult<number, voi
   }
 
   /**
+   * 取消处理状态
+   * @param ids 单据ID列表
+   */
+  async function cancelProcess(ids: number[]) {
+    const result = await ReimburseApi.cancelProcess(ids)
+    callback(result)
+  }
+
+  /**
+   * 取消处理完成状态
+   * @param ids 单据ID列表
+   */
+  async function cancelFinish(ids: number[]) {
+    const result = await ReimburseApi.cancelFinish(ids)
+    callback(result)
+  }
+
+  /**
    * 删除
    * @param ids 单据ID列表
    */
@@ -36,6 +54,8 @@ export function useReimburseActions(callback: (result: ActionsResult<number, voi
   return {
     process,
     finish,
+    cancelProcess,
+    cancelFinish,
     remove,
   }
 }

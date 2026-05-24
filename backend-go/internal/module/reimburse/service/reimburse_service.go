@@ -216,6 +216,53 @@ func (s *ReimburseService) Finish(ctx context.Context, ids []uint) (*result.Acti
 	}), nil
 }
 
+func (s *ReimburseService) CancelProcess(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+			bill, err := s.reimburseRepo.FindByID(tx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if bill.State != model.ReimburseStateProcessing {
+				return errs.NewBizError("非处理中状态不能取消")
+			}
+			bill.State = model.ReimburseStateCreated
+			return s.reimburseRepo.Updates(tx, bill)
+		})
+		return nil, err
+	}), nil
+}
+
+func (s *ReimburseService) CancelFinish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
+			bill, err := s.reimburseRepo.FindByID(tx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if bill.State != model.ReimburseStateFinished {
+				return errs.NewBizError("非完成状态不能取消")
+			}
+			bill.State = model.ReimburseStateProcessing
+			return s.reimburseRepo.Updates(tx, bill)
+		})
+		return nil, err
+	}), nil
+}
+
+
 func (s *ReimburseService) Export(ctx context.Context, ids []uint) (string, error) {
 	if len(ids) == 0 {
 		return "", errs.NewBizError("ID 不能为空")
