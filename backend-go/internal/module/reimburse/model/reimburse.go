@@ -52,9 +52,9 @@ func (s *ReimburseState) UnmarshalJSON(data []byte) error {
 // Reimbursement 摘要
 type Reimbursement struct {
 	audit.Audit
-	ID     uint           `gorm:"primaryKey"`
-	Number string         `gorm:"uniqueIndex"`
-	State  ReimburseState `gorm:"default:0"`
+	ID     uint   `gorm:"primaryKey"`
+	Number string `gorm:"uniqueIndex"`
+	State  ReimburseState
 	// 摘要
 	Summary     string
 	TotalAmount float64

@@ -14,7 +14,7 @@ type Company struct {
 	ContactPhone string
 	Email        string
 	Address      string
-	Disabled     bool `gorm:"default:false"`
+	Disabled     bool
 	audit.Audit
 }
 

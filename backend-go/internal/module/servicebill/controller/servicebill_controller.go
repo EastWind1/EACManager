@@ -169,7 +169,7 @@ func (c *ServiceBillController) CancelProcess(ctx fiber.Ctx) error {
 
 func (c *ServiceBillController) CancelProcessed(ctx fiber.Ctx) error {
 	var ids []uint
-	if err := ctx.Bind().Body(ids); err != nil {
+	if err := ctx.Bind().Body(&ids); err != nil {
 		return err
 	}
 

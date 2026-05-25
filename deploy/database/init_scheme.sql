@@ -36,8 +36,6 @@ CREATE TABLE public.attachment (
     last_modified_date timestamp(6) with time zone,
     created_by_id integer,
     last_modified_by_id integer,
-    reimbursement_id integer,
-    service_bill_id integer,
     CONSTRAINT attachment_type_check CHECK (((type >= 0) AND (type <= 4)))
 );
 

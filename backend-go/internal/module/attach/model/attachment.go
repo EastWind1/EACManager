@@ -87,7 +87,7 @@ func (s *AttachType) UnmarshalText(data []byte) error {
 type Attachment struct {
 	ID           uint `gorm:"primaryKey"`
 	Name         string
-	Type         AttachType `gorm:"default:4"`
+	Type         AttachType
 	RelativePath string
 	audit.Audit
 }

@@ -13,8 +13,8 @@ type User struct {
 	Name      string
 	Phone     string
 	Email     string
-	Authority auth.AuthorityRole `gorm:"default:'ROLE_USER'"`
-	Disabled  bool               `gorm:"default:false"`
+	Authority auth.AuthorityRole
+	Disabled  bool
 	audit.Audit
 }
 
