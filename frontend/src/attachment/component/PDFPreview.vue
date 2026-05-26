@@ -1,10 +1,10 @@
 <template>
   <embed
-    v-if="useNativeViewer && src"
+    v-if="useNative && src"
     :key="src"
     :src="src"
     type="application/pdf"
-    class="native-pdf-viewer"
+    class="w-100 h-100"
   />
   <div class="w-100 h-100" v-else>
     <div class=" overflow-auto">
@@ -28,10 +28,9 @@ const props = defineProps<{
   src: string
   scale?: number
 }>()
-
+// 若浏览器支持pdf，则使用内置
+const useNative = navigator.pdfViewerEnabled
 const { warning } = useUIStore()
-
-const useNativeViewer = ref(false)
 
 const canvasRef = ref<HTMLCanvasElement>()
 const pdfjsDoc = shallowRef<import('pdfjs-dist').PDFDocumentProxy | null>(null)
@@ -110,7 +109,7 @@ async function zoomOut() {
 watch(
   () => props.src,
   (newSrc) => {
-    if (useNativeViewer.value) {
+    if (useNative) {
       return
     }
     if (pdfjsDoc.value) {
@@ -124,8 +123,7 @@ watch(
 )
 
 onMounted(() => {
-  useNativeViewer.value = navigator.pdfViewerEnabled
-  if (props.src && !useNativeViewer.value) {
+  if (!useNative && props.src) {
     loadPdfWithPdfjs()
   }
 })
@@ -137,10 +135,4 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-
-.native-pdf-viewer {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
 </style>

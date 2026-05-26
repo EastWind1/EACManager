@@ -34,7 +34,7 @@
           </v-col>
 
           <v-col cols="12" md="6">
-            <v-row justify="end" align-content="center">
+            <v-row class="justify-end" gap="0">
               <v-btn
                 v-if="
                 reimbursement.id &&
@@ -51,7 +51,6 @@
                 v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                 :loading="loading"
-                color="info"
                 @click="process([reimbursement.id!])"
               >提交
               </v-btn>
@@ -59,7 +58,6 @@
                 v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                 :loading="loading"
-                color="success"
                 @click="finish([reimbursement.id!])"
               >处理完成
               </v-btn>

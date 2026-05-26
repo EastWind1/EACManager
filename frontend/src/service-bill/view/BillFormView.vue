@@ -33,7 +33,7 @@
             </v-row>
           </v-col>
           <v-col cols="12" md="6">
-            <v-row justify="end" align-content="center">
+            <v-row class="justify-end" gap="0">
               <v-btn
                 v-if="
               serviceBill.id &&
@@ -49,7 +49,6 @@
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
                 :loading="loading"
-                color="success"
                 @click="process([serviceBill.id!])"
               >
                 开始处理
@@ -57,7 +56,6 @@
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
                 :loading="loading"
-                color="info"
                 @click="processed([serviceBill.id!])"
               >
                 处理完成
@@ -65,7 +63,6 @@
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
                 :loading="loading"
-                color="success"
                 @click="finish([serviceBill.id!])"
               >
                 回款完成
@@ -106,7 +103,7 @@
                 取消完成
               </v-btn>
               <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit"> 保存</v-btn>
-              <v-btn v-if="isEditState" color="grey-lighten-1" variant="text" @click="cancel">
+              <v-btn v-if="isEditState" color="warning" @click="cancel">
                 取消
               </v-btn>
             </v-row>

@@ -46,53 +46,57 @@
       </template>
     </v-expansion-panel>
   </v-expansion-panels>
-  <v-toolbar density="compact">
-    <div v-if="selectedIds.length > 0" class="text-caption ml-5">
-      已选中 {{ selectedIds.length }} 项
-    </div>
-    <template #append>
-      <v-btn
-        v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-        :disabled="loading"
-        color="primary"
-        @click="create"
-        >新增
-      </v-btn>
-      <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
-      <v-btn
-        v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-        :disabled="loading"
-        @click="process(selectedIds)"
-        >提交
-      </v-btn>
-      <v-btn
-        v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-        :disabled="loading"
-        @click="finish(selectedIds)"
-        >完成
-      </v-btn>
-      <v-menu location="bottom" v-role="[AuthorityRole.ROLE_ADMIN.value]">
-        <template #activator="{ props }">
-          <v-btn :disabled="loading" v-bind="props">取消操作</v-btn>
-        </template>
-        <v-list density="compact">
-          <v-list-item @click="cancelProcess(selectedIds)">
-            <v-list-item-title>取消处理</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="cancelFinish(selectedIds)">
-            <v-list-item-title>取消处理完成</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
-      <v-btn
-        v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-        :disabled="loading"
-        color="error"
-        @click="remove(selectedIds)"
-        >删除
-      </v-btn>
-    </template>
-  </v-toolbar>
+  <v-container>
+    <v-row class="justify-between">
+      <v-col cols="3" md="2"  v-if="selectedIds.length > 0" class="text-caption ml-5">
+        已选中 {{ selectedIds.length }} 项
+      </v-col>
+      <v-col>
+        <v-row class="justify-end" gap="0">
+          <v-btn
+            v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+            :disabled="loading"
+            color="primary"
+            @click="create"
+          >新增
+          </v-btn>
+          <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
+          <v-btn
+            v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+            :disabled="loading"
+            @click="process(selectedIds)"
+          >提交
+          </v-btn>
+          <v-btn
+            v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+            :disabled="loading"
+            @click="finish(selectedIds)"
+          >完成
+          </v-btn>
+          <v-menu location="bottom" v-role="[AuthorityRole.ROLE_ADMIN.value]">
+            <template #activator="{ props }">
+              <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
+            </template>
+            <v-list density="compact">
+              <v-list-item @click="cancelProcess(selectedIds)">
+                <v-list-item-title>取消处理</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="cancelFinish(selectedIds)">
+                <v-list-item-title>取消处理完成</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+          <v-btn
+            v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+            :disabled="loading"
+            color="error"
+            @click="remove(selectedIds)"
+          >删除
+          </v-btn>
+        </v-row>
+      </v-col>
+    </v-row>
+  </v-container>
   <v-data-table-server
     v-model="selectedIds"
     :headers="headers"
