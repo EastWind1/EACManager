@@ -75,7 +75,7 @@ async function loadPdfWithPdfjs() {
 
   try {
     const pdfjsLib = await loadPdfjs()
-    const loadingTask = pdfjsLib.getDocument(props.src)
+    const loadingTask = pdfjsLib.getDocument({url: props.src})
     const doc = await loadingTask.promise
     pdfjsDoc.value = doc
     totalPages.value = doc.numPages
@@ -113,7 +113,7 @@ watch(
       return
     }
     if (pdfjsDoc.value) {
-      pdfjsDoc.value.destroy()
+      pdfjsDoc.value.loadingTask.destroy()
       pdfjsDoc.value = null
     }
     if (newSrc) {
@@ -129,7 +129,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  pdfjsDoc.value?.destroy()
+  pdfjsDoc.value?.loadingTask.destroy()
   pdfjsDoc.value = null
 })
 </script>
