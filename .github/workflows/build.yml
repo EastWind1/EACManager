@@ -33,7 +33,7 @@ jobs:
         node-version: '24.13.0'
 
     - name: Set up pnpm and dependence
-      run: npm i -g pnpm && cd $GITHUB_WORKSPACE/frontend && pnpm i
+      run: cd $GITHUB_WORKSPACE/frontend && npm i
     
     - name: Build with script
       run: cd $GITHUB_WORKSPACE && chmod +x ./deploy/build.sh && sh ./deploy/build.sh

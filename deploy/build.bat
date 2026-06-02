@@ -26,7 +26,7 @@ go build -ldflags="-s -w" -o target/backend-go cmd/main.go || exit /b 1
 :: 打包前端
 echo [3/3] 打包前端...
 cd /d "%FRONTEND_DIR%"
-call pnpm build || exit /b 1
+call npm run build || exit /b 1
 
 :: 清理旧文件
 if exist "%DEPLOY_DIR%\backend-java" rd /s /q "%DEPLOY_DIR%\backend-java"

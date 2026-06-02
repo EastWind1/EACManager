@@ -25,7 +25,7 @@ go build -ldflags="-s -w" -o target/backend-go cmd/main.go
 if [ -d "$FRONTEND_DIR" ]; then
     echo "[3/3] 打包前端..."
     cd "$FRONTEND_DIR"
-    pnpm build
+    npm run build
 else
     echo "警告：前端目录不存在，跳过前端打包"
 fi
