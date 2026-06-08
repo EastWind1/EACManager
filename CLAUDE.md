@@ -227,11 +227,13 @@ backend-java/src/main/java/pers/eastwind/billmanager/
 backend-go/
   cmd/main.go                        — Entry point
   internal/server/server.go          — Fiber app bootstrap, module init, routes
-  internal/module/{user,company,servicebill,reimburse,attach}/
-    module.go                        — Each has Setup() registering routes
-    controller/                      — HTTP handlers
-    service/                         — Business logic (biz_service, ocr_service, etc.)
-    repository/                      — GORM queries
+  internal/{user,company,bill,reimburse,attach}/
+    *.go                             — Single flat package per domain (was module/<name>/{controller,service,repository,model})
+    {name}.go                        — Setup() function registering routes (was module.go)
+    handler.go                       — HTTP handlers
+    service.go                       — Business logic
+    store.go                         — GORM queries
+    model.go                         — Types and DTOs
   internal/pkg/                      — cache, database, errs, middleware, result, auth, util
   test/                              — testify/suite integration tests
   config/config.yaml                 — Runtime config

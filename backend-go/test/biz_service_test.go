@@ -1,11 +1,9 @@
 package test
 
 import (
-	"backend-go/internal/module/attach"
-	"backend-go/internal/module/servicebill"
-	"backend-go/internal/module/servicebill/model"
-	"backend-go/internal/module/servicebill/service"
-	"backend-go/internal/pkg/result"
+	"backend-go/internal/attach"
+	"backend-go/internal/bill"
+	"backend-go/pkg/result"
 	"strconv"
 	"testing"
 	"time"
@@ -16,15 +14,15 @@ import (
 // BizServiceTest 业务服务测试
 type BizServiceTest struct {
 	*BaseServiceTest
-	bizSrv   *service.BizService
-	statsSrv *service.StatisticService
-	testBill *model.ServiceBillDTO
+	bizSrv   *bill.BizService
+	statsSrv *bill.StatisticService
+	testBill *bill.ServiceBillDTO
 }
 
 func NewBizServiceTest() *BizServiceTest {
 	base := NewBaseServiceTest()
 	attachSrv, _ := attach.SetupForTest(base.appCtx)
-	bizSrv, statsSrv := servicebill.SetupForTest(base.appCtx, attachSrv)
+	bizSrv, statsSrv := bill.SetupForTest(base.appCtx, attachSrv)
 	return &BizServiceTest{
 		BaseServiceTest: base,
 		bizSrv:          bizSrv,
@@ -38,13 +36,13 @@ func TestBizService(t *testing.T) {
 
 func (s *BizServiceTest) SetupTest() {
 	s.BaseServiceTest.SetupTest()
-	s.testBill = &model.ServiceBillDTO{
-		State:          model.ServiceBillStateCreated,
+	s.testBill = &bill.ServiceBillDTO{
+		State:          bill.Created,
 		ProjectName:    "测试项目",
 		ProjectAddress: "测试地址",
 		TotalAmount:    2000.00,
 		OrderDate:      new(time.Time),
-		Details: []model.ServiceBillDetailDTO{
+		Details: []bill.ServiceBillDetailDTO{
 			{
 				Device:    "测试设备",
 				UnitPrice: 1000.00,
@@ -61,7 +59,7 @@ func (s *BizServiceTest) TestCreate() {
 
 	s.NotZero(created.ID)
 	s.NotEmpty(created.Number)
-	s.Equal(model.ServiceBillStateCreated, created.State)
+	s.Equal(bill.Created, created.State)
 }
 
 func (s *BizServiceTest) TestFindByID() {
@@ -77,13 +75,13 @@ func (s *BizServiceTest) TestFindByID() {
 
 func (s *BizServiceTest) TestFindByParam() {
 	for i := range 3 {
-		bill := &model.ServiceBillDTO{
-			State:          model.ServiceBillStateCreated,
+		newBill := &bill.ServiceBillDTO{
+			State:          bill.Created,
 			ProjectName:    "测试项目" + strconv.Itoa(i),
 			ProjectAddress: "测试地址" + strconv.Itoa(i),
 			TotalAmount:    2000.00,
 			OrderDate:      new(time.Time),
-			Details: []model.ServiceBillDetailDTO{
+			Details: []bill.ServiceBillDetailDTO{
 				{
 					Device:    "测试设备" + strconv.Itoa(i),
 					UnitPrice: 1000.00,
@@ -92,11 +90,11 @@ func (s *BizServiceTest) TestFindByParam() {
 				},
 			},
 		}
-		_, err := s.bizSrv.Create(s.ctx, bill)
+		_, err := s.bizSrv.Create(s.ctx, newBill)
 		s.NoError(err)
 	}
 
-	queryParam := &model.ServiceBillQueryParam{
+	queryParam := &bill.ServiceBillQueryParam{
 		ProjectName: "测试项目",
 		QueryParam: result.QueryParam{
 			PageIndex: new(1),
@@ -145,17 +143,17 @@ func (s *BizServiceTest) TestFinish() {
 
 	found, err := s.bizSrv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ServiceBillStateFinished, found.State)
+	s.Equal(bill.Finished, found.State)
 }
 
 func (s *BizServiceTest) TestValidateAmountError() {
-	invalidBill := &model.ServiceBillDTO{
-		State:          model.ServiceBillStateCreated,
+	invalidBill := &bill.ServiceBillDTO{
+		State:          bill.Created,
 		ProjectName:    "测试项目",
 		ProjectAddress: "测试地址",
 		TotalAmount:    2000.00,
 		OrderDate:      new(time.Time),
-		Details: []model.ServiceBillDetailDTO{
+		Details: []bill.ServiceBillDetailDTO{
 			{
 				Device:    "测试设备",
 				UnitPrice: 1000.00,
@@ -169,13 +167,13 @@ func (s *BizServiceTest) TestValidateAmountError() {
 	s.Error(err)
 	s.Contains(err.Error(), "明细金额有误")
 
-	invalidBill2 := &model.ServiceBillDTO{
-		State:          model.ServiceBillStateCreated,
+	invalidBill2 := &bill.ServiceBillDTO{
+		State:          bill.Created,
 		ProjectName:    "测试项目",
 		ProjectAddress: "测试地址",
 		TotalAmount:    1500.00,
 		OrderDate:      new(time.Time),
-		Details: []model.ServiceBillDetailDTO{
+		Details: []bill.ServiceBillDetailDTO{
 			{
 				Device:    "测试设备",
 				UnitPrice: 1000.00,
@@ -197,14 +195,14 @@ func (s *BizServiceTest) TestFindWithEmptyParam() {
 }
 
 func (s *BizServiceTest) TestCreateWithExistingID() {
-	bill := &model.ServiceBillDTO{
+	newBill := &bill.ServiceBillDTO{
 		ID:             123, // 提供了ID，应该报错
-		State:          model.ServiceBillStateCreated,
+		State:          bill.Created,
 		ProjectName:    "测试项目",
 		ProjectAddress: "测试地址",
 		TotalAmount:    2000.00,
 		OrderDate:      new(time.Time),
-		Details: []model.ServiceBillDetailDTO{
+		Details: []bill.ServiceBillDetailDTO{
 			{
 				Device:    "测试设备",
 				UnitPrice: 1000.00,
@@ -214,19 +212,19 @@ func (s *BizServiceTest) TestCreateWithExistingID() {
 		},
 	}
 
-	_, err := s.bizSrv.Create(s.ctx, bill)
+	_, err := s.bizSrv.Create(s.ctx, newBill)
 	s.Error(err)
 	s.Contains(err.Error(), "单据 ID 自动生成")
 }
 
 func (s *BizServiceTest) TestUpdateWithEmptyID() {
-	bill := &model.ServiceBillDTO{
-		State:          model.ServiceBillStateCreated,
+	newBill := &bill.ServiceBillDTO{
+		State:          bill.Created,
 		ProjectName:    "测试项目",
 		ProjectAddress: "测试地址",
 		TotalAmount:    2000.00,
 		OrderDate:      new(time.Time),
-		Details: []model.ServiceBillDetailDTO{
+		Details: []bill.ServiceBillDetailDTO{
 			{
 				Device:    "测试设备",
 				UnitPrice: 1000.00,
@@ -236,20 +234,20 @@ func (s *BizServiceTest) TestUpdateWithEmptyID() {
 		},
 	}
 
-	_, err := s.bizSrv.Update(s.ctx, bill)
+	_, err := s.bizSrv.Update(s.ctx, newBill)
 	s.Error(err)
 	s.Contains(err.Error(), "单据 ID 为空")
 }
 
 func (s *BizServiceTest) TestUpdateNonExistentBill() {
-	bill := &model.ServiceBillDTO{
-		ID:             999999, 
-		State:          model.ServiceBillStateCreated,
+	newBill := &bill.ServiceBillDTO{
+		ID:             999999,
+		State:          bill.Created,
 		ProjectName:    "测试项目",
 		ProjectAddress: "测试地址",
 		TotalAmount:    2000.00,
 		OrderDate:      new(time.Time),
-		Details: []model.ServiceBillDetailDTO{
+		Details: []bill.ServiceBillDetailDTO{
 			{
 				Device:    "测试设备",
 				UnitPrice: 1000.00,
@@ -259,7 +257,7 @@ func (s *BizServiceTest) TestUpdateNonExistentBill() {
 		},
 	}
 
-	_, err := s.bizSrv.Update(s.ctx, bill)
+	_, err := s.bizSrv.Update(s.ctx, newBill)
 	s.Error(err)
 	s.Contains(err.Error(), "单据不存在")
 }
@@ -269,7 +267,6 @@ func (s *BizServiceTest) TestFindNonExistentID() {
 	s.Error(err)
 	s.Contains(err.Error(), "单据不存在")
 }
-
 
 func (s *BizServiceTest) TestDeleteNonCreatedState() {
 	created, err := s.bizSrv.Create(s.ctx, s.testBill)
@@ -281,14 +278,13 @@ func (s *BizServiceTest) TestDeleteNonCreatedState() {
 	res, err := s.bizSrv.Delete(s.ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
-	s.Equal(0, res.SuccessCount) 
-	s.Equal(1, res.FailCount)   
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
 
 	s.Len(res.Results, 1)
 	s.False(res.Results[0].Success)
 	s.Contains(res.Results[0].Message, "非创建状态不能删除")
 }
-
 
 func (s *BizServiceTest) TestProcessWithEmptyIDs() {
 	res, err := s.bizSrv.Process(s.ctx, []uint{})
@@ -307,8 +303,8 @@ func (s *BizServiceTest) TestProcessNonCreatedState() {
 	res, err := s.bizSrv.Process(s.ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
-	s.Equal(0, res.SuccessCount) 
-	s.Equal(1, res.FailCount) 
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
 
 	s.Len(res.Results, 1)
 	s.False(res.Results[0].Success)
@@ -319,18 +315,16 @@ func (s *BizServiceTest) TestProcessedNonProcessingState() {
 	created, err := s.bizSrv.Create(s.ctx, s.testBill)
 	s.NoError(err)
 
-
 	res, err := s.bizSrv.Processed(s.ctx, []uint{created.ID}, new(time.Now()))
-	s.NoError(err) 
+	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
-	s.Equal(1, res.FailCount)   
+	s.Equal(1, res.FailCount)
 
 	s.Len(res.Results, 1)
 	s.False(res.Results[0].Success)
 	s.Contains(res.Results[0].Message, "非处理中状态的单据不能处理完成")
 }
-
 
 func (s *BizServiceTest) TestFinishNonProcessedState() {
 	created, err := s.bizSrv.Create(s.ctx, s.testBill)
@@ -338,8 +332,8 @@ func (s *BizServiceTest) TestFinishNonProcessedState() {
 	res, err := s.bizSrv.Finish(s.ctx, []uint{created.ID}, new(time.Now()))
 	s.NoError(err)
 	s.NotNil(res)
-	s.Equal(0, res.SuccessCount) 
-	s.Equal(1, res.FailCount)  
+	s.Equal(0, res.SuccessCount)
+	s.Equal(1, res.FailCount)
 
 	s.Len(res.Results, 1)
 	s.False(res.Results[0].Success)
@@ -420,7 +414,7 @@ func (s *BizServiceTest) TestCancelProcessSuccess() {
 
 	found, err := s.bizSrv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ServiceBillStateCreated, found.State)
+	s.Equal(bill.Created, found.State)
 	// ProcessedDate should be nil after cancel
 	s.Nil(found.ProcessedDate)
 }
@@ -482,7 +476,7 @@ func (s *BizServiceTest) TestCancelProcessedSuccess() {
 
 	found, err := s.bizSrv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ServiceBillStateProcessing, found.State)
+	s.Equal(bill.Processing, found.State)
 	// ProcessedDate should be nil after cancel
 	s.Nil(found.ProcessedDate)
 }
@@ -555,7 +549,7 @@ func (s *BizServiceTest) TestCancelFinishSuccess() {
 
 	found, err := s.bizSrv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ServiceBillStateProcessed, found.State)
+	s.Equal(bill.Processed, found.State)
 	// FinishedDate should be nil after cancel
 	s.Nil(found.FinishedDate)
 }

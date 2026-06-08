@@ -1,11 +1,9 @@
 package test
 
 import (
-	"backend-go/internal/module/user"
-	"backend-go/internal/module/user/model"
-	"backend-go/internal/module/user/service"
-	"backend-go/internal/pkg/auth"
-	"backend-go/internal/pkg/result"
+	"backend-go/internal/user"
+	"backend-go/pkg/auth"
+	"backend-go/pkg/result"
 	"strconv"
 	"testing"
 
@@ -15,8 +13,8 @@ import (
 // UserServiceTest 用户服务测试
 type UserServiceTest struct {
 	*BaseServiceTest
-	srv      *service.UserService
-	testUser *model.UserDTO
+	srv      *user.Service
+	testUser *user.DTO
 }
 
 func NewUserServiceTest() *UserServiceTest {
@@ -29,7 +27,7 @@ func NewUserServiceTest() *UserServiceTest {
 
 func (s *UserServiceTest) SetupTest() {
 	s.BaseServiceTest.SetupTest()
-	s.testUser = &model.UserDTO{
+	s.testUser = &user.DTO{
 		Username:  "testUser",
 		Password:  new("password123"),
 		Name:      "测试用户",
@@ -76,13 +74,13 @@ func (s *UserServiceTest) TestLogin() {
 
 func (s *UserServiceTest) TestGetAll() {
 	for i := range 3 {
-		userDTO := &model.UserDTO{
+		newUser := &user.DTO{
 			Username:  "user" + strconv.Itoa(i),
 			Password:  new("password"),
 			Name:      "用户" + strconv.Itoa(i),
 			Authority: auth.RoleAdmin,
 		}
-		_, err := s.srv.Create(s.ctx, userDTO)
+		_, err := s.srv.Create(s.ctx, newUser)
 		s.NoError(err)
 	}
 

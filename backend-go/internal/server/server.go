@@ -2,16 +2,16 @@ package server
 
 import (
 	"backend-go/config"
-	"backend-go/internal/module/attach"
-	"backend-go/internal/module/company"
-	"backend-go/internal/module/reimburse"
-	"backend-go/internal/module/servicebill"
-	"backend-go/internal/module/user"
-	"backend-go/internal/pkg/cache"
-	"backend-go/internal/pkg/context"
-	"backend-go/internal/pkg/database"
-	"backend-go/internal/pkg/logger"
-	"backend-go/internal/pkg/middleware"
+	"backend-go/internal/attach"
+	"backend-go/internal/bill"
+	"backend-go/internal/company"
+	"backend-go/internal/reimburse"
+	"backend-go/internal/user"
+	"backend-go/pkg/cache"
+	"backend-go/pkg/context"
+	"backend-go/pkg/database"
+	"backend-go/pkg/logger"
+	middleware2 "backend-go/pkg/middleware"
 	"fmt"
 
 	"github.com/bytedance/sonic"
@@ -31,8 +31,8 @@ func Run() {
 	server := fiber.New(fiber.Config{
 		JSONEncoder:  sonic.Marshal,
 		JSONDecoder:  sonic.Unmarshal,
-		ErrorHandler: middleware.ErrorHandler(),
-		BodyLimit: 30 * 1024 * 1024,
+		ErrorHandler: middleware2.ErrorHandler(),
+		BodyLimit:    30 * 1024 * 1024,
 	})
 	ctx.Server = server
 	// 初始化日志
@@ -40,7 +40,7 @@ func Run() {
 	// 初始化异常处理
 	server.Use(recover.New())
 	// 初始化响应体包装
-	server.Use(middleware.ResultWrap())
+	server.Use(middleware2.ResultWrap())
 	// 初始化缓存
 	ctx.Cache = cache.NewInMemoryCache(cfg.Cache)
 	// 初始化数据库
@@ -53,7 +53,7 @@ func Run() {
 		companySrv := company.Setup(ctx, router)
 		attachSrv, attachMapSrv := attach.Setup(ctx, router)
 		reimburse.Setup(ctx, router, attachSrv)
-		servicebill.Setup(ctx, router, companySrv, attachSrv, attachMapSrv)
+		bill.Setup(ctx, router, companySrv, attachSrv, attachMapSrv)
 	}
 
 	if err := server.Listen(fmt.Sprintf(":%d", cfg.Server.Port)); err != nil {

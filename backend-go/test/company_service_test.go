@@ -1,10 +1,8 @@
 package test
 
 import (
-	"backend-go/internal/module/company"
-	"backend-go/internal/module/company/model"
-	"backend-go/internal/module/company/service"
-	"backend-go/internal/pkg/result"
+	"backend-go/internal/company"
+	"backend-go/pkg/result"
 	"strconv"
 	"testing"
 
@@ -14,8 +12,8 @@ import (
 // CompanyServiceTest CompanyService集成测试
 type CompanyServiceTest struct {
 	*BaseServiceTest
-	srv     *service.CompanyService
-	testCom *model.CompanyDTO
+	srv     *company.Service
+	testCom *company.DTO
 }
 
 func NewCompanyServiceTest() *CompanyServiceTest {
@@ -32,7 +30,7 @@ func TestCompanyService(t *testing.T) {
 
 func (s *CompanyServiceTest) SetupTest() {
 	s.BaseServiceTest.SetupTest()
-	s.testCom = &model.CompanyDTO{
+	s.testCom = &company.DTO{
 		Name:         "测试公司",
 		ContactName:  "联系人",
 		ContactPhone: "13800138000",
@@ -48,7 +46,7 @@ func (s *CompanyServiceTest) TestCreate() {
 }
 func (s *CompanyServiceTest) TestFindEnabled() {
 	for i := range 2 {
-		dto := &model.CompanyDTO{
+		dto := &company.DTO{
 			Name:         "公司" + strconv.Itoa(i),
 			ContactName:  "联系人" + strconv.Itoa(i),
 			ContactPhone: "1380013800" + strconv.Itoa(i),

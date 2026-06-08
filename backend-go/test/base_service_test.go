@@ -2,12 +2,12 @@ package test
 
 import (
 	"backend-go/config"
-	"backend-go/internal/module/user/model"
-	"backend-go/internal/pkg/auth"
-	"backend-go/internal/pkg/cache"
-	appContext "backend-go/internal/pkg/context"
-	"backend-go/internal/pkg/database"
-	"backend-go/internal/pkg/logger"
+	"backend-go/internal/user"
+	"backend-go/pkg/auth"
+	"backend-go/pkg/cache"
+	appContext "backend-go/pkg/context"
+	"backend-go/pkg/database"
+	"backend-go/pkg/logger"
 	"context"
 
 	"github.com/stretchr/testify/suite"
@@ -27,7 +27,7 @@ func NewBaseServiceTest() *BaseServiceTest {
 	appCtx.Cfg = cfg
 	logger.InitLogger(cfg.Log)
 	appCtx.Cache = cache.NewInMemoryCache(cfg.Cache)
-	ctx := context.WithValue(context.Background(), auth.CurUserKey{}, new(model.User{
+	ctx := context.WithValue(context.Background(), auth.CurUserKey{}, new(user.User{
 		ID:        1,
 		Username:  "root",
 		Password:  "root",

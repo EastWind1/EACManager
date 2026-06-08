@@ -1,11 +1,9 @@
 package test
 
 import (
-	"backend-go/internal/module/attach"
-	"backend-go/internal/module/reimburse"
-	"backend-go/internal/module/reimburse/model"
-	"backend-go/internal/module/reimburse/service"
-	"backend-go/internal/pkg/result"
+	"backend-go/internal/attach"
+	"backend-go/internal/reimburse"
+	"backend-go/pkg/result"
 	"strconv"
 	"testing"
 	"time"
@@ -16,8 +14,8 @@ import (
 // ReimburseServiceTest 报销服务测试
 type ReimburseServiceTest struct {
 	*BaseServiceTest
-	srv      *service.ReimburseService
-	testReim *model.ReimbursementDTO
+	srv      *reimburse.Service
+	testReim *reimburse.DTO
 }
 
 func NewReimburseServiceTest() *ReimburseServiceTest {
@@ -35,12 +33,12 @@ func TestReimburseService(t *testing.T) {
 
 func (s *ReimburseServiceTest) SetupTest() {
 	s.BaseServiceTest.SetupTest()
-	s.testReim = &model.ReimbursementDTO{
+	s.testReim = &reimburse.DTO{
 		Summary:       "测试报销",
 		TotalAmount:   1000.00,
 		ReimburseDate: new(time.Now()),
 		Remark:        "测试备注",
-		Details: []model.ReimburseDetailDTO{
+		Details: []reimburse.DetailDTO{
 			{
 				Name:   "明细项目",
 				Amount: 1000.00,
@@ -55,7 +53,7 @@ func (s *ReimburseServiceTest) TestCreate() {
 
 	s.NotZero(created.ID)
 	s.NotEmpty(created.Number)
-	s.Equal(model.ReimburseStateCreated, created.State)
+	s.Equal(reimburse.Created, created.State)
 }
 
 func (s *ReimburseServiceTest) TestFindByID() {
@@ -71,12 +69,12 @@ func (s *ReimburseServiceTest) TestFindByID() {
 
 func (s *ReimburseServiceTest) TestFindByParam() {
 	for i := range 3 {
-		reim := &model.ReimbursementDTO{
+		reim := &reimburse.DTO{
 			Summary:       "测试报销" + strconv.Itoa(i),
 			TotalAmount:   1000.00,
 			ReimburseDate: new(time.Time),
 			Remark:        "测试备注" + strconv.Itoa(i),
-			Details: []model.ReimburseDetailDTO{
+			Details: []reimburse.DetailDTO{
 				{
 					Name:   "明细项目" + strconv.Itoa(i),
 					Amount: 1000.00,
@@ -87,7 +85,7 @@ func (s *ReimburseServiceTest) TestFindByParam() {
 		s.NoError(err)
 	}
 
-	queryParam := &model.ReimburseQueryParam{
+	queryParam := &reimburse.QueryParam{
 		Summary: "测试报销",
 		QueryParam: result.QueryParam{
 			PageIndex: new(1),
@@ -137,7 +135,7 @@ func (s *ReimburseServiceTest) TestProcess() {
 
 	found, err := s.srv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ReimburseStateProcessing, found.State)
+	s.Equal(reimburse.Processing, found.State)
 }
 
 func (s *ReimburseServiceTest) TestFinish() {
@@ -156,13 +154,13 @@ func (s *ReimburseServiceTest) TestFinish() {
 
 	found, err := s.srv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ReimburseStateFinished, found.State)
+	s.Equal(reimburse.Finished, found.State)
 }
 
 func (s *ReimburseServiceTest) TestCancelProcess() {
 	created, err := s.srv.Create(s.ctx, s.testReim)
 	s.NoError(err)
-	s.Equal(model.ReimburseStateCreated, created.State)
+	s.Equal(reimburse.Created, created.State)
 
 	// 提交到处理状态
 	processResult, err := s.srv.Process(s.ctx, []uint{created.ID})
@@ -172,7 +170,7 @@ func (s *ReimburseServiceTest) TestCancelProcess() {
 	// 验证状态为处理中
 	found, err := s.srv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ReimburseStateProcessing, found.State)
+	s.Equal(reimburse.Processing, found.State)
 
 	// 取消处理（处理中 -> 新建）
 	cancelProcessResult, err := s.srv.CancelProcess(s.ctx, []uint{created.ID})
@@ -183,7 +181,7 @@ func (s *ReimburseServiceTest) TestCancelProcess() {
 	// 验证状态回退到新建
 	found, err = s.srv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ReimburseStateCreated, found.State)
+	s.Equal(reimburse.Created, found.State)
 }
 
 func (s *ReimburseServiceTest) TestCancelProcessInvalidState() {
@@ -215,7 +213,7 @@ func (s *ReimburseServiceTest) TestCancelProcessed() {
 	// 验证状态为完成
 	found, err := s.srv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ReimburseStateFinished, found.State)
+	s.Equal(reimburse.Finished, found.State)
 
 	// 取消完成（完成 -> 处理中）
 	cancelFinishResult, err := s.srv.CancelFinish(s.ctx, []uint{created.ID})
@@ -226,7 +224,7 @@ func (s *ReimburseServiceTest) TestCancelProcessed() {
 	// 验证状态回退到处理中
 	found, err = s.srv.FindByID(s.ctx, created.ID)
 	s.NoError(err)
-	s.Equal(model.ReimburseStateProcessing, found.State)
+	s.Equal(reimburse.Processing, found.State)
 }
 
 func (s *ReimburseServiceTest) TestCancelProcessedInvalidState() {
@@ -241,8 +239,8 @@ func (s *ReimburseServiceTest) TestCancelProcessedInvalidState() {
 	s.Contains(cancelFinishResult.Results[0].Message, "非完成状态不能取消")
 
 	// 处理中状态也不能取消完成
-	s.srv.Process(s.ctx, []uint{created.ID})
-	
+	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	s.NoError(err)
 
 	cancelFinishResult2, err := s.srv.CancelFinish(s.ctx, []uint{created.ID})
 	s.NoError(err)
@@ -265,7 +263,7 @@ func (s *ReimburseServiceTest) TestFindNonExistentRecord() {
 }
 
 func (s *ReimburseServiceTest) TestUpdateWithInvalidID() {
-	invalidReim := &model.ReimbursementDTO{
+	invalidReim := &reimburse.DTO{
 		ID:      0,
 		Summary: "无效ID的更新",
 	}
@@ -297,27 +295,27 @@ func (s *ReimburseServiceTest) TestInvalidStateTransitions() {
 
 	// 测试从创建直接到完成（跳过处理状态）
 	finishResult1, err := s.srv.Finish(s.ctx, []uint{created.ID})
-	s.NoError(err) 
+	s.NoError(err)
 	s.Equal(0, finishResult1.SuccessCount)
 	s.Equal(1, finishResult1.FailCount)
 	s.Contains(finishResult1.Results[0].Message, "非处理状态不能完成")
 
 	// 提交到处理状态
 	processResult, err := s.srv.Process(s.ctx, []uint{created.ID})
-	s.NoError(err) 
+	s.NoError(err)
 	s.Equal(1, processResult.SuccessCount)
 	s.Equal(0, processResult.FailCount)
 
 	// 再次尝试提交（已经是处理状态）
 	processResult2, err := s.srv.Process(s.ctx, []uint{created.ID})
-	s.NoError(err) 
+	s.NoError(err)
 	s.Equal(0, processResult2.SuccessCount)
 	s.Equal(1, processResult2.FailCount)
 	s.Contains(processResult2.Results[0].Message, "非创建状态不能提交")
 
 	// 完成后再次完成
 	finishResult2, err := s.srv.Finish(s.ctx, []uint{created.ID})
-	s.NoError(err) 
+	s.NoError(err)
 	s.Equal(1, finishResult2.SuccessCount)
 	s.Equal(0, finishResult2.FailCount)
 
