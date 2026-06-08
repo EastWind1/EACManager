@@ -316,7 +316,6 @@ import {useUIStore} from '@/common/store/UIStore.ts'
 import {useRouterStore} from '@/common/store/RouterStore.ts'
 import type {ActionsResult} from '@/common/model/ActionsResult.ts'
 import {useBillActions} from '../composable/BillActions.ts'
-import {VDateInput} from 'vuetify/labs/components'
 import {
   mdiFileDocument,
   mdiInformation,
