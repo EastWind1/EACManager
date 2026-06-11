@@ -23,7 +23,7 @@ services:
 #    ports:
 #      - "9003:9003"
   backend:
-    image: alpine:3.23.3
+    image: alpine:3
     container_name: eac-backend-go
     depends_on:
       postgres:
@@ -44,13 +44,15 @@ services:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
       start_period: 5s
   frontend:
-    image: caddy:2.11-alpine
+    image: caddy:2-alpine
     container_name: eac-frontend
     depends_on:
       backend:
         condition: service_healthy
     env_file:
       - .env
+    environment:
+      - BACKEND_URL=http://backend:8080
     ports:
       - "80:80"
       - "443:443"

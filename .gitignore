@@ -1,3 +1,5 @@
 .env
 attachment
 .claude
+.codegraph
+.reasonix

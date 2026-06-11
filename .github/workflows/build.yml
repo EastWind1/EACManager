@@ -30,7 +30,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v6.2.0
       with:
-        node-version: '24.13.0'
+        node-version: '24.16.0'
 
     - name: Set up pnpm and dependence
       run: cd $GITHUB_WORKSPACE/frontend && npm i
