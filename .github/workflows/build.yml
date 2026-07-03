@@ -25,15 +25,15 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.25'
+        go-version: '1.26'
     
     - name: Set up Node.js
       uses: actions/setup-node@v6.2.0
       with:
-        node-version: '24.16.0'
+        node-version: '24.18.0'
 
     - name: Set up pnpm and dependence
-      run: cd $GITHUB_WORKSPACE/frontend && npm i
+      run: cd $GITHUB_WORKSPACE/frontend && npm i -g pnpm && pnpm i
     
     - name: Build with script
       run: cd $GITHUB_WORKSPACE && chmod +x ./deploy/build.sh && sh ./deploy/build.sh
