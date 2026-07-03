@@ -1,7 +1,7 @@
 package auth
 
 import (
-	errs2 "backend-go/pkg/errs"
+	"backend-go/pkg/errs"
 	"context"
 	"slices"
 
@@ -45,11 +45,11 @@ func SetCurrentUser(c fiber.Ctx, user User) {
 func GetCurrentUser(c context.Context) (User, error) {
 	data := c.Value(CurUserKey{})
 	if data == nil {
-		return nil, errs2.NewUnauthError("未登录")
+		return nil, errs.NewUnauthError("未登录")
 	}
 	user, ok := data.(User)
 	if !ok {
-		return nil, errs2.NewBizError("转换用户失败")
+		return nil, errs.NewBizError("转换用户失败")
 	}
 	return user, nil
 }
@@ -74,7 +74,7 @@ func RoleMiddleware(roles ...AuthorityRole) fiber.Handler {
 			return err
 		}
 		if !res {
-			return errs2.NewAuthError("没有权限")
+			return errs.NewAuthError("没有权限")
 		}
 		return c.Next()
 	}

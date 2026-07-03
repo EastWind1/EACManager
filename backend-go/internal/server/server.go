@@ -11,7 +11,7 @@ import (
 	"backend-go/pkg/context"
 	"backend-go/pkg/database"
 	"backend-go/pkg/logger"
-	middleware2 "backend-go/pkg/middleware"
+	"backend-go/pkg/middleware"
 	"fmt"
 
 	"github.com/bytedance/sonic"
@@ -31,7 +31,7 @@ func Run() {
 	server := fiber.New(fiber.Config{
 		JSONEncoder:  sonic.Marshal,
 		JSONDecoder:  sonic.Unmarshal,
-		ErrorHandler: middleware2.ErrorHandler(),
+		ErrorHandler: middleware.ErrorHandler(),
 		BodyLimit:    30 * 1024 * 1024,
 	})
 	ctx.Server = server
@@ -40,7 +40,7 @@ func Run() {
 	// 初始化异常处理
 	server.Use(recover.New())
 	// 初始化响应体包装
-	server.Use(middleware2.ResultWrap())
+	server.Use(middleware.ResultWrap())
 	// 初始化缓存
 	ctx.Cache = cache.NewInMemoryCache(cfg.Cache)
 	// 初始化数据库

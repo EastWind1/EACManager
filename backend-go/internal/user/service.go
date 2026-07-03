@@ -2,7 +2,7 @@ package user
 
 import (
 	"backend-go/pkg/auth"
-	errs2 "backend-go/pkg/errs"
+	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"context"
 
@@ -32,11 +32,11 @@ func (s *Service) Login(ctx context.Context, username, password, subject string)
 		return nil, err
 	}
 	if user.Disabled {
-		return nil, errs2.NewBizError("用户已禁用")
+		return nil, errs.NewBizError("用户已禁用")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return nil, errs2.NewBizError("用户名或密码错误")
+		return nil, errs.NewBizError("用户名或密码错误")
 	}
 
 	token, err := s.jwtSvc.GenerateToken(username, subject)
@@ -81,7 +81,7 @@ func (s *Service) GetAll(ctx context.Context, queryParam *result.QueryParam) (*r
 // Create 创建用户
 func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	if dto.Username == "" {
-		return nil, errs2.NewBizError("用户名不能为空")
+		return nil, errs.NewBizError("用户名不能为空")
 	}
 	var res *DTO
 	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
@@ -90,19 +90,19 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 			return err
 		}
 		if exists {
-			return errs2.NewBizError("用户名已存在")
+			return errs.NewBizError("用户名已存在")
 		}
 
 		if dto.Password == nil || *dto.Password == "" {
-			return errs2.NewBizError("密码不能为空")
+			return errs.NewBizError("密码不能为空")
 		}
 		passwordByte := []byte(*dto.Password)
 		if len(passwordByte) > 72 {
-			return errs2.NewBizError("密码过长")
+			return errs.NewBizError("密码过长")
 		}
 		hashedPassword, e := bcrypt.GenerateFromPassword(passwordByte, bcrypt.DefaultCost)
 		if e != nil {
-			return errs2.Wrap(e)
+			return errs.Wrap(e)
 		}
 
 		newUser := dto.ToEntity()
@@ -129,14 +129,14 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 // Update 更新用户
 func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	if dto.ID == 0 {
-		return nil, errs2.NewBizError("id 不能为空")
+		return nil, errs.NewBizError("id 不能为空")
 	}
 	curUser, err := auth.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if curUser.GetRole() != auth.RoleAdmin && curUser.GetID() != dto.ID {
-		return nil, errs2.NewAuthError("无权限修改其他用户信息")
+		return nil, errs.NewAuthError("无权限修改其他用户信息")
 	}
 	var res *DTO
 	err = s.userRepo.Transaction(ctx, func(tx context.Context) error {
@@ -145,22 +145,22 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 			return err
 		}
 		if user == nil {
-			return errs2.NewBizError("用户不存在")
+			return errs.NewBizError("用户不存在")
 		}
 		if user.Username != dto.Username {
-			return errs2.NewBizError("用户名不能修改")
+			return errs.NewBizError("用户名不能修改")
 		}
 		if dto.Password != nil {
 			if *dto.Password == "" {
-				return errs2.NewBizError("密码不能为空")
+				return errs.NewBizError("密码不能为空")
 			}
 			passwordByte := []byte(*dto.Password)
 			if len(passwordByte) > 72 {
-				return errs2.NewBizError("密码过长")
+				return errs.NewBizError("密码过长")
 			}
 			hashedPassword, err := bcrypt.GenerateFromPassword(passwordByte, bcrypt.DefaultCost)
 			if err != nil {
-				return errs2.Wrap(err)
+				return errs.Wrap(err)
 			}
 
 			user.Password = string(hashedPassword)

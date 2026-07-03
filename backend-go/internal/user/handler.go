@@ -3,7 +3,7 @@ package user
 import (
 	"backend-go/config"
 	"backend-go/pkg/errs"
-	result2 "backend-go/pkg/result"
+	"backend-go/pkg/result"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -44,13 +44,13 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 		HTTPOnly: true,
 	}
 	ctx.Cookie(&cookie)
-	result2.SetResult(ctx, res.User)
+	result.SetResult(ctx, res.User)
 	return nil
 }
 
 // GetAll 获取用户列表
 func (c *Controller) GetAll(ctx fiber.Ctx) error {
-	var param result2.QueryParam
+	var param result.QueryParam
 	err := ctx.Bind().Query(&param)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (c *Controller) GetAll(ctx fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	result2.SetResult(ctx, res)
+	result.SetResult(ctx, res)
 	return nil
 }
 
@@ -75,7 +75,7 @@ func (c *Controller) Create(ctx fiber.Ctx) error {
 		return err
 	}
 
-	result2.SetResult(ctx, res)
+	result.SetResult(ctx, res)
 	return nil
 }
 
@@ -90,7 +90,7 @@ func (c *Controller) Update(ctx fiber.Ctx) error {
 		return err
 	}
 
-	result2.SetResult(ctx, res)
+	result.SetResult(ctx, res)
 	return nil
 }
 

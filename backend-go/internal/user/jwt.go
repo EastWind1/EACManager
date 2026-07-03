@@ -2,7 +2,7 @@ package user
 
 import (
 	"backend-go/config"
-	errs2 "backend-go/pkg/errs"
+	"backend-go/pkg/errs"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -35,7 +35,7 @@ func (s *JWTService) GenerateToken(username string, subject string) (string, err
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	res, err := token.SignedString(s.secret)
 	if err != nil {
-		return "", errs2.NewBizError("生成 Token 失败", err)
+		return "", errs.NewBizError("生成 Token 失败", err)
 	}
 	return res, nil
 }
@@ -52,20 +52,20 @@ func (s *JWTService) VerifyToken(tokenString string) (*TokenInfo, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return nil, errs2.NewUnauthError("Token 无效")
+		return nil, errs.NewUnauthError("Token 无效")
 	}
 
 	if expireTime, ok := token.Claims.GetExpirationTime(); ok != nil || expireTime.Before(time.Now()) {
-		return nil, errs2.NewUnauthError("Token 过期")
+		return nil, errs.NewUnauthError("Token 过期")
 	}
 
 	aud, err := token.Claims.GetAudience()
 	if err != nil || len(aud) < 1 {
-		return nil, errs2.NewUnauthError("Token 不合法")
+		return nil, errs.NewUnauthError("Token 不合法")
 	}
 	sub, err := token.Claims.GetSubject()
 	if err != nil {
-		return nil, errs2.NewUnauthError("Token 不合法")
+		return nil, errs.NewUnauthError("Token 不合法")
 	}
 	return &TokenInfo{
 		Username: aud[0],

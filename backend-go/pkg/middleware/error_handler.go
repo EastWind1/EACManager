@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	errs2 "backend-go/pkg/errs"
+	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"errors"
 	"runtime/debug"
@@ -13,14 +13,14 @@ import (
 // ErrorHandler 错误处理
 func ErrorHandler() fiber.ErrorHandler {
 	return func(c fiber.Ctx, err error) error {
-		if stackErr, ok := errors.AsType[errs2.StackError](err); ok {
+		if stackErr, ok := errors.AsType[errs.StackError](err); ok {
 			log.Errorf("%v", stackErr.Error())
 			log.Errorf("%v", string(stackErr.Stack()))
 
-			var bizError *errs2.BizError
-			var authError *errs2.AuthError
-			var unauthError *errs2.UnauthError
-			var fileOpError *errs2.FileOpError
+			var bizError *errs.BizError
+			var authError *errs.AuthError
+			var unauthError *errs.UnauthError
+			var fileOpError *errs.FileOpError
 			switch {
 			case errors.As(stackErr, &bizError):
 				return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any](bizError.Error()))
