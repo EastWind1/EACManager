@@ -2,15 +2,20 @@
     email {$CA_EMAIL}
 }
 {$DOMAIN} {
-    encode zstd gzip
+    encode
     request_body {
         max_size 50MB
     }
-    @not_api {
-        not path /api/*
-    }
-    root @not_api /usr/share/caddy
-    reverse_proxy /api/* {$BACKEND_URL}
-    try_files {path} {path}/ /index.html
-    file_server
+	handle /api/* {
+		reverse_proxy {$BACKEND_URL} {  
+			header_up X-Forwarded-For {remote}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
 }

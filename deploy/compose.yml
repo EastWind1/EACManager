@@ -57,8 +57,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./frontend/conf/Caddyfile:/etc/caddy/Caddyfile
-      - ./frontend/cert:/data/caddy
-      - ./frontend/html:/usr/share/caddy:ro
+      - ./frontend/conf:/etc/caddy
+      - ./frontend/cert:/data
+      - ./frontend/html:/srv
 volumes:
   pgdata:
