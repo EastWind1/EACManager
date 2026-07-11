@@ -1,9 +1,10 @@
-import { ref } from 'vue'
-import { defineStore } from 'pinia'
+import {ref, shallowRef} from 'vue'
+import {defineStore, type Pinia, type StoreGeneric} from 'pinia'
 
 /**
  * 全局 UI
- * 包含加载条、通知
+ * 包含加载条、通知、确认框、日期选择器
+ * 对话框组件自管理状态，store 仅持有组件引用
  */
 export const useUIStore = defineStore('uiStore', () => {
   // 加载条是否显示
@@ -23,26 +24,28 @@ export const useUIStore = defineStore('uiStore', () => {
     loading.value = false
   }
 
-  // 通知状态
-  const notifyData = ref({
-    show: false,
-    text: '',
-    color: 'info',
-    timeout: 2000,
-  })
+  const notifyFn = ref<(
+      msg: string,
+      type: "primary" | "success" | "info" | "warning" | "error",
+      timeout: number,
+    ) => void
+    >(() => {})
 
+  function registerNotifyFn(fn: (
+    msg: string,
+    type: "primary" | "success" | "info" | "warning" | "error",
+    timeout: number,
+  ) => void) {
+    notifyFn.value = fn
+  }
   /**
    * 显示通知
-   * @param color 颜色
+   * @param type 类型
    * @param text 内容
    * @param timeout 超时
    */
-  function showNotify(color: string, text: string, timeout: number) {
-    notifyData.value.color = color
-    notifyData.value.text = text
-    notifyData.value.timeout = timeout
-
-    notifyData.value.show = true
+  function notify(text: string, type: "success" | "info" | "warning" | "primary" | "error",  timeout: number) {
+    notifyFn.value(text, type, timeout)
   }
 
   /**
@@ -51,7 +54,7 @@ export const useUIStore = defineStore('uiStore', () => {
    * @param timeout 超时
    */
   function success(message: string, timeout = 2000) {
-    showNotify('success', message, timeout)
+    notify(message, 'success', timeout)
   }
 
   /**
@@ -60,7 +63,7 @@ export const useUIStore = defineStore('uiStore', () => {
    * @param timeout 超时
    */
   function info(message: string, timeout = 2000) {
-    showNotify('primary', message, timeout)
+    notify(message, 'primary', timeout)
   }
 
   /**
@@ -69,34 +72,14 @@ export const useUIStore = defineStore('uiStore', () => {
    * @param timeout 超时
    */
   function warning(message: string, timeout = 4000) {
-    showNotify('red', message, timeout)
+    notify(message, 'warning', timeout)
   }
 
-  /**
-   * 确认框属性
-   */
-  const confirmData = ref({
-    /**
-     * 是否显示
-     */
-    show: false,
-    /**
-     * 标题
-     */
-    title: '',
-    /**
-     * 内容
-     */
-    text: '',
-    /**
-     * 确认回调
-     */
-    confirm: () => {},
-    /**
-     * 取消回调
-     */
-    cancel: () => {},
-  })
+  const confirmFn = ref<(title: string, text: string) => Promise<boolean>>(() => new Promise(() => true))
+
+  function registerConfirmFn(fn:(title: string, text: string) => Promise<boolean>) {
+    confirmFn.value = fn
+  }
 
   /**
    * 显示确认框
@@ -105,87 +88,34 @@ export const useUIStore = defineStore('uiStore', () => {
    * @return Promise<boolean> 是否确认
    */
   function confirm(title: string, content: string): Promise<boolean> {
-    confirmData.value.show = true
-    confirmData.value.title = title
-    confirmData.value.text = content
-    return new Promise<boolean>((resolve) => {
-      confirmData.value.confirm = () => {
-        confirmData.value.show = false
-        resolve(true)
-      }
-      confirmData.value.cancel = () => {
-        confirmData.value.show = false
-        resolve(false)
-      }
-    })
+    return confirmFn.value(title, content)
   }
 
-  /**
-   * 日期选择框
-   */
-  const dataPickerData = ref<{
-    show: boolean
-    title: string
-    minDate: Date | undefined
-    maxDate: Date | undefined
-    confirm: (date: Date) => void
-    cancel: () => void
-  }>({
-    /**
-     * 是否显示
-     */
-    show: false,
-    /**
-     * 标题
-     */
-    title: '选择日期',
-    /**
-     * 最小值
-     */
-    minDate: undefined,
-    /**
-     * 最大值
-     */
-    maxDate: undefined,
-    /**
-     * 确认回调
-     */
-    confirm: (data) => {console.log(data)},
-    /**
-     * 取消回调
-     */
-    cancel: () => {},
-  })
+
+  const datePickerFn = ref<(title?: string, min?: Date, max?: Date) => Promise<Date | undefined>>(() => new Promise(() => undefined))
+
+  function registerDatePickerFn(fn: (title?: string, min?: Date, max?: Date) => Promise<Date | undefined>) {
+    datePickerFn.value = fn
+  }
 
   /**
    * 选择日期
    */
   function selectDate(title?: string, minDate?: Date, maxDate?: Date): Promise<Date | undefined> {
-    return new Promise((resolve, reject) => {
-      dataPickerData.value.confirm = (date: Date) => {
-        resolve(date)
-      }
-      dataPickerData.value.cancel = () => {
-        reject()
-      }
-      dataPickerData.value.minDate = minDate ?? undefined
-      dataPickerData.value.maxDate = maxDate ?? undefined
-      dataPickerData.value.title = title ?? '选择日期'
-      dataPickerData.value.show = true
-    })
+    return datePickerFn.value(title, minDate, maxDate)
   }
 
   return {
     loading,
     showLoading,
     hideLoading,
-    notifyData,
     success,
     info,
     warning,
-    confirmData,
     confirm,
-    dataPickerData,
+    registerNotifyFn,
+    registerConfirmFn,
+    registerDatePickerFn,
     selectDate,
   }
 })

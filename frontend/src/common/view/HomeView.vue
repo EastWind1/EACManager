@@ -36,32 +36,8 @@
     <v-navigation-drawer v-model="drawer">
       <v-list :items="menuItems" density="compact" nav slim></v-list>
     </v-navigation-drawer>
-    <!-- 全局确认框 -->
-    <v-dialog v-model="confirmData.show" persistent width="auto">
-      <v-card>
-        <template #title>
-          {{ confirmData.title }}
-        </template>
-        <template #text>
-          {{ confirmData.text }}
-        </template>
-        <template #actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" text @click="confirmData.confirm">确定</v-btn>
-          <v-btn text @click="confirmData.cancel">取消</v-btn>
-        </template>
-      </v-card>
-    </v-dialog>
     <!-- 日期选择框 -->
-    <DatePickerDialog
-      v-model="dataPickerData.show"
-      :max-date="dataPickerData.maxDate"
-      :min-date="dataPickerData.minDate"
-      :title="dataPickerData.title"
-      @cancel="dataPickerData.cancel"
-      @confirm="dataPickerData.confirm"
-    >
-    </DatePickerDialog>
+    <DatePickerDialog ref="datePickerRef" />
     <v-main>
       <RouterView />
     </v-main>
@@ -70,11 +46,10 @@
 
 <script lang="ts" setup>
 import { RouterView, useRouter } from 'vue-router'
-import { computed, ref } from 'vue'
+import {computed, onMounted, ref, useTemplateRef} from 'vue'
 import { mdiAccount, mdiCash, mdiDomain, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
 import { useUserStore } from '@/user/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
-import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/common/store/UIStore.ts'
 import DatePickerDialog from '@/common/component/DatePickerDialog.vue'
 
@@ -140,7 +115,13 @@ function logout() {
   router.push('/login')
 }
 
-const { confirmData, dataPickerData } = storeToRefs(useUIStore())
+const uiStore = useUIStore()
+
+const datePickerRef = useTemplateRef('datePickerRef')
+
+onMounted(() => {
+  uiStore.registerDatePickerFn(datePickerRef.value!.open)
+})
 </script>
 
 <style scoped></style>
