@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"mime/multipart"
 	"path/filepath"
 	"strings"
 	"time"
@@ -16,17 +17,20 @@ import (
 type Service struct {
 	reimburseRepo *Repository
 	attachService *attach.Service
+	attachMapSrv  *attach.MapService
 	cache         cache.Cache
 }
 
 func NewService(
 	reimburseRepo *Repository,
 	attachService *attach.Service,
+	attachMapSrv *attach.MapService,
 	cache cache.Cache,
 ) *Service {
 	return &Service{
 		reimburseRepo: reimburseRepo,
 		attachService: attachService,
+		attachMapSrv:  attachMapSrv,
 		cache:         cache,
 	}
 }
@@ -122,6 +126,22 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 		return nil, err
 	}
 	return entity.ToDTO(attaches), nil
+}
+
+func (s *Service) GenerateByFile(file *multipart.FileHeader) (*DTO, error) {
+	attaches, err := s.attachService.UploadTemps([]*multipart.FileHeader{file})
+	if err != nil {
+		return nil, err
+	}
+	data, err := s.attachMapSrv.MapTo(new((attaches)[0]))
+	if err != nil {
+		return nil, err
+	}
+	if dto, ok := data.(*DTO); ok {
+		dto.Attachments = attaches
+		return dto, nil
+	}
+	return nil, errs.NewBizError("转换失败")
 }
 
 func (s *Service) FindByParam(ctx context.Context, param *QueryParam) (*result.PageResult[DTO], error) {

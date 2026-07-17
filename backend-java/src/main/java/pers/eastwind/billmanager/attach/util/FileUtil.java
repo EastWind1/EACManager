@@ -5,6 +5,8 @@ import org.apache.commons.io.file.PathUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.PDFTextStripperByArea;
 import org.springframework.core.io.Resource;
 import pers.eastwind.billmanager.attach.model.AttachmentType;
 import pers.eastwind.billmanager.common.exception.FileOpException;
@@ -16,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -56,12 +59,31 @@ public class FileUtil {
             if (document.getNumberOfPages() <= 0) {
                 throw new IllegalArgumentException("PDF 文件为空");
             }
-            Path imagePath = target.resolve("PDFImage-" + System.currentTimeMillis() + ".png");
             PDFRenderer renderer = new PDFRenderer(document);
             BufferedImage image = renderer.renderImage(0);
-            ImageIO.write(image, "png", imagePath.toFile());
+            ImageIO.write(image, "png", target.toFile());
         } catch (IOException e) {
-            throw new FileOpException("提取 PDF 图片失败", e);
+            throw new FileOpException("PDF 转图片失败", e);
+        }
+    }
+
+    /**
+     * 提取 PDF 文本
+     */
+    public static String[] extractPDFText(Path source) {
+        try (PDDocument document = Loader.loadPDF(source.toFile())) {
+            if (document.getNumberOfPages() <= 0) {
+                throw new IllegalArgumentException("PDF 文件为空");
+            }
+
+            var extractor = new PDFTextStripper();
+            String text = extractor.getText(document);
+            if (text.isBlank()) {
+                return new String[0];
+            }
+            return text.split("\r?\n");
+        } catch (IOException e) {
+            throw new FileOpException("PDF 文本提取失败", e);
         }
     }
 

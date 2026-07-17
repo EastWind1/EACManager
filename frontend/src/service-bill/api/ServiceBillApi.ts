@@ -27,9 +27,9 @@ const ServiceBillApi = {
    * 导入
    */
   async import(file: File) {
-    return await http.postForm<ServiceBill>(`/import`, {
-      file,
-    })
+    const formData = new FormData()
+    formData.append('file', file)
+    return await http.postForm<ServiceBill>(`/import`, formData)
   },
   /**
    * 新建

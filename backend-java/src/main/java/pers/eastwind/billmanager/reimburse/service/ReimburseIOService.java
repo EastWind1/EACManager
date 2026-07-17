@@ -1,6 +1,5 @@
-package pers.eastwind.billmanager.servicebill.service;
+package pers.eastwind.billmanager.reimburse.service;
 
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.AttachmentDTO;
 import pers.eastwind.billmanager.attach.model.BillType;
@@ -12,13 +11,14 @@ import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
-import pers.eastwind.billmanager.servicebill.model.ServiceBill;
-import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
-import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
+import pers.eastwind.billmanager.reimburse.model.Reimbursement;
+import pers.eastwind.billmanager.reimburse.model.ReimbursementDTO;
+import pers.eastwind.billmanager.reimburse.repository.ReimburseRepository;
 
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -26,33 +26,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 服务单导入导出
+ * 报销单导入导出
  */
 @Service
-public class ServiceBillIOService {
-    private final ServiceBillRepository serviceBillRepository;
+public class ReimburseIOService {
     private final AttachmentService attachmentService;
     private final AttachMapService attachMapService;
+    private final ReimburseRepository reimburseRepository;
 
-    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService, AttachMapService attachMapService) {
-        this.serviceBillRepository = serviceBillRepository;
+    public ReimburseIOService(AttachmentService attachmentService, AttachMapService attachMapService, ReimburseRepository reimburseRepository) {
         this.attachmentService = attachmentService;
         this.attachMapService = attachMapService;
+        this.reimburseRepository = reimburseRepository;
     }
-
-    /**
-     * 根据文件生成单据
-     *
-     * @param resource 文件资源
-     * @return 单据
-     */
-    public ServiceBillDTO generateByFile(Resource resource) {
-        AttachmentDTO attachment = attachmentService.uploadTemps(List.of(resource)).getFirst();
-        ServiceBillDTO bill = attachMapService.map(attachment);
-        bill.setAttachments(List.of(attachment));
-        return bill;
-    }
-
     /**
      * 导出单据
      *
@@ -63,39 +49,35 @@ public class ServiceBillIOService {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
         }
-        List<ServiceBill> serviceBills = serviceBillRepository.findAllById(ids);
-        if (serviceBills.isEmpty()) {
+        List<Reimbursement> reimbursements = reimburseRepository.findAllById(ids);
+        if (reimbursements.isEmpty()) {
             throw new BizException("id不存在");
         }
-        // 创建临时目录
+        // 临时目录
         Path tempPath = attachmentService.createTempDir("export");
         // 文件操作
         List<FileOp> ops = new ArrayList<>();
-        // Excel 表头
+
+        // 遍历生成 excel行，并拷贝附件
         List<List<String>> rows = new ArrayList<>();
-        rows.add(List.of("单据编号", "状态", "项目名称", "项目地址", "总额", "安装完成日期", "备注"));
+        rows.add(List.of("单据编号", "摘要", "总额", "报销日期", "备注"));
         BigDecimal totalAmount = BigDecimal.ZERO;
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        for (ServiceBill serviceBill : serviceBills) {
-            // 当前 Excel 行
+        for (Reimbursement reimbursement : reimbursements) {
             rows.add(List.of(
-                    serviceBill.getNumber(),
-                    serviceBill.getState().getLabel(),
-                    serviceBill.getProjectName(),
-                    serviceBill.getProjectAddress(),
-                    serviceBill.getTotalAmount().toString(),
-                    serviceBill.getProcessedDate() == null ? "" : dateTimeFormatter.format(serviceBill.getProcessedDate().atZone(ZoneId.systemDefault())),
-                    serviceBill.getDetails().stream().map((detail) ->
-                                    detail.getDevice() + " : " + detail.getUnitPrice().stripTrailingZeros().toPlainString()
-                                            + " * " + detail.getQuantity().stripTrailingZeros().toPlainString() + " ; ")
+                    reimbursement.getNumber(),
+                    reimbursement.getSummary(),
+                    reimbursement.getTotalAmount().toString(),
+                    reimbursement.getReimburseDate() == null ? "" : dateTimeFormatter.format(reimbursement.getReimburseDate().atZone(ZoneId.systemDefault())),
+                    reimbursement.getDetails().stream().map((detail) ->
+                                    detail.getName() + " : " + detail.getAmount().stripTrailingZeros().toPlainString() + " ; ")
                             .collect(Collectors.joining())
             ));
-            totalAmount = totalAmount.add(serviceBill.getTotalAmount());
-
-            Path curDir = tempPath.resolve(serviceBill.getNumber());
-
+            totalAmount = totalAmount.add(reimbursement.getTotalAmount());
+            // 创建当前单据附件文件夹
+            Path curDir = tempPath.resolve(reimbursement.getNumber());
             // 拷贝当前单据所有附件
-            List<AttachmentDTO> attachments = attachmentService.getByBill(serviceBill.getId(), BillType.SERVICE_BILL);
+            List<AttachmentDTO> attachments = attachmentService.getByBill(reimbursement.getId(), BillType.REIMBURSEMENT);
             for (AttachmentDTO attachment : attachments) {
                 Path origin = attachmentService.getRootPath().resolve(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());
@@ -109,9 +91,10 @@ public class ServiceBillIOService {
             }
         }
         // 表合计
-        rows.add(List.of("", "", "", "合计", totalAmount.toString(), ""));
-
-        Path excel = tempPath.resolve("导出结果.xlsx");
+        rows.add(List.of("", "合计", totalAmount.toString(), "", ""));
+        // 获取当前时间字符串
+        String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        Path excel = tempPath.resolve("导出结果" + timeStr + ".xlsx");
         OfficeFileUtil.generateExcelFromList(rows, excel);
         // 执行文件拷贝
         FileTxUtil.exec(ops);
@@ -119,5 +102,17 @@ public class ServiceBillIOService {
         Path zip = attachmentService.getTempPath().resolve(tempPath + ".zip");
         FileUtil.zip(tempPath, zip);
         return zip;
+    }
+    /**
+     * 根据文件生成报销单
+     *
+     * @param resource 文件资源
+     * @return 报销单 DTO
+     */
+    public ReimbursementDTO generateByFile(org.springframework.core.io.Resource resource) {
+        AttachmentDTO attachment = attachmentService.uploadTemps(List.of(resource)).getFirst();
+        ReimbursementDTO dto = attachMapService.map(attachment);
+        dto.setAttachments(List.of(attachment));
+        return dto;
     }
 }

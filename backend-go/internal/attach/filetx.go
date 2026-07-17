@@ -10,6 +10,8 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
+// 文件事务操作
+
 // validSrc 检查源文件存在且为文件
 func validSrc(origin string) error {
 	if origin == "" {

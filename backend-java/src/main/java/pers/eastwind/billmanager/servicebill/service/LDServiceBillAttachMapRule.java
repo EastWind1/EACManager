@@ -39,21 +39,21 @@ public class LDServiceBillAttachMapRule extends WKServiceBillAttachMapRule {
     }
 
     @Override
-    public ServiceBillDTO mapFromOCR(List<String> texts) {
+    public ServiceBillDTO mapFromTexts(List<String> texts) {
         if (!canOCR(texts)) {
             return null;
         }
-        ServiceBillDTO serviceBill = super.mapFromOCR(texts);
+        ServiceBillDTO serviceBill = super.mapFromTexts(texts);
         setCompany(serviceBill, "菱电");
         return serviceBill;
     }
 
     @Override
-    public ServiceBillDTO mapFromExcel(List<List<String>> rows) {
+    public ServiceBillDTO mapFromGrid(List<List<String>> rows) {
         if (!canExcel(rows)) {
             return null;
         }
-        ServiceBillDTO serviceBill = super.mapFromExcel(rows);
+        ServiceBillDTO serviceBill = super.mapFromGrid(rows);
         setCompany(serviceBill, "菱电");
         return serviceBill;
     }

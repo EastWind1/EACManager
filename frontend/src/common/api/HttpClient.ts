@@ -127,7 +127,7 @@ export class HttpClient {
     return await this.request('POST', url, config)
   }
 
-  async postForm<T>(url: string, data: unknown, config?: HttpConfig): Promise<T> {
+  async postForm<T>(url: string, data: FormData, config?: HttpConfig): Promise<T> {
     if (!config) {
       config = {}
     }

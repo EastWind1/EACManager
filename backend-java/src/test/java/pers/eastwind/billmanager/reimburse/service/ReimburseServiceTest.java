@@ -28,6 +28,9 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Autowired
     private ReimburseService reimburseService;
 
+    @Autowired
+    private ReimburseIOService reimburseIOService;
+
     @Test
     @DisplayName("测试根据ID查找报销单")
     void shouldFindReimbursementById() {
@@ -135,7 +138,7 @@ class ReimburseServiceTest extends BaseServiceTest {
         ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
         List<Integer> idsToExport = List.of(createdReimburse.getId());
 
-        Path exportPath = reimburseService.export(idsToExport);
+        Path exportPath = reimburseIOService.export(idsToExport);
         assertNotNull(exportPath);
     }
 
@@ -324,13 +327,13 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试导出空ID列表")
     void shouldNotExportEmptyIDs() {
-        assertThrows(RuntimeException.class, () -> reimburseService.export(new ArrayList<>()));
+        assertThrows(RuntimeException.class, () -> reimburseIOService.export(new ArrayList<>()));
     }
 
     @Test
     @DisplayName("测试导出不存在的记录")
     void shouldNotExportNonExistentRecords() {
-        assertThrows(RuntimeException.class, () -> reimburseService.export(List.of(999999)));
+        assertThrows(RuntimeException.class, () -> reimburseIOService.export(List.of(999999)));
     }
 
     @Test

@@ -63,6 +63,24 @@ func (c *Controller) Create(ctx fiber.Ctx) error {
 	return nil
 }
 
+func (c *Controller) ImportByFile(ctx fiber.Ctx) error {
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		return err
+	}
+	files := form.File["file"]
+	if len(files) == 0 {
+		return errs.NewBizError("没有文件上传")
+	}
+	res, err := c.reimburseService.GenerateByFile(files[0])
+	if err != nil {
+		return err
+	}
+
+	result.SetResult(ctx, res)
+	return nil
+}
+
 func (c *Controller) Update(ctx fiber.Ctx) error {
 	var dto DTO
 	if err := ctx.Bind().Body(&dto); err != nil {

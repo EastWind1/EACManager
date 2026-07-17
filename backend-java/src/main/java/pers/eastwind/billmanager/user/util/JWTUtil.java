@@ -8,7 +8,6 @@ import pers.eastwind.billmanager.common.exception.BizException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Objects;
 
 /**
  * JWT 工具类
@@ -31,7 +30,7 @@ public class JWTUtil {
             return JWT.create()
                     .withAudience(userName)
                     .withSubject(subject)
-                    .withIssuedAt(now.plus(expireSecond, ChronoUnit.SECONDS))
+                    .withExpiresAt(now.plus(expireSecond, ChronoUnit.SECONDS))
                     .sign(algorithm);
         } catch (JWTCreationException e) {
             throw new BizException("JWT 签名失败", e);

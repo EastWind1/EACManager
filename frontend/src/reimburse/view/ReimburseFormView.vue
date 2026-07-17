@@ -62,14 +62,6 @@
               >处理完成
               </v-btn>
               <v-btn
-                v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
-                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :loading="loading"
-                color="error"
-                @click="removeAndBack(reimbursement.id!)"
-              >删除
-              </v-btn>
-              <v-btn
                 v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 :loading="loading"
@@ -84,6 +76,14 @@
                 color="warning"
                 @click="cancelFinish([reimbursement.id!])"
               >取消完成
+              </v-btn>
+              <v-btn
+                v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
+                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+                :loading="loading"
+                color="error"
+                @click="removeAndBack(reimbursement.id!)"
+              >删除
               </v-btn>
               <v-btn
                 v-if="isEditState"
@@ -205,6 +205,7 @@ import type {ActionsResult} from '@/common/model/ActionsResult.ts'
 import {useReimburseActions} from '../composable/ReimburseActions.ts'
 import {AuthorityRole} from '@/user/model/User.ts'
 import {useDate} from 'vuetify/framework'
+import {useRouterStore} from '@/common/store/RouterStore.ts'
 import {mdiFileDocument, mdiListBox, mdiPaperclip} from '@mdi/js'
 import {useUserStore} from '@/user/store/UserStore.ts'
 
@@ -315,6 +316,17 @@ async function init() {
     switch (actionQuery) {
       // 新建
       case 'create':
+        isEditState.value = true
+        break
+      // 导入
+      case 'import':
+        const {getData} = useRouterStore()
+        const importData = getData() as Reimbursement
+        if (!importData) {
+          warning('未获取到识别结果')
+          return
+        }
+        reimbursement.value = importData
         isEditState.value = true
         break
       default:

@@ -7,10 +7,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.reimburse.model.ReimburseQueryParam;
 import pers.eastwind.billmanager.reimburse.model.ReimbursementDTO;
+import pers.eastwind.billmanager.reimburse.service.ReimburseIOService;
 import pers.eastwind.billmanager.reimburse.service.ReimburseService;
 
 import java.util.List;
@@ -23,9 +25,11 @@ import java.util.List;
 @RequestMapping("/api/reimburse")
 public class ReimburseController {
     private final ReimburseService reimburseService;
+    private final ReimburseIOService reimburseIOService;
 
-    public ReimburseController(ReimburseService reimburseService) {
+    public ReimburseController(ReimburseService reimburseService, ReimburseIOService reimburseIOService) {
         this.reimburseService = reimburseService;
+        this.reimburseIOService = reimburseIOService;
     }
 
     /**
@@ -121,12 +125,21 @@ public class ReimburseController {
     }
 
     /**
+     * 通过文件导入报销单
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PostMapping("/import")
+    public ReimbursementDTO importByFile(MultipartFile file) {
+        return reimburseIOService.generateByFile(file.getResource());
+    }
+
+    /**
      * 导出
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @PostMapping(value = "/export", produces = "application/octet-stream")
     public ResponseEntity<Resource> export(@RequestBody List<Integer> ids) {
-        Resource resource = new FileSystemResource(reimburseService.export(ids));
+        Resource resource = new FileSystemResource(reimburseIOService.export(ids));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentDisposition(ContentDisposition.attachment().name("导出.zip").build());
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);

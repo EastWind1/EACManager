@@ -3,12 +3,12 @@ package pers.eastwind.billmanager.attach.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.AttachmentDTO;
-import pers.eastwind.billmanager.attach.model.AttachmentType;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -31,26 +31,45 @@ public class AttachMapService {
      * 附件映射为对象
      *
      * @param attachment 附件
-     * @param clazz      目标对象类
      * @return 对象
      */
-    public <T> T map(AttachmentDTO attachment, Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+    public <T> T map(AttachmentDTO attachment) {
         Path path = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()), attachment.isTemp());
         switch (attachment.getType()) {
-            case IMAGE, PDF -> {
-                if (attachment.getType() == AttachmentType.PDF) {
-                    Path target = attachmentService.createTempFile("", ".jpg");
-                    FileUtil.convertPDFToImage(path, target);
-                    path = target;
-                }
+            case IMAGE -> {
                 List<String> texts = ocrService.parseImage(path);
                 for (AttachMapRule<?> mapRule : mapRules) {
-                    var cur = mapRule.mapFromOCR(texts);
+                    var cur = mapRule.mapFromTexts(texts);
                     if (cur != null) {
                         try {
-                            return clazz.cast(cur);
+                            return (T) cur;
                         } catch (ClassCastException _) {
-                            log.error("{} OCR 类型转换失败", mapRule);
+                            log.error("{} IMAGE 类型转换失败", mapRule);
+                        }
+                    }
+                }
+                throw new BizException("未配置映射规则");
+            }
+            case PDF -> {
+                List<String> texts;
+                // 先尝试直接解析文本, 没有文本时再调用 OCR 服务
+                String[] text = FileUtil.extractPDFText(path);
+                if (text.length > 0) {
+                    texts = Arrays.asList(text);
+                } else {
+                    Path temp = attachmentService.createTempFile("PDFToImage", "png");
+                    FileUtil.convertPDFToImage(path, temp);
+                    texts = ocrService.parseImage(temp);
+                }
+
+                for (AttachMapRule<?> mapRule : mapRules) {
+                    var cur = mapRule.mapFromTexts(texts);
+                    if (cur != null) {
+                        try {
+                            return (T) cur;
+                        } catch (ClassCastException _) {
+                            log.error("{} PDF 类型转换失败", mapRule);
                         }
                     }
                 }
@@ -59,10 +78,10 @@ public class AttachMapService {
             case EXCEL -> {
                 List<List<String>> rows = OfficeFileUtil.parseExcel(path);
                 for (AttachMapRule<?> mapRule : mapRules) {
-                    var cur = mapRule.mapFromExcel(rows);
+                    var cur = mapRule.mapFromGrid(rows);
                     if (cur != null) {
                         try {
-                            return clazz.cast(cur);
+                            return (T) cur;
                         } catch (ClassCastException _) {
                             log.error("{} Excel 类型转换失败", mapRule);
                         }

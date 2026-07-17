@@ -80,7 +80,7 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
     }
 
     @Override
-    public ServiceBillDTO mapFromOCR(List<String> texts) {
+    public ServiceBillDTO mapFromTexts(List<String> texts) {
         if (!canOCR(texts)) {
             return null;
         }
@@ -94,7 +94,7 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
     }
 
     @Override
-    public ServiceBillDTO mapFromExcel(List<List<String>> rows) {
+    public ServiceBillDTO mapFromGrid(List<List<String>> rows) {
         if (!canExcel(rows)) {
             return null;
         }

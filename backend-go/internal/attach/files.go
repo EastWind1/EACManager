@@ -5,12 +5,14 @@ import (
 	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"io"
+	"math"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/ledongthuc/pdf"
 )
 
 // Exists 检查文件是否存在
@@ -110,6 +112,74 @@ func GetFileType(path string) (Type, error) {
 func ConvertPDFToImage(pdfPath string, target string) error {
 	// TODO: 使用第三方工具实现
 	return errs.NewBizError("暂不支持该功能")
+}
+
+// ExtractPDFText 从 PDF 提取文本
+// 重写为基于坐标合并同一行文本块：获取每个字符的精确坐标后，
+// 按 Y（从上到下）排序，Y 相近的归为同一行，再按 X 排序，
+// 根据 X 间距判断是否插入空格，避免 PDF 库将空格分割文本拆分为独立块导致信息丢失。
+func ExtractPDFText(pdfPath string) ([]string, error) {
+	f, r, err := pdf.Open(pdfPath)
+	if err != nil {
+		return nil, errs.NewFileOpError("PDF 打开失败", pdfPath, err)
+	}
+	defer f.Close()
+	var lines []string
+	// Y 坐标容差：同一行的文本块最大 Y 差值
+	const yDiff = 5.0
+	// X 间距阈值：超过此值认为有词间距
+	const xDiff = 1.0
+
+	for i := 1; i <= r.NumPage(); i++ {
+		p := r.Page(i)
+		if p.V.IsNull() {
+			continue
+		}
+
+		// 获取页面上所有文本片段及其精确坐标（字符级）
+		content := p.Content()
+		if len(content.Text) == 0 {
+			continue
+		}
+
+		// 基于坐标合并为文本行
+		var line strings.Builder
+		var lastY, lastRight float64
+		started := false
+		for _, t := range content.Text {
+			if t.S == "" || t.S == "\n" {
+				continue
+			}
+			if !started {
+				line.WriteString(t.S)
+				lastY = t.Y
+				lastRight = t.X + t.W
+				started = true
+				continue
+			}
+
+			curYDiff := math.Abs(t.Y - lastY)
+			if curYDiff <= yDiff {
+				if t.X > lastRight+xDiff {
+					line.WriteString(" ")
+				}
+				line.WriteString(t.S)
+				if t.X+t.W > lastRight {
+					lastRight = t.X + t.W
+				}
+			} else {
+				lines = append(lines, line.String())
+				line.Reset()
+				line.WriteString(t.S)
+				lastY = t.Y
+				lastRight = t.X + t.W
+			}
+		}
+		if started {
+			lines = append(lines, line.String())
+		}
+	}
+	return lines, nil
 }
 
 type UploadResult struct {

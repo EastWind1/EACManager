@@ -52,7 +52,7 @@ func Run() {
 		user.Setup(ctx, router)
 		companySrv := company.Setup(ctx, router)
 		attachSrv, attachMapSrv := attach.Setup(ctx, router)
-		reimburse.Setup(ctx, router, attachSrv)
+		reimburse.Setup(ctx, router, attachSrv, attachMapSrv)
 		bill.Setup(ctx, router, companySrv, attachSrv, attachMapSrv)
 	}
 

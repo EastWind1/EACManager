@@ -57,8 +57,8 @@ public class JWTTokenFilter extends OncePerRequestFilter {
                 if (Objects.equals(host, jwt.getSubject())) {
                     userName = jwt.getAudience().getFirst();
                 }
-            } catch (BizException _) {
-                log.error("JWT 解析失败: {}", token);
+            } catch (BizException e) {
+                log.error("JWT 解析失败: {}{}", token, e.getMessage());
             }
             if (userName != null) {
                 User user = userService.loadUserByUsername(userName);

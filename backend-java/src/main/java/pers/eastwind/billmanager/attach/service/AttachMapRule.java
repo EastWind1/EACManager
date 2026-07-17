@@ -42,26 +42,25 @@ public interface AttachMapRule<T> {
         }
         return null;
     }
-
     /**
-     * 从 OCR 文本映射
-     * 用于图片和 PDF
+     * 从文本块映射
+     * <br/>用于 OCR 结果、纯文本文档
      *
      * @param texts ocr 文本
      * @return 目标对象, 若返回 null 表示无法映射
      */
-    default T mapFromOCR(List<String> texts) {
+    default T mapFromTexts(List<String> texts) {
         return null;
     }
 
     /**
-     * 从 Excel 映射
-     * 只支持单 sheet 页
+     * 从表格映射
+     * <br/>用于 Excel 等表格化数据
      *
      * @param rows Excel 内容
      * @return 目标对象，若返回 null 表示无法映射
      */
-    default T mapFromExcel(List<List<String>> rows) {
+    default T mapFromGrid(List<List<String>> rows) {
         return null;
     }
 }

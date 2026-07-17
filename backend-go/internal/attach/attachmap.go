@@ -8,10 +8,10 @@ import (
 
 // MapRule 附件映射规则
 type MapRule interface {
-	// MapFromOCR 从 OCR 识别结果映射到实体, 返回 nil 表示无法映射
-	MapFromOCR(texts []string) (any, error)
-	// MapFromExcel 从 Excel 解析结果映射到实体, 返回 nil 表示无法映射
-	MapFromExcel(rows [][]string) (any, error)
+	// MapFromTexts 从文本块映射到实体， 返回 nil 表示无法映射
+	MapFromTexts(texts []string) (any, error)
+	// MapFromGrid 从表格映射到实体, 返回 nil 表示无法映射
+	MapFromGrid(rows [][]string) (any, error)
 }
 
 // MapService 映射服务
@@ -49,8 +49,21 @@ func (s *MapService) MapTo(attach *AttachmentDTO) (any, error) {
 		return nil, err
 	}
 	switch attach.Type {
-	case Image, PDF:
-		if attach.Type == PDF {
+	case Image:
+		texts, err := s.ocrService.ParseImage(path)
+		if err != nil {
+			return nil, err
+		}
+		for _, rule := range s.rules {
+			if cur, err := rule.MapFromTexts(texts); err == nil && cur != nil {
+				return cur, nil
+			}
+		}
+		return nil, errs.NewBizError("未配置映射规则")
+	case PDF:
+		var texts []string
+		texts, err = ExtractPDFText(path)
+		if err != nil || len(texts) == 0 {
 			target, err := s.attachService.CreateTempFile(s.cache, "", ".jpg")
 			if err != nil {
 				return nil, err
@@ -58,16 +71,13 @@ func (s *MapService) MapTo(attach *AttachmentDTO) (any, error) {
 			if err = ConvertPDFToImage(path, target); err != nil {
 				return nil, err
 			}
-			path = target
+			texts, err = s.ocrService.ParseImage(target)
 		}
-		texts, err := s.ocrService.ParseImage(path)
 		if err != nil {
 			return nil, err
 		}
-		s.lock.RLock()
-		defer s.lock.RUnlock()
 		for _, rule := range s.rules {
-			if cur, err := rule.MapFromOCR(texts); err == nil && cur != nil {
+			if cur, err := rule.MapFromTexts(texts); err == nil && cur != nil {
 				return cur, nil
 			}
 		}
@@ -77,10 +87,8 @@ func (s *MapService) MapTo(attach *AttachmentDTO) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		s.lock.RLock()
-		defer s.lock.RUnlock()
 		for _, rule := range s.rules {
-			if cur, err := rule.MapFromExcel(rows); err == nil && cur != nil {
+			if cur, err := rule.MapFromGrid(rows); err == nil && cur != nil {
 				return cur, nil
 			}
 		}

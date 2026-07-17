@@ -9,7 +9,7 @@
         <v-container>
           <v-row>
             <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.number" clearable label="单号" />
+              <v-text-field v-model="queryParam.number" clearable label="单号"/>
             </v-col>
             <v-col cols="12" md="4" sm="6" xl="3">
               <v-select
@@ -33,7 +33,7 @@
               ></v-date-input>
             </v-col>
             <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.summary" clearable label="摘要" />
+              <v-text-field v-model="queryParam.summary" clearable label="摘要"/>
             </v-col>
             <v-col class="d-flex justify-end align-center">
               <v-btn @click="search = new Date().toString()">
@@ -48,7 +48,7 @@
   </v-expansion-panels>
   <v-container>
     <v-row class="justify-between">
-      <v-col cols="3" md="2"  v-if="selectedIds.length > 0" class="text-caption ml-5">
+      <v-col cols="3" md="2" v-if="selectedIds.length > 0" class="text-caption ml-5">
         已选中 {{ selectedIds.length }} 项
       </v-col>
       <v-col>
@@ -60,7 +60,14 @@
             @click="create"
           >新增
           </v-btn>
-          <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
+          <v-btn
+            v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
+            :disabled="loading"
+            color="primary"
+            @click="importFile"
+          >导入
+          </v-btn>
+
           <v-btn
             v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
             :disabled="loading"
@@ -93,6 +100,7 @@
             @click="remove(selectedIds)"
           >删除
           </v-btn>
+          <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
         </v-row>
       </v-col>
     </v-row>
@@ -158,7 +166,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import {ref} from 'vue'
 import {
   type Reimbursement,
   type ReimburseQueryParam,
@@ -166,19 +174,21 @@ import {
   type ReimburseStateValue,
 } from '../model/Reimbursement.ts'
 import ReimburseApi from '../api/ReimburseApi.ts'
-import type { PageResult } from '@/common/model/PageResult.ts'
-import { useRouter } from 'vue-router'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import type { ActionsResult } from '@/common/model/ActionsResult.ts'
-import { storeToRefs } from 'pinia'
-import { useReimburseActions } from '../composable/ReimburseActions.ts'
-import { AuthorityRole } from '@/user/model/User.ts'
-import { mdiFilter, mdiInformation, mdiMagnify } from '@mdi/js'
-import { useDate, useHotkey } from 'vuetify/framework'
+import type {PageResult} from '@/common/model/PageResult.ts'
+import {useRouter} from 'vue-router'
+import {useUIStore} from '@/common/store/UIStore.ts'
+import type {ActionsResult} from '@/common/model/ActionsResult.ts'
+import {storeToRefs} from 'pinia'
+import {useReimburseActions} from '../composable/ReimburseActions.ts'
+import {AuthorityRole} from '@/user/model/User.ts'
+import {mdiFilter, mdiInformation, mdiMagnify} from '@mdi/js'
+import {useDate, useHotkey} from 'vuetify/framework'
+import {useRouterStore} from "@/common/store/RouterStore.ts";
+import {useFileSelector} from "@/attachment/composable/FileSelector.ts";
 
 const store = useUIStore()
-const { success, warning } = store
-const { loading } = storeToRefs(store)
+const {success, warning} = store
+const {loading} = storeToRefs(store)
 const router = useRouter()
 const dateUtil = useDate()
 
@@ -235,11 +245,11 @@ useHotkey('enter', () => (search.value = new Date().toString()))
 // 数据表格区域
 // 表头
 const headers = [
-  { title: '单号', key: 'number', sortable: false },
-  { title: '状态', key: 'state', sortable: false },
-  { title: '摘要', key: 'summary', sortable: false },
-  { title: '总金额', key: 'totalAmount', sortable: false },
-  { title: '报销日期', key: 'reimburseDate', sortable: false },
+  {title: '单号', key: 'number', sortable: false},
+  {title: '状态', key: 'state', sortable: false},
+  {title: '摘要', key: 'summary', sortable: false},
+  {title: '总金额', key: 'totalAmount', sortable: false},
+  {title: '报销日期', key: 'reimburseDate', sortable: false},
 ]
 
 // 列表数据
@@ -380,5 +390,22 @@ function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const { process, finish, cancelProcess, cancelFinish, remove } = useReimburseActions(processResult)
-</script>
+const {process, finish, cancelProcess, cancelFinish, remove} = useReimburseActions(processResult)
+
+const {setData} = useRouterStore()
+
+/**
+ * 导入
+ */
+async function importFile() {
+  const fileList = await useFileSelector('.pdf,.jpg,.jpeg', false)
+  const file = fileList[0]
+  if (!file) return
+  const data = await ReimburseApi.import(file).catch(() => undefined)
+  if (!data) return
+  setData(data)
+  await router.push({
+    path: '/reimburse',
+    query: {action: 'import'},
+  })
+}</script>

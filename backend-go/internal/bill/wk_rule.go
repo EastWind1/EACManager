@@ -92,7 +92,7 @@ func (r *WKMapRule) CanExcel(rows [][]string) bool {
 	return false
 }
 
-func (r *WKMapRule) MapFromOCR(texts []string) (any, error) {
+func (r *WKMapRule) MapFromTexts(texts []string) (any, error) {
 	if !r.CanOCR(texts) {
 		return nil, nil
 	}
@@ -110,7 +110,7 @@ func matchNumberPattern(s string) bool {
 	return matched
 }
 
-func (r *WKMapRule) MapFromExcel(rows [][]string) (any, error) {
+func (r *WKMapRule) MapFromGrid(rows [][]string) (any, error) {
 	if !r.CanExcel(rows) {
 		return nil, nil
 	}

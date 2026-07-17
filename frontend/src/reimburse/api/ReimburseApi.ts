@@ -26,6 +26,15 @@ const ReimburseApi = {
   },
 
   /**
+   * 导入
+   */
+  async import(file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return await http.postForm<Reimbursement>(`/import`, formData)
+  },
+
+  /**
    * 新建
    * @param reimbursement 单据
    */
