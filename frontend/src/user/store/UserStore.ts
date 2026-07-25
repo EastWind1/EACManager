@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { AuthorityRoleValue, User } from '../model/User.ts'
+import type { AuthorityRoleValue, User } from '../model/User'
 
 /**
  * 用户存储

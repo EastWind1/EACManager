@@ -1,6 +1,6 @@
-import type { Attachment } from '@/attachment/model/Attachment.ts'
-import type { QueryParam } from '@/common/model/QueryParam.ts'
-import type { Company } from '@/company/model/Company.ts'
+import type { Attachment } from '@/attachment/model/Attachment'
+import type { QueryParam } from '@/common/model/QueryParam'
+import type { Company } from '@/company/model/Company'
 
 /**
  * 服务单类型

@@ -59,7 +59,7 @@
 
 <script lang="ts" setup>
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
-import { type ReimburseDetail, type Reimbursement } from '../model/Reimbursement.ts'
+import { type ReimburseDetail, type Reimbursement } from '../model/Reimbursement'
 import { computed, ref, toRefs } from 'vue'
 
 // 表单标题

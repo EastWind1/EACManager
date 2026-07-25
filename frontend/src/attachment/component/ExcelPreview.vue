@@ -1,37 +1,37 @@
 <template>
-    <v-table density="compact" striped="even">
-      <thead>
-        <tr>
-          <th
-            v-for="(header, ci) in headers"
-            :key="`header-${ci}`"
-            :colspan="header.colspan"
-            :rowspan="header.rowspan"
-          >
-            {{ header.value }}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(row, ri) in body" :key="`row-${ri}`">
-          <td
-            v-for="(cell, colIndex) in row"
-            v-show="!cell.hidden"
-            :key="`cell-${colIndex}`"
-            :colspan="cell.colspan"
-            :rowspan="cell.rowspan"
-          >
-            {{ cell.value }}
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
+  <v-table density="compact" striped="even">
+    <thead>
+      <tr>
+        <th
+          v-for="(header, ci) in headers"
+          :key="`header-${ci}`"
+          :colspan="header.colspan"
+          :rowspan="header.rowspan"
+        >
+          {{ header.value }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="(row, ri) in body" :key="`row-${ri}`">
+        <td
+          v-for="(cell, colIndex) in row"
+          v-show="!cell.hidden"
+          :key="`cell-${colIndex}`"
+          :colspan="cell.colspan"
+          :rowspan="cell.rowspan"
+        >
+          {{ cell.value }}
+        </td>
+      </tr>
+    </tbody>
+  </v-table>
 </template>
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
 import { read, utils } from 'xlsx'
-import { useUIStore } from '@/common/store/UIStore.ts'
+import { useUIStore } from '@/common/store/UIStore'
 
 interface Cell {
   value: string

@@ -12,11 +12,11 @@
 
 <script lang="ts" setup>
 // 全局进度条、通知
-import {onMounted, useTemplateRef} from 'vue'
+import { onMounted, useTemplateRef } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useUIStore } from '@/common/store/UIStore.ts'
+import { useUIStore } from '@/common/store/UIStore'
 import NotificationSnackbar from '@/common/component/NotificationSnackbar.vue'
-import ConfirmDialog from "@/common/component/ConfirmDialog.vue";
+import ConfirmDialog from '@/common/component/ConfirmDialog.vue'
 
 const uiStore = useUIStore()
 const { loading } = storeToRefs(uiStore)

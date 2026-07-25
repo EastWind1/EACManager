@@ -46,11 +46,11 @@
 
 <script lang="ts" setup>
 import { RouterView, useRouter } from 'vue-router'
-import {computed, onMounted, ref, useTemplateRef} from 'vue'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { mdiAccount, mdiCash, mdiDomain, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
-import { useUserStore } from '@/user/store/UserStore.ts'
+import { useUserStore } from '@/user/store/UserStore'
 import { useTheme } from 'vuetify/framework'
-import { useUIStore } from '@/common/store/UIStore.ts'
+import { useUIStore } from '@/common/store/UIStore'
 import DatePickerDialog from '@/common/component/DatePickerDialog.vue'
 
 // 左侧抽屉是否显示

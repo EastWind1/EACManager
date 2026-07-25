@@ -22,7 +22,7 @@ const curTitle = ref('选择日期')
 const minDate = ref<Date | undefined>(undefined)
 const maxDate = ref<Date | undefined>(undefined)
 const internalDate = ref<string | number | Date | null>(null)
-let resolveRef: ((value: Date | undefined) => void)
+let resolveRef: (value: Date | undefined) => void
 
 function open(title?: string, min?: Date, max?: Date): Promise<Date | undefined> {
   curTitle.value = title ?? '选择日期'

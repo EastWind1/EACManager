@@ -1,5 +1,5 @@
-import type { ActionsResult } from '@/common/model/ActionsResult.ts'
-import ReimburseApi from '../api/ReimburseApi.ts'
+import type { ActionsResult } from '@/common/model/ActionsResult'
+import ReimburseApi from '../api/ReimburseApi'
 
 /**
  * 报销单操作组合函数

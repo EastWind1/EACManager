@@ -2,14 +2,14 @@ import { createApp } from 'vue'
 
 import './assets/style.css'
 import App from '@/App.vue'
-import router from '@/router.ts'
+import router from '@/router'
 
 import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
 import { zhHans } from 'vuetify/locale'
 import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 import { createPinia } from 'pinia'
-import { useUserStore } from '@/user/store/UserStore.ts'
+import { useUserStore } from '@/user/store/UserStore'
 
 const vuetify = createVuetify({
   // 中文

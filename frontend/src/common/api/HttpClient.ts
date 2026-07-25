@@ -1,4 +1,4 @@
-import { useUIStore } from '@/common/store/UIStore.ts'
+import { useUIStore } from '@/common/store/UIStore'
 import { useRouter } from 'vue-router'
 
 export interface HttpConfig {

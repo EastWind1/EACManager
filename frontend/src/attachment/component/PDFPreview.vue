@@ -1,28 +1,21 @@
 <template>
-  <embed
-    v-if="useNative && src"
-    :key="src"
-    :src="src"
-    type="application/pdf"
-    class="w-100 h-100"
-  />
+  <embed v-if="useNative && src" :key="src" :src="src" type="application/pdf" class="w-100 h-100" />
   <div class="w-100 h-100" v-else>
-    <div class=" overflow-auto">
+    <div class="overflow-auto">
       <canvas ref="canvasRef"></canvas>
     </div>
     <div class="d-flex justify-center align-content-center ga-1">
       <v-btn :icon="mdiMinus" @click="zoomOut" :disabled="scale <= 0.2"></v-btn>
-      <span class="align-content-center">{{Math.round(scale * 100)}}%</span>
+      <span class="align-content-center">{{ Math.round(scale * 100) }}%</span>
       <v-btn :icon="mdiPlus" @click="zoomIn" :disabled="scale >= 2.0"></v-btn>
     </div>
   </div>
-
 </template>
 
 <script lang="ts" setup>
-import {onMounted, onUnmounted, ref, shallowRef, watch} from 'vue'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import {mdiPlus, mdiMinus} from "@mdi/js";
+import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
+import { useUIStore } from '@/common/store/UIStore'
+import { mdiPlus, mdiMinus } from '@mdi/js'
 
 const props = defineProps<{
   src: string
@@ -43,7 +36,7 @@ async function loadPdfjs() {
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
+    import.meta.url,
   ).toString()
 
   return pdfjsLib
@@ -55,7 +48,7 @@ async function renderPage(pageNum: number) {
 
   try {
     const page = await doc.getPage(pageNum)
-    const viewport = page.getViewport({scale: scale.value})
+    const viewport = page.getViewport({ scale: scale.value })
 
     const canvas = canvasRef.value
     canvas.height = viewport.height
@@ -72,10 +65,9 @@ async function renderPage(pageNum: number) {
 }
 
 async function loadPdfWithPdfjs() {
-
   try {
     const pdfjsLib = await loadPdfjs()
-    const loadingTask = pdfjsLib.getDocument({url: props.src})
+    const loadingTask = pdfjsLib.getDocument({ url: props.src })
     const doc = await loadingTask.promise
     pdfjsDoc.value = doc
     totalPages.value = doc.numPages
@@ -119,7 +111,7 @@ watch(
     if (newSrc) {
       loadPdfWithPdfjs()
     }
-  }
+  },
 )
 
 onMounted(() => {
@@ -134,5 +126,4 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

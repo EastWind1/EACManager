@@ -22,7 +22,7 @@ import { ref } from 'vue'
 const show = ref(false)
 const curTitle = ref('')
 const curText = ref('')
-let resolveRef: (value: (boolean | PromiseLike<boolean>)) => void
+let resolveRef: (value: boolean | PromiseLike<boolean>) => void
 
 function open(title: string, text: string): Promise<boolean> {
   curTitle.value = title

@@ -85,13 +85,13 @@
 </template>
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { AuthorityRole, type User } from '../model/User.ts'
+import { AuthorityRole, type User } from '../model/User'
 import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
-import UserApi from '../api/UserApi.ts'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import { useUserStore } from '../store/UserStore.ts'
-import Crypto from '@/common/util/Crypto.ts'
-import type { PageResult } from '@/common/model/PageResult.ts'
+import UserApi from '../api/UserApi'
+import { useUIStore } from '@/common/store/UIStore'
+import { useUserStore } from '../store/UserStore'
+import Crypto from '@/common/util/Crypto'
+import type { PageResult } from '@/common/model/PageResult'
 
 const curUser = useUserStore().getUser()
 // 表头

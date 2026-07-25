@@ -29,12 +29,12 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { mdiAccount, mdiEye, mdiEyeOff, mdiLock } from '@mdi/js'
-import UserApi from '../api/UserApi.ts'
+import UserApi from '../api/UserApi'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import { useUserStore } from '../store/UserStore.ts'
-import Crypto from '@/common/util/Crypto.ts'
+import { useUIStore } from '@/common/store/UIStore'
+import { useUserStore } from '../store/UserStore'
+import Crypto from '@/common/util/Crypto'
 import { useHotkey } from 'vuetify/framework'
 
 const store = useUIStore()

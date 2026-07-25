@@ -61,8 +61,8 @@
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
-import { ServiceBillState, type ServiceBillStateValue } from '@/service-bill/model/ServiceBill.ts'
-import { StatisticApi } from '../api/StatisticApi.ts'
+import { ServiceBillState, type ServiceBillStateValue } from '@/service-bill/model/ServiceBill'
+import { StatisticApi } from '../api/StatisticApi'
 import { useRouter } from 'vue-router'
 import { mdiCash, mdiMonitorDashboard } from '@mdi/js'
 

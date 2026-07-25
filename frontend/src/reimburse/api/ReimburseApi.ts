@@ -1,7 +1,7 @@
-import type { PageResult } from '@/common/model/PageResult.ts'
-import type { ActionsResult } from '@/common/model/ActionsResult.ts'
-import type { Reimbursement, ReimburseQueryParam } from '../model/Reimbursement.ts'
-import { HttpClient } from '@/common/api/HttpClient.ts'
+import type { PageResult } from '@/common/model/PageResult'
+import type { ActionsResult } from '@/common/model/ActionsResult'
+import type { Reimbursement, ReimburseQueryParam } from '../model/Reimbursement'
+import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/reimburse')
 

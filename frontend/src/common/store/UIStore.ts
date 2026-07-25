@@ -1,5 +1,5 @@
-import {ref, shallowRef} from 'vue'
-import {defineStore, type Pinia, type StoreGeneric} from 'pinia'
+import { ref } from 'vue'
+import { defineStore } from 'pinia'
 
 /**
  * 全局 UI
@@ -24,18 +24,21 @@ export const useUIStore = defineStore('uiStore', () => {
     loading.value = false
   }
 
-  const notifyFn = ref<(
+  const notifyFn = ref<
+    (
       msg: string,
-      type: "primary" | "success" | "info" | "warning" | "error",
+      type: 'primary' | 'success' | 'info' | 'warning' | 'error',
       timeout: number,
     ) => void
-    >(() => {})
+  >(() => {})
 
-  function registerNotifyFn(fn: (
-    msg: string,
-    type: "primary" | "success" | "info" | "warning" | "error",
-    timeout: number,
-  ) => void) {
+  function registerNotifyFn(
+    fn: (
+      msg: string,
+      type: 'primary' | 'success' | 'info' | 'warning' | 'error',
+      timeout: number,
+    ) => void,
+  ) {
     notifyFn.value = fn
   }
   /**
@@ -44,7 +47,11 @@ export const useUIStore = defineStore('uiStore', () => {
    * @param text 内容
    * @param timeout 超时
    */
-  function notify(text: string, type: "success" | "info" | "warning" | "primary" | "error",  timeout: number) {
+  function notify(
+    text: string,
+    type: 'success' | 'info' | 'warning' | 'primary' | 'error',
+    timeout: number,
+  ) {
     notifyFn.value(text, type, timeout)
   }
 
@@ -75,9 +82,11 @@ export const useUIStore = defineStore('uiStore', () => {
     notify(message, 'warning', timeout)
   }
 
-  const confirmFn = ref<(title: string, text: string) => Promise<boolean>>(() => new Promise(() => true))
+  const confirmFn = ref<(title: string, text: string) => Promise<boolean>>(
+    () => new Promise(() => true),
+  )
 
-  function registerConfirmFn(fn:(title: string, text: string) => Promise<boolean>) {
+  function registerConfirmFn(fn: (title: string, text: string) => Promise<boolean>) {
     confirmFn.value = fn
   }
 
@@ -91,10 +100,13 @@ export const useUIStore = defineStore('uiStore', () => {
     return confirmFn.value(title, content)
   }
 
+  const datePickerFn = ref<(title?: string, min?: Date, max?: Date) => Promise<Date | undefined>>(
+    () => new Promise(() => undefined),
+  )
 
-  const datePickerFn = ref<(title?: string, min?: Date, max?: Date) => Promise<Date | undefined>>(() => new Promise(() => undefined))
-
-  function registerDatePickerFn(fn: (title?: string, min?: Date, max?: Date) => Promise<Date | undefined>) {
+  function registerDatePickerFn(
+    fn: (title?: string, min?: Date, max?: Date) => Promise<Date | undefined>,
+  ) {
     datePickerFn.value = fn
   }
 

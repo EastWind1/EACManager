@@ -1,5 +1,5 @@
-import type { Attachment } from '../model/Attachment.ts'
-import { HttpClient } from '@/common/api/HttpClient.ts'
+import type { Attachment } from '../model/Attachment'
+import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/attachment')
 

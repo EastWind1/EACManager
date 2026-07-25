@@ -68,7 +68,7 @@
 
 <script lang="ts" setup>
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
-import { type ServiceBill, type ServiceBillDetail } from '../model/ServiceBill.ts'
+import { type ServiceBill, type ServiceBillDetail } from '../model/ServiceBill'
 import { computed, ref, toRefs, watchEffect } from 'vue'
 
 // 表单标题

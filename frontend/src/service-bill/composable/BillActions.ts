@@ -1,6 +1,6 @@
-import { useUIStore } from '@/common/store/UIStore.ts'
-import ServiceBillApi from '../api/ServiceBillApi.ts'
-import type { ActionsResult } from '@/common/model/ActionsResult.ts'
+import { useUIStore } from '@/common/store/UIStore'
+import ServiceBillApi from '../api/ServiceBillApi'
+import type { ActionsResult } from '@/common/model/ActionsResult'
 
 /**
  * 单据操作
@@ -88,7 +88,10 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    const confirmResult = await confirm('确认取消处理完成', `确认取消处理完成 ${ids.length} 条单据？`)
+    const confirmResult = await confirm(
+      '确认取消处理完成',
+      `确认取消处理完成 ${ids.length} 条单据？`,
+    )
     if (!confirmResult) {
       return
     }

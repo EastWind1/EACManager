@@ -1,5 +1,5 @@
-import { type ServiceBillStateValue } from '@/service-bill/model/ServiceBill.ts'
-import { HttpClient } from '@/common/api/HttpClient.ts'
+import { type ServiceBillStateValue } from '@/service-bill/model/ServiceBill'
+import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/statistic')
 

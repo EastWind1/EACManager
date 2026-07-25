@@ -18,9 +18,7 @@
           <!-- 左侧：单号和状态信息 -->
           <v-col cols="12" md="6">
             <v-row>
-              <v-col
-                v-if="serviceBill.state !== ServiceBillState.CREATED.value"
-              >
+              <v-col v-if="serviceBill.state !== ServiceBillState.CREATED.value">
                 <div class="text-caption text-grey-darken-1">单号</div>
                 <div class="text-headline-small text-no-wrap">{{ serviceBill.number }}</div>
               </v-col>
@@ -36,10 +34,10 @@
             <v-row class="justify-end" gap="0">
               <v-btn
                 v-if="
-              serviceBill.id &&
-              (serviceBill.state !== ServiceBillState.FINISHED.value ||
-                userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))
-            "
+                  serviceBill.id &&
+                  (serviceBill.state !== ServiceBillState.FINISHED.value ||
+                    userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))
+                "
                 :disabled="isEditState"
                 color="primary"
                 @click="isEditState = true"
@@ -102,10 +100,10 @@
               >
                 取消完成
               </v-btn>
-              <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit"> 保存</v-btn>
-              <v-btn v-if="isEditState" color="warning" @click="cancel">
-                取消
-              </v-btn>
+              <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit">
+                保存</v-btn
+              >
+              <v-btn v-if="isEditState" color="warning" @click="cancel"> 取消 </v-btn>
             </v-row>
           </v-col>
         </v-row>
@@ -305,17 +303,17 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
-import {type ServiceBill, ServiceBillState, ServiceBillType} from '../model/ServiceBill.ts'
+import { ref } from 'vue'
+import { type ServiceBill, ServiceBillState, ServiceBillType } from '../model/ServiceBill'
 import BillFormDetail from '../component/BillFormDetail.vue'
-import ServiceBillApi from '../api/ServiceBillApi.ts'
-import {storeToRefs} from 'pinia'
+import ServiceBillApi from '../api/ServiceBillApi'
+import { storeToRefs } from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
-import {useRoute, useRouter} from 'vue-router'
-import {useUIStore} from '@/common/store/UIStore.ts'
-import {useRouterStore} from '@/common/store/RouterStore.ts'
-import type {ActionsResult} from '@/common/model/ActionsResult.ts'
-import {useBillActions} from '../composable/BillActions.ts'
+import { useRoute, useRouter } from 'vue-router'
+import { useUIStore } from '@/common/store/UIStore'
+import { useRouterStore } from '@/common/store/RouterStore'
+import type { ActionsResult } from '@/common/model/ActionsResult'
+import { useBillActions } from '../composable/BillActions'
 import {
   mdiFileDocument,
   mdiInformation,
@@ -325,18 +323,18 @@ import {
   mdiPaperclip,
   mdiPhone,
 } from '@mdi/js'
-import {useDate, useDisplay, useHotkey} from 'vuetify/framework'
-import type {Company} from '@/company/model/Company.ts'
-import CompanyApi from '@/company/api/CompanyApi.ts'
-import {useUserStore} from '@/user/store/UserStore.ts'
-import {AuthorityRole} from '@/user/model/User.ts'
+import { useDate, useDisplay, useHotkey } from 'vuetify/framework'
+import type { Company } from '@/company/model/Company'
+import CompanyApi from '@/company/api/CompanyApi'
+import { useUserStore } from '@/user/store/UserStore'
+import { AuthorityRole } from '@/user/model/User'
 
 const store = useUIStore()
-const {loading} = storeToRefs(store)
-const {warning, success} = store
+const { loading } = storeToRefs(store)
+const { warning, success } = store
 const route = useRoute()
 const router = useRouter()
-const {mobile} = useDisplay()
+const { mobile } = useDisplay()
 const dateUtil = useDate()
 const userStore = useUserStore()
 // 页面是否编辑状态
@@ -470,7 +468,7 @@ function callPhone(phone?: string) {
   if (!phone) {
     return
   }
-  const {confirm} = useUIStore()
+  const { confirm } = useUIStore()
   confirm('拨打电话', `是否拨打电话 ${phone}`).then((res) => {
     if (!res) {
       return
@@ -479,7 +477,8 @@ function callPhone(phone?: string) {
   })
 }
 
-const {process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish} = useBillActions(processResult)
+const { process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish } =
+  useBillActions(processResult)
 
 async function removeAndBack(id: number) {
   await remove([id])
@@ -507,7 +506,7 @@ async function init() {
         break
       // 导入
       case 'import':
-        const {getData} = useRouterStore()
+        const { getData } = useRouterStore()
         const data = getData() as ServiceBill
         if (!data) {
           warning('未获取到识别结果')

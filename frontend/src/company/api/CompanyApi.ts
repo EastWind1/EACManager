@@ -1,7 +1,7 @@
-import type { Company } from '../model/Company.ts'
-import type { QueryParam } from '@/common/model/QueryParam.ts'
-import type { PageResult } from '@/common/model/PageResult.ts'
-import { HttpClient } from '@/common/api/HttpClient.ts'
+import type { Company } from '../model/Company'
+import type { QueryParam } from '@/common/model/QueryParam'
+import type { PageResult } from '@/common/model/PageResult'
+import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/company')
 

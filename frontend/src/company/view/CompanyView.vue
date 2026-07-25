@@ -62,13 +62,13 @@
 </template>
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { AuthorityRole } from '@/user/model/User.ts'
+import { AuthorityRole } from '@/user/model/User'
 import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import { useUserStore } from '@/user/store/UserStore.ts'
-import type { Company } from '../model/Company.ts'
-import CompanyApi from '../api/CompanyApi.ts'
-import type { PageResult } from '@/common/model/PageResult.ts'
+import { useUIStore } from '@/common/store/UIStore'
+import { useUserStore } from '@/user/store/UserStore'
+import type { Company } from '../model/Company'
+import CompanyApi from '../api/CompanyApi'
+import type { PageResult } from '@/common/model/PageResult'
 
 // 表头
 const headers = [

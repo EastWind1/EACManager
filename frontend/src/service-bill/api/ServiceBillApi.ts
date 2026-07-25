@@ -1,7 +1,7 @@
-import type { ServiceBill, ServiceBillQueryParam } from '../model/ServiceBill.ts'
-import type { PageResult } from '@/common/model/PageResult.ts'
-import type { ActionsResult } from '@/common/model/ActionsResult.ts'
-import { HttpClient } from '@/common/api/HttpClient.ts'
+import type { ServiceBill, ServiceBillQueryParam } from '../model/ServiceBill'
+import type { PageResult } from '@/common/model/PageResult'
+import type { ActionsResult } from '@/common/model/ActionsResult'
+import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/serviceBill')
 

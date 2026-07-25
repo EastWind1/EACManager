@@ -116,7 +116,6 @@ func ConvertPDFToImage(pdfPath string, target string) error {
 
 // ExtractPDFText 从 PDF 提取文本
 // 重写为基于坐标合并同一行文本块：获取每个字符的精确坐标后，
-// 按 Y（从上到下）排序，Y 相近的归为同一行，再按 X 排序，
 // 根据 X 间距判断是否插入空格，避免 PDF 库将空格分割文本拆分为独立块导致信息丢失。
 func ExtractPDFText(pdfPath string) ([]string, error) {
 	f, r, err := pdf.Open(pdfPath)

@@ -9,7 +9,7 @@
         <v-container>
           <v-row>
             <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.number" clearable label="单号"/>
+              <v-text-field v-model="queryParam.number" clearable label="单号" />
             </v-col>
             <v-col cols="12" md="4" sm="6" xl="3">
               <v-select
@@ -23,7 +23,7 @@
               />
             </v-col>
             <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.projectName" clearable label="项目名称"/>
+              <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
             </v-col>
             <v-col cols="12" md="4" sm="6" xl="3">
               <v-date-input
@@ -162,32 +162,32 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
+import { ref } from 'vue'
 import {
   type ServiceBill,
   type ServiceBillQueryParam,
   ServiceBillState,
   type ServiceBillStateValue,
   ServiceBillType,
-} from '../model/ServiceBill.ts'
-import ServiceBillApi from '../api/ServiceBillApi.ts'
-import type {PageResult} from '@/common/model/PageResult.ts'
-import {useRoute, useRouter} from 'vue-router'
-import {useUIStore} from '@/common/store/UIStore.ts'
-import {useFileSelector} from '@/attachment/composable/FileSelector.ts'
-import type {ActionsResult} from '@/common/model/ActionsResult.ts'
-import {useBillActions} from '../composable/BillActions.ts'
-import {storeToRefs} from 'pinia'
-import {useRouterStore} from '@/common/store/RouterStore.ts'
-import {mdiClose, mdiFilter, mdiInformation, mdiMagnify} from '@mdi/js'
-import {useDate, useHotkey} from 'vuetify/framework'
-import {AuthorityRole} from '@/user/model/User.ts'
+} from '../model/ServiceBill'
+import ServiceBillApi from '../api/ServiceBillApi'
+import type { PageResult } from '@/common/model/PageResult'
+import { useRoute, useRouter } from 'vue-router'
+import { useUIStore } from '@/common/store/UIStore'
+import { useFileSelector } from '@/attachment/composable/FileSelector'
+import type { ActionsResult } from '@/common/model/ActionsResult'
+import { useBillActions } from '../composable/BillActions'
+import { storeToRefs } from 'pinia'
+import { useRouterStore } from '@/common/store/RouterStore'
+import { mdiClose, mdiFilter, mdiInformation, mdiMagnify } from '@mdi/js'
+import { useDate, useHotkey } from 'vuetify/framework'
+import { AuthorityRole } from '@/user/model/User'
 
 const store = useUIStore()
-const {success, warning} = store
-const {loading} = storeToRefs(store)
+const { success, warning } = store
+const { loading } = storeToRefs(store)
 const router = useRouter()
-const {setData} = useRouterStore()
+const { setData } = useRouterStore()
 const dateUtil = useDate()
 
 // 筛选条件区域
@@ -258,13 +258,13 @@ if (route.query.hasOwnProperty('query')) {
 // 数据表格区域
 // 表头
 const headers = [
-  {title: '单号', key: 'number', sortable: false},
-  {title: '状态', key: 'state', sortable: false},
-  {title: '类型', key: 'type', sortable: false},
-  {title: '项目', key: 'projectName', sortable: false},
-  {title: '总金额', key: 'totalAmount', sortable: false},
-  {title: '创建时间', key: 'orderDate', sortable: false},
-  {title: '完工时间', key: 'processedDate', sortable: false},
+  { title: '单号', key: 'number', sortable: false },
+  { title: '状态', key: 'state', sortable: false },
+  { title: '类型', key: 'type', sortable: false },
+  { title: '项目', key: 'projectName', sortable: false },
+  { title: '总金额', key: 'totalAmount', sortable: false },
+  { title: '创建时间', key: 'orderDate', sortable: false },
+  { title: '完工时间', key: 'processedDate', sortable: false },
 ]
 
 // 列表数据
@@ -433,13 +433,6 @@ function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const {
-  process,
-  processed,
-  finish,
-  remove,
-  cancelProcess,
-  cancelProcessed,
-  cancelFinish
-} = useBillActions(processResult)
+const { process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish } =
+  useBillActions(processResult)
 </script>

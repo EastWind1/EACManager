@@ -1,5 +1,5 @@
-import type { Attachment } from '@/attachment/model/Attachment.ts'
-import type { QueryParam } from '@/common/model/QueryParam.ts'
+import type { Attachment } from '@/attachment/model/Attachment'
+import type { QueryParam } from '@/common/model/QueryParam'
 
 /**
  * 报销单据状态
