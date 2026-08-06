@@ -46,10 +46,15 @@ public class ReimburseMapRule implements AttachMapRule<ReimbursementDTO> {
 
         int index = 0;
 
-        // 找到项目表头行索引
+        // 解析表头
         int headerIdx = -1;
         for (int i = 0; i < texts.size(); i++) {
-            if (texts.get(i).contains("项目名称")) {
+            String cur =  texts.get(i);
+            if (cur.contains("开票日期")) {
+                String dateStr = cur.substring(5);
+                dto.setReimburseDate(AttachMapRule.parseDateString(dateStr));
+            }
+            if (cur.contains("项目名称")) {
                 headerIdx = i;
                 index = i;
                 break;

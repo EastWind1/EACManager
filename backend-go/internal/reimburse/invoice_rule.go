@@ -1,6 +1,7 @@
 package reimburse
 
 import (
+	"backend-go/pkg/util"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,9 +41,17 @@ func (r *MapRule) MapFromTexts(texts []string) (any, error) {
 		Details: []DetailDTO{},
 	}
 	index := 0
-	// 找到项目表头行索引
+	// 解析表头
 	headerIdx := -1
 	for i, t := range texts {
+		if strings.Contains(t, "开票日期") {
+			dateStr := string([]rune(t)[5:])
+			date, err := util.ParseDateTime(dateStr)
+			if err == nil {
+				dto.ReimburseDate = date
+			}
+		}
+
 		if strings.Contains(t, "项目名称") {
 			headerIdx = i
 			index = i
@@ -83,8 +92,8 @@ func (r *MapRule) MapFromTexts(texts []string) (any, error) {
 	for i := index; i < len(texts); i++ {
 		t := texts[i]
 		if strings.Contains(t, "价税合计") {
-			if idx := strings.Index(t, "小写）"); idx >= 0 {
-				s := strings.TrimSpace(t[idx+len("小写）"):])
+			if _, after, ok := strings.Cut(t, "小写）"); ok {
+				s := strings.TrimSpace(after)
 				s = strings.TrimLeft(s, "¥￥")
 				if v, err := strconv.ParseFloat(s, 64); err == nil {
 					dto.TotalAmount = v
