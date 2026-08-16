@@ -1,7 +1,9 @@
 import { type ServiceBillStateValue } from '@/service-bill/model/ServiceBill'
+import { type ReimburseStateValue } from '@/reimburse/model/Reimbursement'
 import { HttpClient } from '@/common/api/HttpClient'
 
-const http = new HttpClient('/api/statistic')
+const serviceBillHttp = new HttpClient('/api/serviceBill')
+const reimburseHttp = new HttpClient('/api/reimburse')
 
 /**
  * 统计 API
@@ -11,12 +13,24 @@ export const StatisticApi = {
    * 统计服务单状态数量
    */
   async countBillsByState() {
-    return await http.get<{ [key in ServiceBillStateValue]?: number }>(`/billCountByState`)
+    return await serviceBillHttp.get<{ [key in ServiceBillStateValue]?: number }>(`/countByState`)
   },
   /**
    * 按月统计服务单收入总金额
    */
   async sumTotalAmountByMonth() {
-    return await http.get<{ month: string; amount: number }[]>(`/billTotalAmountGroupByMonth`)
+    return await serviceBillHttp.get<{ month: string; amount: number }[]>(`/totalAmountGroupByMonth`)
+  },
+  /**
+   * 统计报销单状态数量
+   */
+  async countReimbursesByState() {
+    return await reimburseHttp.get<{ [key in ReimburseStateValue]?: number }>(`/countByState`)
+  },
+  /**
+   * 按月统计报销单金额总和
+   */
+  async sumReimburseTotalAmountByMonth() {
+    return await reimburseHttp.get<{ month: string; amount: number }[]>(`/totalAmountGroupByMonth`)
   },
 }

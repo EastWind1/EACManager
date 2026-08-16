@@ -12,8 +12,11 @@ func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Servi
 	reimburseRepo := NewReimburseRepository(ctx.Db)
 	reimburseService := NewService(reimburseRepo, attachSrc, attachMapSrc, ctx.Cache)
 	reimburseController := NewReimburseController(reimburseService)
+	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, reimburseRepo))
 	reimburseGroup := router.Group("/reimburse")
 	{
+		reimburseGroup.Get("/countByState", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), statisticController.CountReimburseByState)
+		reimburseGroup.Get("/totalAmountGroupByMonth", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), statisticController.SumAmountByMonth)
 		reimburseGroup.Post("/query", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.QueryByParam)
 		reimburseGroup.Get("/:id", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.GetByID)
 		reimburseGroup.Post("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Create)

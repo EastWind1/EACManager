@@ -47,7 +47,7 @@
             </v-col>
             <v-spacer></v-spacer>
             <v-col class="d-flex justify-end align-center">
-              <v-btn @click="search = new Date().toString()">
+              <v-btn variant="tonal" @click="search = new Date().toString()">
                 <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
                 查询
               </v-btn>
@@ -65,11 +65,11 @@
       <v-col>
         <v-row class="justify-end" gap="0">
           <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
-          <v-btn :disabled="loading" @click="importFile">导入</v-btn>
-          <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
-          <v-btn :disabled="loading" @click="process(selectedIds)">开始处理</v-btn>
-          <v-btn :disabled="loading" @click="processed(selectedIds)">处理完成</v-btn>
-          <v-btn :disabled="loading" @click="finish(selectedIds)">回款完成</v-btn>
+          <v-btn :disabled="loading" variant="tonal" @click="importFile">导入</v-btn>
+          <v-btn :disabled="loading" variant="tonal" @click="exportToZip">导出</v-btn>
+          <v-btn :disabled="loading" color="primary" @click="process(selectedIds)">开始处理</v-btn>
+          <v-btn :disabled="loading" color="primary" @click="processed(selectedIds)">处理完成</v-btn>
+          <v-btn :disabled="loading" color="primary" @click="finish(selectedIds)">回款完成</v-btn>
           <v-menu location="bottom" v-role="[AuthorityRole.ROLE_ADMIN.value]">
             <template #activator="{ props }">
               <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
@@ -86,7 +86,7 @@
               </v-list-item>
             </v-list>
           </v-menu>
-          <v-btn :disabled="loading" color="red" @click="remove(selectedIds)">删除</v-btn>
+          <v-btn :disabled="loading" color="error" @click="remove(selectedIds)">删除</v-btn>
         </v-row>
       </v-col>
     </v-row>

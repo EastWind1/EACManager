@@ -23,7 +23,7 @@
             <template v-if="isHovering" #actions>
               <v-btn @click="preview(attach)">预览</v-btn>
               <v-btn @click="download(attach)">下载</v-btn>
-              <v-btn :disabled="readonly" color="red" @click="deleteAttach(attach)">删除</v-btn>
+              <v-btn :disabled="readonly" color="error" @click="deleteAttach(attach)">删除</v-btn>
             </template>
           </v-card>
         </v-hover>

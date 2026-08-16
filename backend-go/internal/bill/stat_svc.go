@@ -2,6 +2,7 @@ package bill
 
 import (
 	"backend-go/pkg/cache"
+	"backend-go/pkg/result"
 	"context"
 	"time"
 )
@@ -20,7 +21,7 @@ func NewStatisticService(cache cache.Cache, billRepo *Repository) *StatisticServ
 }
 
 // CountBillsByState 统计不同状态的服务单据数量
-func (s *StatisticService) CountBillsByState(ctx context.Context) (*CountByStateResult, error) {
+func (s *StatisticService) CountBillsByState(ctx context.Context) (*result.CountByStateResult, error) {
 	states := []State{
 		Created,
 		Processing,
@@ -35,9 +36,9 @@ func (s *StatisticService) CountBillsByState(ctx context.Context) (*CountByState
 }
 
 // SumAmountByMonth 按月份统计应收和已收服务单据金额总和
-func (s *StatisticService) SumAmountByMonth(ctx context.Context) ([]MonthSumAmount, error) {
+func (s *StatisticService) SumAmountByMonth(ctx context.Context) ([]result.MonthSumAmount, error) {
 	if value, ok := s.cache.Get("service-bill", "SumAmountByMonth"); ok {
-		return value.([]MonthSumAmount), nil
+		return value.([]result.MonthSumAmount), nil
 	}
 	res, err := s.billRepo.SumReceiveAmountByMonth(ctx)
 	if err != nil {

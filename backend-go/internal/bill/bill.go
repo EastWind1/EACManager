@@ -17,9 +17,13 @@ func Setup(ctx *context.AppContext, router fiber.Router, companySrv *company.Ser
 	attachMapSrv.RegisterRule(wkMapRule)
 	attachMapSrv.RegisterRule(ldMapRule)
 	serviceBillController := NewController(bizSrv)
+	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, serviceBillRepo))
 
 	serviceBillGroup := router.Group("/serviceBill", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser))
 	{
+		serviceBillGroup.Get("/countByState", statisticController.CountBillsByState)
+		serviceBillGroup.Get("/totalAmountGroupByMonth", statisticController.SumAmountByMonth)
+
 		serviceBillGroup.Post("/query", serviceBillController.QueryByParam)
 		serviceBillGroup.Get("/:id", serviceBillController.GetByID)
 		serviceBillGroup.Post("/", serviceBillController.Create)
@@ -33,13 +37,7 @@ func Setup(ctx *context.AppContext, router fiber.Router, companySrv *company.Ser
 		serviceBillGroup.Put("/cancel-processed", auth.RoleMiddleware(auth.RoleAdmin), serviceBillController.CancelProcessed)
 		serviceBillGroup.Put("/cancel-finish", auth.RoleMiddleware(auth.RoleAdmin), serviceBillController.CancelFinish)
 		serviceBillGroup.Post("/export", serviceBillController.Export)
-	}
-	statisticSrv := NewStatisticService(ctx.Cache, serviceBillRepo)
-	statisticController := NewStatisticController(statisticSrv)
-	statisticGroup := router.Group("/statistic", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser))
-	{
-		statisticGroup.Get("/billCountByState", statisticController.CountBillsByState)
-		statisticGroup.Get("/billTotalAmountGroupByMonth", statisticController.SumAmountByMonth)
+
 	}
 }
 

@@ -2,9 +2,9 @@ package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.servicebill.model.MonthSumAmount;
+import pers.eastwind.billmanager.common.model.MonthSumAmount;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillState;
-import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
+import pers.eastwind.billmanager.servicebill.repository.ServiceBillStatisticRepository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -13,11 +13,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
-public class StatisticService {
-    private final ServiceBillRepository serviceBillRepository;
+public class BillStatisticService {
+    private final ServiceBillStatisticRepository serviceBillStatisticRepository;
 
-    public StatisticService(ServiceBillRepository serviceBillRepository) {
-        this.serviceBillRepository = serviceBillRepository;
+    public BillStatisticService(ServiceBillStatisticRepository serviceBillStatisticRepository) {
+        this.serviceBillStatisticRepository = serviceBillStatisticRepository;
     }
 
     /**
@@ -27,7 +27,7 @@ public class StatisticService {
      */
     @Cacheable(value = "serviceBill_statistic", key = "'countBillsByState'")
     public Map<ServiceBillState, Long> countBillsByState() {
-        List<Object[]> results = serviceBillRepository.countByState();
+        List<Object[]> results = serviceBillStatisticRepository.countByState();
         Map<ServiceBillState, Long> stateCountMap = new HashMap<>();
 
         for (Object[] result : results) {
@@ -49,7 +49,7 @@ public class StatisticService {
     public List<MonthSumAmount> sumReceiveAmountByMonth() {
 
         Instant preYear = Instant.now().minus(365, ChronoUnit.DAYS);
-        List<Object[]> results = serviceBillRepository.sumAmountByStateGroupByMonth(
+        List<Object[]> results = serviceBillStatisticRepository.sumAmountByStateGroupByMonth(
                 List.of(ServiceBillState.PROCESSED, ServiceBillState.FINISHED),
                 preYear, Instant.now());
         List<MonthSumAmount> rows = new ArrayList<>();

@@ -18,6 +18,10 @@ const (
 	Finished
 )
 
+func (s *State) String() string {
+	return []string{"CREATED", "PROCESSING", "FINISHED"}[*s]
+}
+
 func (s *State) MarshalJSON() ([]byte, error) {
 	str := ""
 	switch *s {

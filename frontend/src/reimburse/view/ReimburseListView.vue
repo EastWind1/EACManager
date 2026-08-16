@@ -36,7 +36,7 @@
               <v-text-field v-model="queryParam.summary" clearable label="摘要" />
             </v-col>
             <v-col class="d-flex justify-end align-center">
-              <v-btn @click="search = new Date().toString()">
+              <v-btn variant="tonal" @click="search = new Date().toString()">
                 <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
                 查询
               </v-btn>
@@ -63,7 +63,7 @@
           <v-btn
             v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
             :disabled="loading"
-            color="primary"
+            variant="tonal"
             @click="importFile"
             >导入
           </v-btn>
@@ -71,12 +71,14 @@
           <v-btn
             v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
             :disabled="loading"
+            color="primary"
             @click="process(selectedIds)"
             >提交
           </v-btn>
           <v-btn
             v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
             :disabled="loading"
+            color="primary"
             @click="finish(selectedIds)"
             >完成
           </v-btn>
@@ -100,7 +102,7 @@
             @click="remove(selectedIds)"
             >删除
           </v-btn>
-          <v-btn :disabled="loading" @click="exportToZip">导出</v-btn>
+          <v-btn :disabled="loading" variant="tonal" @click="exportToZip">导出</v-btn>
         </v-row>
       </v-col>
     </v-row>
@@ -175,7 +177,7 @@ import {
 } from '../model/Reimbursement'
 import ReimburseApi from '../api/ReimburseApi'
 import type { PageResult } from '@/common/model/PageResult'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/common/store/UIStore'
 import type { ActionsResult } from '@/common/model/ActionsResult'
 import { storeToRefs } from 'pinia'
@@ -235,10 +237,17 @@ const queryParam = ref<QueryParam>({
   ],
 })
 
-// 尝试从缓存恢复查询条件
-const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
-if (cache) {
-  Object.assign(queryParam.value, JSON.parse(cache))
+// 处理路由参数
+const route = useRoute()
+if (route.query.hasOwnProperty('query')) {
+  const data = JSON.parse(route.query['query'] as string) as QueryParam
+  Object.assign(queryParam.value, data)
+} else {
+  // 尝试从缓存恢复查询条件
+  const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
+  if (cache) {
+    Object.assign(queryParam.value, JSON.parse(cache))
+  }
 }
 // 搜索快捷键
 useHotkey('enter', () => (search.value = new Date().toString()))

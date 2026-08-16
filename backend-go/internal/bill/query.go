@@ -16,23 +16,6 @@ type ServiceBillQueryParam struct {
 	result.QueryParam
 }
 
-type YearMonthSumAmount struct {
-	Year   int
-	Month  int
-	Amount float64
-}
-
-type MonthSumAmount struct {
-	Month  string  `json:"month"`
-	Amount float64 `json:"amount"`
-}
-
-type CountByStateRow struct {
-	State int
-	Count int
-}
-type CountByStateResult map[string]int
-
 type ProcessedParam struct {
 	Ids           []uint     `json:"ids"`
 	ProcessedDate *time.Time `json:"processedDate"`

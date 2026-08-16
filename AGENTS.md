@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to agents when working with code in this repository.
 
 ## Project Overview
 
@@ -15,7 +15,7 @@ Same DB schema and frontend for both — swap via `docker-compose-java.yml` / `d
 
 Both backends share identical layered structure: `controller` → `service` → `repository` → `model`. API prefix `/api`, response wrapper `{code, message, data}`, biz exceptions for errors. Java uses MapStruct for DTO mapping, Go uses manual conversion.
 
-**Feature modules:** `user` (login/JWT/cookie `X-Auth-Token`), `company`, `servicebill` (work orders with lifecycle), `reimburse` (expense reports), `attach` (file upload/OCR), `statistic` (dashboard).
+**Feature modules:** `user` (login/JWT/cookie `X-Auth-Token`), `company`, `servicebill` (work orders with lifecycle + statistics), `reimburse` (expense reports + statistics), `attach` (file upload/OCR). Statistics APIs live under each business module (no standalone statistic module); the frontend dashboard lives under `frontend/src/statistic/`.
 
 **Frontend:** Vue 3 + Vuetify 4 + Pinia + Vue Router 5. Each module has `api/`, `model/`, `view/`, `component/`, `composable/`, `store/`. HttpClient wraps `fetch()` with request dedup, 401→redirect, and loading bar. Custom `v-role` directive for RBAC. Routes: `/login`, `/dashboard`, `/user`, `/company`, `/services`, `/service/:id?`, `/reimburses`, `/reimburse/:id?`.
 
@@ -166,6 +166,8 @@ All under `/api/`. Response: `{ "code": 0, "message": "success", "data": ... }`.
 | PUT | `/cancel-processed` | Yes | PROCESSED → PROCESSING (batch) |
 | PUT | `/cancel-finish` | Yes | FINISHED → PROCESSED (batch) |
 | POST | `/export` | Yes | Export to Excel (with attachments in zip) |
+| GET | `/countByState` | Yes | Count bills grouped by state |
+| GET | `/totalAmountGroupByMonth` | Yes | Monthly amount summary (by processedDate) |
 
 ### Reimbursement (`/api/reimburse`)
 
@@ -181,6 +183,8 @@ All under `/api/`. Response: `{ "code": 0, "message": "success", "data": ... }`.
 | PUT | `/cancel-process` | Yes | Revert: PROCESSING → CREATED |
 | PUT | `/cancel-finish` | Yes | Revert: FINISHED → PROCESSING |
 | POST | `/export` | Yes | Export to Excel |
+| GET | `/countByState` | Yes | Count reimbursements grouped by state |
+| GET | `/totalAmountGroupByMonth` | Yes | Monthly amount summary (by reimburseDate) |
 
 ### Attachment (`/api/attachment`)
 
@@ -190,13 +194,6 @@ All under `/api/`. Response: `{ "code": 0, "message": "success", "data": ... }`.
 | GET | `/download/:id` | Yes | Download by ID |
 | DELETE | `/` | Yes | Delete attachments |
 | POST | `/ocr` | Yes | OCR a file |
-
-### Statistic (`/api/statistic`)
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/countByState` | Yes | Count bills grouped by state |
-| GET | `/sumAmountByMonth` | Yes | Monthly amount summary |
 
 ## Key Technologies
 
@@ -220,8 +217,8 @@ backend-java/src/main/java/pers/eastwind/billmanager/
   common/  — Result, PageResult, QueryParam, AuthorityRole, ControllerAdvice, BaseRepository
   user/    — JWTTokenFilter, SecurityConfig, UserService, JWTUtil
   company/ — CompanyService, CompanyRepository
-  servicebill/ — ServiceBillBizService, ServiceBillIOService, StatisticService
-  reimburse/   — ReimburseService
+  servicebill/ — ServiceBillBizService, ServiceBillIOService, StatisticService (+ StatisticController)
+  reimburse/   — ReimburseService, StatisticService (+ StatisticController)
   attach/  — AttachmentService, AttachMapService, OCRService, FileTxUtil
 
 backend-go/
@@ -234,6 +231,9 @@ backend-go/
     service.go                       — Business logic
     store.go                         — GORM queries
     model.go                         — Types and DTOs
+    stat_model.go                    — Statistics DTOs (per business module)
+    stat_store.go                    — Statistics GORM queries (per business module)
+    statsvc.go / stat_handler.go     — Statistics service + HTTP handlers (bill, reimburse)
   internal/pkg/                      — cache, database, errs, middleware, result, auth, util
   test/                              — testify/suite integration tests
   config/config.yaml                 — Runtime config
