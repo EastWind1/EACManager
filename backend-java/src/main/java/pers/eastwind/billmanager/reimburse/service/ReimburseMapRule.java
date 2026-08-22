@@ -49,7 +49,7 @@ public class ReimburseMapRule implements AttachMapRule<ReimbursementDTO> {
         // 解析表头
         int headerIdx = -1;
         for (int i = 0; i < texts.size(); i++) {
-            String cur =  texts.get(i);
+            String cur = texts.get(i);
             if (cur.contains("开票日期")) {
                 String dateStr = cur.substring(5);
                 dto.setReimburseDate(AttachMapRule.parseDateString(dateStr));

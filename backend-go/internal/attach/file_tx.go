@@ -1,7 +1,6 @@
 package attach
 
 import (
-	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"fmt"
 	"os"
@@ -45,7 +44,7 @@ func validTarget(target string, exist bool) error {
 	}
 	return nil
 }
-func execSingleOp(cache cache.Cache, op *FileOp) (*FileOp, error) {
+func execSingleOp(op *FileOp) (*FileOp, error) {
 	if op == nil {
 		return nil, errs.NewFileOpError("操作为空", "")
 	}
@@ -63,7 +62,7 @@ func execSingleOp(cache cache.Cache, op *FileOp) (*FileOp, error) {
 			break
 		}
 		res = op
-	case FileOpCopy:
+	case FileOpCopy, FileOpMove:
 		if err = validSrc(op.Origin); err != nil {
 			break
 		}
@@ -73,22 +72,14 @@ func execSingleOp(cache cache.Cache, op *FileOp) (*FileOp, error) {
 		if err = CreateParentDirs(op.Target); err != nil {
 			break
 		}
-		if err = CopyFile(op.Origin, op.Target); err != nil {
-			break
-		}
-		res = op
-	case FileOpMove:
-		if err = validSrc(op.Origin); err != nil {
-			break
-		}
-		if err = validTarget(op.Target, false); err != nil {
-			break
-		}
-		if err = CreateParentDirs(op.Target); err != nil {
-			break
-		}
-		if err = MoveFile(op.Origin, op.Target); err != nil {
-			break
+		if op.Type == FileOpCopy {
+			if err = CopyFile(op.Origin, op.Target); err != nil {
+				break
+			}
+		} else {
+			if err = MoveFile(op.Origin, op.Target); err != nil {
+				break
+			}
 		}
 		res = op
 	case FileOpDelete:
@@ -102,7 +93,6 @@ func execSingleOp(cache cache.Cache, op *FileOp) (*FileOp, error) {
 		if err != nil {
 			break
 		}
-		RegisterTempFile(cache, tempFile.Name())
 		defer tempFile.Close()
 		if err = MoveFile(op.Target, tempFile.Name()); err != nil {
 			break
@@ -122,7 +112,7 @@ func execSingleOp(cache cache.Cache, op *FileOp) (*FileOp, error) {
 }
 
 // Exec 执行文件操作
-func Exec(cache cache.Cache, ops []FileOp) error {
+func Exec(ops []FileOp) error {
 	if len(ops) == 0 {
 		return nil
 	}
@@ -131,7 +121,7 @@ func Exec(cache cache.Cache, ops []FileOp) error {
 	var err error
 	for _, op := range ops {
 		var execOp *FileOp
-		execOp, err = execSingleOp(cache, &op)
+		execOp, err = execSingleOp(&op)
 		if err != nil {
 			break
 		}

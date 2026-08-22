@@ -44,7 +44,7 @@ func (s *MapService) MapTo(attach *AttachmentDTO) (any, error) {
 	if attach == nil {
 		return nil, errs.NewBizError("附件为空")
 	}
-	path, err := s.attachService.GetAbsolutePath(attach.RelativePath, attach.Temp)
+	path, err := s.attachService.GetAbsolutePathById(nil, attach.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (s *MapService) MapTo(attach *AttachmentDTO) (any, error) {
 		var texts []string
 		texts, err = ExtractPDFText(path)
 		if err != nil || len(texts) == 0 {
-			target, err := s.attachService.CreateTempFile(s.cache, "", ".jpg")
+			target, err := s.attachService.CreateTempFile("", ".jpg")
 			if err != nil {
 				return nil, err
 			}

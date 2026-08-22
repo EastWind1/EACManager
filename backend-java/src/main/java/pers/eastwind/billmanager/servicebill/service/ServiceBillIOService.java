@@ -2,10 +2,7 @@ package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
-import pers.eastwind.billmanager.attach.model.BillType;
-import pers.eastwind.billmanager.attach.model.FileOp;
-import pers.eastwind.billmanager.attach.model.FileOpType;
+import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.service.AttachMapService;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
@@ -95,9 +92,9 @@ public class ServiceBillIOService {
             Path curDir = tempPath.resolve(serviceBill.getNumber());
 
             // 拷贝当前单据所有附件
-            List<AttachmentDTO> attachments = attachmentService.getByBill(serviceBill.getId(), BillType.SERVICE_BILL);
-            for (AttachmentDTO attachment : attachments) {
-                Path origin = attachmentService.getRootPath().resolve(attachment.getRelativePath());
+            List<Attachment> attachments = attachmentService.getByBill(serviceBill.getId(), BillType.SERVICE_BILL);
+            for (Attachment attachment : attachments) {
+                Path origin = attachmentService.getAbsolutePathByRela(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());
                 // 处理可能的重名
                 int repeatCount = 1;

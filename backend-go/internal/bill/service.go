@@ -378,7 +378,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 	}
 
 	// 创建临时目录
-	tempDir, err := s.attachSrv.CreateTempDir(s.cache, "export")
+	tempDir, err := s.attachSrv.CreateTempDir("export")
 	if err != nil {
 		return "", err
 	}
@@ -424,7 +424,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 		curDir := filepath.Join(tempDir, bill.Number)
 		for _, attachment := range attachments {
 			// 获取原始附件路径
-			originPath, err := s.attachSrv.GetAbsolutePath(attachment.RelativePath, false)
+			originPath, err := s.attachSrv.GetAbsolutePathByRela(attachment.RelativePath)
 			if err != nil {
 				return "", err
 			}
@@ -456,7 +456,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 		return "", errs.NewBizError("生成Excel失败: " + err.Error())
 	}
 
-	if err = attach.Exec(s.cache, ops); err != nil {
+	if err = attach.Exec(ops); err != nil {
 		return "", errs.NewBizError("文件操作失败: " + err.Error())
 	}
 	zipPath, err := attach.Zip(tempDir, "")

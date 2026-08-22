@@ -32,7 +32,7 @@ func Run() {
 		JSONEncoder:  sonic.Marshal,
 		JSONDecoder:  sonic.Unmarshal,
 		ErrorHandler: middleware.ErrorHandler(),
-		BodyLimit:    30 * 1024 * 1024,
+		BodyLimit:    int(cfg.Attachment.MaxFileSize),
 	})
 	ctx.Server = server
 	// 初始化日志

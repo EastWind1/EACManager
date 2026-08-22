@@ -97,14 +97,18 @@ type DetailDTO struct {
 }
 
 // ToDTO 转换为详细 DTO
-func (r *Reimbursement) ToDTO(attaches []attach.AttachmentDTO) *DTO {
+func (r *Reimbursement) ToDTO(attaches []attach.Attachment) *DTO {
 	details := make([]DetailDTO, len(r.Details))
 	for i, d := range r.Details {
 		details[i] = *d.ToDTO()
 	}
+	attachDTOes := make([]attach.AttachmentDTO, len(attaches))
+	for i, d := range attaches {
+		attachDTOes[i] = *d.ToDTO()
+	}
 	base := r.ToBaseDTO()
 	base.Details = details
-	base.Attachments = attaches
+	base.Attachments = attachDTOes
 	return base
 }
 

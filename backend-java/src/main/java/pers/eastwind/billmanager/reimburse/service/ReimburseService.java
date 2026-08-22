@@ -7,29 +7,19 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.attach.model.Attachment;
 import pers.eastwind.billmanager.attach.model.BillType;
-import pers.eastwind.billmanager.attach.model.FileOp;
-import pers.eastwind.billmanager.attach.model.FileOpType;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
-import pers.eastwind.billmanager.attach.util.FileTxUtil;
-import pers.eastwind.billmanager.attach.util.FileUtil;
-import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.reimburse.model.*;
 import pers.eastwind.billmanager.reimburse.repository.ReimburseRepository;
 
-import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 报销单服务
@@ -63,7 +53,7 @@ public class ReimburseService {
         if (bill == null) {
             throw new BizException("单据不存在");
         }
-        List<AttachmentDTO> attachments = attachmentService.getByBill(id, BillType.REIMBURSEMENT);
+        List<Attachment> attachments = attachmentService.getByBill(id, BillType.REIMBURSEMENT);
         return reimburseMapper.toDTO(bill, attachments);
     }
 

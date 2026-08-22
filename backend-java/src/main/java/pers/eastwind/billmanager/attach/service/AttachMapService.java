@@ -35,7 +35,7 @@ public class AttachMapService {
      */
     @SuppressWarnings("unchecked")
     public <T> T map(AttachmentDTO attachment) {
-        Path path = attachmentService.getAbsolutePath(Path.of(attachment.getRelativePath()), attachment.isTemp());
+        Path path = attachmentService.getAbsolutePathById(attachment.getId());
         switch (attachment.getType()) {
             case IMAGE -> {
                 List<String> texts = ocrService.parseImage(path);

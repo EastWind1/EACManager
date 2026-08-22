@@ -10,7 +10,7 @@ spring:
     password: ${DB_PASSWORD}
   servlet:
     multipart:
-      max-file-size: 50MB
+      max-file-size: 5MB
 # 自定义配置
 config:
   # 附件

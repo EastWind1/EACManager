@@ -17,6 +17,6 @@ jwt:
   expire: 604800
 attachment:
   path: attachment
-  maxFileSize: 52428800
+  maxFileSize: 5242880
 ocr:
   url:

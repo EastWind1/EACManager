@@ -95,11 +95,11 @@ const previewInfo = ref<{
   // 对象 URL
   objectUrl: string
 }>({
-  attachment: { id: 0, name: '', relativePath: '', type: AttachmentType.OTHER.value },
+  attachment: { id: 0, name: '', type: AttachmentType.OTHER.value },
   objectUrl: '',
 })
 // 文件缓存，避免多次从服务器获取同一文件
-const fileCache = new Map<string, string>()
+const fileCache = new Map<number, string>()
 // 销毁时释放缓存
 onUnmounted(() => {
   fileCache.forEach((value) => {
@@ -118,12 +118,12 @@ async function download(attach: Attachment) {
   }
 
   const a = document.createElement('a')
-  if (fileCache.has(attach.relativePath)) {
-    a.href = fileCache.get(attach.relativePath)!
+  if (fileCache.has(attach.id)) {
+    a.href = fileCache.get(attach.id)!
   } else {
     const data = await AttachmentApi.download(attach)
     const url = URL.createObjectURL(data)
-    fileCache.set(attach.relativePath, url)
+    fileCache.set(attach.id, url)
     a.href = url
   }
 
@@ -146,12 +146,12 @@ async function preview(attach: Attachment) {
     return
   }
   // 若本地没有，先尝试下载
-  if (fileCache.has(attach.relativePath)) {
-    previewInfo.value.objectUrl = fileCache.get(attach.relativePath)!
+  if (fileCache.has(attach.id)) {
+    previewInfo.value.objectUrl = fileCache.get(attach.id)!
   } else {
     const data = await AttachmentApi.download(attach)
     const url = URL.createObjectURL(data)
-    fileCache.set(attach.relativePath, url)
+    fileCache.set(attach.id, url)
     previewInfo.value.objectUrl = url
   }
 

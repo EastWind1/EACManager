@@ -164,15 +164,18 @@ type ServiceBillDetailDTO struct {
 	Remark    string  `json:"remark"`
 }
 
-func (s *ServiceBill) ToDTO(attaches []attach.AttachmentDTO) *ServiceBillDTO {
+func (s *ServiceBill) ToDTO(attaches []attach.Attachment) *ServiceBillDTO {
 	details := make([]ServiceBillDetailDTO, len(s.Details))
 	for i, d := range s.Details {
 		details[i] = *d.ToDTO()
 	}
-
+	attachDTOes := make([]attach.AttachmentDTO, len(attaches))
+	for i, d := range attaches {
+		attachDTOes[i] = *d.ToDTO()
+	}
 	dto := s.ToBaseDTO()
 	dto.Details = details
-	dto.Attachments = attaches
+	dto.Attachments = attachDTOes
 	return dto
 }
 

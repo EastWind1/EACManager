@@ -2,7 +2,6 @@ package attach
 
 import (
 	"archive/zip"
-	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"io"
 	"math"
@@ -188,7 +187,7 @@ type UploadResult struct {
 }
 
 // Upload 上传单个文件
-func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string) (*UploadResult, error) {
+func Upload(fileHeader *multipart.FileHeader, tempDirPath string) (*UploadResult, error) {
 	if fileHeader == nil {
 		return nil, errs.NewFileOpError("文件为空", "")
 	}
@@ -213,7 +212,6 @@ func Upload(c cache.Cache, fileHeader *multipart.FileHeader, tempDirPath string)
 	if err != nil {
 		return nil, errs.NewFileOpError("创建文件失败", "", err)
 	}
-	RegisterTempFile(c, targetFile.Name())
 	defer targetFile.Close()
 	_, err = io.Copy(targetFile, file)
 	if err != nil {

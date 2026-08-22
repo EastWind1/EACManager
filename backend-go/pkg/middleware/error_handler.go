@@ -34,11 +34,8 @@ func ErrorHandler() fiber.ErrorHandler {
 		}
 
 		// 其他未处理异常
-		if internalErr, ok := errors.AsType[*fiber.Error](err); ok {
-			return c.Status(internalErr.Code).JSON(result.Error[any](internalErr.Message))
-		}
 		log.Errorf("%+v", err)
 		debug.PrintStack()
-		return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any]("服务器内部错误"))
+		return c.Status(500).JSON(result.Error[any]("内部异常"))
 	}
 }

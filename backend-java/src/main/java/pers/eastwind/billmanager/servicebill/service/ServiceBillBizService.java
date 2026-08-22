@@ -13,7 +13,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.attach.model.Attachment;
 import pers.eastwind.billmanager.attach.model.BillType;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.common.exception.BizException;
@@ -72,7 +72,7 @@ public class ServiceBillBizService {
         if (bill == null) {
             throw new BizException("单据不存在");
         }
-        List<AttachmentDTO> attachments = attachmentService.getByBill(
+        List<Attachment> attachments = attachmentService.getByBill(
                 bill.getId(),
                 BillType.SERVICE_BILL
         );
@@ -305,16 +305,16 @@ public class ServiceBillBizService {
                 param.getSorts() == null
                         ? List.of(Sort.Order.desc("orderDate"))
                         : param
-                          .getSorts()
-                          .stream()
-                          .map(sortParam ->
-                                  Sort.Order.by(sortParam.getField()).with(
-                                          Sort.Direction.fromString(
-                                                  sortParam.getDirection()
-                                          )
-                                  )
-                          )
-                          .toList();
+                        .getSorts()
+                        .stream()
+                        .map(sortParam ->
+                                Sort.Order.by(sortParam.getField()).with(
+                                        Sort.Direction.fromString(
+                                                sortParam.getDirection()
+                                        )
+                                )
+                        )
+                        .toList();
         Pageable pageable = PageRequest.of(
                 pageIndex,
                 pageSize,
@@ -455,7 +455,8 @@ public class ServiceBillBizService {
 
     /**
      * 批量更改为完成
-     * @param ids 单据 ID
+     *
+     * @param ids          单据 ID
      * @param finishedDate 完成时间
      */
     @Caching(

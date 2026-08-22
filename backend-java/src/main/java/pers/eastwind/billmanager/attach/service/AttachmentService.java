@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.attach.config.AttachConfigProperties;
@@ -19,10 +20,7 @@ import pers.eastwind.billmanager.common.exception.FileOpException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 附件服务
@@ -35,6 +33,7 @@ public class AttachmentService implements InitializingBean {
     private final AttachmentRepository attachmentRepository;
     private final BillAttachRelationRepository billAttachRelationRepository;
     private final AttachmentMapper attachmentMapper;
+    private final Map<Integer, String> tempFiles;
     /**
      * 根目录
      */
@@ -51,6 +50,7 @@ public class AttachmentService implements InitializingBean {
         this.attachmentRepository = attachmentRepository;
         this.billAttachRelationRepository = billAttachRelationRepository;
         this.attachmentMapper = attachmentMapper;
+        tempFiles = new HashMap<>();
     }
 
     /**
@@ -100,73 +100,59 @@ public class AttachmentService implements InitializingBean {
     }
 
     /**
-     * 校验绝对路径
-     */
-    private void validAbsolutePath(Path path, boolean isTemp) {
-        path = path.normalize();
-        if (isTemp) {
-            if (!path.startsWith(tempPath)) {
-                throw new BizException("非法路径");
-            }
-        } else {
-            if (!path.startsWith(rootPath)) {
-                throw new BizException("非法路径");
-            }
-        }
-    }
-
-    /**
-     * 获取绝对路径
+     * 根据相对路径获取文件绝对路径
      *
      * @param relativePath 相对路径
      * @return 绝对路径
      */
-    public Path getAbsolutePath(Path relativePath, boolean isTemp) {
-        if (relativePath == null) {
-            throw new BizException("路径不能为空");
+    public Path getAbsolutePathByRela(String relativePath) {
+        if (relativePath == null || relativePath.isEmpty()) {
+            throw new BizException("路径为空");
         }
-        // 去除头部的斜杠
-        if (relativePath.startsWith("/")) {
-            relativePath = Path.of(relativePath.toString().substring(1));
+        Path path = rootPath.resolve(relativePath).normalize();
+        if (!path.startsWith(rootPath)) {
+            throw new BizException("非法路径");
         }
-        Path absolutePath = isTemp ? tempPath.resolve(relativePath).normalize() : rootPath.resolve(relativePath).normalize();
-        validAbsolutePath(absolutePath, isTemp);
-        return absolutePath;
+        return path;
     }
 
+
     /**
-     * 获取相对路径
+     * 根据 ID 获取文件绝对路径
      *
-     * @param absolutePath 绝对路径
-     * @return 相对路径
+     * @param id 文件 ID
+     * @return 绝对路径
      */
-    public Path getRelativePath(Path absolutePath, boolean isTemp) {
-        if (absolutePath == null) {
-            throw new BizException("路径不能为空");
+    public Path getAbsolutePathById(Integer id) {
+        if (id == null) {
+            throw new BizException("附件 ID 不能为空");
         }
-        validAbsolutePath(absolutePath, isTemp);
-        return isTemp ? tempPath.relativize(absolutePath).normalize() : rootPath.relativize(absolutePath).normalize();
+        if (id < 0) {
+            if (!tempFiles.containsKey(id)) {
+                throw new BizException("文件不存在");
+            }
+            Path path = Path.of(tempFiles.get(id));
+            if (!path.startsWith(tempPath)) {
+                throw new BizException("非法路径");
+            }
+            return path;
+        }
+        var attach = attachmentRepository.findById(id);
+        if (attach.isEmpty()) {
+            throw new BizException("附件不存在");
+        }
+        Path path = rootPath.resolve(attach.get().getRelativePath()).normalize();
+        if (!path.startsWith(rootPath)) {
+            throw new BizException("非法路径");
+        }
+        return path;
     }
 
     /**
      * 获取 Resource
      */
     public Resource getResource(AttachmentDTO attachmentDTO) {
-        Path path;
-        if (attachmentDTO.isTemp()) {
-            path = getAbsolutePath(Path.of(attachmentDTO.getRelativePath()), true);
-        } else {
-            if (attachmentDTO.getId() == null) {
-                throw new BizException("附件 ID 不能为空");
-            }
-            var attach = attachmentRepository.findById(attachmentDTO.getId());
-            if (attach.isEmpty()) {
-                throw new BizException("附件不存在");
-            }
-            path = getAbsolutePath(Path.of(attach.get().getRelativePath()), false);
-        }
-
-        validAbsolutePath(path, attachmentDTO.isTemp());
+        Path path = getAbsolutePathById(attachmentDTO.getId());
         if (!Files.exists(path)) {
             throw new BizException("文件不存在");
         }
@@ -180,11 +166,13 @@ public class AttachmentService implements InitializingBean {
         List<AttachmentDTO> res = new ArrayList<>();
         for (Resource resource : resources) {
             var file = FileUtil.upload(resource, tempPath);
+
             AttachmentDTO attachment = new AttachmentDTO();
+            int id = (int) (-Math.random() * 10000);
+            attachment.setId(id);
+            tempFiles.put(id, file.path().toString());
             attachment.setName(file.filename());
             attachment.setType(file.type());
-            attachment.setTemp(true);
-            attachment.setRelativePath(getRelativePath(file.path(), true).toString());
             res.add(attachment);
         }
         return res;
@@ -197,14 +185,14 @@ public class AttachmentService implements InitializingBean {
      * @param billType 单据类型
      * @return 业务单据附件
      */
-    public List<AttachmentDTO> getByBill(Integer billId, BillType billType) {
+    public List<Attachment> getByBill(Integer billId, BillType billType) {
         if (billType == null) {
             throw new BizException("单据类型不能为空");
         }
         if (billId == null) {
             throw new BizException("单据 ID 不能为空");
         }
-        return attachmentRepository.findByBill(billId, billType).stream().map(attachmentMapper::toDTO).toList();
+        return attachmentRepository.findByBill(billId, billType);
     }
 
     /**
@@ -226,11 +214,11 @@ public class AttachmentService implements InitializingBean {
         List<FileOp> ops = new ArrayList<>();
         for (AttachmentDTO attachmentDTO : attachmentDTOs) {
             // 新增
-            if (attachmentDTO.getId() == null) {
+            if (attachmentDTO.getId() < 0) {
                 Attachment addAttach = attachmentMapper.toEntity(attachmentDTO);
-                Path originPath = getAbsolutePath(Path.of(attachmentDTO.getRelativePath()), attachmentDTO.isTemp());
+                Path originPath = getAbsolutePathById(attachmentDTO.getId());
                 Path targetRelativePath = Path.of(billType.name()).resolve(billNumber).resolve(System.currentTimeMillis() + "-" + addAttach.getName());
-                Path targetPath = getAbsolutePath(targetRelativePath, false);
+                Path targetPath = rootPath.resolve(originPath).normalize();
                 // 设置业务单据关联关系
                 addAttach.setRelativePath(targetRelativePath.toString());
                 addAttach = attachmentRepository.save(addAttach);
@@ -251,11 +239,16 @@ public class AttachmentService implements InitializingBean {
             if (removeIds.contains(billAttachRelation.getAttach().getId())) {
                 attachmentRepository.deleteById(billAttachRelation.getAttach().getId());
                 billAttachRelationRepository.deleteById(billAttachRelation.getId());
-                Path targetPath = getAbsolutePath(Path.of(billAttachRelation.getAttach().getRelativePath()), false);
+                Path targetPath = getAbsolutePathById(billAttachRelation.getAttach().getId());
                 ops.add(new FileOp(FileOpType.DELETE, null, targetPath));
             }
         }
 
         FileTxUtil.exec(ops);
+    }
+
+    @Scheduled(cron = "0 0 2 * * *")
+    public void cleanTempFiles() {
+        tempFiles.entrySet().removeIf(entry -> !Files.exists(Path.of(entry.getValue())));
     }
 }

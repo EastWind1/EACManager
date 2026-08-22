@@ -1,4 +1,5 @@
 package pers.eastwind.billmanager.user.util;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
@@ -18,7 +19,7 @@ public class JWTUtil {
     /**
      * 生成 TOKEN
      *
-     * @param secret 密钥
+     * @param secret   密钥
      * @param userName 用户名
      * @param subject  摘要
      * @return TOKEN

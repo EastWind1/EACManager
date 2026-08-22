@@ -17,10 +17,13 @@ import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.AuthorityRole;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
-import pers.eastwind.billmanager.user.config.UserProperties;
-import pers.eastwind.billmanager.user.model.*;
-import pers.eastwind.billmanager.user.repository.UserRepository;
 import pers.eastwind.billmanager.common.util.AuthUtil;
+import pers.eastwind.billmanager.user.config.UserProperties;
+import pers.eastwind.billmanager.user.model.LoginResult;
+import pers.eastwind.billmanager.user.model.User;
+import pers.eastwind.billmanager.user.model.UserDTO;
+import pers.eastwind.billmanager.user.model.UserMapper;
+import pers.eastwind.billmanager.user.repository.UserRepository;
 import pers.eastwind.billmanager.user.util.JWTUtil;
 
 import java.util.List;
@@ -45,7 +48,7 @@ public class UserService implements UserDetailsService {
      * 获取启用用户
      */
     public PageResult<UserDTO> getAll(QueryParam queryParam) {
-        User curUser = (User)AuthUtil.getCurUser();
+        User curUser = (User) AuthUtil.getCurUser();
         if (curUser == null || queryParam == null) {
             return PageResult.empty();
         }
@@ -97,7 +100,7 @@ public class UserService implements UserDetailsService {
         if (user.getId() == null) {
             throw new BizException("id 不能为空");
         }
-        User curUser = (User)AuthUtil.getCurUser();
+        User curUser = (User) AuthUtil.getCurUser();
         if (curUser == null) {
             throw new AccessDeniedException("未登录");
         }

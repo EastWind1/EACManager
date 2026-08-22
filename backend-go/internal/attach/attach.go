@@ -3,6 +3,7 @@ package attach
 import (
 	"backend-go/pkg/auth"
 	"backend-go/pkg/context"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -20,10 +21,13 @@ func Setup(ctx *context.AppContext, router fiber.Router) (*Service, *MapService)
 		attachGroup.Post("/temp", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), attachmentController.UploadTemp)
 	}
 
-	ctx.Server.Hooks().OnPostShutdown(func(err error) error {
-		DeleteTempFiles(ctx.Cache)
-		return nil
-	})
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			go attachmentService.CleanTempFiles()
+		}
+	}()
 
 	return attachmentService, attachMapService
 }

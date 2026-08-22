@@ -1,10 +1,7 @@
 package pers.eastwind.billmanager.reimburse.service;
 
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
-import pers.eastwind.billmanager.attach.model.BillType;
-import pers.eastwind.billmanager.attach.model.FileOp;
-import pers.eastwind.billmanager.attach.model.FileOpType;
+import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.service.AttachMapService;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
@@ -39,6 +36,7 @@ public class ReimburseIOService {
         this.attachMapService = attachMapService;
         this.reimburseRepository = reimburseRepository;
     }
+
     /**
      * 导出单据
      *
@@ -77,9 +75,9 @@ public class ReimburseIOService {
             // 创建当前单据附件文件夹
             Path curDir = tempPath.resolve(reimbursement.getNumber());
             // 拷贝当前单据所有附件
-            List<AttachmentDTO> attachments = attachmentService.getByBill(reimbursement.getId(), BillType.REIMBURSEMENT);
-            for (AttachmentDTO attachment : attachments) {
-                Path origin = attachmentService.getRootPath().resolve(attachment.getRelativePath());
+            List<Attachment> attachments = attachmentService.getByBill(reimbursement.getId(), BillType.REIMBURSEMENT);
+            for (Attachment attachment : attachments) {
+                Path origin = attachmentService.getAbsolutePathByRela(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());
                 // 处理可能的重名
                 int repeatCount = 1;
@@ -103,6 +101,7 @@ public class ReimburseIOService {
         FileUtil.zip(tempPath, zip);
         return zip;
     }
+
     /**
      * 根据文件生成报销单
      *

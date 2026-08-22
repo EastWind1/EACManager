@@ -3,6 +3,7 @@ package pers.eastwind.billmanager.attach.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.nio.file.Path;
 
@@ -11,6 +12,7 @@ import java.nio.file.Path;
  */
 @Configuration
 @Data
+@EnableScheduling
 @ConfigurationProperties(prefix = "config.attachment")
 public class AttachConfigProperties {
     /**

@@ -285,7 +285,7 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 	}
 
 	// 创建临时目录
-	tempDir, err := s.attachService.CreateTempDir(s.cache, "export")
+	tempDir, err := s.attachService.CreateTempDir("export")
 	if err != nil {
 		return "", err
 	}
@@ -331,7 +331,7 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		curDir := filepath.Join(tempDir, reimbursement.Number)
 		for _, attachment := range attachments {
 			// 获取原始附件路径
-			originPath, err := s.attachService.GetAbsolutePath(attachment.RelativePath, false)
+			originPath, err := s.attachService.GetAbsolutePathByRela(attachment.RelativePath)
 			if err != nil {
 				return "", err
 			}
@@ -363,7 +363,7 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		return "", err
 	}
 
-	if err = attach.Exec(s.cache, ops); err != nil {
+	if err = attach.Exec(ops); err != nil {
 		return "", err
 	}
 	zipPath, err := attach.Zip(tempDir, "")

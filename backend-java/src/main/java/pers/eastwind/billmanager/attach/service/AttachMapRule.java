@@ -42,6 +42,7 @@ public interface AttachMapRule<T> {
         }
         return null;
     }
+
     /**
      * 从文本块映射
      * <br/>用于 OCR 结果、纯文本文档

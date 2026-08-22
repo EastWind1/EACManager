@@ -1,17 +1,13 @@
 package pers.eastwind.billmanager.user.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.jspecify.annotations.NonNull;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import pers.eastwind.billmanager.common.model.AuditEntity;
-import pers.eastwind.billmanager.common.model.AuthorityRole;
 import pers.eastwind.billmanager.common.model.BaseUser;
-
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * 用户实体

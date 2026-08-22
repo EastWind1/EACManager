@@ -49,15 +49,11 @@ export const AttachmentType = {
 export type AttachmentTypeValue = (typeof AttachmentType)[keyof typeof AttachmentType]['value']
 
 export interface Attachment {
-  id?: number
+  id: number
   /**
    * 文件名
    */
   name: string
-  /**
-   * 文件相对路径
-   */
-  relativePath: string
   /**
    * 文件类型
    */

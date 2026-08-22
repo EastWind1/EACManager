@@ -94,30 +94,26 @@ type Attachment struct {
 
 // AttachmentDTO 附件DTO
 type AttachmentDTO struct {
-	ID           uint   `json:"id"`
-	Name         string `json:"name"`
-	Type         Type   `json:"type"`
-	RelativePath string `json:"relativePath"`
-	Temp         bool   `json:"temp"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Type Type   `json:"type"`
 }
 
 // ToDTO 转换为DTO
 func (a *Attachment) ToDTO() *AttachmentDTO {
 	return &AttachmentDTO{
-		ID:           a.ID,
-		Name:         a.Name,
-		Type:         a.Type,
-		RelativePath: a.RelativePath,
+		ID:   int(a.ID),
+		Name: a.Name,
+		Type: a.Type,
 	}
 }
 
 // TOEntity 转换为DTO
 func (a *AttachmentDTO) TOEntity() *Attachment {
 	return &Attachment{
-		ID:           a.ID,
-		Name:         a.Name,
-		Type:         a.Type,
-		RelativePath: a.RelativePath,
+		ID:   uint(a.ID),
+		Name: a.Name,
+		Type: a.Type,
 	}
 }
 
