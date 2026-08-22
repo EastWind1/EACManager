@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3/log"
@@ -23,7 +24,7 @@ type Service struct {
 	rootPath       string
 	tempPath       string
 	cfg            *config.AttachmentConfig
-	tempFiles      map[int]string
+	tempFiles      sync.Map
 }
 
 // tempPrefix 临时文件夹前缀
@@ -55,7 +56,7 @@ func NewService(
 		rootPath:       rootPath,
 		tempPath:       tempPath,
 		cfg:            cfg,
-		tempFiles:      make(map[int]string),
+		tempFiles:      sync.Map{},
 	}
 }
 
@@ -85,7 +86,8 @@ func (s *Service) GetAbsolutePathById(ctx context.Context, id int) (string, erro
 	}
 	var absolutePath string
 	if id < 0 {
-		absolutePath, ok := s.tempFiles[id]
+		val, ok := s.tempFiles.Load(id)
+		absolutePath = val.(string)
 		if !ok {
 			return "", errs.NewBizError("附件不存在")
 		}
@@ -152,7 +154,7 @@ func (s *Service) UploadTemps(fileHeaders []*multipart.FileHeader) ([]Attachment
 			return nil, err
 		}
 		id := -rand.Int()
-		s.tempFiles[id] = file.Path
+		s.tempFiles.Store(id, file.Path)
 		attachments = append(attachments, AttachmentDTO{
 			ID:   id,
 			Name: fileHeader.Filename,
@@ -200,7 +202,7 @@ func (s *Service) UpdateRelativeAttach(ctx context.Context, billID uint, billNum
 	return s.billAttachRepo.Transaction(ctx, func(tx context.Context) error {
 		for _, dto := range attachmentDTOs {
 			// 新增
-			if dto.ID == 0 {
+			if dto.ID <= 0 {
 				originPath, err := s.GetAbsolutePathById(ctx, dto.ID)
 				addAttach := dto.TOEntity()
 				addAttach.ID = 0
@@ -262,13 +264,11 @@ func (s *Service) UpdateRelativeAttach(ctx context.Context, billID uint, billNum
 
 // CleanTempFiles  清理临时文件
 func (s *Service) CleanTempFiles() {
-	var removed []int
-	for id, path := range s.tempFiles {
+	s.tempFiles.Range(func(k, v any) bool {
+		path := v.(string)
 		if !Exists(path) {
-			removed = append(removed, id)
+			s.tempFiles.Delete(k)
 		}
-	}
-	for _, id := range removed {
-		delete(s.tempFiles, id)
-	}
+		return true
+	})
 }

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 附件服务
@@ -33,7 +34,7 @@ public class AttachmentService implements InitializingBean {
     private final AttachmentRepository attachmentRepository;
     private final BillAttachRelationRepository billAttachRelationRepository;
     private final AttachmentMapper attachmentMapper;
-    private final Map<Integer, String> tempFiles;
+    private final ConcurrentHashMap<Integer, String> tempFiles;
     /**
      * 根目录
      */
@@ -50,7 +51,7 @@ public class AttachmentService implements InitializingBean {
         this.attachmentRepository = attachmentRepository;
         this.billAttachRelationRepository = billAttachRelationRepository;
         this.attachmentMapper = attachmentMapper;
-        tempFiles = new HashMap<>();
+        tempFiles = new ConcurrentHashMap<>();
     }
 
     /**
@@ -214,11 +215,11 @@ public class AttachmentService implements InitializingBean {
         List<FileOp> ops = new ArrayList<>();
         for (AttachmentDTO attachmentDTO : attachmentDTOs) {
             // 新增
-            if (attachmentDTO.getId() < 0) {
+            if (attachmentDTO.getId() <= 0) {
                 Attachment addAttach = attachmentMapper.toEntity(attachmentDTO);
                 Path originPath = getAbsolutePathById(attachmentDTO.getId());
                 Path targetRelativePath = Path.of(billType.name()).resolve(billNumber).resolve(System.currentTimeMillis() + "-" + addAttach.getName());
-                Path targetPath = rootPath.resolve(originPath).normalize();
+                Path targetPath = rootPath.resolve(targetRelativePath).normalize();
                 // 设置业务单据关联关系
                 addAttach.setRelativePath(targetRelativePath.toString());
                 addAttach = attachmentRepository.save(addAttach);
