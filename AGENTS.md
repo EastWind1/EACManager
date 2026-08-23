@@ -11,7 +11,7 @@ Elevator AC After-Sale Manager — a B/S architecture system for managing instal
 **Java Backend** (port 8080) — Spring Boot 4 + Java 25 + Virtual Threads
 **Go Backend** (port 8080) — Fiber v3 + GORM
 
-Same DB schema and frontend for both — swap via `docker-compose-java.yml` / `docker-compose-go.yml`.
+Same DB schema and frontend for both — swap via `deploy/compose-java.yml` (Java) / `deploy/compose.yml` (Go).
 
 Both backends share identical layered structure: `controller` → `service` → `repository` → `model`. API prefix `/api`, response wrapper `{code, message, data}`, biz exceptions for errors. Java uses MapStruct for DTO mapping, Go uses manual conversion.
 
@@ -31,7 +31,7 @@ Both backends share identical layered structure: `controller` → `service` → 
 | `service_bill_detail` | `device`, `quantity`, `unit_price`, `subtotal`, `remark`, FK `service_bill_id` | Line items |
 | `reimbursement` | `number` (indexed), `state` (CREATED=0 → PROCESSING=1 → FINISHED=2), `total_amount`, `reimburse_date`, `summary`, `remark` | Expense report |
 | `reimburse_detail` | `name`, `amount`, FK `reimbursement_id` | Expense line items |
-| `attachment` | `name`, `relative_path`, `type` (IMAGE=0/PDF=1/WORD=2/EXCEL=3/OTHER=4), audit fields | Uploaded files |
+| `attachment` | `name`, `relative_path`, `type` (IMAGE=0/PDF=1/WORD=2/EXCEL=3/OTHER=4), audit fields | Uploaded files; `relative_path` is internal only — never exposed in DTOs/API |
 | `bill_attach_relation` | FK `attach_id`, FK `bill_id`, `bill_type` (SERVICE_BILL=0/REIMBURSEMENT=1) | Many-to-many join |
 
 **Default admin user** (from `init_user.sql`): username `root`, password bcrypt-encoded, role `ROLE_ADMIN`.
@@ -99,8 +99,8 @@ pnpm format       # oxfmt
 ### Full Build
 ```bash
 cd deploy && ./build.sh    # or build.bat on Windows
-docker-compose -f docker-compose-java.yml up -d    # Java backend
-docker-compose -f docker-compose-go.yml up -d      # Go backend
+docker compose -f compose-java.yml up -d    # Java backend
+docker compose -f compose.yml up -d          # Go backend
 ```
 
 ### Tests
@@ -178,6 +178,7 @@ All under `/api/`. Response: `{ "code": 0, "message": "success", "data": ... }`.
 | POST | `/` | Yes | Create |
 | PUT | `/` | Yes | Update |
 | DELETE | `/` | Yes | Delete (batch) |
+| POST | `/import` | Yes | Import from invoice file (OCR parse, returns prefilled DTO) |
 | PUT | `/process` | Yes | Submit: CREATED → PROCESSING |
 | PUT | `/finish` | Yes | Finalize: PROCESSING → FINISHED |
 | PUT | `/cancel-process` | Yes | Revert: PROCESSING → CREATED |
@@ -217,9 +218,9 @@ backend-java/src/main/java/pers/eastwind/billmanager/
   common/  — Result, PageResult, QueryParam, AuthorityRole, ControllerAdvice, BaseRepository
   user/    — JWTTokenFilter, SecurityConfig, UserService, JWTUtil
   company/ — CompanyService, CompanyRepository
-  servicebill/ — ServiceBillBizService, ServiceBillIOService, StatisticService (+ StatisticController)
-  reimburse/   — ReimburseService, StatisticService (+ StatisticController)
-  attach/  — AttachmentService, AttachMapService, OCRService, FileTxUtil
+  servicebill/ — ServiceBillBizService, ServiceBillIOService (LD/WK AttachMapRule), BillStatisticService (+ BillStatisticController)
+  reimburse/   — ReimburseService, ReimburseIOService (import/export, ReimburseMapRule), ReimburseStatisticService (+ ReimburseStatisticController)
+  attach/  — AttachmentService, AttachMapService (+ *AttachMapRule), OCRService, FileUtil
 
 backend-go/
   cmd/main.go                        — Entry point
@@ -231,10 +232,10 @@ backend-go/
     service.go                       — Business logic
     store.go                         — GORM queries
     model.go                         — Types and DTOs
-    stat_model.go                    — Statistics DTOs (per business module)
-    stat_store.go                    — Statistics GORM queries (per business module)
-    statsvc.go / stat_handler.go     — Statistics service + HTTP handlers (bill, reimburse)
-  internal/pkg/                      — cache, database, errs, middleware, result, auth, util
+    stat_store.go / stat_svc.go / stat_handler.go — Statistics per business module (bill, reimburse)
+    attach extras: files.go, ocr.go, office.go, file_tx.go (file transaction), attachmap.go
+    reimburse extras: invoice_rule.go — invoice import map rules
+  pkg/                               — audit, auth, cache, context, database, errs, logger, middleware, result, util
   test/                              — testify/suite integration tests
   config/config.yaml                 — Runtime config
 
@@ -250,7 +251,8 @@ frontend/src/
   user/store/UserStore.ts            — Pinia auth store
 
 deploy/
-  docker-compose-{java,go}.yml       — Postgres + backend + Caddy
+  compose-java.yml / compose.yml     — Postgres + backend + Caddy (Java / Go)
+  backup.sh                          — DB backup script
   database/init_scheme.sql           — Full schema
   database/init_user.sql             — Default admin (root)
   build.sh / build.bat               — Cross-compile + deploy

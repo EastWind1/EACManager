@@ -87,10 +87,10 @@ func (s *Service) GetAbsolutePathById(ctx context.Context, id int) (string, erro
 	var absolutePath string
 	if id < 0 {
 		val, ok := s.tempFiles.Load(id)
-		absolutePath = val.(string)
 		if !ok {
 			return "", errs.NewBizError("附件不存在")
 		}
+		absolutePath = val.(string)
 		if !strings.HasPrefix(absolutePath, s.tempPath) {
 			return "", errs.NewBizError("路径不合法")
 		}
