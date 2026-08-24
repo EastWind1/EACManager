@@ -28,7 +28,7 @@ func (r *Repository) FindByUsername(ctx context.Context, username string) (*User
 	res := r.GetDB(ctx).Where("username = ?", username).Take(&user)
 	if res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
-			return nil, errs.NewBizError("用户不存在")
+			return nil, errs.NewBizError("用户名或密码错误")
 		}
 		return nil, errs.Wrap(res.Error)
 	}

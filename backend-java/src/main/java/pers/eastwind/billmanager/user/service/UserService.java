@@ -4,15 +4,12 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.AuthorityRole;
 import pers.eastwind.billmanager.common.model.PageResult;
@@ -27,7 +24,6 @@ import pers.eastwind.billmanager.user.repository.UserRepository;
 import pers.eastwind.billmanager.user.util.JWTUtil;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 用户服务
@@ -115,6 +111,9 @@ public class UserService implements UserDetailsService {
         if (!oldUser.getUsername().equals(user.getUsername())) {
             throw new BizException("用户名不能修改");
         }
+        if (oldUser.getAuthority() != AuthorityRole.ROLE_ADMIN && oldUser.getAuthority() != user.getAuthority()) {
+            throw new BizException("无权更改权限");
+        }
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             oldUser.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
         }
@@ -162,7 +161,7 @@ public class UserService implements UserDetailsService {
     public LoginResult login(String username, String password) {
         User user = userRepository.findByUsername(username);
         if (user == null) {
-            throw new BizException("用户不存在");
+            throw new BizException("用户名或密码错误");
         }
         if (user.isDisabled()) {
             throw new BizException("用户已禁用");
@@ -173,8 +172,7 @@ public class UserService implements UserDetailsService {
         if (!BCrypt.checkpw(password, user.getPassword())) {
             throw new BizException("用户名或密码错误");
         }
-        String host = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest().getHeader(HttpHeaders.HOST);
-        String token = JWTUtil.generateToken(properties.getKey(), properties.getExpire(), username, host);
+        String token = JWTUtil.generateToken(properties.getKey(), properties.getExpire(), username);
         return new LoginResult(token, userMapper.toDTO(user));
     }
 

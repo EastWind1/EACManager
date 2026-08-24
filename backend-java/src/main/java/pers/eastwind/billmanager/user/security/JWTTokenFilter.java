@@ -53,10 +53,7 @@ public class JWTTokenFilter extends OncePerRequestFilter {
             String userName = null;
             try {
                 var jwt = JWTUtil.verifyToken(properties.getKey(), token);
-                String host = request.getHeader(HttpHeaders.HOST);
-                if (Objects.equals(host, jwt.getSubject())) {
-                    userName = jwt.getAudience().getFirst();
-                }
+                userName = jwt.getSubject();
             } catch (BizException e) {
                 log.error("JWT 解析失败: {}{}", token, e.getMessage());
             }

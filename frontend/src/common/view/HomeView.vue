@@ -52,6 +52,7 @@ import { useUserStore } from '@/user/store/UserStore'
 import { useTheme } from 'vuetify/framework'
 import { useUIStore } from '@/common/store/UIStore'
 import DatePickerDialog from '@/common/component/DatePickerDialog.vue'
+import UserApi from "@/user/api/UserApi.ts";
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
@@ -110,7 +111,8 @@ const menuItems = [
 const { removeUser } = useUserStore()
 
 // 退出登录
-function logout() {
+async function logout() {
+  await UserApi.logout()
   removeUser()
   router.push('/login')
 }

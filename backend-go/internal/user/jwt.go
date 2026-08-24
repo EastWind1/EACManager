@@ -23,13 +23,12 @@ func NewJWTService(cfg *config.JWTConfig) *JWTService {
 }
 
 // GenerateToken 生成JWT令牌
-func (s *JWTService) GenerateToken(username string, subject string) (string, error) {
+func (s *JWTService) GenerateToken(subject string) (string, error) {
 	now := time.Now()
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(s.expire) * time.Second)),
 		IssuedAt:  jwt.NewNumericDate(now),
 		Subject:   subject,
-		Audience:  []string{username},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -40,35 +39,22 @@ func (s *JWTService) GenerateToken(username string, subject string) (string, err
 	return res, nil
 }
 
-type TokenInfo struct {
-	Username string
-	Subject  string
-}
-
 // VerifyToken 验证JWT令牌
-func (s *JWTService) VerifyToken(tokenString string) (*TokenInfo, error) {
+func (s *JWTService) VerifyToken(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return s.secret, nil
 	})
 
 	if err != nil || !token.Valid {
-		return nil, errs.NewUnauthError("Token 无效")
+		return "", errs.NewUnauthError("Token 无效")
 	}
 
 	if expireTime, ok := token.Claims.GetExpirationTime(); ok != nil || expireTime.Before(time.Now()) {
-		return nil, errs.NewUnauthError("Token 过期")
-	}
-
-	aud, err := token.Claims.GetAudience()
-	if err != nil || len(aud) < 1 {
-		return nil, errs.NewUnauthError("Token 不合法")
+		return "", errs.NewUnauthError("Token 过期")
 	}
 	sub, err := token.Claims.GetSubject()
 	if err != nil {
-		return nil, errs.NewUnauthError("Token 不合法")
+		return "", errs.NewUnauthError("Token 不合法")
 	}
-	return &TokenInfo{
-		Username: aud[0],
-		Subject:  sub,
-	}, nil
+	return sub, nil
 }

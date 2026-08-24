@@ -20,16 +20,14 @@ public class JWTUtil {
      * 生成 TOKEN
      *
      * @param secret   密钥
-     * @param userName 用户名
      * @param subject  摘要
      * @return TOKEN
      */
-    public static String generateToken(String secret, long expireSecond, String userName, String subject) {
+    public static String generateToken(String secret, long expireSecond, String subject) {
         Instant now = Instant.now();
         Algorithm algorithm = Algorithm.HMAC256(secret);
         try {
             return JWT.create()
-                    .withAudience(userName)
                     .withSubject(subject)
                     .withExpiresAt(now.plus(expireSecond, ChronoUnit.SECONDS))
                     .sign(algorithm);

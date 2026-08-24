@@ -17,6 +17,7 @@ import (
 	"github.com/bytedance/sonic"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 )
 
@@ -37,6 +38,7 @@ func Run() {
 	ctx.Server = server
 	// 初始化日志
 	logger.InitLogger(cfg.Log)
+	server.Use(cors.New())
 	// 初始化异常处理
 	server.Use(recover.New())
 	// 初始化响应体包装

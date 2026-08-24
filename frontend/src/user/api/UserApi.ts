@@ -21,7 +21,12 @@ const UserApi = {
       password,
     })
   },
-
+  /**
+   * 登出
+   */
+  async logout() {
+    return await http.put(`/logout`, {})
+  },
   /**
    * 获取所有用户
    */

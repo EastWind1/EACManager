@@ -37,7 +37,7 @@ public class UserController {
         LoginResult res = userService.login(param.username, param.password);
         return ResponseEntity.ok().header("Set-Cookie",
                         ResponseCookie.from("X-Auth-Token", res.token())
-                                .path("/")
+                                .path("/api")
                                 .httpOnly(true)
                                 .secure(true)
                                 .maxAge(config.getExpire())
@@ -45,6 +45,20 @@ public class UserController {
                 .body(res.user());
     }
 
+    /**
+     * 登出
+     * TODO：此处登出仅销毁 cookie，还需要结合 token 作废实现
+     */
+    @PutMapping("/logout")
+    public ResponseEntity<Object> logout() {
+        return ResponseEntity.ok().header("Set-Cookie",
+                ResponseCookie.from("X-Auth-Token", "")
+                        .path("/api")
+                        .httpOnly(true)
+                        .secure(true)
+                        .maxAge(-1)
+                        .sameSite("Strict").build().toString()).build();
+    }
     /**
      * 查询
      */

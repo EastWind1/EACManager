@@ -27,18 +27,14 @@ func AuthMiddleware(jwtSrv *JWTService, userSrv *Service) fiber.Handler {
 		if authStr == "" {
 			return errs.NewUnauthError("未登录")
 		}
-		token, err := jwtSrv.VerifyToken(authStr)
+		sub, err := jwtSrv.VerifyToken(authStr)
 		if err != nil {
 			return err
 		}
-		origin := c.Get("Origin")
-		if origin == "" {
-			origin = c.Get("Referer")
+		user, err := userSrv.FindByUsername(c, sub)
+		if err != nil {
+			return err
 		}
-		if !strings.HasPrefix(origin, token.Subject) {
-			return errs.NewUnauthError("Token 不合法")
-		}
-		user, err := userSrv.FindByUsername(c, token.Username)
 		if user.Disabled {
 			return errs.NewUnauthError("Token 不合法")
 		}

@@ -41,14 +41,15 @@ export class HttpClient {
     const queryUrl = queryParams.toString()
     const finalUrl = queryUrl ? `${this.baseURL}${url}?${queryUrl}` : `${this.baseURL}${url}`
 
-    // 防抖
-    const key = `${method}-${finalUrl}`
-    if (this.abortMap.has(key)) {
-      this.abortMap.get(key)?.abort()
-    }
     const abort = new AbortController()
-    this.abortMap.set(key, abort)
-
+    const key = `${method}-${finalUrl}-${JSON.stringify(config?.params)}`
+    // 防抖
+    if (method !== 'POST') {
+      if (this.abortMap.has(key)) {
+        this.abortMap.get(key)?.abort()
+      }
+      this.abortMap.set(key, abort)
+    }
     const reqInit: RequestInit = {
       signal: abort.signal,
       method: method,
@@ -70,6 +71,7 @@ export class HttpClient {
     }
 
     const res = await fetch(finalUrl, reqInit)
+    this.abortMap.delete(key)
 
     if (loading) {
       uiState.hideLoading()

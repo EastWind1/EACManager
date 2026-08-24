@@ -19,6 +19,7 @@ func Setup(ctx *context.AppContext, router fiber.Router) {
 	api := router.Group("/user")
 	{
 		api.Post(LoginPath, userController.Login)
+		api.Put("/logout", userController.Logout)
 		api.Get("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), userController.GetAll)
 		api.Post("/", auth.RoleMiddleware(auth.RoleAdmin), userController.Create)
 		api.Put("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), userController.Update)

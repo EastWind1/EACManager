@@ -26,7 +26,7 @@ func NewService(userRepo *Repository, jwtSvc *JWTService) *Service {
 }
 
 // Login 用户登录
-func (s *Service) Login(ctx context.Context, username, password, subject string) (*LoginResult, error) {
+func (s *Service) Login(ctx context.Context, username, password string) (*LoginResult, error) {
 	user, err := s.userRepo.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func (s *Service) Login(ctx context.Context, username, password, subject string)
 		return nil, errs.NewBizError("用户名或密码错误")
 	}
 
-	token, err := s.jwtSvc.GenerateToken(username, subject)
+	token, err := s.jwtSvc.GenerateToken(username)
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +169,9 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 		user.Name = dto.Name
 		user.Phone = dto.Phone
 		user.Email = dto.Email
+		if user.Authority != auth.RoleAdmin && user.Authority != auth.RoleUser {
+			return errs.NewBizError("无权更改权限")
+		}
 		user.Authority = dto.Authority
 
 		if err = s.userRepo.Updates(tx, user); err != nil {

@@ -29,15 +29,14 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	origin := ctx.Get("Origin")
-	res, err := c.userService.Login(ctx, param.Username, param.Password, origin)
+	res, err := c.userService.Login(ctx, param.Username, param.Password)
 	if err != nil {
 		return err
 	}
 	cookie := fiber.Cookie{
 		Name:     "X-Auth-Token",
 		Value:    res.Token,
-		Path:     "/",
+		Path:     "/api",
 		MaxAge:   c.cfg.Expire,
 		Secure:   true,
 		SameSite: "Strict",
@@ -45,6 +44,13 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 	}
 	ctx.Cookie(&cookie)
 	result.SetResult(ctx, res.User)
+	return nil
+}
+
+// Logout 登出
+func (c *Controller) Logout(ctx fiber.Ctx) error {
+	ctx.ClearCookie("X-Auth-Token")
+	result.SetResult(ctx, nil)
 	return nil
 }
 
