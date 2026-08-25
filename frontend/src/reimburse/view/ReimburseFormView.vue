@@ -290,11 +290,16 @@ async function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const { process, finish, cancelProcess, cancelFinish, remove } = useReimburseActions(processResult)
+const { process, finish, cancelProcess, cancelFinish } = useReimburseActions(processResult)
 
 async function removeAndBack(id: number) {
-  await remove([id])
-  router.back()
+  const res = await ReimburseApi.delete([id])
+  if (res.results[0]!.success) {
+    success('删除成功')
+    router.back()
+  } else {
+    warning(res.results[0]!.message)
+  }
 }
 
 // 初始化

@@ -477,12 +477,17 @@ function callPhone(phone?: string) {
   })
 }
 
-const { process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish } =
+const { process, processed, finish, cancelProcess, cancelProcessed, cancelFinish } =
   useBillActions(processResult)
 
 async function removeAndBack(id: number) {
-  await remove([id])
-  router.back()
+  const res = await ServiceBillApi.delete([id])
+  if (res.results[0]!.success) {
+    success('删除成功')
+    router.back()
+  } else {
+    warning(res.results[0]!.message)
+  }
 }
 
 // 初始化

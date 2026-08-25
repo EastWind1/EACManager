@@ -166,7 +166,8 @@ func ExtractPDFText(pdfPath string) ([]string, error) {
 					lastRight = t.X + t.W
 				}
 			} else {
-				lines = append(lines, line.String())
+				// TODO: 临时处理乱码
+				lines = append(lines, strings.ReplaceAll(line.String(), "�", ""))
 				line.Reset()
 				line.WriteString(t.S)
 				lastY = t.Y
@@ -174,7 +175,7 @@ func ExtractPDFText(pdfPath string) ([]string, error) {
 			}
 		}
 		if started {
-			lines = append(lines, line.String())
+			lines = append(lines, strings.ReplaceAll(line.String(), "�", ""))
 		}
 	}
 	return lines, nil

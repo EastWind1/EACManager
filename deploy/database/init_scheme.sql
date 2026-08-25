@@ -169,7 +169,7 @@ CREATE TABLE public.reimbursement (
     last_modified_date timestamp(6) with time zone,
     number character varying(255),
     reimburse_date timestamp(6) with time zone,
-    remark character varying(255),
+    remark character varying(1000),
     summary character varying(255),
     total_amount numeric(38,2),
     created_by_id integer,

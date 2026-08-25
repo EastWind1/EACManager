@@ -4,9 +4,9 @@ import (
 	"backend-go/config"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
+	"backend-go/pkg/util"
 	"context"
 	"fmt"
-	"math/rand"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -153,7 +153,7 @@ func (s *Service) UploadTemps(fileHeaders []*multipart.FileHeader) ([]Attachment
 		if err != nil {
 			return nil, err
 		}
-		id := -rand.Int()
+		id := int(-util.GenIntID())
 		s.tempFiles.Store(id, file.Path)
 		attachments = append(attachments, AttachmentDTO{
 			ID:   id,

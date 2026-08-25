@@ -16,6 +16,7 @@ import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.exception.FileOpException;
+import pers.eastwind.billmanager.common.util.UUID;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -169,7 +170,7 @@ public class AttachmentService implements InitializingBean {
             var file = FileUtil.upload(resource, tempPath);
 
             AttachmentDTO attachment = new AttachmentDTO();
-            int id = (int) (-Math.random() * 10000);
+            int id = UUID.genIntID();
             attachment.setId(id);
             tempFiles.put(id, file.path().toString());
             attachment.setName(file.filename());
