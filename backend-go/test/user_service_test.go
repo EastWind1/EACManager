@@ -63,7 +63,7 @@ func (s *UserServiceTest) TestLogin() {
 	_, err := s.srv.Create(s.ctx, s.testUser)
 	s.NoError(err)
 
-	res, err := s.srv.Login(s.ctx, "testUser", "password123", "test")
+	res, err := s.srv.Login(s.ctx, "testUser", "password123")
 	s.NoError(err)
 
 	s.NotNil(res)

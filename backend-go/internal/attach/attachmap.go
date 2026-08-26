@@ -3,6 +3,7 @@ package attach
 import (
 	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
+	"context"
 	"sync"
 )
 
@@ -44,7 +45,7 @@ func (s *MapService) MapTo(attach *AttachmentDTO) (any, error) {
 	if attach == nil {
 		return nil, errs.NewBizError("附件为空")
 	}
-	path, err := s.attachService.GetAbsolutePathById(nil, attach.ID)
+	path, err := s.attachService.GetAbsolutePathById(context.Background(), attach.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,15 +64,9 @@ func (s *MapService) MapTo(attach *AttachmentDTO) (any, error) {
 	case PDF:
 		var texts []string
 		texts, err = ExtractPDFText(path)
+		// 未识别到文本，降级为ocr
 		if err != nil || len(texts) == 0 {
-			target, err := s.attachService.CreateTempFile("", ".jpg")
-			if err != nil {
-				return nil, err
-			}
-			if err = ConvertPDFToImage(path, target); err != nil {
-				return nil, err
-			}
-			texts, err = s.ocrService.ParseImage(target)
+			texts, err = s.ocrService.ParseImage(path)
 		}
 		if err != nil {
 			return nil, err

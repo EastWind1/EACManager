@@ -19,4 +19,4 @@ attachment:
   path: attachment
   maxFileSize: 5242880
 ocr:
-  url:
+  url: http://localhost:9003/ocr

@@ -16,25 +16,22 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
       start_period: 5s
-#  ocr-server:
-#    build:
-#      context: ./ocr-server
-#    image: ocr-server:latest
-#    ports:
-#      - "9003:9003"
+  # ocr-server:
+  #   build:
+  #     context: ./ocr-server
+  #   image: ocr-server:latest
   backend:
     image: alpine:3
     container_name: eac-backend-go
     depends_on:
       postgres:
         condition: service_healthy
-#      - ocr-server
     ports:
       - "8080:8080"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
-#      - OCR_URL=http://ocr-server:9003
+      - OCR_URL=http://ocr-server:9003/ocr
     env_file:
       - .env
     volumes:

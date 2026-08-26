@@ -1,0 +1,30 @@
+[project]
+name = "ocr-server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "EastWind1", email = "657857337@qq.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.141.1",
+    "filetype>=1.2.0",
+    "onnxruntime>=1.29.0",
+    "pdfplumber>=0.11.10",
+    "python-multipart>=0.0.32",
+    "rapidocr>=3.9.2",
+    "requests>=2.34.2",
+    "uvicorn[standard]>=0.52.4",
+]
+
+[project.scripts]
+ocr-server = "ocr_server:main"
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"

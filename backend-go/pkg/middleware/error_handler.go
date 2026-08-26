@@ -4,7 +4,6 @@ import (
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"errors"
-	"runtime/debug"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
@@ -33,9 +32,8 @@ func ErrorHandler() fiber.ErrorHandler {
 			}
 		}
 
-		// 其他未处理异常
+		// 其他未处理异常, 未处理异常由 recover 打印栈
 		log.Errorf("%+v", err)
-		debug.PrintStack()
 		return c.Status(500).JSON(result.Error[any]("内部异常"))
 	}
 }

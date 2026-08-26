@@ -107,15 +107,7 @@ func GetFileType(path string) (Type, error) {
 	}
 }
 
-// ConvertPDFToImage 转换 PDF 为图片
-func ConvertPDFToImage(pdfPath string, target string) error {
-	// TODO: 使用第三方工具实现
-	return errs.NewBizError("暂不支持该功能")
-}
-
 // ExtractPDFText 从 PDF 提取文本
-// 重写为基于坐标合并同一行文本块：获取每个字符的精确坐标后，
-// 根据 X 间距判断是否插入空格，避免 PDF 库将空格分割文本拆分为独立块导致信息丢失。
 func ExtractPDFText(pdfPath string) ([]string, error) {
 	f, r, err := pdf.Open(pdfPath)
 	if err != nil {

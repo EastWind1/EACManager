@@ -4,6 +4,7 @@ set -e
 # 设置目录
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+OCR_DIR="$ROOT_DIR/ocr-server"
 BACKEND_JAVA_DIR="$ROOT_DIR/backend-java"
 BACKEND_GO_DIR="$ROOT_DIR/backend-go"
 FRONTEND_DIR="$ROOT_DIR/frontend"
@@ -11,19 +12,19 @@ DEPLOY_DIR="$ROOT_DIR/deploy"
 DEPLOY_HTML="$DEPLOY_DIR/frontend/html"
 
 # 打包 Java 后端
-echo "[1/3] 打包 Java 后端..."
+echo "[1/4] 打包 Java 后端..."
 cd "$BACKEND_JAVA_DIR"
 mvn clean package -DskipTests
 
 # 打包 Go 后端
-echo "[2/3] 打包 Go 后端..."
+echo "[2/4] 打包 Go 后端..."
 cd "$BACKEND_GO_DIR"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0
 go build -ldflags="-s -w" -o target/backend-go cmd/main.go
 
 # 打包前端
 if [ -d "$FRONTEND_DIR" ]; then
-    echo "[3/3] 打包前端..."
+    echo "[4/4] 打包前端..."
     cd "$FRONTEND_DIR"
     pnpm build
 else
@@ -42,6 +43,12 @@ mkdir -p "$DEPLOY_DIR/backend-go"
 cp -r "$BACKEND_GO_DIR/target"/* "$DEPLOY_DIR/backend-go/"
 cp -r "$BACKEND_GO_DIR/config" "$DEPLOY_DIR/backend-go/config/"
 chmod +x "$DEPLOY_DIR/backend-go/backend-go"
+
+# 拷贝 OCR 服务源码（
+rm -rf "$DEPLOY_DIR/ocr-server"
+mkdir -p "$DEPLOY_DIR/ocr-server"
+cp "$OCR_DIR/Dockerfile" "$OCR_DIR/requirements.txt" "$DEPLOY_DIR/ocr-server/"
+cp -r "$OCR_DIR/src" "$DEPLOY_DIR/ocr-server/src"
 
 # 拷贝前端交付物
 if [ -d "$FRONTEND_DIR/dist" ]; then

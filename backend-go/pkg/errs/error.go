@@ -5,14 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"strings"
 )
 
 // GetStack 捕获堆栈
 func GetStack() []byte {
 	// 跳过 NewError + GetStack + runtime.Callers 自身帧
 	const skip = 3
-	const depth = 16
+	const depth = 8
 	pc := make([]uintptr, depth)
 	n := runtime.Callers(skip, pc)
 	if n == 0 {
@@ -23,13 +22,6 @@ func GetStack() []byte {
 	var buf bytes.Buffer
 
 	for frame, more := frames.Next(); more || frame.PC != 0; frame, more = frames.Next() {
-		// 过滤第三方库/系统/工具包帧
-		if strings.Contains(frame.Function, "github.com/") ||
-			strings.Contains(frame.Function, "golang.org/") ||
-			strings.Contains(frame.Function, "runtime/") ||
-			strings.Contains(frame.Function, "errutil.") {
-			continue
-		}
 		buf.WriteString(fmt.Sprintf("%s(", frame.Function))
 		buf.WriteString(")\n")
 

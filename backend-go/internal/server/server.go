@@ -40,7 +40,9 @@ func Run() {
 	logger.InitLogger(cfg.Log)
 	server.Use(cors.New())
 	// 初始化异常处理
-	server.Use(recover.New())
+	server.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+	}))
 	// 初始化响应体包装
 	server.Use(middleware.ResultWrap())
 	// 初始化缓存

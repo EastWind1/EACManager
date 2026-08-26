@@ -28,9 +28,8 @@ export class HttpClient {
     const loading = !(config && !config.loading)
     const uiState = useUIStore()
     const router = useRouter()
-    if (loading) {
-      uiState.showLoading()
-    }
+    uiState.showLoading()
+
     // 解析查询路径
     const queryParams = new URLSearchParams()
     if (config && config.params) {
@@ -73,9 +72,7 @@ export class HttpClient {
     const res = await fetch(finalUrl, reqInit)
     this.abortMap.delete(key)
 
-    if (loading) {
-      uiState.hideLoading()
-    }
+    uiState.hideLoading()
     // 响应处理
     const contentType = res.headers.get('Content-Type')
     let msg = '请求异常'

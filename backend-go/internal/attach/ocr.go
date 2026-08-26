@@ -8,21 +8,14 @@ import (
 	"github.com/gofiber/fiber/v3/client"
 )
 
-type OCRRequest struct {
-	ImageFile string `json:"image_file"`
-}
-
 type OCRBlock struct {
 	RecTxt  string  `json:"rec_txt"`
 	DTBoxes [][]int `json:"dt_boxes"`
 	Score   float32 `json:"score"`
 }
 
-type OCRResult map[string]OCRBlock
-
 type OCRService struct {
-	cfg    *config.OCRConfig
-	client *client.Client
+	cfg *config.OCRConfig
 }
 
 func NewOCRService(cfg *config.OCRConfig) *OCRService {
@@ -30,30 +23,31 @@ func NewOCRService(cfg *config.OCRConfig) *OCRService {
 	c.SetJSONMarshal(sonic.Marshal)
 	c.SetJSONUnmarshal(sonic.Unmarshal)
 	return &OCRService{
-		cfg:    cfg,
-		client: c,
+		cfg: cfg,
 	}
 }
 
 // ParseImage 解析图片
 func (s *OCRService) ParseImage(path string) ([]string, error) {
-	if s.cfg.URL == "" {
+	if s.cfg == nil || s.cfg.URL == "" {
 		return nil, errs.NewBizError("未配置 OCR 服务器")
 	}
-	res, err := s.client.Post(s.cfg.URL, client.Config{
-		Body: OCRRequest{ImageFile: path},
-	})
+	req := client.AcquireRequest()
+	file := client.AcquireFile()
+	file.SetFieldName("file")
+	file.SetPath(path)
+	req.AddFiles(file)
+	res, err := req.Post(s.cfg.URL)
 	if err != nil {
 		return nil, err
 	}
-	ocrResult := make(OCRResult)
+	if res.StatusCode() != 200 {
+		return nil, errs.NewBizError(res.Status())
+	}
+	var ocrResult []string
 	if err = res.JSON(&ocrResult); err != nil {
 		return nil, err
 	}
-	var texts []string
-	for _, block := range ocrResult {
-		texts = append(texts, block.RecTxt)
-	}
 
-	return texts, nil
+	return ocrResult, nil
 }
