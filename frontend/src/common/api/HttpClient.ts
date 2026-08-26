@@ -28,8 +28,9 @@ export class HttpClient {
     const loading = !(config && !config.loading)
     const uiState = useUIStore()
     const router = useRouter()
-    uiState.showLoading()
-
+    if (loading) {
+      uiState.showLoading()
+    }
     // 解析查询路径
     const queryParams = new URLSearchParams()
     if (config && config.params) {
@@ -71,7 +72,6 @@ export class HttpClient {
 
     const res = await fetch(finalUrl, reqInit)
     this.abortMap.delete(key)
-
     uiState.hideLoading()
     // 响应处理
     const contentType = res.headers.get('Content-Type')

@@ -8,14 +8,14 @@ import (
 	"github.com/gofiber/fiber/v3/client"
 )
 
-type OCRBlock struct {
-	RecTxt  string  `json:"rec_txt"`
-	DTBoxes [][]int `json:"dt_boxes"`
-	Score   float32 `json:"score"`
-}
-
 type OCRService struct {
 	cfg *config.OCRConfig
+}
+
+type OCRResult struct {
+	Code int      `json:"code"`
+	Msg  string   `json:"msg"`
+	Data []string `json:"data"`
 }
 
 func NewOCRService(cfg *config.OCRConfig) *OCRService {
@@ -33,6 +33,7 @@ func (s *OCRService) ParseImage(path string) ([]string, error) {
 		return nil, errs.NewBizError("未配置 OCR 服务器")
 	}
 	req := client.AcquireRequest()
+	defer client.ReleaseRequest(req)
 	file := client.AcquireFile()
 	file.SetFieldName("file")
 	file.SetPath(path)
@@ -41,13 +42,10 @@ func (s *OCRService) ParseImage(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if res.StatusCode() != 200 {
-		return nil, errs.NewBizError(res.Status())
-	}
-	var ocrResult []string
-	if err = res.JSON(&ocrResult); err != nil {
-		return nil, err
+	var ocrResult OCRResult
+	if err = res.JSON(&ocrResult); err != nil || res.StatusCode() != 200 {
+		return nil, errs.NewBizError(ocrResult.Msg)
 	}
 
-	return ocrResult, nil
+	return ocrResult.Data, nil
 }

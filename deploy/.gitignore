@@ -2,4 +2,5 @@ backend-java
 backend-go
 frontend/cert
 frontend/html
+ocr-server
 .env

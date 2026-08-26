@@ -56,7 +56,11 @@ async def ocr(
     else:
         raise ValueError('file type not support')
 
-    return res
+    return {
+        "code": 500,
+        "msg": 'success',
+        "data": res
+    }
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
