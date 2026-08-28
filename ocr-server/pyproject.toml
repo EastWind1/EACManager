@@ -28,3 +28,12 @@ default = true
 [build-system]
 requires = ["uv_build>=0.12.3,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.basedpyright]
+# filetype 无类型标注（无 py.typed/stub），相关 Unknown 集中在 guess_mime 一处，已运行时验证
+reportMissingTypeStubs = "none"
+# argparse.Namespace 属性与 uvicorn LOGGING_CONFIG 等动态对象为 Any，收窄代价大于收益
+reportAny = "none"
+reportExplicitAny = "none"
+reportUnknownMemberType = "none"
+reportUnusedCallResult = "none"

@@ -5,7 +5,7 @@ export interface HttpConfig {
   /**
    * 是否显示加载条，默认为 true
    */
-  loading?: boolean
+  useLoad?: boolean
   params?: unknown
   headers?: HeadersInit
   data?: unknown
@@ -25,7 +25,10 @@ export class HttpClient {
     url: string,
     config?: HttpConfig,
   ): Promise<T> {
-    const loading = !(config && !config.loading)
+    let loading = true
+    if (config && config.useLoad !== undefined) {
+      loading = config.useLoad
+    }
     const uiState = useUIStore()
     const router = useRouter()
     if (loading) {
@@ -72,7 +75,9 @@ export class HttpClient {
 
     const res = await fetch(finalUrl, reqInit)
     this.abortMap.delete(key)
-    uiState.hideLoading()
+    if (loading) {
+      uiState.hideLoading()
+    }
     // 响应处理
     const contentType = res.headers.get('Content-Type')
     let msg = '请求异常'

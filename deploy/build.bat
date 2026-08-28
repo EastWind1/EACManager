@@ -48,7 +48,9 @@ xcopy "%BACKEND_GO_DIR%\config" "%DEPLOY_DIR%\backend-go\config\" /E /I /H /Y >n
 :: 拷贝 OCR 服务源码（compose 中 ocr-server 从 ./ocr-server 构建）
 mkdir "%DEPLOY_DIR%\ocr-server"
 copy "%OCR_DIR%\Dockerfile" "%DEPLOY_DIR%\ocr-server\" >nul
-copy "%OCR_DIR%\requirements.txt" "%DEPLOY_DIR%\ocr-server\" >nul
+copy "%OCR_DIR%\pyproject.toml" "%DEPLOY_DIR%\ocr-server\" >nul
+copy "%OCR_DIR%\uv.lock" "%DEPLOY_DIR%\ocr-server\" >nul
+copy "%OCR_DIR%\README.md" "%DEPLOY_DIR%\ocr-server\" >nul
 xcopy "%OCR_DIR%\src" "%DEPLOY_DIR%\ocr-server\src\" /E /I /H /Y >nul
 
 :: 拷贝前端交付物

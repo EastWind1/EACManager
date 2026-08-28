@@ -47,7 +47,7 @@ chmod +x "$DEPLOY_DIR/backend-go/backend-go"
 # 拷贝 OCR 服务源码（
 rm -rf "$DEPLOY_DIR/ocr-server"
 mkdir -p "$DEPLOY_DIR/ocr-server"
-cp "$OCR_DIR/Dockerfile" "$OCR_DIR/requirements.txt" "$DEPLOY_DIR/ocr-server/"
+cp "$OCR_DIR/Dockerfile" "$OCR_DIR/pyproject.toml" "$OCR_DIR/uv.lock" "$OCR_DIR/README.md" "$DEPLOY_DIR/ocr-server/"
 cp -r "$OCR_DIR/src" "$DEPLOY_DIR/ocr-server/src"
 
 # 拷贝前端交付物

@@ -3,7 +3,7 @@ module backend-go
 go 1.26.4
 
 require (
-	github.com/bytedance/sonic v1.15.2
+	github.com/bytedance/sonic v1.15.3
 	github.com/gabriel-vasile/mimetype v1.4.15
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/golang-jwt/jwt/v5 v5.3.1

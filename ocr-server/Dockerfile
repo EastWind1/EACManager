@@ -1,19 +1,23 @@
 FROM python:3.14-slim
 
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+    UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple && \
-    pip uninstall opencv-python -y && \
-    pip install --no-cache opencv-python-headless -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install --no-cache-dir uv
+
+COPY pyproject.toml uv.lock README.md ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-install-project --no-dev
 
 COPY src ./src
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev && \
+    uv pip uninstall opencv-python && \
+    uv pip install --no-cache opencv-python-headless
 
-ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONPATH=/app
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 9003
 
-CMD ["uvicorn", "ocr_server:app", "--host", "0.0.0.0", "--port", "9003", "--workers", "2"]
+CMD ["ocr-server", "-ip", "0.0.0.0", "-p", "9003", "-workers", "2"]
