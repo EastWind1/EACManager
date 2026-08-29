@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/gofiber/fiber/v3/log"
 )
 
 type Service struct {
@@ -199,6 +201,7 @@ func (s *Service) Process(ctx context.Context, ids []uint) (*result.ActionsResul
 				return errs.NewBizError("非创建状态不能提交")
 			}
 			bill.State = Processing
+			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.reimburseRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -222,6 +225,7 @@ func (s *Service) Finish(ctx context.Context, ids []uint) (*result.ActionsResult
 				return errs.NewBizError("非处理状态不能完成")
 			}
 			bill.State = Finished
+			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.reimburseRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -245,6 +249,7 @@ func (s *Service) CancelProcess(ctx context.Context, ids []uint) (*result.Action
 				return errs.NewBizError("非处理中状态不能取消")
 			}
 			bill.State = Created
+			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.reimburseRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -268,6 +273,7 @@ func (s *Service) CancelFinish(ctx context.Context, ids []uint) (*result.Actions
 				return errs.NewBizError("非完成状态不能取消")
 			}
 			bill.State = Processing
+			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.reimburseRepo.Updates(tx, bill)
 		})
 		return nil, err

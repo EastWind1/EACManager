@@ -14,7 +14,6 @@ import (
 	"backend-go/pkg/middleware"
 	"fmt"
 
-	"github.com/bytedance/sonic"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/cors"
@@ -30,8 +29,6 @@ func Run() {
 	ctx.Cfg = cfg
 	// 初始化服务
 	server := fiber.New(fiber.Config{
-		JSONEncoder:  sonic.Marshal,
-		JSONDecoder:  sonic.Unmarshal,
 		ErrorHandler: middleware.ErrorHandler(),
 		BodyLimit:    int(cfg.Attachment.MaxFileSize),
 	})

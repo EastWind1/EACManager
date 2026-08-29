@@ -3,7 +3,6 @@ package test
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/bill"
-	"backend-go/pkg/result"
 	"strconv"
 	"testing"
 	"time"
@@ -96,10 +95,8 @@ func (s *BizServiceTest) TestFindByParam() {
 
 	queryParam := &bill.ServiceBillQueryParam{
 		ProjectName: "测试项目",
-		QueryParam: result.QueryParam{
-			PageIndex: new(1),
-			PageSize:  new(10),
-		},
+		PageIndex:   new(1),
+		PageSize:    new(10),
 	}
 	bills, err := s.bizSrv.FindByParam(s.ctx, queryParam)
 	s.NoError(err)

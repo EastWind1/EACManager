@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/gofiber/fiber/v3/log"
 )
 
 type BizService struct {
@@ -217,6 +219,7 @@ func (s *BizService) Process(ctx context.Context, ids []uint) (*result.ActionsRe
 				return errs.NewBizError("非创建状态的单据不能处理")
 			}
 			bill.State = Processing
+			log.Infof("服务单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.billRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -244,6 +247,7 @@ func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *t
 			}
 			bill.State = Processed
 			bill.ProcessedDate = processedDate
+			log.Infof("服务单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.billRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -271,6 +275,7 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 			}
 			bill.State = Finished
 			bill.FinishedDate = finishedDate
+			log.Infof("服务单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.billRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -295,6 +300,7 @@ func (s *BizService) CancelProcess(ctx context.Context, ids []uint) (*result.Act
 			}
 			bill.State = Created
 			bill.ProcessedDate = nil
+			log.Infof("服务单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.billRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -319,6 +325,7 @@ func (s *BizService) CancelProcessed(ctx context.Context, ids []uint) (*result.A
 			}
 			bill.State = Processing
 			bill.ProcessedDate = nil
+			log.Infof("服务单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.billRepo.Updates(tx, bill)
 		})
 		return nil, err
@@ -343,6 +350,7 @@ func (s *BizService) CancelFinish(ctx context.Context, ids []uint) (*result.Acti
 			}
 			bill.State = Processed
 			bill.FinishedDate = nil
+			log.Infof("服务单 %v 状态变更为 %v", bill.Number, bill.State)
 			return s.billRepo.Updates(tx, bill)
 		})
 		return nil, err

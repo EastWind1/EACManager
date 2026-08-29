@@ -17,15 +17,15 @@
   "dependencies": {
     "pdfjs-dist": "^6.2.108",
     "pinia": "^3.0.4",
-    "vue": "^3.5.41",
-    "vue-router": "^5.2.0",
-    "vuetify": "^4.1.11",
+    "vue": "^3.5.42",
+    "vue-router": "^5.3.0",
+    "vuetify": "^4.1.12",
     "xlsx": "file:vendor\\xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@mdi/js": "^7.4.47",
     "@tsconfig/node24": "^24.0.5",
-    "@types/node": "^26.3.0",
+    "@types/node": "^26.4.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/tsconfig": "^0.9.1",

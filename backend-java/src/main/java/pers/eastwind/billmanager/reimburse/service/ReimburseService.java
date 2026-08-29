@@ -185,6 +185,7 @@ public class ReimburseService {
                     throw new BizException("非创建状态不能提交");
                 }
                 bill.setState(ReimburseState.PROCESSING);
+                log.info("报销单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 reimburseRepository.save(bill);
             });
             return null;
@@ -208,6 +209,7 @@ public class ReimburseService {
                     throw new BizException("非处理状态不能完成");
                 }
                 bill.setState(ReimburseState.FINISHED);
+                log.info("报销单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 reimburseRepository.save(bill);
             });
             return null;
@@ -231,6 +233,7 @@ public class ReimburseService {
                     throw new BizException("非处理状态不能取消处理");
                 }
                 bill.setState(ReimburseState.CREATED);
+                log.info("报销单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 reimburseRepository.save(bill);
             });
             return null;
@@ -254,6 +257,7 @@ public class ReimburseService {
                     throw new BizException("非完成状态不能取消");
                 }
                 bill.setState(ReimburseState.PROCESSING);
+                log.info("报销单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 reimburseRepository.save(bill);
             });
             return null;

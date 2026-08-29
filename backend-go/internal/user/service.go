@@ -6,6 +6,7 @@ import (
 	"backend-go/pkg/result"
 	"context"
 
+	"github.com/gofiber/fiber/v3/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,6 +37,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (*LoginR
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		log.Warnf("登录失败: %v", username)
 		return nil, errs.NewBizError("用户名或密码错误")
 	}
 
@@ -44,6 +46,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (*LoginR
 		return nil, err
 	}
 
+	log.Infof("用户登录: %v", username)
 	return &LoginResult{
 		Token: token,
 		User:  *user.ToDTO(),

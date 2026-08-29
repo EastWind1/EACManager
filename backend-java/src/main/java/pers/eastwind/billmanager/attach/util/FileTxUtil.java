@@ -102,6 +102,7 @@ public class FileTxUtil {
             rollback(executedOps);
             throw new FileOpException("文件事务执行失败", e);
         }
+        log.debug("文件事务提交: {} 个操作", executedOps.size());
     }
 
     /**

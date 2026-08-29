@@ -3,9 +3,11 @@ package attach
 import (
 	"backend-go/config"
 	"backend-go/pkg/errs"
+	"path/filepath"
+	"time"
 
-	"github.com/bytedance/sonic"
 	"github.com/gofiber/fiber/v3/client"
+	"github.com/gofiber/fiber/v3/log"
 )
 
 type OCRService struct {
@@ -19,9 +21,6 @@ type OCRResult struct {
 }
 
 func NewOCRService(cfg *config.OCRConfig) *OCRService {
-	c := client.New()
-	c.SetJSONMarshal(sonic.Marshal)
-	c.SetJSONUnmarshal(sonic.Unmarshal)
 	return &OCRService{
 		cfg: cfg,
 	}
@@ -38,10 +37,13 @@ func (s *OCRService) ParseImage(path string) ([]string, error) {
 	file.SetFieldName("file")
 	file.SetPath(path)
 	req.AddFiles(file)
+	start := time.Now()
 	res, err := req.Post(s.cfg.URL)
 	if err != nil {
+		log.Errorf("OCR 调用失败: %v - %v", s.cfg.URL, err)
 		return nil, err
 	}
+	log.Infof("OCR 调用完成: %v 耗时 %vms", filepath.Base(path), time.Since(start).Milliseconds())
 	var ocrResult OCRResult
 	if err = res.JSON(&ocrResult); err != nil || res.StatusCode() != 200 {
 		return nil, errs.NewBizError(ocrResult.Msg)

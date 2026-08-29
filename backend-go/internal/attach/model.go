@@ -3,8 +3,7 @@ package attach
 import (
 	"backend-go/pkg/audit"
 	"backend-go/pkg/errs"
-
-	"github.com/bytedance/sonic"
+	"encoding/json/v2"
 )
 
 // Type 附件类型
@@ -37,12 +36,12 @@ func (s *Type) MarshalJSON() ([]byte, error) {
 	case Other:
 		str = "OTHER"
 	}
-	return sonic.Marshal(str)
+	return json.Marshal(str)
 }
 
 func (s *Type) UnmarshalJSON(data []byte) error {
 	var str string
-	if err := sonic.Unmarshal(data, &str); err == nil {
+	if err := json.Unmarshal(data, &str); err == nil {
 		switch str {
 		case "IMAGE":
 			*s = Image
@@ -64,7 +63,7 @@ func (s *Type) UnmarshalJSON(data []byte) error {
 // UnmarshalText 用于查询参数反序列化
 func (s *Type) UnmarshalText(data []byte) error {
 	var str string
-	if err := sonic.Unmarshal(data, &str); err == nil {
+	if err := json.Unmarshal(data, &str); err == nil {
 		switch str {
 		case "IMAGE":
 			*s = Image

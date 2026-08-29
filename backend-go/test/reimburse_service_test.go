@@ -3,7 +3,6 @@ package test
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/reimburse"
-	"backend-go/pkg/result"
 	"strconv"
 	"testing"
 	"time"
@@ -86,11 +85,9 @@ func (s *ReimburseServiceTest) TestFindByParam() {
 	}
 
 	queryParam := &reimburse.QueryParam{
-		Summary: "测试报销",
-		QueryParam: result.QueryParam{
-			PageIndex: new(1),
-			PageSize:  new(10),
-		},
+		Summary:   "测试报销",
+		PageIndex: new(1),
+		PageSize:  new(10),
 	}
 	res, err := s.srv.FindByParam(s.ctx, queryParam)
 	s.NoError(err)

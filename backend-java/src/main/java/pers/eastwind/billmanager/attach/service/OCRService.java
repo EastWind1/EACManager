@@ -31,16 +31,20 @@ public class OCRService {
         if (engine == null) {
             synchronized (this) {
                 if (engine == null) {
+                    log.info("初始化 OCR 引擎");
                     engine = InferenceEngine.getInstance(Model.ONNX_PPOCR_V4);
                 }
             }
         }
         OcrResult ocrResult;
+        long start = System.currentTimeMillis();
         try {
             ocrResult = engine.runOcr(path.toString());
         } catch (Exception e) {
+            log.error("OCR 解析失败: {}", path.getFileName(), e);
             throw new BizException("OCR 解析失败: " + e.getMessage(), e);
         }
+        log.info("OCR 解析完成: {} 耗时 {}ms", path.getFileName(), System.currentTimeMillis() - start);
         return ocrResult.getTextBlocks().stream().map(TextBlock::getText).toList();
     }
 }

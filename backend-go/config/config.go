@@ -26,8 +26,8 @@ type LogConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port   int
-	Mode   string
+	Port int
+	Mode string
 }
 
 // DatabaseConfig 数据库配置

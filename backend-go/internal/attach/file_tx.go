@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/gofiber/fiber/v3/log"
 )
@@ -132,6 +133,7 @@ func Exec(ops []FileOp) error {
 		rollback(executedOps)
 		return errs.NewFileOpError("", "", err)
 	}
+	log.Debugf("文件事务提交: %v 个操作", len(executedOps))
 	return nil
 }
 
@@ -142,7 +144,7 @@ func rollback(executedOps []FileOp) {
 	}
 	var rollbackErrs []error
 	// 倒序回滚
-	for i := len(executedOps) - 1; i >= 0; i-- {
+	for i := range slices.Backward(executedOps) {
 		op := (executedOps)[i]
 
 		switch op.Type {

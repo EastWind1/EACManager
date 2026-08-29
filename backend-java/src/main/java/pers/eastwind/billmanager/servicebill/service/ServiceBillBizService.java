@@ -400,6 +400,7 @@ public class ServiceBillBizService {
                     throw new BizException("非创建状态的单据不能处理");
                 }
                 bill.setState(ServiceBillState.PROCESSING);
+                log.info("服务单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 serviceBillRepository.save(bill);
             });
             return null;
@@ -447,6 +448,7 @@ public class ServiceBillBizService {
                 }
                 bill.setState(ServiceBillState.PROCESSED);
                 bill.setProcessedDate(finalProcessedDate);
+                log.info("服务单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 serviceBillRepository.save(bill);
             });
             return null;
@@ -490,6 +492,7 @@ public class ServiceBillBizService {
                 }
                 bill.setState(ServiceBillState.FINISHED);
                 bill.setFinishedDate(finalFinishedDate);
+                log.info("服务单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 serviceBillRepository.save(bill);
             });
             return null;
@@ -528,6 +531,7 @@ public class ServiceBillBizService {
                 }
                 bill.setState(ServiceBillState.CREATED);
                 bill.setProcessedDate(null);
+                log.info("服务单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 serviceBillRepository.save(bill);
             });
             return null;
@@ -566,6 +570,7 @@ public class ServiceBillBizService {
                 }
                 bill.setState(ServiceBillState.PROCESSING);
                 bill.setProcessedDate(null);
+                log.info("服务单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 serviceBillRepository.save(bill);
             });
             return null;
@@ -604,6 +609,7 @@ public class ServiceBillBizService {
                 }
                 bill.setState(ServiceBillState.PROCESSED);
                 bill.setFinishedDate(null);
+                log.info("服务单 {} 状态变更为 {}", bill.getNumber(), bill.getState());
                 serviceBillRepository.save(bill);
             });
             return null;

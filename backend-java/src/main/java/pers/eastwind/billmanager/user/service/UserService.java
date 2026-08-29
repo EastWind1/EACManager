@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.user.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,6 +29,7 @@ import java.util.List;
 /**
  * 用户服务
  */
+@Slf4j
 @Service
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
@@ -170,9 +172,11 @@ public class UserService implements UserDetailsService {
             throw new BizException("密码不能为空");
         }
         if (!BCrypt.checkpw(password, user.getPassword())) {
+            log.warn("登录失败: {}", username);
             throw new BizException("用户名或密码错误");
         }
         String token = JWTUtil.generateToken(properties.getKey(), properties.getExpire(), username);
+        log.info("用户登录: {}", username);
         return new LoginResult(token, userMapper.toDTO(user));
     }
 
