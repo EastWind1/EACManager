@@ -1,6 +1,5 @@
 package pers.eastwind.billmanager.common.util;
 
-import java.time.Instant;
 
 public class UUID {
     private static int seq = 0;

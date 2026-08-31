@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height d-flex justify-center align-center">
+  <v-container class="fill-height bg-surface-light d-flex justify-center align-center">
     <v-card class="pa-8" elevation="4" width="420">
       <v-card-title class="text-headline-large text-center mb-6">
         <div class="text-headline-medium">服务单管理系统</div>

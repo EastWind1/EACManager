@@ -38,7 +38,7 @@
     </v-navigation-drawer>
     <!-- 日期选择框 -->
     <DatePickerDialog ref="datePickerRef" />
-    <v-main>
+    <v-main class="bg-surface-light">
       <RouterView />
     </v-main>
   </v-responsive>

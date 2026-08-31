@@ -9,7 +9,7 @@ import { createVuetify } from 'vuetify'
 import { zhHans } from 'vuetify/locale'
 import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 import { createPinia } from 'pinia'
-import { useUserStore } from '@/user/store/UserStore'
+import role from '@/common/directive/role'
 
 const vuetify = createVuetify({
   // 中文
@@ -32,6 +32,7 @@ const vuetify = createVuetify({
   defaults: {
     global: {
       density: 'comfortable',
+      rounded: 'lg'
     },
     VContainer: {
       fluid: true,
@@ -52,6 +53,12 @@ const vuetify = createVuetify({
     VDateInput: {
       variant: 'outlined',
     },
+    VDataTable: {
+      hover: true
+    },
+    VDataTableServer: {
+      hover: true
+    }
   },
 })
 // 导出以供非 setup 函数内使用
@@ -60,16 +67,5 @@ createApp(App)
   .use(router)
   .use(vuetify)
   // 权限指令，控制元素渲染
-  .directive('role', (el, binding) => {
-    const userStore = useUserStore()
-    if (!binding.value) {
-      return
-    }
-    const args = binding.value instanceof Array ? binding.value : [binding.value]
-    if (!userStore.hasAnyRole(args)) {
-      el.style.display = 'none'
-    } else {
-      el.style.display = ''
-    }
-  })
+  .directive('role', role)
   .mount('#app')
