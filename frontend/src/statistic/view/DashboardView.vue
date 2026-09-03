@@ -13,24 +13,33 @@
           </template>
           <template #text>
             <v-row>
-              <v-col cols="6" @click="billStateClick(ServiceBillState.CREATED.value)">
-                <div class="text-subtitle-2 text-center">待处理单据</div>
-                <div class="text-headline-large text-center">
-                  {{ countByState?.CREATED ?? 0 }}
-                </div>
-              </v-col>
-              <v-col cols="6" @click="billStateClick(ServiceBillState.PROCESSING.value)">
-                <div class="text-subtitle-2 text-center">处理中单据</div>
-                <div class="text-headline-large text-center">
-                  {{ countByState?.PROCESSING ?? 0 }}
-                </div>
-              </v-col>
-              <v-col cols="6" @click="billStateClick(ServiceBillState.PROCESSED.value)">
-                <div class="text-subtitle-2 text-center">处理完成单据</div>
-                <div class="text-headline-large text-center">
-                  {{ countByState?.PROCESSED ?? 0 }}
-                </div>
-              </v-col>
+              <v-hover v-slot="{isHovering, props }">
+                <v-col v-bind="props" :class="{'hover-shadow': isHovering}" class="rounded-lg" cols="6"
+                       @click="billStateClick(ServiceBillState.CREATED.value)">
+                  <div class="text-subtitle-2 text-center">待处理单据</div>
+                  <div class="text-headline-large text-center">
+                    {{ countByState?.CREATED ?? 0 }}
+                  </div>
+                </v-col>
+              </v-hover>
+              <v-hover v-slot="{isHovering, props }">
+                <v-col v-bind="props" :class="{'hover-shadow': isHovering}"  class="rounded-lg" cols="6"
+                       @click="billStateClick(ServiceBillState.PROCESSING.value)">
+                  <div class="text-subtitle-2 text-center">处理中单据</div>
+                  <div class="text-headline-large text-center">
+                    {{ countByState?.PROCESSING ?? 0 }}
+                  </div>
+                </v-col>
+              </v-hover>
+              <v-hover v-slot="{isHovering, props }">
+                <v-col v-bind="props" :class="{'hover-shadow': isHovering}" class="rounded-lg" cols="6"
+                       @click="billStateClick(ServiceBillState.PROCESSED.value)">
+                  <div class="text-subtitle-2 text-center">处理完成单据</div>
+                  <div class="text-headline-large text-center">
+                    {{ countByState?.PROCESSED ?? 0 }}
+                  </div>
+                </v-col>
+              </v-hover>
             </v-row>
           </template>
         </v-card>
@@ -69,24 +78,33 @@
           </template>
           <template #text>
             <v-row>
-              <v-col cols="6" @click="reimburseStateClick(ReimburseState.CREATED.value)">
-                <div class="text-subtitle-2 text-center">待提交报销</div>
-                <div class="text-headline-large text-center">
-                  {{ reimburseCountByState?.CREATED ?? 0 }}
-                </div>
-              </v-col>
-              <v-col cols="6" @click="reimburseStateClick(ReimburseState.PROCESSING.value)">
-                <div class="text-subtitle-2 text-center">处理中报销</div>
-                <div class="text-headline-large text-center">
-                  {{ reimburseCountByState?.PROCESSING ?? 0 }}
-                </div>
-              </v-col>
-              <v-col cols="6" @click="reimburseStateClick(ReimburseState.FINISHED.value)">
-                <div class="text-subtitle-2 text-center">已完成报销</div>
-                <div class="text-headline-large text-center">
-                  {{ reimburseCountByState?.FINISHED ?? 0 }}
-                </div>
-              </v-col>
+              <v-hover v-slot="{isHovering, props }">
+                <v-col v-bind="props" :class="{'hover-shadow': isHovering}" class="rounded-lg" cols="6"
+                       @click="reimburseStateClick(ReimburseState.CREATED.value)">
+                  <div class="text-subtitle-2 text-center">待提交报销</div>
+                  <div class="text-headline-large text-center">
+                    {{ reimburseCountByState?.CREATED ?? 0 }}
+                  </div>
+                </v-col>
+              </v-hover>
+              <v-hover v-slot="{isHovering, props }">
+                <v-col v-bind="props" :class="{'hover-shadow': isHovering}" class="rounded-lg" cols="6"
+                       @click="reimburseStateClick(ReimburseState.PROCESSING.value)">
+                  <div class="text-subtitle-2 text-center">处理中报销</div>
+                  <div class="text-headline-large text-center">
+                    {{ reimburseCountByState?.PROCESSING ?? 0 }}
+                  </div>
+                </v-col>
+              </v-hover>
+              <v-hover v-slot="{isHovering, props }">
+                <v-col v-bind="props" :class="{'hover-shadow': isHovering}" class="rounded-lg" cols="6"
+                       @click="reimburseStateClick(ReimburseState.FINISHED.value)">
+                  <div class="text-subtitle-2 text-center">已完成报销</div>
+                  <div class="text-headline-large text-center">
+                    {{ reimburseCountByState?.FINISHED ?? 0 }}
+                  </div>
+                </v-col>
+              </v-hover>
             </v-row>
           </template>
         </v-card>
@@ -116,12 +134,12 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
-import { ServiceBillState, type ServiceBillStateValue } from '@/service-bill/model/ServiceBill'
-import { ReimburseState, type ReimburseStateValue } from '@/reimburse/model/Reimbursement'
-import { StatisticApi } from '../api/StatisticApi'
-import { useRouter } from 'vue-router'
-import { mdiCash, mdiCurrencyUsd, mdiMonitorDashboard, mdiReceipt } from '@mdi/js'
+import {computed, ref} from 'vue'
+import {ServiceBillState, type ServiceBillStateValue} from '@/service-bill/model/ServiceBill'
+import {ReimburseState, type ReimburseStateValue} from '@/reimburse/model/Reimbursement'
+import {StatisticApi} from '../api/StatisticApi'
+import {useRouter} from 'vue-router'
+import {mdiCash, mdiCurrencyUsd, mdiMonitorDashboard, mdiReceipt} from '@mdi/js'
 
 const router = useRouter()
 // 服务单数量
@@ -197,4 +215,9 @@ async function init() {
 init()
 </script>
 
-<style scoped></style>
+<style scoped>
+.hover-shadow {
+  transition: all 0.2s;
+  background-color: rgb(from currentColor r g b / 0.04);
+}
+</style>

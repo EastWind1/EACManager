@@ -5,21 +5,10 @@
         <div class="text-headline-medium">服务单管理系统</div>
       </v-card-title>
       <v-form v-model="valid">
-        <v-text-field
-          v-model="username"
-          :prepend-inner-icon="mdiAccount"
-          :rules="[required]"
-          label="用户名"
-        />
-        <v-text-field
-          v-model="password"
-          :append-inner-icon="showPassword ? mdiEye : mdiEyeOff"
-          :prepend-inner-icon="mdiLock"
-          :rules="[required]"
-          :type="showPassword ? 'text' : 'password'"
-          label="密码"
-          @click:append-inner="showPassword = !showPassword"
-        ></v-text-field>
+        <v-text-field v-model="username" :prepend-inner-icon="mdiAccount" :rules="[required]" label="用户名" />
+        <v-text-field v-model="password" :append-inner-icon="showPassword ? mdiEye : mdiEyeOff"
+          :prepend-inner-icon="mdiLock" :rules="[required]" :type="showPassword ? 'text' : 'password'" label="密码"
+          @click:append-inner="showPassword = !showPassword"></v-text-field>
         <v-btn :loading="loading" block color="primary" size="large" @click="login">登录</v-btn>
       </v-form>
     </v-card>

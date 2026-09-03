@@ -15,7 +15,7 @@
     "format": "oxfmt src/"
   },
   "dependencies": {
-    "pdfjs-dist": "^6.2.108",
+    "pdfjs-dist": "^6.3.289",
     "pinia": "^3.0.4",
     "vue": "^3.5.42",
     "vue-router": "^5.3.0",
