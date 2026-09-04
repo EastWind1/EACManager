@@ -1,7 +1,6 @@
 package pers.eastwind.billmanager.reimburse.repository;
 
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 import pers.eastwind.billmanager.reimburse.model.Reimbursement;
 
 import java.time.Instant;
@@ -10,7 +9,6 @@ import java.util.List;
 /**
  * 报销单统计 Repository
  */
-@Repository
 public interface ReimburseStatisticRepository extends org.springframework.data.repository.Repository<Reimbursement, Integer> {
 
     /**

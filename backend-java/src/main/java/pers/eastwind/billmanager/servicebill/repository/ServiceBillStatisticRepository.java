@@ -1,7 +1,6 @@
 package pers.eastwind.billmanager.servicebill.repository;
 
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 import pers.eastwind.billmanager.servicebill.model.ServiceBill;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillState;
 
@@ -11,7 +10,6 @@ import java.util.List;
 /**
  * 服务单统计 Repository
  */
-@Repository
 public interface ServiceBillStatisticRepository extends org.springframework.data.repository.Repository<ServiceBill, Integer> {
 
     /**
