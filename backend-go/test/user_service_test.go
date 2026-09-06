@@ -113,3 +113,38 @@ func (s *UserServiceTest) TestDisable() {
 	err = s.srv.Disable(s.ctx, s.testUser.Username)
 	s.NoError(err)
 }
+
+func (s *UserServiceTest) TestCreateDuplicateUsername() {
+	_, err := s.srv.Create(s.ctx, s.testUser)
+	s.NoError(err)
+
+	duplicate := &user.DTO{
+		Username:  "testUser",
+		Password:  new("password123"),
+		Name:      "重复用户",
+		Authority: auth.RoleUser,
+	}
+	_, err = s.srv.Create(s.ctx, duplicate)
+	s.Error(err)
+	s.Contains(err.Error(), "用户名已存在")
+}
+
+func (s *UserServiceTest) TestLoginWithWrongPassword() {
+	_, err := s.srv.Create(s.ctx, s.testUser)
+	s.NoError(err)
+
+	_, err = s.srv.Login(s.ctx, "testUser", "wrong-password")
+	s.Error(err)
+	s.Contains(err.Error(), "用户名或密码错误")
+}
+
+func (s *UserServiceTest) TestLoginDisabledUser() {
+	_, err := s.srv.Create(s.ctx, s.testUser)
+	s.NoError(err)
+	err = s.srv.Disable(s.ctx, s.testUser.Username)
+	s.NoError(err)
+
+	_, err = s.srv.Login(s.ctx, "testUser", "password123")
+	s.Error(err)
+	s.Contains(err.Error(), "用户已禁用")
+}

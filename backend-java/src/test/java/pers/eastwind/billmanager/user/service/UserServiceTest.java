@@ -106,4 +106,32 @@ class UserServiceTest extends BaseServiceTest {
         assertNotNull(user);
         assertEquals(testUser.getUsername(), user.getUsername());
     }
+
+    @Test
+    @DisplayName("测试创建重复用户名")
+    void shouldNotCreateDuplicateUsername() {
+        userService.create(testUser);
+
+        UserDTO duplicate = new UserDTO();
+        duplicate.setUsername(testUser.getUsername());
+        duplicate.setPassword("password456");
+        duplicate.setName("重复用户");
+        duplicate.setAuthority(AuthorityRole.ROLE_USER);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.create(duplicate));
+        assertNotNull(ex.getMessage());
+        assertTrue(ex.getMessage().contains("用户名已存在"));
+    }
+
+    @Test
+    @DisplayName("测试禁用用户登录失败")
+    void shouldFailLoginWhenDisabled() {
+        userService.create(testUser);
+        userService.disable(testUser.getUsername());
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> userService.login(testUser.getUsername(), "password123"));
+        assertNotNull(ex.getMessage());
+        assertTrue(ex.getMessage().contains("用户已禁用"));
+    }
 }
