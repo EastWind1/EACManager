@@ -57,40 +57,46 @@
       </template>
     </v-expansion-panel>
   </v-expansion-panels>
-  <v-container>
-    <v-row class="justify-between">
-      <v-col cols="3" md="2" v-if="selectedIds.length > 0" class="text-caption ml-5">
-        已选中 {{ selectedIds.length }} 项
-      </v-col>
-      <v-col>
-        <v-row class="justify-end" gap="0">
-          <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
-          <v-btn :disabled="loading" variant="tonal" @click="importFile">导入</v-btn>
-          <v-btn :disabled="loading" variant="tonal" @click="exportToZip">导出</v-btn>
-          <v-btn :disabled="loading" color="primary" @click="process(selectedIds)">开始处理</v-btn>
-          <v-btn :disabled="loading" color="primary" @click="processed(selectedIds)">处理完成</v-btn>
-          <v-btn :disabled="loading" color="primary" @click="finish(selectedIds)">回款完成</v-btn>
-          <v-menu location="bottom" v-role="[AuthorityRole.ROLE_ADMIN.value]">
-            <template #activator="{ props }">
-              <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
-            </template>
-            <v-list density="compact">
-              <v-list-item @click="cancelProcess(selectedIds)">
-                <v-list-item-title>取消处理</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="cancelProcessed(selectedIds)">
-                <v-list-item-title>取消处理完成</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="cancelFinish(selectedIds)">
-                <v-list-item-title>取消完成</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
-          <v-btn :disabled="loading" color="error" @click="remove(selectedIds)">删除</v-btn>
-        </v-row>
-      </v-col>
-    </v-row>
-  </v-container>
+  <v-card>
+    <template #text>
+      <v-row class="justify-between">
+        <v-col cols="3" md="2" v-if="selectedIds.length > 0" class="text-caption ml-5">
+          已选中 {{ selectedIds.length }} 项
+        </v-col>
+        <v-col>
+          <v-row class="justify-end" gap="0">
+            <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
+            <v-btn :disabled="loading" variant="tonal" @click="importFile">导入</v-btn>
+            <v-btn :disabled="loading" variant="tonal" @click="exportToZip">导出</v-btn>
+            <v-btn :disabled="loading" color="primary" @click="process(selectedIds)"
+              >开始处理
+            </v-btn>
+            <v-btn :disabled="loading" color="primary" @click="processed(selectedIds)"
+              >处理完成
+            </v-btn>
+            <v-btn :disabled="loading" color="primary" @click="finish(selectedIds)">回款完成</v-btn>
+            <v-menu location="bottom" v-role="[AuthorityRole.ROLE_ADMIN.value]">
+              <template #activator="{ props }">
+                <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
+              </template>
+              <v-list density="compact">
+                <v-list-item @click="cancelProcess(selectedIds)">
+                  <v-list-item-title>取消处理</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="cancelProcessed(selectedIds)">
+                  <v-list-item-title>取消处理完成</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="cancelFinish(selectedIds)">
+                  <v-list-item-title>取消完成</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+            <v-btn :disabled="loading" color="error" @click="remove(selectedIds)">删除</v-btn>
+          </v-row>
+        </v-col>
+      </v-row>
+    </template>
+  </v-card>
   <v-data-table-server
     v-model="selectedIds"
     :headers="headers"
@@ -246,12 +252,13 @@ useHotkey('enter', () => (search.value = new Date().toString()))
 const route = useRoute()
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
-  Object.assign(queryParam.value, data)
+  queryParam.value = { ...queryParam.value, ...data }
 } else {
   // 尝试从缓存恢复
   const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
   if (cache) {
-    Object.assign(queryParam.value, JSON.parse(cache))
+    const data = JSON.parse(cache) as QueryParam
+    queryParam.value = { ...queryParam.value, ...data }
   }
 }
 

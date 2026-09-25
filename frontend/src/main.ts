@@ -32,7 +32,7 @@ const vuetify = createVuetify({
   defaults: {
     global: {
       density: 'comfortable',
-      rounded: 'lg'
+      rounded: 'lg',
     },
     VContainer: {
       fluid: true,
@@ -54,11 +54,11 @@ const vuetify = createVuetify({
       variant: 'outlined',
     },
     VDataTable: {
-      hover: true
+      hover: true,
     },
     VDataTableServer: {
-      hover: true
-    }
+      hover: true,
+    },
   },
 })
 // 导出以供非 setup 函数内使用

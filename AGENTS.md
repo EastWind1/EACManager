@@ -1,259 +1,229 @@
 # AGENTS.md
 
-This file provides guidance to agents when working with code in this repository.
+Agent guidance for this repository. Details live in the code — this file is the map.
 
 ## Project Overview
 
-Elevator AC After-Sale Manager — a B/S architecture system for managing installation/maintenance work orders, with OCR import support and attachment management. Supports **both Java and Go** backend implementations. Vue 3 frontend. PostgreSQL database.
+Elevator AC After-Sale Manager (电梯空调服务单管理系统) — B/S system for installation/maintenance
+work orders, expense reports, OCR import and attachment management. Java **and** Go backends,
+shared PostgreSQL schema and Vue 3 frontend.
 
 ## Architecture
 
-**Java Backend** (port 8080) — Spring Boot 4 + Java 25 + Virtual Threads
-**Go Backend** (port 8080) — Fiber v3 + GORM
-
-Same DB schema and frontend for both — swap via `deploy/compose-java.yml` (Java) / `deploy/compose.yml` (Go).
-
-Both backends share identical layered structure: `controller` → `service` → `repository` → `model`. API prefix `/api`, response wrapper `{code, message, data}`, biz exceptions for errors. Java uses MapStruct for DTO mapping, Go uses manual conversion.
-
-**Feature modules:** `user` (login/JWT/cookie `X-Auth-Token`), `company`, `servicebill` (work orders with lifecycle + statistics), `reimburse` (expense reports + statistics), `attach` (file upload/OCR). Statistics APIs live under each business module (no standalone statistic module); the frontend dashboard lives under `frontend/src/statistic/`.
-
-**Frontend:** Vue 3 + Vuetify 4 + Pinia + Vue Router 5. Each module has `api/`, `model/`, `view/`, `component/`, `composable/`, `store/`. HttpClient wraps `fetch()` with request dedup, 401→redirect, and loading bar. Custom `v-role` directive for RBAC. Routes: `/login`, `/dashboard`, `/user`, `/company`, `/services`, `/service/:id?`, `/reimburses`, `/reimburse/:id?`.
-
-### Database Schema (PostgreSQL)
-
-8 tables, all use integer PKs with `SEQUENCE` (increment 50):
-
-| Table | Key fields | Notes |
+| | Java backend | Go backend |
 |---|---|---|
-| `sys_user` | `username` (unique), `password` (bcrypt), `authority` (enum), `disabled` | ROLE_ADMIN/ROLE_USER/ROLE_GUEST/ROLE_FINANCE |
-| `company` | `name`, `contact_name`, `contact_phone`, `address`, `email`, `disabled` | Elevator companies |
-| `service_bill` | `number` (indexed), `type` (INSTALL=0 / FIX=1), `state` (CREATED=0 → PROCESSING=1 → PROCESSED=2 → FINISHED=3), `total_amount`, `project_name`, `elevator_info`, `order_date`, `processed_date`, `finished_date`, `product_company_id` | Main work order |
-| `service_bill_detail` | `device`, `quantity`, `unit_price`, `subtotal`, `remark`, FK `service_bill_id` | Line items |
-| `reimbursement` | `number` (indexed), `state` (CREATED=0 → PROCESSING=1 → FINISHED=2), `total_amount`, `reimburse_date`, `summary`, `remark` | Expense report |
-| `reimburse_detail` | `name`, `amount`, FK `reimbursement_id` | Expense line items |
-| `attachment` | `name`, `relative_path`, `type` (IMAGE=0/PDF=1/WORD=2/EXCEL=3/OTHER=4), audit fields | Uploaded files; `relative_path` is internal only — never exposed in DTOs/API |
-| `bill_attach_relation` | FK `attach_id`, FK `bill_id`, `bill_type` (SERVICE_BILL=0/REIMBURSEMENT=1) | Many-to-many join |
+| Stack | Spring Boot 4.1 + Java 25 + JPA/Hibernate 7 | Fiber v3 + GORM |
+| Port | 8080 | 8080 |
+| Deploy | `deploy/compose-java.yml` | `deploy/compose.yml` |
 
-**Default admin user** (from `init_user.sql`): username `root`, password bcrypt-encoded, role `ROLE_ADMIN`.
+Both expose the same API under `/api`, wrapped as `{code, message, data}`, and share the same
+per-module layering. Java follows `controller → service → repository → model` with MapStruct
+mappers; Go flattens each domain into one package with `handler.go` / `service.go` / `store.go` /
+`model.go`.
 
-### Service Bill State Machine
+**Auth (identical contract):** `POST /api/user/token` is the only public endpoint; it sets an
+`X-Auth-Token` httpOnly cookie (`path=/api`, `SameSite=Strict`, `Secure`) and returns the user.
+Go additionally accepts `Authorization: Bearer <token>`. Java enforces roles with
+`@PreAuthorize`, Go with `auth.RoleMiddleware` (this is why some Go routes differ — see below).
 
-States: `CREATED(0)` → `PROCESSING(1)` → `PROCESSED(2)` → `FINISHED(3)`
+**Modules:** `user` (login/JWT), `company`, `servicebill`/`bill` (work orders + statistics),
+`reimburse` (expense reports + statistics), `attach` (upload/OCR/export). Statistics live inside
+each business module — no standalone `statistic` backend module; only the dashboard frontend is
+`frontend/src/statistic/`.
+
+**Frontend:** Vue 3 + Vuetify 4 (`zhHans`, dark-mode aware) + Pinia + Vue Router, built with Vite.
+Routes: `/login`, `/dashboard`, `/user`, `/company`, `/services`, `/service/:id?`, `/reimburses`,
+`/reimburse/:id?`, plus a catch-all 404. `common/api/HttpClient.ts` wraps `fetch()` (request dedup
+via `AbortController`, loading bar, 401→login redirect, 403/500 toasts, unwraps `data`, returns
+`Blob` for non-JSON). `v-role` hides elements by setting `display: none` (it does not unmount them).
+
+## Database (PostgreSQL)
+
+8 tables, integer PKs from `SEQUENCE`s (increment 50), audit columns on all: `created_by_id`,
+`created_date`, `last_modified_by_id`, `last_modified_date`.
+
+| Table | Key fields |
+|---|---|
+| `sys_user` | `username` (unique), `name`, `password` (bcrypt), `phone`, `email`, `authority`, `disabled` |
+| `company` | `name`, `contact_name`, `contact_phone`, `address`, `email`, `disabled` |
+| `service_bill` | `number`, `type` (INSTALL=0/FIX=1), `state`, `total_amount`, `project_name`, `project_address`, `project_contact(_phone)`, `elevator_info`, `on_site_contact`, `on_site_phone`, `order_date`, `processed_date`, `finished_date`, `remark`, `product_company_id`, `version` |
+| `service_bill_detail` | `device`, `quantity`, `unit_price`, `subtotal`, `remark`, FK `service_bill_id` |
+| `reimbursement` | `number`, `state`, `total_amount`, `reimburse_date`, `summary`, `remark`, `version` |
+| `reimburse_detail` | `name`, `amount`, FK `reimbursement_id` |
+| `attachment` | `name`, `relative_path`, `type` (IMAGE=0/PDF=1/WORD=2/EXCEL=3/OTHER=4) |
+| `bill_attach_relation` | FK `attach_id`, FK `bill_id`, `bill_type` (SERVICE_BILL=0/REIMBURSEMENT=1) |
+
+`authority` ∈ ROLE_ADMIN / ROLE_USER / ROLE_FINANCE / ROLE_GUEST. `version` is the Go
+optimistic-lock column. Indexes exist on `service_bill(number, created_date)`,
+`reimbursement(number, reimburse_date)`, `sys_user(username)`,
+`bill_attach_relation(bill_id, bill_type)`.
+
+`attachment.relative_path` is internal storage layout — never expose it in DTOs or API responses.
+`service_bill_detail` / `reimburse_detail` own no audit columns and are cascade-deleted with their
+parent. Default admin `root` is seeded by `deploy/database/init_user.sql` (scheme in
+`init_scheme.sql`).
+
+### Service bill state machine
 
 ```
-CREATED  ──process──→  PROCESSING  ──processed──→  PROCESSED  ──finish──→  FINISHED
-   ↑                       ↑                          ↑                      ↑
-   │   cancel-process      │   cancel-processed       │   cancel-finish       │
-   └───────────────────────┘                          └──────────────────────┘
+CREATED(0) ─process→ PROCESSING(1) ─processed→ PROCESSED(2) ─finish→ FINISHED(3)
+     ←cancel-process─      ←cancel-processed─      ←cancel-finish─
 ```
 
-- Each forward transition requires the exact prior state (guarded in service layer).
-- Each `cancel-*` goes back exactly ONE step and clears the associated date field.
-- Only `CREATED`-state bills can be deleted.
-- Bill numbers auto-generated: `S` + `YYYYMMDD` + 4-digit suffix (Go: nanosecond mod 1000; Java: same pattern).
+Each forward transition requires the exact prior state; each `cancel-*` steps back exactly one
+state and clears the matching date field (`processed_date` / `finished_date`). Only `CREATED` bills
+are deletable. Numbers: `S` + `YYYYMMDD` + 3-digit suffix (`time.Now().UnixNano() % 1000` in Go,
+`Math.random()`-derived in Java); duplicate numbers are rejected when supplied manually.
 
-### Reimbursement State Machine
-
-States: `CREATED(0)` → `PROCESSING(1)` → `FINISHED(2)`
+### Reimbursement state machine
 
 ```
-CREATED  ──submit──→  PROCESSING  ──pay──→  FINISHED
-   ↑                      ↑                  ↑
-   │   cancel-process     │   cancel-finish  │
-   └──────────────────────┘                  │
-                       └─────────────────────┘
+CREATED(0) ─process→ PROCESSING(1) ─finish→ FINISHED(2)
+     ←cancel-process─       ←cancel-finish─
 ```
 
-- Each `cancel-*` goes back exactly ONE step.
-- Only `CREATED`-state reimbursements can be deleted.
-- Reimburse numbers auto-generated: `R` + `YYYYMMDD` + 4-digit random.
+Same one-step revert rule; only `CREATED` is deletable. Numbers: `R` + `YYYYMMDD` + 3-digit random.
 
-## Build & Development Commands
+## API Surface
 
-### Java Backend (port 8080)
-```bash
-cd backend-java
-mvn clean package -DskipTests   # Build without tests
-mvn test                        # Run tests
-mvn verify                      # Build + run tests
-```
+Roles: A=ADMIN, U=USER, F=FINANCE. "auth" means any authenticated role.
 
-### Go Backend (port 8080)
-```bash
-cd backend-go
-go build -ldflags="-s -w" -o target/backend-go cmd/main.go
-go test ./...
-```
+| Module | Endpoints |
+|---|---|
+| `/api/user` | `POST /token` (public) · `PUT /logout` · `GET /` A/U/F · `POST /` A · `PUT /` A/U/F · `DELETE /:username` (disable) A |
+| `/api/company` | `GET /` A/U · `POST /` A · `PUT /` A · `DELETE /:id` (disable) A |
+| `/api/serviceBill` | `POST /query` · `GET /:id` · `POST /` · `PUT /` · `DELETE /` (batch, CREATED only) · `POST /import` (OCR) · `PUT /process` `processed` `finish` `cancel-process` `cancel-processed` `cancel-finish` · `POST /export` · `GET /countByState` · `GET /totalAmountGroupByMonth` |
+| `/api/reimburse` | `POST /query` · `GET /:id` · `POST /` · `PUT /` · `DELETE /` · `POST /import` (invoice OCR → prefilled DTO) · `PUT /process` `finish` `cancel-process` `cancel-finish` · `POST /export` · `GET /countByState` · `GET /totalAmountGroupByMonth` |
+| `/api/attachment` | `POST /temp` (upload temp files → DTOs) · `GET /` (download, attachment DTO as query params) |
 
-### Frontend (port 5173, proxied /api → 8080)
-```bash
-cd frontend
-pnpm install
-pnpm dev          # Dev server with HMR
-pnpm build        # Production build (type-check + vite build)
-pnpm type-check   # vue-tsc type checking
-pnpm lint         # oxlint + eslint
-pnpm format       # oxfmt
-```
+Business endpoints are `auth` unless noted; Go tightens several: bill `cancel-*` are A-only,
+company `POST`/`DELETE` are A-only, user `GET`/`PUT` are A/U/F. Go's company `PUT /` currently
+registers **no** role middleware — treat that as a gap, not a contract.
 
-### Full Build
-```bash
-cd deploy && ./build.sh    # or build.bat on Windows
-docker compose -f compose-java.yml up -d    # Java backend
-docker compose -f compose.yml up -d          # Go backend
-```
+Attachments have no standalone delete/OCR endpoint: `POST /temp` stages files in a JVM/temp
+directory, then bill/reimburse create/update re-binds them through `bill_attach_relation`
+(unreferenced temp entries are swept — lazily on read in Java, by a background
+`CleanTempFiles()` goroutine in Go). Physical moves are transactional (`FileTxUtil` /
+`file_tx.go`). Exports are Excel streams; the service-bill export bundles attachments as a zip.
 
-### Tests
-```bash
-# Go — testify/suite with transaction rollback (SetupTest begins, TearDownTest rolls back)
-cd backend-go && go test -v ./test/...
-
-# Java — @SpringBootTest + @Transactional (rollback after each test), profile "dev"
-cd backend-java && mvn test
-```
+Statistics: `countByState` returns per-state counts; `totalAmountGroupByMonth` sums by
+`processed_date` (bills) / `reimburse_date` (reimbursements) and is cached in Go.
 
 ## Configuration
 
-**Env vars (.env):** `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_KEY` (≥32 chars), `CA_EMAIL`, `DOMAIN`.
+**Java** (`backend-java/src/main/resources/application.yml`) — requires env `DB_HOST`, `DB_PORT`,
+`DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_KEY` (≥32 ASCII chars). Virtual threads on, multipart
+and `config.jwt.expire=604800` (7d), attachment dir `${user.dir}/attachment`. Local dev credentials
+live in `application-dev.yml` (profile `dev`, which tests activate).
 
-**Go** (`config/config.yaml`): Viper loads YAML + env vars. JWT expire 604800s (7d), cache expire 86400s, upload limit 50MB, attachment dir `./attachment`.
+**Go** (`backend-go/config/config.yaml`, loaded by Viper from `./config`, `.`, `../config`, `..`) —
+`server.port`, `log.level`, `db.*`, `cache.expire=86400`, `jwt.secret`/`jwt.expire=604800`,
+`attachment.path=attachment`, `attachment.maxFileSize=5242880`, `ocr.url`. Note: `viper.AutomaticEnv()`
+is called without `BindEnv`, so `db.*` / `ocr.url` are **not** actually overridable by the
+`DB_*` / `OCR_URL` env vars that `deploy/compose.yml` sets — edit the YAML.
 
-**Java** (`application.yml`): Virtual Threads enabled, upload limit 50MB, JWT expire 7d. Dev profile at `application-dev.yml` has local DB credentials.
+**Upload limit is 5 MB** on both backends (`spring.servlet.multipart.max-file-size` and Fiber
+`BodyLimit` / `attachment.maxFileSize`); the Go **test** config raises it to 50 MB.
 
-**OCR:** Java uses local `RapidOCR` (ONNX, Chinese text). Go calls a remote OCR API (`ocr.url` in config). Optional standalone OCR server at `deploy/ocr-server/Dockerfile`.
+**OCR:** Java runs RapidOCR locally (ONNX, Windows + Linux native deps, Chinese). Go has no native
+Chinese OCR and calls a remote HTTP API instead — `ocr.url` is the **full endpoint**, default
+`http://localhost:9003/ocr`, and Go posts a single `file` multipart field and reads
+`{code, msg, data}` with `data` as `[]string` (one entry per text line). That server is
+`ocr-server/` — a FastAPI app (Python ≥3.14, managed with `uv`, `rapidocr` + `pdfplumber`) whose
+`ocr_server/__init__.py` entry point takes `-p/--port` (default 9003). For PDFs it extracts text
+with pdfplumber and only falls back to OCR on the embedded image when no text layer exists. It is
+commented out in `compose.yml` by default; `deploy/build.sh` copies it to `deploy/ocr-server`.
 
-## API Endpoint Reference
+## Build & Test
 
-All under `/api/`. Response: `{ "code": 0, "message": "success", "data": ... }`.
+```bash
+# Java backend
+cd backend-java && mvn clean package -DskipTests   # or: mvn test / mvn verify
 
-### User (`/api/user`)
+# Go backend
+cd backend-go && go build -ldflags="-s -w" -o target/backend-go cmd/main.go && go test ./...
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/login` | No | Login, sets `X-Auth-Token` cookie + returns user info |
-| GET | `/` | Yes | List users (paginated) |
-| PUT | `/password` | Yes | Change own password |
-| PUT | `/:id` | Yes | Update user |
-| POST | `/` | Yes | Create user (admin) |
-| DELETE | `/` | Yes | Delete users (admin) |
-| PUT | `/:username/disable` | Yes | Disable user (admin) |
+# Frontend (dev server proxies /api → localhost:8080)
+cd frontend && pnpm install && pnpm dev            # pnpm build / type-check / lint / format
 
-### Company (`/api/company`)
+# Full deployment bundle + containers
+cd deploy && ./build.sh                            # or build.bat on Windows
+docker compose -f compose-java.yml up -d           # Java; compose.yml for Go
+```
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/query` | Yes | Query companies |
-| GET | `/all` | Yes | Get all companies |
-| GET | `/:id` | Yes | Get by ID |
-| POST | `/` | Yes | Create |
-| PUT | `/` | Yes | Update |
-| DELETE | `/` | Yes | Delete |
+`deploy/build.sh` packages all three: Maven explodes the Java jar with
+`-Djarmode=tools extract` into `deploy/backend-java` (dependencies kept separate, not a fat jar),
+cross-compiles the Go binary into `deploy/backend-go`, and copies the Vite `dist` into
+`deploy/frontend/html`. Compose then runs postgres + backend + Caddy (static files, `/api` reverse
+proxy, automatic Let's Encrypt HTTPS via `DOMAIN` / `CA_EMAIL`).
 
-### Service Bill (`/api/serviceBill`)
+**Tests:** Java — JUnit 5 on `@SpringBootTest` + `@Transactional` (per-test rollback), base class
+`common/BaseServiceTest`, Mockito for collaborators, profile `dev`. Go — `testify/suite` integration
+tests in `backend-go/test` (begin transaction in `SetupTest`, roll back in `TearDownTest`). Run with
+`mvn test` and `go test ./test/...`. Both are **integration** tests that need a reachable
+PostgreSQL (`backend-go/test/config/config.yaml` for Go, the `dev` profile for Java) — there is no
+mocked-DB tier, so the suite fails at setup without a database.
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/query` | Yes | Query with filters |
-| GET | `/:id` | Yes | Get by ID |
-| POST | `/` | Yes | Create |
-| PUT | `/` | Yes | Update |
-| DELETE | `/` | Yes | Delete (batch, only CREATED can be deleted) |
-| POST | `/import` | Yes | Import from file (OCR parse) |
-| PUT | `/process` | Yes | CREATED → PROCESSING (batch) |
-| PUT | `/processed` | Yes | PROCESSING → PROCESSED (batch) |
-| PUT | `/finish` | Yes | PROCESSED → FINISHED (batch) |
-| PUT | `/cancel-process` | Yes | PROCESSING → CREATED (batch) |
-| PUT | `/cancel-processed` | Yes | PROCESSED → PROCESSING (batch) |
-| PUT | `/cancel-finish` | Yes | FINISHED → PROCESSED (batch) |
-| POST | `/export` | Yes | Export to Excel (with attachments in zip) |
-| GET | `/countByState` | Yes | Count bills grouped by state |
-| GET | `/totalAmountGroupByMonth` | Yes | Monthly amount summary (by processedDate) |
+## Conventions
 
-### Reimbursement (`/api/reimburse`)
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/query` | Yes | Query with filters |
-| GET | `/:id` | Yes | Get by ID |
-| POST | `/` | Yes | Create |
-| PUT | `/` | Yes | Update |
-| DELETE | `/` | Yes | Delete (batch) |
-| POST | `/import` | Yes | Import from invoice file (OCR parse, returns prefilled DTO) |
-| PUT | `/process` | Yes | Submit: CREATED → PROCESSING |
-| PUT | `/finish` | Yes | Finalize: PROCESSING → FINISHED |
-| PUT | `/cancel-process` | Yes | Revert: PROCESSING → CREATED |
-| PUT | `/cancel-finish` | Yes | Revert: FINISHED → PROCESSING |
-| POST | `/export` | Yes | Export to Excel |
-| GET | `/countByState` | Yes | Count reimbursements grouped by state |
-| GET | `/totalAmountGroupByMonth` | Yes | Monthly amount summary (by reimburseDate) |
-
-### Attachment (`/api/attachment`)
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/upload` | Yes | Upload file(s), returns attachment IDs |
-| GET | `/download/:id` | Yes | Download by ID |
-| DELETE | `/` | Yes | Delete attachments |
-| POST | `/ocr` | Yes | OCR a file |
-
-## Key Technologies
-
-**Java:** Spring Boot 4, Java 25 (virtual threads), Spring Security (JWT, 4 roles), Spring Data JPA + Hibernate 7, MapStruct 1.6, RapidOCR (ONNX), PDFBox 3, POI 5, Lombok.
-**Go:** Fiber v3, GORM, Sonic (JSON), Viper (config), golang-jwt v5, testify, excelize, optimisticlock.
-**Frontend:** Vue 3 + TS 6, Vuetify 4 (`zhHans` locale), Pinia 3, Vue Router 5, Vite 8 (proxy `/api`→8080), oxlint+oxfmt, pdfjs-dist, xlsx (SheetJS).
-**Deploy:** Docker (postgres + backend + Caddy), auto HTTPS via Let's Encrypt.
-
-## Shared Patterns
-- All tables: integer PKs + audit fields (`created_by/date`, `last_modified_by/date`)
-- Batch ops: array of IDs in, `ActionsResult<int,void>` out (success/failure counts)
-- Pagination: `PageResult<T>` with `page`, `size`, `total`, `data`
-- Errors: `BizException` / `errs.NewBizError`
-- Frontend: `HttpClient('/api/<module>')` per feature module, 401→auto-redirect to login, `v-role` directive for element visibility
+- Batch mutations take a list of ids and return `ActionsResult` (per-item success/failure counts,
+  no all-or-nothing rollback); each item runs in its own transaction.
+- Pagination is `PageResult<T>` (`page`, `size`, `total`, `data`) driven by `QueryParam`.
+- Errors are `BizException` (Java) / `errs.NewBizError` (Go), mapped to the `{code, message, data}`
+  wrapper by `ControllerAdvice` / `middleware.ErrorHandler`.
 
 ## Code Map
 
 ```
 backend-java/src/main/java/pers/eastwind/billmanager/
-  EACAfterSaleMgrApplication.java    — Entry point
-  common/  — Result, PageResult, QueryParam, AuthorityRole, ControllerAdvice, BaseRepository
-  user/    — JWTTokenFilter, SecurityConfig, UserService, JWTUtil
-  company/ — CompanyService, CompanyRepository
-  servicebill/ — ServiceBillBizService, ServiceBillIOService (LD/WK AttachMapRule), BillStatisticService (+ BillStatisticController)
-  reimburse/   — ReimburseService, ReimburseIOService (import/export, ReimburseMapRule), ReimburseStatisticService (+ ReimburseStatisticController)
-  attach/  — AttachmentService, AttachMapService (+ *AttachMapRule), OCRService, FileUtil
+  EACAfterSaleMgrApplication.java   — entry point
+  common/     — Result, PageResult, QueryParam, ActionsResult, AuditEntity, AuthorityRole,
+                BizException, ControllerAdvice, GlobalErrorController, AuthUtil, config/CacheConfig
+  user/       — controller, service, UserProperties, security/{SecurityConfig, JWTTokenFilter},
+                util/JWTUtil, config/AuditConfig
+  company/    — CompanyController/Service/Repository/Mapper
+  servicebill/— ServiceBillController, ServiceBillBizService (state machine),
+                ServiceBillIOService + LD/WK AttachMapRule (import/export),
+                BillStatisticController/Service (+ StatisticRepository)
+  reimburse/  — ReimburseController/Service, ReimburseIOService + ReimburseMapRule (invoice import),
+                ReimburseStatisticController/Service (+ StatisticRepository)
+  attach/     — AttachmentController/Service, AttachMapService + AttachMapRule (binding rules),
+                OCRService, util/{FileUtil, OfficeFileUtil, FileTxUtil}, config/AttachConfigProperties
 
 backend-go/
-  cmd/main.go                        — Entry point
-  internal/server/server.go          — Fiber app bootstrap, module init, routes
-  internal/{user,company,bill,reimburse,attach}/
-    *.go                             — Single flat package per domain (was module/<name>/{controller,service,repository,model})
-    {name}.go                        — Setup() function registering routes (was module.go)
-    handler.go                       — HTTP handlers
-    service.go                       — Business logic
-    store.go                         — GORM queries
-    model.go                         — Types and DTOs
-    stat_store.go / stat_svc.go / stat_handler.go — Statistics per business module (bill, reimburse)
-    attach extras: files.go, ocr.go, office.go, file_tx.go (file transaction), attachmap.go
-    reimburse extras: invoice_rule.go — invoice import map rules
-  pkg/                               — audit, auth, cache, context, database, errs, logger, middleware, result, util
-  test/                              — testify/suite integration tests
-  config/config.yaml                 — Runtime config
+  cmd/main.go                       — entry point
+  internal/server/server.go         — Fiber bootstrap, middleware, module wiring under /api
+  internal/{user,company,bill,reimburse,attach}/ — one flat package per domain
+      {name}.go   Setup() + routes        handler.go  HTTP handlers
+      service.go  business logic          store.go    GORM queries
+      model.go    types/DTOs              query.go    query params (where present)
+      stats: stat_handler.go / stat_svc.go / stat_store.go
+      attach extras: files.go, ocr.go, office.go, file_tx.go, attachmap.go
+      bill extras: ld_rule.go, wk_rule.go      reimburse extras: invoice_rule.go
+  pkg/        — audit, auth, cache, context, database, errs, logger, middleware, result, util
+  config/     — config.go + config.yaml
+  test/       — testify suites
 
 frontend/src/
-  main.ts                            — Bootstrap, Vuetify setup, v-role directive
-  router.ts                          — Lazy routes, auth guard
-  common/api/HttpClient.ts           — fetch wrapper (dedup, 401 redirect, loading bar)
-  {service-bill,reimburse,company,attachment,statistic,user}/
-    api/    — HttpClient calls
-    model/  — TS interfaces
-    view/   — Vue page components
-    component/ — reusable sub-components
-  user/store/UserStore.ts            — Pinia auth store
+  main.ts                 — app bootstrap, Vuetify theme/locale, registers v-role
+  App.vue, router.ts, assets/style.css
+  common/                 — api/HttpClient.ts, model/, store/{UIStore, RouterStore},
+                            component/, view/{HomeView, NotFoundView},
+                            directive/role.ts (hides by role), util/Crypto.ts
+  {user,company,service-bill,reimburse,attachment,statistic}/
+      api/ HttpClient calls · model/ TS interfaces · view/ pages · component/ sub-components
+      composable/ (service-bill, reimburse, attachment) · store/ (user)
 
 deploy/
-  compose-java.yml / compose.yml     — Postgres + backend + Caddy (Java / Go)
-  backup.sh                          — DB backup script
-  database/init_scheme.sql           — Full schema
-  database/init_user.sql             — Default admin (root)
-  build.sh / build.bat               — Cross-compile + deploy
+  compose-java.yml / compose.yml    — postgres + backend + Caddy (Java / Go)
+  database/init_scheme.sql          — full schema      database/init_user.sql — default admin
+  frontend/{html,conf,cert}         — Vite output, Caddyfile, certificates
+  ocr-server/                       — optional RapidOCR service (copied from ocr-server/)
+  build.sh / build.bat, backup.sh
+
+ocr-server/                         — standalone FastAPI OCR service for the Go backend
+  src/ocr_server/__init__.py        — FastAPI app, POST /ocr, CLI (-ip/-p/-workers)
+  src/ocr_server/ocr.py             — RapidOCR wrapper (model paths via env)
+  src/ocr_server/pdf.py             — pdfplumber text extraction + image fallback
+  Dockerfile, pyproject.toml, uv.lock
 ```

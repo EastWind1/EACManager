@@ -12,8 +12,8 @@
     </v-stepper-header>
   </v-stepper>
   <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
-    <v-sheet>
-      <v-container>
+    <v-card>
+      <template #text>
         <v-row>
           <!-- 左侧：单号和状态信息 -->
           <v-col cols="12" md="6">
@@ -107,8 +107,8 @@
             </v-row>
           </v-col>
         </v-row>
-      </v-container>
-    </v-sheet>
+      </template>
+    </v-card>
 
     <v-card>
       <template #title>

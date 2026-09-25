@@ -41,7 +41,7 @@ public class UserController {
                                 .httpOnly(true)
                                 .secure(true)
                                 .maxAge(config.getExpire())
-                                .sameSite("Strict").build().toString())
+                                .sameSite("Lax").build().toString())
                 .body(res.user());
     }
 

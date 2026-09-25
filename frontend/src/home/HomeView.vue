@@ -39,7 +39,9 @@
     <!-- 日期选择框 -->
     <DatePickerDialog ref="datePickerRef" />
     <v-main class="bg-surface-light">
-      <RouterView />
+      <div class="main">
+        <RouterView />
+      </div>
     </v-main>
   </v-responsive>
 </template>
@@ -48,11 +50,11 @@
 import { RouterView, useRouter } from 'vue-router'
 import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { mdiAccount, mdiCash, mdiDomain, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
-import { useUserStore } from '@/user/store/UserStore'
+import { useUserStore } from '@/user/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
-import { useUIStore } from '@/common/store/UIStore'
+import { useUIStore } from '@/common/store/UIStore.ts'
 import DatePickerDialog from '@/common/component/DatePickerDialog.vue'
-import UserApi from "@/user/api/UserApi.ts";
+import UserApi from '@/user/api/UserApi.ts'
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
@@ -126,4 +128,10 @@ onMounted(() => {
 })
 </script>
 
-<style scoped></style>
+<style scoped>
+.main {
+  margin: 0 auto;
+  max-width: 100rem;
+  min-height: 100vh;
+}
+</style>

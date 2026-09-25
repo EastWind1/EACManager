@@ -19,7 +19,9 @@ export const StatisticApi = {
    * 按月统计服务单收入总金额
    */
   async sumTotalAmountByMonth() {
-    return await serviceBillHttp.get<{ month: string; amount: number }[]>(`/totalAmountGroupByMonth`)
+    return await serviceBillHttp.get<{ month: string; amount: number }[]>(
+      `/totalAmountGroupByMonth`,
+    )
   },
   /**
    * 统计报销单状态数量

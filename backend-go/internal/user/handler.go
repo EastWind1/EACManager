@@ -39,7 +39,7 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 		Path:     "/api",
 		MaxAge:   c.cfg.Expire,
 		Secure:   true,
-		SameSite: "Strict",
+		SameSite: "Lax",
 		HTTPOnly: true,
 	}
 	ctx.Cookie(&cookie)

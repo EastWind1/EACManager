@@ -23,5 +23,5 @@ export default {
     } else {
       el.style.display = ''
     }
-  }
+  },
 } satisfies RoleDirective

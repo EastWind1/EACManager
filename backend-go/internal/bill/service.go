@@ -53,8 +53,9 @@ func (s *BizService) ValidateAmount(bill *ServiceBill) error {
 }
 
 func (s *BizService) GenerateNumber() string {
-	timestamp := time.Now().Format("20060102")
-	randomNum := time.Now().UnixNano() % 1000
+	now := time.Now()
+	timestamp := now.Format("20060102")
+	randomNum := now.UnixNano() % 1000
 	if randomNum < 0 {
 		randomNum = -randomNum
 	}

@@ -6,7 +6,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      component: () => import('@/common/view/HomeView.vue'),
+      component: () => import('@/home/HomeView.vue'),
       redirect: '/dashboard',
       beforeEnter: (to) => {
         const hasLogin = useUserStore().getUser()
@@ -61,7 +61,7 @@ const router = createRouter({
     },
     {
       path: '/:pathMatch(.*)*',
-      component: () => import('@/common/view/NotFoundView.vue'),
+      component: () => import('@/home/NotFoundView.vue'),
     },
   ],
 })

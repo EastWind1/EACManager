@@ -12,8 +12,8 @@
       </v-stepper-header>
     </v-stepper>
     <!-- 单据头部 -->
-    <v-sheet>
-      <v-container>
+    <v-card>
+      <template #text>
         <v-row>
           <!-- 左侧：单号和状态信息 -->
           <v-col cols="12" md="6">
@@ -97,8 +97,8 @@
             </v-row>
           </v-col>
         </v-row>
-      </v-container>
-    </v-sheet>
+      </template>
+    </v-card>
     <v-card>
       <template #title>
         <v-icon :icon="mdiFileDocument" size="small"></v-icon>

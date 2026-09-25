@@ -29,11 +29,18 @@
         </v-hover>
       </v-col>
       <v-col v-if="!readonly" cols="1">
-        <v-card variant="outlined" width="53">
-          <template #text>
-            <v-icon :icon="mdiPlus" @click="upload"></v-icon>
-          </template>
-        </v-card>
+        <v-hover v-slot="{ isHovering, props }">
+          <v-card
+            v-bind="props"
+            variant="outlined"
+            width="53"
+            :class="{ 'hover-shadow': isHovering }"
+          >
+            <template #text>
+              <v-icon :icon="mdiPlus" @click="upload"></v-icon>
+            </template>
+          </v-card>
+        </v-hover>
       </v-col>
     </v-row>
   </v-container>
@@ -210,4 +217,9 @@ function deleteAttach(attach: Attachment) {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.hover-shadow {
+  transition: all 0.2s;
+  background-color: rgb(from currentColor r g b / 0.04);
+}
+</style>
