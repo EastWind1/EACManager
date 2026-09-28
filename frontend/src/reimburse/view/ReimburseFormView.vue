@@ -48,21 +48,21 @@
               <v-btn
                 v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :loading="loading"
+                :disabled="loading"
                 @click="process([reimbursement.id!])"
                 >提交
               </v-btn>
               <v-btn
                 v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :loading="loading"
+                :disabled="loading"
                 @click="finish([reimbursement.id!])"
                 >处理完成
               </v-btn>
               <v-btn
                 v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value]"
-                :loading="loading"
+                :disabled="loading"
                 color="warning"
                 @click="cancelProcess([reimbursement.id!])"
                 >取消处理
@@ -70,7 +70,7 @@
               <v-btn
                 v-if="!isEditState && reimbursement.state === ReimburseState.FINISHED.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value]"
-                :loading="loading"
+                :disabled="loading"
                 color="warning"
                 @click="cancelFinish([reimbursement.id!])"
                 >取消完成
@@ -78,7 +78,7 @@
               <v-btn
                 v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :loading="loading"
+                :disabled="loading"
                 color="error"
                 @click="removeAndBack(reimbursement.id!)"
                 >删除
@@ -86,12 +86,12 @@
               <v-btn
                 v-if="isEditState"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :loading="loading"
+                :disabled="loading"
                 color="primary"
                 type="submit"
                 >保存
               </v-btn>
-              <v-btn v-if="isEditState" :loading="loading" color="warning" @click="cancel"
+              <v-btn v-if="isEditState" :disabled="loading" color="warning" @click="cancel"
                 >取消
               </v-btn>
             </v-row>

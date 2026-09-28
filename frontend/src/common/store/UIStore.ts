@@ -9,11 +9,16 @@ import { defineStore } from 'pinia'
 export const useUIStore = defineStore('uiStore', () => {
   // 加载条是否显示
   const loading = ref(false)
+  // 加载进度
+  const loadingProgress = ref(-1)
 
   /**
    * 显示加载条
    */
-  function showLoading() {
+  function showLoading(progress?: number) {
+    if (progress !== undefined) {
+      loadingProgress.value = progress
+    }
     loading.value = true
   }
 
@@ -22,6 +27,7 @@ export const useUIStore = defineStore('uiStore', () => {
    */
   function hideLoading() {
     loading.value = false
+    loadingProgress.value = -1
   }
 
   const notifyFn = ref<
@@ -119,6 +125,7 @@ export const useUIStore = defineStore('uiStore', () => {
 
   return {
     loading,
+    loadingProgress,
     showLoading,
     hideLoading,
     success,

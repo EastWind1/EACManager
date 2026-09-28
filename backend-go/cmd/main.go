@@ -1,7 +1,7 @@
 package main
 
 import (
-	"backend-go/internal/server"
+	"backend-go/server"
 )
 
 func main() {

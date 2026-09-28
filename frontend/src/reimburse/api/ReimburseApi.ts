@@ -94,8 +94,11 @@ const ReimburseApi = {
    * 导出
    * @param ids 单据 ID 列表
    */
-  async export(ids: number[]) {
-    return await http.post<Blob>(`/export`, ids)
+  async export(ids: number[], onProgress?: (e: { loaded?: number; total?: number }) => void) {
+    return await http.post<Blob>(`/export`, ids, {
+      responseType: 'blob',
+      onDownloadProgress: onProgress,
+    })
   },
 }
 export default ReimburseApi

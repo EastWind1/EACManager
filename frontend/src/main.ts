@@ -61,7 +61,7 @@ const vuetify = createVuetify({
     },
   },
 })
-// 导出以供非 setup 函数内使用
+
 createApp(App)
   .use(createPinia())
   .use(router)

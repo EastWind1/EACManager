@@ -1,126 +1,161 @@
+import axios, { type AxiosProgressEvent } from 'axios'
 import { useUIStore } from '@/common/store/UIStore'
 import { useRouter } from 'vue-router'
 
 export interface HttpConfig {
+  url?: string
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  params?: unknown
+  headers?: Record<string, string>
+  data?: unknown
+  /**
+   * 响应类型，默认自动解析；下载、导出等二进制响应需指定为 'blob'
+   */
+  responseType?: 'json' | 'blob'
+  /**
+   * 下载进度回调
+   */
+  onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void
+  /**
+   * 上传进度回调
+   */
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
   /**
    * 是否显示加载条，默认为 true
    */
   useLoad?: boolean
-  params?: unknown
-  headers?: HeadersInit
-  data?: unknown
 }
 
+export interface JSONResponse<T> {
+  data: T
+  message: string
+}
+
+/**
+ * 全局 axios 实例，请求地址由 HttpClient 拼接为完整路径
+ */
+const client = axios.create()
+/**
+ * 全局 abort，用于取消重复请求
+ */
+const abortMap = new Map<string, AbortController>()
+
+/**
+ * 从错误响应中提取服务端提示信息
+ */
+async function extractMessage(data: unknown): Promise<string | undefined> {
+  try {
+    let payload = data
+    if (payload instanceof Blob) {
+      payload = JSON.parse(await payload.text())
+    }
+    const body = payload as JSONResponse<unknown>
+    return body.message
+  } catch {}
+  return undefined
+}
+
+/**
+ * HTTP 客户端
+ *
+ * 处理响应体、异常
+ */
 export class HttpClient {
   private readonly baseURL: string
-  private abortMap: Map<string, AbortController>
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
-    this.abortMap = new Map()
   }
 
-  async request<T>(
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-    url: string,
-    config?: HttpConfig,
-  ): Promise<T> {
-    let loading = true
-    if (config && config.useLoad !== undefined) {
-      loading = config.useLoad
-    }
+  async request<T>(cfg?: HttpConfig): Promise<T> {
     const uiState = useUIStore()
     const router = useRouter()
-    if (loading) {
+    // 加载条
+    const useLoad = cfg?.useLoad ?? true
+    if (useLoad) {
       uiState.showLoading()
     }
-    // 解析查询路径
-    const queryParams = new URLSearchParams()
-    if (config && config.params) {
-      Object.entries(config.params).forEach(([key, value]) => {
-        queryParams.append(key, String(value))
-      })
-    }
-    const queryUrl = queryParams.toString()
-    const finalUrl = queryUrl ? `${this.baseURL}${url}?${queryUrl}` : `${this.baseURL}${url}`
-
+    const method = cfg?.method ?? 'GET'
+    // 防抖：取消同一非 POST 请求中尚未完成的请求
     const abort = new AbortController()
-    const key = `${method}-${finalUrl}-${JSON.stringify(config?.params)}`
-    // 防抖
+    const key = `${method}-${this.baseURL}${cfg?.url}-${JSON.stringify(cfg?.params)}`
     if (method !== 'POST') {
-      if (this.abortMap.has(key)) {
-        this.abortMap.get(key)?.abort()
-      }
-      this.abortMap.set(key, abort)
-    }
-    const reqInit: RequestInit = {
-      signal: abort.signal,
-      method: method,
-      credentials: 'same-origin',
+      abortMap.get(key)?.abort()
+      abortMap.set(key, abort)
     }
 
-    if (method !== 'GET') {
-      if (config && config.data) {
-        if (config.data instanceof FormData) {
-          reqInit.body = config.data
-        } else {
-          reqInit.body = JSON.stringify(config.data)
-          reqInit.headers = {
-            ...config.headers,
-            'Content-Type': 'application/json',
-          }
-        }
-      }
-    }
-
-    const res = await fetch(finalUrl, reqInit)
-    this.abortMap.delete(key)
-    if (loading) {
-      uiState.hideLoading()
-    }
-    // 响应处理
-    const contentType = res.headers.get('Content-Type')
-    let msg = '请求异常'
-    switch (res.status) {
-      case 404:
-        msg = '请求地址不存在'
-        uiState.warning(msg)
-        throw new Error(msg)
-      case 401:
-        await router.push({
-          path: '/login',
-          query: {
-            redirect: location.pathname + location.search,
-          },
+    try {
+      return await client
+        .request({
+          baseURL: this.baseURL,
+          url: cfg?.url,
+          method,
+          params: cfg?.params,
+          data: cfg?.data,
+          headers: cfg?.headers,
+          signal: abort.signal,
+          responseType: cfg?.responseType ?? 'json',
+          onDownloadProgress: cfg?.onDownloadProgress,
+          onUploadProgress: cfg?.onUploadProgress,
         })
-        msg = '未授权'
-        uiState.warning(msg)
-        throw new Error(msg)
-      case 403:
-        msg = '权限不足'
-        uiState.warning(msg)
-        throw new Error(msg)
-      case 500: {
-        const jsonData = (await res.json()) as { message: string; data: unknown }
-        msg = (jsonData && jsonData.message) ?? msg
-        uiState.warning(msg)
-        throw new Error(msg)
+        .then((res) => {
+          // 响应处理
+          const contentType = (res.headers['content-type'] as string | undefined) ?? ''
+          if (cfg?.responseType === 'blob') {
+            return res.data as T
+          }
+          if (contentType.includes('json') || (typeof res.data === 'object' && res.data !== null)) {
+            return (res.data as JSONResponse<T>).data
+          }
+          return res.data as T
+        })
+        .catch(async (err) => {
+          // 网络异常、请求被取消等没有响应体，直接抛出
+          if (!axios.isAxiosError(err) || !err.response) {
+            throw err
+          }
+          const res = err.response
+          // 异常处理
+          let msg = '请求异常'
+          switch (res.status) {
+            case 404:
+              msg = '请求地址不存在'
+              uiState.warning(msg)
+              break
+            case 401:
+              msg = '未授权'
+              uiState.warning(msg)
+              await router.push({
+                path: '/login',
+                query: {
+                  redirect: location.pathname + location.search,
+                },
+              })
+              break
+            case 403:
+              msg = '权限不足'
+              uiState.warning(msg)
+              break
+            case 500:
+              msg = (await extractMessage(res.data)) ?? msg
+              uiState.warning(msg)
+              break
+            default:
+              uiState.warning(msg)
+              break
+          }
+          throw err
+        })
+    } finally {
+      abortMap.delete(key)
+      if (useLoad) {
+        uiState.hideLoading()
       }
-      default:
-        if (!res.ok) {
-          uiState.warning(msg)
-          throw new Error(msg)
-        }
-        if (contentType?.includes('json')) {
-          const jsonData = (await res.json()) as { message: string; data: T }
-          return jsonData.data
-        }
-        return (await res.blob()) as T
     }
   }
 
   async get<T>(url: string, config?: HttpConfig): Promise<T> {
-    return await this.request('GET', url, config)
+    return await this.request({ ...config, method: 'GET', url })
   }
 
   async post<T>(url: string, data: unknown, config?: HttpConfig): Promise<T> {
@@ -128,7 +163,7 @@ export class HttpClient {
       config = {}
     }
     config.data = data
-    return await this.request('POST', url, config)
+    return await this.request({ ...config, method: 'POST', url })
   }
 
   async postForm<T>(url: string, data: FormData, config?: HttpConfig): Promise<T> {
@@ -136,11 +171,7 @@ export class HttpClient {
       config = {}
     }
     config.data = data
-    config.headers = {
-      ...config.headers,
-      'Content-Type': 'multipart/form-data',
-    }
-    return await this.request('POST', url, config)
+    return await this.request({ ...config, method: 'POST', url })
   }
 
   async put<T>(url: string, data: unknown, config?: HttpConfig): Promise<T> {
@@ -148,10 +179,10 @@ export class HttpClient {
       config = {}
     }
     config.data = data
-    return await this.request('PUT', url, config)
+    return await this.request({ ...config, method: 'PUT', url })
   }
 
   async delete<T>(url: string, config?: HttpConfig): Promise<T> {
-    return await this.request('DELETE', url, config)
+    return await this.request({ ...config, method: 'DELETE', url })
   }
 }

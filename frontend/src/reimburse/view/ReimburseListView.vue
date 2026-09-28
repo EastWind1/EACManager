@@ -191,7 +191,7 @@ import { useRouterStore } from '@/common/store/RouterStore'
 import { useFileSelector } from '@/attachment/composable/FileSelector'
 
 const store = useUIStore()
-const { success, warning } = store
+const { info, success, warning, showLoading } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
 const dateUtil = useDate()
@@ -331,7 +331,13 @@ async function exportToZip() {
     warning('请选择要导出的项')
     return
   }
-  const blob = await ReimburseApi.export(selectedIds.value).catch(() => undefined)
+  const blob = await ReimburseApi.export(selectedIds.value, e => {
+    const total = e.total ?? 0
+    const cur = e.loaded ?? 0
+    if (total > 0) {
+      showLoading(cur * 100 / total)
+    }
+  }).catch(() => undefined)
 
   if (blob) {
     const url = window.URL.createObjectURL(blob)
@@ -412,7 +418,10 @@ const { setData } = useRouterStore()
 async function importFile() {
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg', false)
   const file = fileList[0]
-  if (!file) return
+  if (!file) {
+    return
+  }
+  info('正在识别')
   const data = await ReimburseApi.import(file).catch(() => undefined)
   if (!data) return
   setData(data)

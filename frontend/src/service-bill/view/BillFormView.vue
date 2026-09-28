@@ -46,28 +46,28 @@
               </v-btn>
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
-                :loading="loading"
+                :disabled="loading"
                 @click="process([serviceBill.id!])"
               >
                 开始处理
               </v-btn>
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
-                :loading="loading"
+                :disabled="loading"
                 @click="processed([serviceBill.id!])"
               >
                 处理完成
               </v-btn>
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
-                :loading="loading"
+                :disabled="loading"
                 @click="finish([serviceBill.id!])"
               >
                 回款完成
               </v-btn>
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
-                :loading="loading"
+                :disabled="loading"
                 color="error"
                 @click="removeAndBack(serviceBill.id!)"
               >
@@ -76,7 +76,7 @@
               <v-btn
                 v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
-                :loading="loading"
+                :disabled="loading"
                 color="warning"
                 @click="cancelProcess([serviceBill.id!])"
               >
@@ -85,7 +85,7 @@
               <v-btn
                 v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
-                :loading="loading"
+                :disabled="loading"
                 color="warning"
                 @click="cancelProcessed([serviceBill.id!])"
               >
@@ -94,13 +94,13 @@
               <v-btn
                 v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 v-if="!isEditState && serviceBill.state === ServiceBillState.FINISHED.value"
-                :loading="loading"
+                :disabled="loading"
                 color="warning"
                 @click="cancelFinish([serviceBill.id!])"
               >
                 取消完成
               </v-btn>
-              <v-btn v-if="isEditState" :loading="loading" color="primary" type="submit">
+              <v-btn v-if="isEditState" :disabled="loading" color="primary" type="submit">
                 保存</v-btn
               >
               <v-btn v-if="isEditState" color="warning" @click="cancel"> 取消 </v-btn>

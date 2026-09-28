@@ -33,9 +33,10 @@ each business module — no standalone `statistic` backend module; only the dash
 
 **Frontend:** Vue 3 + Vuetify 4 (`zhHans`, dark-mode aware) + Pinia + Vue Router, built with Vite.
 Routes: `/login`, `/dashboard`, `/user`, `/company`, `/services`, `/service/:id?`, `/reimburses`,
-`/reimburse/:id?`, plus a catch-all 404. `common/api/HttpClient.ts` wraps `fetch()` (request dedup
-via `AbortController`, loading bar, 401→login redirect, 403/500 toasts, unwraps `data`, returns
-`Blob` for non-JSON). `v-role` hides elements by setting `display: none` (it does not unmount them).
+`/reimburse/:id?`, plus a catch-all 404. `common/api/HttpClient.ts` wraps `axios` (request dedup
+via `AbortController`, loading bar, 401→login redirect, 403/500 toasts, unwraps `data`; binary
+endpoints pass `responseType: 'blob'`; `onDownloadProgress` / `onUploadProgress` report progress).
+`v-role` hides elements by setting `display: none` (it does not unmount them).
 
 ## Database (PostgreSQL)
 
@@ -192,7 +193,7 @@ backend-java/src/main/java/pers/eastwind/billmanager/
 
 backend-go/
   cmd/main.go                       — entry point
-  internal/server/server.go         — Fiber bootstrap, middleware, module wiring under /api
+  server/server.go                  — Fiber bootstrap, middleware, module wiring under /api
   internal/{user,company,bill,reimburse,attach}/ — one flat package per domain
       {name}.go   Setup() + routes        handler.go  HTTP handlers
       service.go  business logic          store.go    GORM queries

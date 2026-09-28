@@ -20,7 +20,7 @@
           label="密码"
           @click:append-inner="showPassword = !showPassword"
         ></v-text-field>
-        <v-btn :loading="loading" block color="primary" size="large" @click="login">登录</v-btn>
+        <v-btn :disabled="loading" block color="primary" size="large" @click="login">登录</v-btn>
       </v-form>
     </v-card>
   </v-container>

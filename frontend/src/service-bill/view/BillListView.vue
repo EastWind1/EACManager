@@ -190,7 +190,7 @@ import { useDate, useHotkey } from 'vuetify/framework'
 import { AuthorityRole } from '@/user/model/User'
 
 const store = useUIStore()
-const { success, warning } = store
+const { info, success, warning, showLoading } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
 const { setData } = useRouterStore()
@@ -345,7 +345,13 @@ async function exportToZip() {
     warning('请选择要导出的项')
     return
   }
-  const blob = await ServiceBillApi.export(selectedIds.value).catch(() => undefined)
+  const blob = await ServiceBillApi.export(selectedIds.value, e => {
+    const total = e.total ?? 0
+    const cur = e.loaded ?? 0
+    if (total > 0) {
+      showLoading(cur * 100 / total)
+    }
+  }).catch(() => undefined)
 
   if (blob) {
     const url = window.URL.createObjectURL(blob)
@@ -397,6 +403,7 @@ async function importFile() {
   if (!file) {
     return
   }
+  info('正在解析')
   const bill = await ServiceBillApi.import(file).catch(() => undefined)
   if (!bill) {
     return

@@ -3,9 +3,10 @@
     <!-- 全局进度条 -->
     <v-progress-linear
       absolute
+      v-model="loadingProgress"
       :active="loading"
       style="z-index: 9999"
-      indeterminate
+      :indeterminate="loadingProgress < 0"
     ></v-progress-linear>
     <!-- 全局通知 -->
     <NotificationSnackbar ref="snackbarRef" />
@@ -23,7 +24,7 @@ import ConfirmDialog from '@/common/component/ConfirmDialog.vue'
 import { storeToRefs } from 'pinia'
 
 const uiStore = useUIStore()
-const { loading } = storeToRefs(uiStore)
+const { loading, loadingProgress } = storeToRefs(uiStore)
 const snackbarRef = useTemplateRef('snackbarRef')
 const confirmRef = useTemplateRef('confirmRef')
 
