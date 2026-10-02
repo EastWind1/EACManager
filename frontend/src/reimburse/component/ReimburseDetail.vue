@@ -62,6 +62,26 @@ import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import { type ReimburseDetail, type Reimbursement } from '../model/Reimbursement'
 import { computed, ref, toRefs } from 'vue'
 
+// 当前订单数据
+const reimbursement = defineModel<Reimbursement>()
+// 是否可编辑
+const props = defineProps<{
+  readonly: boolean
+}>()
+const { readonly } = toRefs(props)
+
+// 是否显示模态框
+const showDialog = ref(false)
+// 模态框默认值
+const DEFAULT_VALUE = {
+  name: '',
+  amount: 0,
+}
+// 模态框当前数据
+const dialogData = ref<ReimburseDetail>({ ...DEFAULT_VALUE })
+// 当前编辑项，用于 save 时判断是否是新增项
+let curEditItem: ReimburseDetail | undefined = undefined
+
 // 表单标题
 const detailHeaders = computed(() => {
   const base: { title: string; key: string; sortable?: boolean }[] = [
@@ -73,28 +93,9 @@ const detailHeaders = computed(() => {
   }
   return base
 })
-// 当前订单数据
-const reimbursement = defineModel<Reimbursement>()
-// 是否可编辑
-const props = defineProps<{
-  readonly: boolean
-}>()
-const { readonly } = toRefs(props)
 
-// 是否显示模态框
-const showDialog = ref(false)
-
-// 模态框默认值
-const DEFAULT_VALUE = {
-  name: '',
-  amount: 0,
-}
-// 模态框当前数据
-const dialogData = ref<ReimburseDetail>({ ...DEFAULT_VALUE })
 // 必填验证
 const requiredRule = (v: unknown) => !!v || '此项为必填项'
-// 当前编辑项，用于 save 时判断是否是新增项
-let curEditItem: ReimburseDetail | undefined = undefined
 
 // 添加明细
 function addDetail() {
@@ -108,6 +109,22 @@ function editDetail(item: ReimburseDetail) {
   curEditItem = item
   dialogData.value = { ...item }
   showDialog.value = true
+}
+
+// 保存
+function saveDialog() {
+  // 单独处理新增
+  if (!curEditItem) {
+    reimbursement.value!.details.push({
+      ...dialogData.value,
+    })
+  } else {
+    Object.assign(curEditItem, dialogData.value)
+  }
+
+  showDialog.value = false
+
+  calTotalAmount()
 }
 
 // 重新计算总金额
@@ -127,22 +144,6 @@ function deleteDetail(item: ReimburseDetail) {
     reimbursement.value.details.findIndex((i) => i === item),
     1,
   )
-  calTotalAmount()
-}
-
-// 保存
-function saveDialog() {
-  // 单独处理新增
-  if (!curEditItem) {
-    reimbursement.value!.details.push({
-      ...dialogData.value,
-    })
-  } else {
-    Object.assign(curEditItem, dialogData.value)
-  }
-
-  showDialog.value = false
-
   calTotalAmount()
 }
 </script>

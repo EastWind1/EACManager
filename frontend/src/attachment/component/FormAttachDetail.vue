@@ -94,18 +94,19 @@ import AttachmentApi from '../api/AttachmentApi'
 import { useUIStore } from '@/common/store/UIStore'
 import { useFileSelector } from '../composable/FileSelector'
 
-const ExcelPreview = defineAsyncComponent(() => import('./ExcelPreview.vue'))
-const PDFPreview = defineAsyncComponent(() => import('./PDFPreview.vue'))
-
-const attachments = defineModel<Attachment[]>()
 // 是否可编辑
 defineProps<{
   readonly: boolean
 }>()
 
-const downInfo = ref<Map<number, { downloading: boolean; progress: number }>>(new Map())
+const ExcelPreview = defineAsyncComponent(() => import('./ExcelPreview.vue'))
+const PDFPreview = defineAsyncComponent(() => import('./PDFPreview.vue'))
+
 const { warning } = useUIStore()
 
+const attachments = defineModel<Attachment[]>()
+
+const downInfo = ref<Map<number, { downloading: boolean; progress: number }>>(new Map())
 // 预览窗口
 const previewDialog = ref(false)
 // 是否有拖拽
@@ -122,13 +123,6 @@ const previewInfo = ref<{
 })
 // 文件缓存，避免多次从服务器获取同一文件
 const fileCache = new Map<number, string>()
-// 销毁时释放缓存
-onUnmounted(() => {
-  fileCache.forEach((value) => {
-    URL.revokeObjectURL(value)
-  })
-  fileCache.clear()
-})
 
 /**
  * 获取附件对象 URL，本地没有时从服务器下载，并在附件卡片上显示进度
@@ -167,28 +161,6 @@ async function loadFile(attach: Attachment): Promise<string> {
 }
 
 /**
- * 下载附件
- */
-async function download(attach: Attachment) {
-  if (attach == null) {
-    warning('文件为空')
-    return
-  }
-
-  try {
-    const url = await loadFile(attach)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = attach.name
-    a.click()
-    a.remove()
-  } catch (err) {
-    // 请求错误已由 HttpClient 统一提示
-    console.error(err)
-  }
-}
-
-/**
  * 预览附件
  */
 async function preview(attach: Attachment) {
@@ -206,6 +178,28 @@ async function preview(attach: Attachment) {
     const url = await loadFile(attach)
     previewInfo.value = { attachment: attach, objectUrl: url }
     previewDialog.value = true
+  } catch (err) {
+    // 请求错误已由 HttpClient 统一提示
+    console.error(err)
+  }
+}
+
+/**
+ * 下载附件
+ */
+async function download(attach: Attachment) {
+  if (attach == null) {
+    warning('文件为空')
+    return
+  }
+
+  try {
+    const url = await loadFile(attach)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = attach.name
+    a.click()
+    a.remove()
   } catch (err) {
     // 请求错误已由 HttpClient 统一提示
     console.error(err)
@@ -261,6 +255,14 @@ function deleteAttach(attach: Attachment) {
     1,
   )
 }
+
+// 销毁时释放缓存
+onUnmounted(() => {
+  fileCache.forEach((value) => {
+    URL.revokeObjectURL(value)
+  })
+  fileCache.clear()
+})
 </script>
 
 <style scoped>

@@ -60,6 +60,7 @@
     </v-card>
   </v-dialog>
 </template>
+
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { AuthorityRole } from '@/user/model/User'
@@ -70,6 +71,9 @@ import type { Company } from '../model/Company'
 import CompanyApi from '../api/CompanyApi'
 import type { PageResult } from '@/common/model/PageResult'
 
+// 当前登录用户，用于权限控制
+const curUser = useUserStore().getUser()
+
 // 表头
 const headers = [
   { title: '名称', key: 'name', sortable: false },
@@ -78,16 +82,6 @@ const headers = [
   { title: '地址', key: 'address', sortable: false },
   { title: '操作', key: 'actions', sortable: false },
 ]
-// 列表数据
-const data = ref<PageResult<Company>>({
-  pageIndex: 0,
-  totalPages: 0,
-  items: [],
-  totalCount: 0,
-  pageSize: 25,
-})
-// 当前登录用户，用于权限控制
-const curUser = useUserStore().getUser()
 // 新增默认值
 const COMPANY_DEFAULT = {
   name: '',
@@ -96,6 +90,15 @@ const COMPANY_DEFAULT = {
   email: '',
   address: '',
 }
+
+// 列表数据
+const data = ref<PageResult<Company>>({
+  pageIndex: 0,
+  totalPages: 0,
+  items: [],
+  totalCount: 0,
+  pageSize: 25,
+})
 // 弹窗内容
 const dialogData = ref<{
   show: boolean
@@ -112,11 +115,24 @@ const dialogData = ref<{
   // 表单当前公司
   company: { ...COMPANY_DEFAULT },
 })
+
 // 必填
 const required = (v: string) => !!v || '必填'
 // 邮箱验证
 const emailValid = (v: string) =>
   !v || /^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/.test(v) || '邮箱格式错误'
+
+// 初始化
+async function loadItems(options: {
+  page: number
+  itemsPerPage: number
+  sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
+}) {
+  data.value = await CompanyApi.getAll({
+    pageIndex: options.page - 1,
+    pageSize: options.itemsPerPage,
+  })
+}
 
 // 添加
 function add() {
@@ -130,16 +146,6 @@ function edit(company: Company) {
   dialogData.value.company = { ...company }
   dialogData.value.title = '编辑'
   dialogData.value.show = true
-}
-
-// 禁用
-async function disable(company: Company) {
-  const { confirm } = useUIStore()
-  if (company.id && (await confirm('确认', '确定要禁用该公司吗？'))) {
-    await CompanyApi.disable(company.id)
-    const index = data.value.items.findIndex((u) => u.id === company.id)
-    data.value.items.splice(index, 1)
-  }
 }
 
 // 保存公司信息
@@ -161,15 +167,13 @@ async function save() {
   dialogData.value.show = false
 }
 
-// 初始化
-async function loadItems(options: {
-  page: number
-  itemsPerPage: number
-  sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
-}) {
-  data.value = await CompanyApi.getAll({
-    pageIndex: options.page - 1,
-    pageSize: options.itemsPerPage,
-  })
+// 禁用
+async function disable(company: Company) {
+  const { confirm } = useUIStore()
+  if (company.id && (await confirm('确认', '确定要禁用该公司吗？'))) {
+    await CompanyApi.disable(company.id)
+    const index = data.value.items.findIndex((u) => u.id === company.id)
+    data.value.items.splice(index, 1)
+  }
 }
 </script>

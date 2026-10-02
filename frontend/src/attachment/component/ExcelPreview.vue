@@ -47,11 +47,11 @@ const props = defineProps<{
   src: string
 }>()
 
+const { warning } = useUIStore()
+
 // 表格数据
 const body = ref<Cell[][]>([])
 const headers = ref<Cell[]>([])
-
-const { warning } = useUIStore()
 
 async function parseExcel() {
   const response = await fetch(props.src)

@@ -337,8 +337,7 @@ const router = useRouter()
 const { mobile } = useDisplay()
 const dateUtil = useDate()
 const userStore = useUserStore()
-// 页面是否编辑状态
-const isEditState = ref(false)
+
 // 单据类型选项
 const billTypeOption = Object.values(ServiceBillType)
 
@@ -355,19 +354,20 @@ const serviceBill = ref<ServiceBill>({
   totalAmount: 0,
   orderDate: new Date(),
 })
-
+// 页面是否编辑状态
+const isEditState = ref(false)
 // 表单验证状态
 const valid = ref(false)
-// 必填验证
-const requiredRule = (v: unknown) => !!v || '必填项'
 // 公司信息,用于下拉框处理
 const companyData = ref<{ loaded: boolean; data: Company[] }>({
   loaded: false,
   data: [],
 })
-
 // 当前子表 Tab 页
 const tab = ref('detail')
+
+// 必填验证
+const requiredRule = (v: unknown) => !!v || '必填项'
 
 /**
  * 公司下拉加载
@@ -379,9 +379,6 @@ async function companySelect() {
   companyData.value.data = await CompanyApi.getAll({}).then((res) => res.items)
   companyData.value.loaded = true
 }
-
-// 保存快捷键
-useHotkey('ctrl+s', save)
 
 /**
  * 提交表单
@@ -422,6 +419,9 @@ async function cancel() {
   }
 }
 
+// 保存快捷键
+useHotkey('ctrl+s', save)
+
 /**
  * 处理动作结果
  */
@@ -437,6 +437,19 @@ async function processResult(result: ActionsResult<number, void>) {
     warning(`操作失败：${res.message}`)
   }
 }
+
+async function removeAndBack(id: number) {
+  const res = await ServiceBillApi.delete([id])
+  if (res.results[0]!.success) {
+    success('删除成功')
+    router.back()
+  } else {
+    warning(res.results[0]!.message)
+  }
+}
+
+const { process, processed, finish, cancelProcess, cancelProcessed, cancelFinish } =
+  useBillActions(processResult)
 
 /**
  * 打开地图
@@ -475,19 +488,6 @@ function callPhone(phone?: string) {
     }
     open(`tel:${phone}`)
   })
-}
-
-const { process, processed, finish, cancelProcess, cancelProcessed, cancelFinish } =
-  useBillActions(processResult)
-
-async function removeAndBack(id: number) {
-  const res = await ServiceBillApi.delete([id])
-  if (res.results[0]!.success) {
-    success('删除成功')
-    router.back()
-  } else {
-    warning(res.results[0]!.message)
-  }
 }
 
 // 初始化

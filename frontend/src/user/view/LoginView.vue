@@ -52,9 +52,9 @@ const password = ref('')
 const showPassword = ref(false)
 // 表单验证
 const valid = ref(true)
+
 // 必填
 const required = (value: string) => !!value || '不能为空'
-useHotkey('enter', login)
 
 // 登陆
 async function login() {
@@ -73,4 +73,6 @@ async function login() {
     await router.push('/')
   }
 }
+
+useHotkey('enter', login)
 </script>

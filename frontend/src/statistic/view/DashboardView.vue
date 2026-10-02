@@ -172,6 +172,7 @@ import { useRouter } from 'vue-router'
 import { mdiCash, mdiCurrencyUsd, mdiMonitorDashboard, mdiReceipt } from '@mdi/js'
 
 const router = useRouter()
+
 // 服务单数量
 const countByState = ref<{ [key in ServiceBillStateValue]?: number }>({
   CREATED: 0,
@@ -180,15 +181,6 @@ const countByState = ref<{ [key in ServiceBillStateValue]?: number }>({
 })
 // 服务单金额统计
 const amountGroupByMonth = ref<{ month: string; amount: number }[]>([])
-// 报销单数量
-const reimburseCountByState = ref<{ [key in ReimburseStateValue]?: number }>({
-  CREATED: 0,
-  PROCESSING: 0,
-  FINISHED: 0,
-})
-// 报销单金额统计
-const reimburseAmountGroupByMonth = ref<{ month: string; amount: number }[]>([])
-
 // 服务单图表标签
 const amountLabel = computed(() => {
   const values = amountGroupByMonth.value
@@ -199,6 +191,15 @@ const amountValue = computed(() => {
   const values = amountGroupByMonth.value
   return values ? values.map((item) => item.amount) : []
 })
+
+// 报销单数量
+const reimburseCountByState = ref<{ [key in ReimburseStateValue]?: number }>({
+  CREATED: 0,
+  PROCESSING: 0,
+  FINISHED: 0,
+})
+// 报销单金额统计
+const reimburseAmountGroupByMonth = ref<{ month: string; amount: number }[]>([])
 // 报销单图表标签
 const reimburseAmountLabel = computed(() => {
   const values = reimburseAmountGroupByMonth.value

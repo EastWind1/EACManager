@@ -214,8 +214,6 @@ const route = useRoute()
 const router = useRouter()
 const dateUtil = useDate()
 const userStore = useUserStore()
-// 页面是否编辑状态
-const isEditState = ref(false)
 
 // 初始化表单数据
 const reimbursement = ref<Reimbursement>({
@@ -226,14 +224,15 @@ const reimbursement = ref<Reimbursement>({
   totalAmount: 0,
   reimburseDate: new Date(),
 })
-
+// 页面是否编辑状态
+const isEditState = ref(false)
 // 表单验证状态
 const valid = ref(false)
-// 必填验证
-const requiredRule = (v: unknown) => !!v || '必填项'
-
 // 当前 Tab 页
 const tab = ref('detail')
+
+// 必填验证
+const requiredRule = (v: unknown) => !!v || '必填项'
 
 /**
  * 保存
@@ -290,8 +289,6 @@ async function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const { process, finish, cancelProcess, cancelFinish } = useReimburseActions(processResult)
-
 async function removeAndBack(id: number) {
   const res = await ReimburseApi.delete([id])
   if (res.results[0]!.success) {
@@ -301,6 +298,8 @@ async function removeAndBack(id: number) {
     warning(res.results[0]!.message)
   }
 }
+
+const { process, finish, cancelProcess, cancelFinish } = useReimburseActions(processResult)
 
 // 初始化
 async function init() {

@@ -56,14 +56,21 @@ import { useUIStore } from '@/common/store/UIStore.ts'
 import DatePickerDialog from '@/common/component/DatePickerDialog.vue'
 import UserApi from '@/user/api/UserApi.ts'
 
-// 左侧抽屉是否显示
-const drawer = ref(true)
 // 当前路由
 const router = useRouter()
 // 主题切换
 const theme = useTheme()
 // 当前用户
 const userStore = useUserStore()
+// 移除
+const { removeUser } = useUserStore()
+const uiStore = useUIStore()
+
+const datePickerRef = useTemplateRef('datePickerRef')
+
+// 左侧抽屉是否显示
+const drawer = ref(true)
+
 const isDark = computed({
   get: () => theme.global.name.value === 'dark',
   set: (value) => {
@@ -109,19 +116,12 @@ const menuItems = [
   },
 ]
 
-// 移除
-const { removeUser } = useUserStore()
-
 // 退出登录
 async function logout() {
   await UserApi.logout()
   removeUser()
   router.push('/login')
 }
-
-const uiStore = useUIStore()
-
-const datePickerRef = useTemplateRef('datePickerRef')
 
 onMounted(() => {
   uiStore.registerDatePickerFn(datePickerRef.value!.open)

@@ -71,6 +71,29 @@ import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import { type ServiceBill, type ServiceBillDetail } from '../model/ServiceBill'
 import { computed, ref, toRefs, watchEffect } from 'vue'
 
+// 当前订单数据
+const serviceBill = defineModel<ServiceBill>()
+// 是否可编辑
+const props = defineProps<{
+  readonly: boolean
+}>()
+const { readonly } = toRefs(props)
+
+// 是否显示模态框
+const showDialog = ref(false)
+// 模态框默认值
+const DEFAULT_VALUE = {
+  device: '',
+  quantity: 1,
+  unitPrice: 0,
+  subtotal: 0,
+  remark: '',
+}
+// 模态框当前数据
+const dialogData = ref<ServiceBillDetail>({ ...DEFAULT_VALUE })
+// 当前编辑项，用于 save 时判断是否是新增项
+let curEditItem: ServiceBillDetail | undefined = undefined
+
 // 表单标题
 const detailHeaders = computed(() => {
   const base: { title: string; key: string; sortable?: boolean }[] = [
@@ -85,31 +108,10 @@ const detailHeaders = computed(() => {
   }
   return base
 })
-// 当前订单数据
-const serviceBill = defineModel<ServiceBill>()
-// 是否可编辑
-const props = defineProps<{
-  readonly: boolean
-}>()
-const { readonly } = toRefs(props)
 
-// 是否显示模态框
-const showDialog = ref(false)
-
-// 模态框默认值
-const DEFAULT_VALUE = {
-  device: '',
-  quantity: 1,
-  unitPrice: 0,
-  subtotal: 0,
-  remark: '',
-}
-// 模态框当前数据
-const dialogData = ref<ServiceBillDetail>({ ...DEFAULT_VALUE })
 // 必填验证
 const requiredRule = (v: unknown) => !!v || '此项为必填项'
-// 当前编辑项，用于 save 时判断是否是新增项
-let curEditItem: ServiceBillDetail | undefined = undefined
+
 // 监听模态框单价数量变化，计算小计以及总金额
 watchEffect(() => {
   dialogData.value.subtotal = dialogData.value.quantity * dialogData.value.unitPrice
@@ -129,22 +131,6 @@ function editDetail(item: ServiceBillDetail) {
   showDialog.value = true
 }
 
-// 重新计算总金额
-function calTotalAmount() {
-  let totalAmount = 0
-  serviceBill.value!.details.forEach((detail) => (totalAmount += detail.subtotal))
-  serviceBill.value!.totalAmount = totalAmount
-}
-
-// 删除明细
-function deleteDetail(item: ServiceBillDetail) {
-  serviceBill.value?.details.splice(
-    serviceBill.value.details.findIndex((i) => i === item),
-    1,
-  )
-  calTotalAmount()
-}
-
 // 保存
 function saveDialog() {
   // 单独处理新增
@@ -158,6 +144,22 @@ function saveDialog() {
 
   showDialog.value = false
 
+  calTotalAmount()
+}
+
+// 重新计算总金额
+function calTotalAmount() {
+  let totalAmount = 0
+  serviceBill.value!.details.forEach((detail) => (totalAmount += detail.subtotal))
+  serviceBill.value!.totalAmount = totalAmount
+}
+
+// 删除明细
+function deleteDetail(item: ServiceBillDetail) {
+  serviceBill.value?.details.splice(
+    serviceBill.value.details.findIndex((i) => i === item),
+    1,
+  )
   calTotalAmount()
 }
 </script>

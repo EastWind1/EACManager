@@ -193,6 +193,7 @@ const store = useUIStore()
 const { info, success, warning, showLoading } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
+const route = useRoute()
 const { setData } = useRouterStore()
 const dateUtil = useDate()
 
@@ -246,10 +247,7 @@ const queryParam = ref<QueryParam>({
     },
   ],
 })
-// 搜索快捷键
-useHotkey('enter', () => (search.value = new Date().toString()))
 // 处理路由参数
-const route = useRoute()
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
   queryParam.value = { ...queryParam.value, ...data }
@@ -287,6 +285,8 @@ const data = ref<PageResult<ServiceBill>>({
 const search = ref('')
 // 选择的项 id
 const selectedIds = ref<number[]>([])
+// 搜索快捷键
+useHotkey('enter', () => (search.value = new Date().toString()))
 
 /**
  * 加载数据
@@ -337,32 +337,6 @@ async function loadItems(options: {
   }
 }
 
-/**
- * 导出
- */
-async function exportToZip() {
-  if (!selectedIds.value || selectedIds.value.length === 0) {
-    warning('请选择要导出的项')
-    return
-  }
-  const blob = await ServiceBillApi.export(selectedIds.value, e => {
-    const total = e.total ?? 0
-    const cur = e.loaded ?? 0
-    if (total > 0) {
-      showLoading(cur * 100 / total)
-    }
-  }).catch(() => undefined)
-
-  if (blob) {
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = '导出.zip'
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
-}
-
 // 结果展示弹窗
 // Dialog 状态
 const resultDialog = ref<{
@@ -380,8 +354,37 @@ const resultDialog = ref<{
   rows: [],
 })
 
-// 按钮回调
+/**
+ * 将批量操作结果设置到 Dialog
+ * @param result
+ */
+function setResultDialogData(result: ActionsResult<number, void>) {
+  resultDialog.value.successCount = result.successCount
+  resultDialog.value.failedCount = result.failCount
+  resultDialog.value.rows = result.results
+    .filter((res) => !res.success)
+    .map((res) => ({
+      number: data.value.items.find((item) => item.id === res.param)?.number,
+      message: res.message,
+    }))
+}
 
+/**
+ * 处理动作结果
+ */
+function processResult(result: ActionsResult<number, void>) {
+  if (!result.failCount) {
+    success(`${result.successCount} 条单据操作成功, 0 条失败`)
+  } else {
+    setResultDialogData(result)
+    resultDialog.value.show = true
+  }
+  if (result.successCount) {
+    search.value = new Date().toString()
+  }
+}
+
+// 按钮回调
 /**
  * 新建
  */
@@ -418,32 +421,28 @@ async function importFile() {
 }
 
 /**
- * 将批量操作结果设置到 Dialog
- * @param result
+ * 导出
  */
-function setResultDialogData(result: ActionsResult<number, void>) {
-  resultDialog.value.successCount = result.successCount
-  resultDialog.value.failedCount = result.failCount
-  resultDialog.value.rows = result.results
-    .filter((res) => !res.success)
-    .map((res) => ({
-      number: data.value.items.find((item) => item.id === res.param)?.number,
-      message: res.message,
-    }))
-}
-
-/**
- * 处理动作结果
- */
-function processResult(result: ActionsResult<number, void>) {
-  if (!result.failCount) {
-    success(`${result.successCount} 条单据操作成功, 0 条失败`)
-  } else {
-    setResultDialogData(result)
-    resultDialog.value.show = true
+async function exportToZip() {
+  if (!selectedIds.value || selectedIds.value.length === 0) {
+    warning('请选择要导出的项')
+    return
   }
-  if (result.successCount) {
-    search.value = new Date().toString()
+  const blob = await ServiceBillApi.export(selectedIds.value, (e) => {
+    const total = e.total ?? 0
+    const cur = e.loaded ?? 0
+    if (total > 0) {
+      showLoading((cur * 100) / total)
+    }
+  }).catch(() => undefined)
+
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '导出.zip'
+    a.click()
+    window.URL.revokeObjectURL(url)
   }
 }
 

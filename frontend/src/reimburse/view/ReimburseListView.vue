@@ -194,6 +194,8 @@ const store = useUIStore()
 const { info, success, warning, showLoading } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
+const route = useRoute()
+const { setData } = useRouterStore()
 const dateUtil = useDate()
 
 // 筛选条件区域
@@ -240,7 +242,6 @@ const queryParam = ref<QueryParam>({
 })
 
 // 处理路由参数
-const route = useRoute()
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
   queryParam.value = { ...queryParam.value, ...data }
@@ -252,8 +253,7 @@ if (route.query.hasOwnProperty('query')) {
     queryParam.value = { ...queryParam.value, ...data }
   }
 }
-// 搜索快捷键
-useHotkey('enter', () => (search.value = new Date().toString()))
+
 // 数据表格区域
 // 表头
 const headers = [
@@ -277,6 +277,8 @@ const data = ref<PageResult<Reimbursement>>({
 const search = ref('')
 // 选择的项 id
 const selectedIds = ref<number[]>([])
+// 搜索快捷键
+useHotkey('enter', () => (search.value = new Date().toString()))
 
 /**
  * 加载数据
@@ -323,32 +325,6 @@ async function loadItems(options: {
   }
 }
 
-/**
- * 导出
- */
-async function exportToZip() {
-  if (!selectedIds.value || selectedIds.value.length === 0) {
-    warning('请选择要导出的项')
-    return
-  }
-  const blob = await ReimburseApi.export(selectedIds.value, e => {
-    const total = e.total ?? 0
-    const cur = e.loaded ?? 0
-    if (total > 0) {
-      showLoading(cur * 100 / total)
-    }
-  }).catch(() => undefined)
-
-  if (blob) {
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = '报销单导出.zip'
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
-}
-
 // 结果展示弹窗
 // Dialog 状态
 const resultDialog = ref<{
@@ -365,18 +341,6 @@ const resultDialog = ref<{
   failedCount: 0,
   rows: [],
 })
-
-/**
- * 新建
- */
-function create() {
-  router.push({
-    path: '/reimburse',
-    query: {
-      action: 'create',
-    },
-  })
-}
 
 /**
  * 将批量操作结果设置到 Dialog
@@ -408,9 +372,17 @@ function processResult(result: ActionsResult<number, void>) {
   }
 }
 
-const { process, finish, cancelProcess, cancelFinish, remove } = useReimburseActions(processResult)
-
-const { setData } = useRouterStore()
+/**
+ * 新建
+ */
+function create() {
+  router.push({
+    path: '/reimburse',
+    query: {
+      action: 'create',
+    },
+  })
+}
 
 /**
  * 导入
@@ -430,4 +402,32 @@ async function importFile() {
     query: { action: 'import' },
   })
 }
+
+/**
+ * 导出
+ */
+async function exportToZip() {
+  if (!selectedIds.value || selectedIds.value.length === 0) {
+    warning('请选择要导出的项')
+    return
+  }
+  const blob = await ReimburseApi.export(selectedIds.value, (e) => {
+    const total = e.total ?? 0
+    const cur = e.loaded ?? 0
+    if (total > 0) {
+      showLoading((cur * 100) / total)
+    }
+  }).catch(() => undefined)
+
+  if (blob) {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '报销单导出.zip'
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+}
+
+const { process, finish, cancelProcess, cancelFinish, remove } = useReimburseActions(processResult)
 </script>

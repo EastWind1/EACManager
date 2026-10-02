@@ -21,9 +21,11 @@ const props = defineProps<{
   src: string
   scale?: number
 }>()
+
+const { warning } = useUIStore()
+
 // 若浏览器支持pdf，则使用内置
 const useNative = navigator.pdfViewerEnabled
-const { warning } = useUIStore()
 
 const canvasRef = ref<HTMLCanvasElement>()
 const pdfjsDoc = shallowRef<import('pdfjs-dist').PDFDocumentProxy | null>(null)

@@ -83,6 +83,7 @@
     </v-card>
   </v-dialog>
 </template>
+
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { AuthorityRole, type User } from '../model/User'
@@ -94,6 +95,7 @@ import Crypto from '@/common/util/Crypto'
 import type { PageResult } from '@/common/model/PageResult'
 
 const curUser = useUserStore().getUser()
+
 // 表头
 const headers = [
   { title: '用户名', key: 'username', sortable: false },
@@ -103,14 +105,6 @@ const headers = [
   { title: '角色', key: 'authority', sortable: false },
   { title: '操作', key: 'actions', sortable: false },
 ]
-// 列表数据
-const data = ref<PageResult<User>>({
-  items: [],
-  totalCount: 0,
-  totalPages: 0,
-  pageSize: 25,
-  pageIndex: 0,
-})
 // 映射选项，禁用管理员选项
 const options = Object.values(AuthorityRole).map((item) => ({
   title: item.title,
@@ -119,7 +113,6 @@ const options = Object.values(AuthorityRole).map((item) => ({
     disabled: item.value === AuthorityRole.ROLE_ADMIN.value,
   },
 }))
-
 // 新增默认值
 const USER_DEFAULT = {
   username: '',
@@ -127,6 +120,15 @@ const USER_DEFAULT = {
   email: '',
   authority: AuthorityRole.ROLE_USER.value,
 }
+
+// 列表数据
+const data = ref<PageResult<User>>({
+  items: [],
+  totalCount: 0,
+  totalPages: 0,
+  pageSize: 25,
+  pageIndex: 0,
+})
 // 弹窗内容
 const dialogData = ref<{
   show: boolean
@@ -143,6 +145,7 @@ const dialogData = ref<{
   // 表单当前用户
   user: { ...USER_DEFAULT },
 })
+
 // 必填
 const required = (v: string) => !!v || '必填'
 // 新增必填
@@ -155,6 +158,18 @@ const requiredNew = (v: string) => {
 // 二次密码校验
 const passwordAgainEqual = (v: string) =>
   v === dialogData.value?.user.password || '两次输入的密码不一致'
+
+// 查询
+async function loadItems(options: {
+  page: number
+  itemsPerPage: number
+  sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
+}) {
+  data.value = await UserApi.getAll({
+    pageIndex: options.page - 1,
+    pageSize: options.itemsPerPage,
+  })
+}
 
 // 添加
 function add() {
@@ -170,16 +185,6 @@ function edit(user: User) {
   dialogData.value.user.passwordAgain = undefined
   dialogData.value.title = '编辑'
   dialogData.value.show = true
-}
-
-// 禁用
-async function disable(user: User) {
-  const { confirm } = useUIStore()
-  if (user.id && (await confirm('确认', '确定要禁用该用户吗？'))) {
-    await UserApi.disable(user.username)
-    const index = data.value.items.findIndex((u) => u.id === user.id)
-    data.value.items.splice(index, 1)
-  }
 }
 
 // 保存用户信息
@@ -211,15 +216,13 @@ async function saveUser() {
   dialogData.value.show = false
 }
 
-// 查询
-async function loadItems(options: {
-  page: number
-  itemsPerPage: number
-  sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
-}) {
-  data.value = await UserApi.getAll({
-    pageIndex: options.page - 1,
-    pageSize: options.itemsPerPage,
-  })
+// 禁用
+async function disable(user: User) {
+  const { confirm } = useUIStore()
+  if (user.id && (await confirm('确认', '确定要禁用该用户吗？'))) {
+    await UserApi.disable(user.username)
+    const index = data.value.items.findIndex((u) => u.id === user.id)
+    data.value.items.splice(index, 1)
+  }
 }
 </script>
