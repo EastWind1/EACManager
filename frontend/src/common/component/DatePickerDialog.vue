@@ -1,9 +1,9 @@
 <template>
-  <v-dialog v-model="show" persistent width="auto">
-    <v-card>
-      <v-card-title>{{ curTitle }}</v-card-title>
+  <v-dialog :model-value="!!request" persistent width="auto">
+    <v-card v-if="request">
+      <v-card-title>{{ request.title ?? '选择日期' }}</v-card-title>
       <v-card-text>
-        <v-date-picker v-model="internalDate" :max="maxDate" :min="minDate" />
+        <v-date-picker v-model="selectedDate" :max="request.max" :min="request.min" />
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
@@ -15,40 +15,52 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 
-const show = ref(false)
-const curTitle = ref('选择日期')
-const minDate = ref<Date | undefined>(undefined)
-const maxDate = ref<Date | undefined>(undefined)
-const internalDate = ref<string | number | Date | null>(null)
-let resolveRef: (value: Date | undefined) => void
+/**
+ * 日期选择弹窗消息
+ */
+type DatePickerInfo = {
+  title?: string
+  min?: Date
+  max?: Date
+  resolve: (value: Date | undefined) => void
+}
 
-function open(title?: string, min?: Date, max?: Date): Promise<Date | undefined> {
-  curTitle.value = title ?? '选择日期'
-  minDate.value = min ?? undefined
-  maxDate.value = max ?? undefined
-  internalDate.value = null
-  show.value = true
+const queue = ref<DatePickerInfo[]>([])
+const request = computed(() => queue.value[0])
+const selectedDate = ref<string | number | Date | null>(null)
+
+// 每次打开重置已选日期
+watch(request, () => {
+  selectedDate.value = null
+})
+
+/**
+ * 选择日期
+ * @param title 标题
+ * @param minDate 最小日期
+ * @param maxDate 最大日期
+ */
+function selectDate(title?: string, minDate?: Date, maxDate?: Date): Promise<Date | undefined> {
   return new Promise<Date | undefined>((resolve) => {
-    resolveRef = resolve
+    queue.value.push({ title, min: minDate, max: maxDate, resolve })
   })
 }
 
 function confirm() {
-  const dateValue = internalDate.value
-  if (dateValue) {
-    resolveRef(new Date(dateValue))
-  } else {
-    resolveRef(undefined)
-  }
-  show.value = false
+  const value = selectedDate.value
+  queue.value.shift()?.resolve(value ? new Date(value) : undefined)
 }
 
 function cancel() {
-  resolveRef(undefined)
-  show.value = false
+  queue.value.shift()?.resolve(undefined)
 }
 
-defineExpose({ open })
+onUnmounted(() => {
+  // 取消所有后续
+  queue.value.splice(0).forEach((item) => item.resolve(undefined))
+})
+
+defineExpose({ selectDate })
 </script>

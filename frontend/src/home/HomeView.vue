@@ -36,8 +36,6 @@
     <v-navigation-drawer v-model="drawer">
       <v-list :items="menuItems" density="compact" nav slim></v-list>
     </v-navigation-drawer>
-    <!-- 日期选择框 -->
-    <DatePickerDialog ref="datePickerRef" />
     <v-main class="bg-surface-light">
       <div class="main">
         <RouterView />
@@ -48,12 +46,10 @@
 
 <script lang="ts" setup>
 import { RouterView, useRouter } from 'vue-router'
-import { computed, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, ref } from 'vue'
 import { mdiAccount, mdiCash, mdiDomain, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
 import { useUserStore } from '@/user/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
-import { useUIStore } from '@/common/store/UIStore.ts'
-import DatePickerDialog from '@/common/component/DatePickerDialog.vue'
 import UserApi from '@/user/api/UserApi.ts'
 
 // 当前路由
@@ -64,9 +60,6 @@ const theme = useTheme()
 const userStore = useUserStore()
 // 移除
 const { removeUser } = useUserStore()
-const uiStore = useUIStore()
-
-const datePickerRef = useTemplateRef('datePickerRef')
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
@@ -122,10 +115,6 @@ async function logout() {
   removeUser()
   router.push('/login')
 }
-
-onMounted(() => {
-  uiStore.registerDatePickerFn(datePickerRef.value!.open)
-})
 </script>
 
 <style scoped>

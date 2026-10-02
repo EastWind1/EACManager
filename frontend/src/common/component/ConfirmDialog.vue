@@ -1,47 +1,52 @@
 <template>
-  <v-dialog v-model="show" persistent width="auto">
-    <v-card>
+  <v-dialog :model-value="!!request" persistent width="auto">
+    <v-card v-if="request">
       <template #title>
-        {{ curTitle }}
+        {{ request.title }}
       </template>
       <template #text>
-        {{ curText }}
+        {{ request.text }}
       </template>
       <template #actions>
         <v-spacer></v-spacer>
-        <v-btn color="primary" text @click="confirm">确定</v-btn>
-        <v-btn text @click="cancel">取消</v-btn>
+        <v-btn color="primary" text @click="settle(true)">确定</v-btn>
+        <v-btn text @click="settle(false)">取消</v-btn>
       </template>
     </v-card>
   </v-dialog>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 
-const show = ref(false)
-const curTitle = ref('')
-const curText = ref('')
-let resolveRef: (value: boolean | PromiseLike<boolean>) => void
+type ConfirmInfo = {
+  title: string
+  text: string
+  resolve: (value: boolean) => void
+}
 
-function open(title: string, text: string): Promise<boolean> {
-  curTitle.value = title
-  curText.value = text
-  show.value = true
+const queue = ref<ConfirmInfo[]>([])
+const request = computed(() => queue.value[0])
+
+/**
+ * 确认弹窗
+ * @param title 标题
+ * @param text 内容
+ */
+function confirm(title: string, text: string): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
-    resolveRef = resolve
+    queue.value.push({ title, text, resolve })
   })
 }
 
-function confirm() {
-  show.value = false
-  resolveRef(true)
+function settle(confirmed: boolean) {
+  queue.value.shift()?.resolve(confirmed)
 }
 
-function cancel() {
-  show.value = false
-  resolveRef(false)
-}
+onUnmounted(() => {
+  // 取消所有后续
+  queue.value.splice(0).forEach((item) => item.resolve(false))
+})
 
-defineExpose({ open })
+defineExpose({ confirm })
 </script>

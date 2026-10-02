@@ -1,13 +1,11 @@
 import { useUIStore } from '@/common/store/UIStore'
 import ServiceBillApi from '../api/ServiceBillApi'
-import type { ActionsResult } from '@/common/model/ActionsResult'
 
 /**
  * 单据操作
- * @param processResult 处理结果回调
  */
-export function useBillActions(processResult: (result: ActionsResult<number, void>) => void) {
-  const { warning, confirm } = useUIStore()
+export function useBillActions(getKeyFn?: (id: number) => string) {
+  const { warning, confirm, showBatchResult } = useUIStore()
 
   /**
    * 开始处理
@@ -17,7 +15,7 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    processResult(await ServiceBillApi.process(ids))
+    return showBatchResult(await ServiceBillApi.process(ids), getKeyFn)
   }
 
   /**
@@ -32,7 +30,7 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
     if (!date) {
       return
     }
-    processResult(await ServiceBillApi.processed(ids, date))
+    return showBatchResult(await ServiceBillApi.processed(ids, date), getKeyFn)
   }
 
   /**
@@ -47,7 +45,7 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
     if (!date) {
       return
     }
-    processResult(await ServiceBillApi.finish(ids, date))
+    return showBatchResult(await ServiceBillApi.finish(ids, date), getKeyFn)
   }
 
   /**
@@ -58,11 +56,10 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    const confirmResult = await confirm('确认删除', `确认删除 ${ids.length} 条单据？`)
-    if (!confirmResult) {
+    if (!(await confirm(`确认`, `确认删除 ${ids.length} 条单据?`))) {
       return
     }
-    processResult(await ServiceBillApi.delete(ids))
+    return showBatchResult(await ServiceBillApi.delete(ids), getKeyFn)
   }
 
   /**
@@ -73,11 +70,10 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    const confirmResult = await confirm('确认取消处理', `确认取消处理 ${ids.length} 条单据？`)
-    if (!confirmResult) {
+    if (!(await confirm(`确认`, `确认取消处理 ${ids.length} 条单据?`))) {
       return
     }
-    processResult(await ServiceBillApi.cancelProcess(ids))
+    return showBatchResult(await ServiceBillApi.cancelProcess(ids), getKeyFn)
   }
 
   /**
@@ -88,14 +84,10 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    const confirmResult = await confirm(
-      '确认取消处理完成',
-      `确认取消处理完成 ${ids.length} 条单据？`,
-    )
-    if (!confirmResult) {
+    if (!(await confirm(`确认`, `确认取消处理完成 ${ids.length} 条单据?`))) {
       return
     }
-    processResult(await ServiceBillApi.cancelProcessed(ids))
+    return showBatchResult(await ServiceBillApi.cancelProcessed(ids), getKeyFn)
   }
 
   /**
@@ -106,11 +98,10 @@ export function useBillActions(processResult: (result: ActionsResult<number, voi
       warning('请选择要操作的单据')
       return
     }
-    const confirmResult = await confirm('确认取消完成', `确认取消完成 ${ids.length} 条单据？`)
-    if (!confirmResult) {
+    if (!(await confirm(`确认`, `确认取消完成 ${ids.length} 条单据?`))) {
       return
     }
-    processResult(await ServiceBillApi.cancelFinish(ids))
+    return showBatchResult(await ServiceBillApi.cancelFinish(ids), getKeyFn)
   }
 
   return {

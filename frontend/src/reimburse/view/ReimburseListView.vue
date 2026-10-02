@@ -73,14 +73,14 @@
               v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
               :disabled="loading"
               color="primary"
-              @click="process(selectedIds)"
+              @click="reloadAfterAction(process)"
               >提交
             </v-btn>
             <v-btn
               v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
               :disabled="loading"
               color="primary"
-              @click="finish(selectedIds)"
+              @click="reloadAfterAction(finish)"
               >完成
             </v-btn>
             <v-menu location="bottom" v-role="[AuthorityRole.ROLE_ADMIN.value]">
@@ -88,10 +88,10 @@
                 <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
               </template>
               <v-list density="compact">
-                <v-list-item @click="cancelProcess(selectedIds)">
+                <v-list-item @click="reloadAfterAction(cancelProcess)">
                   <v-list-item-title>取消处理</v-list-item-title>
                 </v-list-item>
-                <v-list-item @click="cancelFinish(selectedIds)">
+                <v-list-item @click="reloadAfterAction(cancelFinish)">
                   <v-list-item-title>取消处理完成</v-list-item-title>
                 </v-list-item>
               </v-list>
@@ -100,7 +100,7 @@
               v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
               :disabled="loading"
               color="error"
-              @click="remove(selectedIds)"
+              @click="reloadAfterAction(remove)"
               >删除
             </v-btn>
             <v-btn :disabled="loading" variant="tonal" @click="exportToZip">导出</v-btn>
@@ -143,30 +143,6 @@
       {{ item.reimburseDate ? dateUtil.format(item.reimburseDate, 'keyboardDate') : '' }}
     </template>
   </v-data-table-server>
-
-  <v-dialog v-model="resultDialog.show">
-    <v-card>
-      <template #title>
-        <v-icon :icon="mdiInformation" class="me-2"></v-icon>
-        批量处理结果
-      </template>
-      <template #subtitle>
-        成功: {{ resultDialog.successCount }} 条，失败: {{ resultDialog.failedCount }} 条
-      </template>
-      <template #text>
-        <v-data-table
-          :headers="[
-            { title: '单号', key: 'number', sortable: false },
-            { title: '原因', key: 'message', sortable: false },
-          ]"
-          :items="resultDialog.rows"
-        ></v-data-table>
-      </template>
-      <template #actions>
-        <v-btn @click="resultDialog.show = false">关闭</v-btn>
-      </template>
-    </v-card>
-  </v-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -181,17 +157,16 @@ import ReimburseApi from '../api/ReimburseApi'
 import type { PageResult } from '@/common/model/PageResult'
 import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/common/store/UIStore'
-import type { ActionsResult } from '@/common/model/ActionsResult'
-import { storeToRefs } from 'pinia'
 import { useReimburseActions } from '../composable/ReimburseActions'
+import { storeToRefs } from 'pinia'
 import { AuthorityRole } from '@/user/model/User'
-import { mdiFilter, mdiInformation, mdiMagnify } from '@mdi/js'
+import { mdiFilter, mdiMagnify } from '@mdi/js'
 import { useDate, useHotkey } from 'vuetify/framework'
 import { useRouterStore } from '@/common/store/RouterStore'
 import { useFileSelector } from '@/attachment/composable/FileSelector'
 
 const store = useUIStore()
-const { info, success, warning, showLoading } = store
+const { info, warning, showLoading } = store
 const { loading } = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
@@ -325,51 +300,23 @@ async function loadItems(options: {
   }
 }
 
-// 结果展示弹窗
-// Dialog 状态
-const resultDialog = ref<{
-  show: boolean
-  successCount: number
-  failedCount: number
-  rows: {
-    number: string | undefined
-    message: string
-  }[]
-}>({
-  show: false,
-  successCount: 0,
-  failedCount: 0,
-  rows: [],
-})
+// 动作结果
+const { process, finish, remove, cancelProcess, cancelFinish } = useReimburseActions(
+  (id: number) => {
+    const row = data.value.items.find((item) => item.id === id)
+    if (row) {
+      return row.number!
+    }
+    return String(id)
+  },
+)
 
 /**
- * 将批量操作结果设置到 Dialog
- * @param result
+ * 执行动作后刷新
  */
-function setResultDialogData(result: ActionsResult<number, void>) {
-  resultDialog.value.successCount = result.successCount
-  resultDialog.value.failedCount = result.failCount
-  resultDialog.value.rows = result.results
-    .filter((res) => !res.success)
-    .map((res) => ({
-      number: data.value.items.find((item) => item.id === res.param)?.number,
-      message: res.message,
-    }))
-}
-
-/**
- * 处理动作结果
- */
-function processResult(result: ActionsResult<number, void>) {
-  if (!result.failCount) {
-    success(`${result.successCount} 条单据操作成功, 0 条失败`)
-  } else {
-    setResultDialogData(result)
-    resultDialog.value.show = true
-  }
-  if (result.successCount) {
-    search.value = new Date().toString()
-  }
+async function reloadAfterAction(action: (ids: number[]) => Promise<void>) {
+  await action(selectedIds.value)
+  search.value = new Date().toString()
 }
 
 /**
@@ -428,6 +375,4 @@ async function exportToZip() {
     window.URL.revokeObjectURL(url)
   }
 }
-
-const { process, finish, cancelProcess, cancelFinish, remove } = useReimburseActions(processResult)
 </script>

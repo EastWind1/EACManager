@@ -1,17 +1,18 @@
 <!-- 订单表单 -->
 <template>
-  <!-- 单据状态 -->
-  <v-stepper v-model="serviceBill.state">
-    <v-stepper-header>
-      <template v-for="(state, key, index) in ServiceBillState" :key="index">
-        <v-divider v-if="index"></v-divider>
-        <v-stepper-item :color="state.color" :title="state.title" :value="key">
-          <template #icon>{{ index + 1 }}</template>
-        </v-stepper-item>
-      </template>
-    </v-stepper-header>
-  </v-stepper>
   <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
+    <!-- 单据状态 -->
+    <v-stepper v-model="serviceBill.state">
+      <v-stepper-header>
+        <template v-for="(state, key, index) in ServiceBillState" :key="index">
+          <v-divider v-if="index"></v-divider>
+          <v-stepper-item :color="state.color" :title="state.title" :value="key">
+            <template #icon>{{ index + 1 }}</template>
+          </v-stepper-item>
+        </template>
+      </v-stepper-header>
+    </v-stepper>
+
     <v-card>
       <template #text>
         <v-row>
@@ -47,21 +48,21 @@
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
                 :disabled="loading"
-                @click="process([serviceBill.id!])"
+                @click="reloadAfterAction(process)"
               >
                 开始处理
               </v-btn>
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
                 :disabled="loading"
-                @click="processed([serviceBill.id!])"
+                @click="reloadAfterAction(processed)"
               >
                 处理完成
               </v-btn>
               <v-btn
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
                 :disabled="loading"
-                @click="finish([serviceBill.id!])"
+                @click="reloadAfterAction(finish)"
               >
                 回款完成
               </v-btn>
@@ -69,7 +70,7 @@
                 v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
                 :disabled="loading"
                 color="error"
-                @click="removeAndBack(serviceBill.id!)"
+                @click="backAfterAction(remove)"
               >
                 删除
               </v-btn>
@@ -78,7 +79,7 @@
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
                 :disabled="loading"
                 color="warning"
-                @click="cancelProcess([serviceBill.id!])"
+                @click="reloadAfterAction(cancelProcess)"
               >
                 取消处理
               </v-btn>
@@ -87,7 +88,7 @@
                 v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
                 :disabled="loading"
                 color="warning"
-                @click="cancelProcessed([serviceBill.id!])"
+                @click="reloadAfterAction(cancelProcessed)"
               >
                 取消处理完成
               </v-btn>
@@ -96,14 +97,14 @@
                 v-if="!isEditState && serviceBill.state === ServiceBillState.FINISHED.value"
                 :disabled="loading"
                 color="warning"
-                @click="cancelFinish([serviceBill.id!])"
+                @click="reloadAfterAction(cancelFinish)"
               >
                 取消完成
               </v-btn>
               <v-btn v-if="isEditState" :disabled="loading" color="primary" type="submit">
-                保存</v-btn
-              >
-              <v-btn v-if="isEditState" color="warning" @click="cancel"> 取消 </v-btn>
+                保存
+              </v-btn>
+              <v-btn v-if="isEditState" color="warning" @click="cancel"> 取消</v-btn>
             </v-row>
           </v-col>
         </v-row>
@@ -312,7 +313,6 @@ import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/common/store/UIStore'
 import { useRouterStore } from '@/common/store/RouterStore'
-import type { ActionsResult } from '@/common/model/ActionsResult'
 import { useBillActions } from '../composable/BillActions'
 import {
   mdiFileDocument,
@@ -400,6 +400,18 @@ async function save() {
   }
 }
 
+// 保存快捷键
+useHotkey('ctrl+s', save)
+
+/**
+ * 根据 ID 加载单据
+ * @param id
+ */
+async function loadById(id: number) {
+  serviceBill.value = await ServiceBillApi.getById(id)
+  isEditState.value = false
+}
+
 /**
  * 取消编辑
  */
@@ -411,45 +423,31 @@ async function cancel() {
   }
   // 已有单据重新加载
   if (serviceBill.value.id) {
-    serviceBill.value = await ServiceBillApi.getById(serviceBill.value.id)
-    isEditState.value = false
+    await loadById(serviceBill.value.id)
   } else {
     // 新增单据跳转回列表
     await router.push('/services')
   }
 }
 
-// 保存快捷键
-useHotkey('ctrl+s', save)
+const { process, processed, finish, cancelProcess, cancelProcessed, cancelFinish, remove } =
+  useBillActions(() => serviceBill.value.number!)
 
 /**
- * 处理动作结果
+ * 执行动作后刷新
  */
-async function processResult(result: ActionsResult<number, void>) {
-  const res = result.results[0]
-  if (!res) {
-    return
-  }
-  if (res.success) {
-    success('操作成功')
-    serviceBill.value = await ServiceBillApi.getById(serviceBill.value.id!)
-  } else {
-    warning(`操作失败：${res.message}`)
-  }
+async function reloadAfterAction(action: (ids: number[]) => Promise<void>) {
+  await action([serviceBill.value.id!])
+  await loadById(serviceBill.value.id!)
 }
 
-async function removeAndBack(id: number) {
-  const res = await ServiceBillApi.delete([id])
-  if (res.results[0]!.success) {
-    success('删除成功')
-    router.back()
-  } else {
-    warning(res.results[0]!.message)
-  }
+/**
+ * 执行动作后返回
+ */
+async function backAfterAction(action: (ids: number[]) => Promise<void>) {
+  await action([serviceBill.value.id!])
+  await router.push('/services')
 }
-
-const { process, processed, finish, cancelProcess, cancelProcessed, cancelFinish } =
-  useBillActions(processResult)
 
 /**
  * 打开地图
@@ -465,6 +463,7 @@ function openMap(address: string) {
     iframe.style.display = 'none'
     iframe.src = `androidamap://keywordNavi?sourceApplication=appname&keyword=${encodeURIComponent(address)}&style=2`
     document.body.appendChild(iframe)
+    // iframe 唤起 app 后会继续存在，需手动删除
     setTimeout(() => {
       document.body.removeChild(iframe)
     }, 1000)

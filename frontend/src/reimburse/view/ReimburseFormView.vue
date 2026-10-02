@@ -49,14 +49,14 @@
                 v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                 :disabled="loading"
-                @click="process([reimbursement.id!])"
+                @click="reloadAfterAction(process)"
                 >提交
               </v-btn>
               <v-btn
                 v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                 :disabled="loading"
-                @click="finish([reimbursement.id!])"
+                @click="reloadAfterAction(finish)"
                 >处理完成
               </v-btn>
               <v-btn
@@ -64,7 +64,7 @@
                 v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 :disabled="loading"
                 color="warning"
-                @click="cancelProcess([reimbursement.id!])"
+                @click="reloadAfterAction(cancelProcess)"
                 >取消处理
               </v-btn>
               <v-btn
@@ -72,7 +72,7 @@
                 v-role="[AuthorityRole.ROLE_ADMIN.value]"
                 :disabled="loading"
                 color="warning"
-                @click="cancelFinish([reimbursement.id!])"
+                @click="reloadAfterAction(cancelFinish)"
                 >取消完成
               </v-btn>
               <v-btn
@@ -80,7 +80,7 @@
                 v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
                 :disabled="loading"
                 color="error"
-                @click="removeAndBack(reimbursement.id!)"
+                @click="backAfterAction(remove)"
                 >删除
               </v-btn>
               <v-btn
@@ -199,7 +199,6 @@ import { storeToRefs } from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/common/store/UIStore'
-import type { ActionsResult } from '@/common/model/ActionsResult'
 import { useReimburseActions } from '../composable/ReimburseActions'
 import { AuthorityRole } from '@/user/model/User'
 import { useDate } from 'vuetify/framework'
@@ -255,6 +254,15 @@ async function save() {
 }
 
 /**
+ * 根据 ID 加载单据
+ * @param id
+ */
+async function loadById(id: number) {
+  reimbursement.value = await ReimburseApi.getById(id)
+  isEditState.value = false
+}
+
+/**
  * 取消编辑
  */
 async function cancel() {
@@ -265,41 +273,32 @@ async function cancel() {
   }
   // 已有单据重新加载
   if (reimbursement.value.id) {
-    reimbursement.value = await ReimburseApi.getById(reimbursement.value.id)
-    isEditState.value = false
+    await loadById(reimbursement.value.id)
   } else {
     // 新增单据跳转回列表
     await router.push('/reimburse')
   }
 }
 
+const { process, finish, remove, cancelProcess, cancelFinish } = useReimburseActions(
+  () => reimbursement.value.number!,
+)
+
 /**
- * 处理动作结果
+ * 执行动作后刷新
  */
-async function processResult(result: ActionsResult<number, void>) {
-  const res = result.results[0]
-  if (!res) {
-    return
-  }
-  if (res.success) {
-    success('操作成功')
-    reimbursement.value = await ReimburseApi.getById(reimbursement.value.id!)
-  } else {
-    warning(`操作失败：${res.message}`)
-  }
+async function reloadAfterAction(action: (ids: number[]) => Promise<void>) {
+  await action([reimbursement.value.id!])
+  await loadById(reimbursement.value.id!)
 }
 
-async function removeAndBack(id: number) {
-  const res = await ReimburseApi.delete([id])
-  if (res.results[0]!.success) {
-    success('删除成功')
-    router.back()
-  } else {
-    warning(res.results[0]!.message)
-  }
+/**
+ * 执行动作后返回
+ */
+async function backAfterAction(action: (ids: number[]) => Promise<void>) {
+  await action([reimbursement.value.id!])
+  await router.push('/reimburse')
 }
-
-const { process, finish, cancelProcess, cancelFinish } = useReimburseActions(processResult)
 
 // 初始化
 async function init() {
