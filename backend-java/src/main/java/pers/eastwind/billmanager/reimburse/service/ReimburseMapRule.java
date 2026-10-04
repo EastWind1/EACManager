@@ -1,7 +1,6 @@
 package pers.eastwind.billmanager.reimburse.service;
 
-import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.service.AttachMapRule;
+import pers.eastwind.billmanager.common.util.DateParseUtil;
 import pers.eastwind.billmanager.reimburse.model.ReimburseDetailDTO;
 import pers.eastwind.billmanager.reimburse.model.ReimbursementDTO;
 
@@ -21,8 +20,7 @@ import java.util.regex.Pattern;
  *   <li>"备注"之后的文本作为备注</li>
  * </ol>
  */
-@Service
-public class ReimburseMapRule implements AttachMapRule<ReimbursementDTO> {
+public class ReimburseMapRule {
     private static final Pattern SPACE = Pattern.compile("\\s+");
 
     private boolean canMapTexts(List<String> texts) {
@@ -34,7 +32,9 @@ public class ReimburseMapRule implements AttachMapRule<ReimbursementDTO> {
         return false;
     }
 
-    @Override
+    /**
+     * 从文本块映射，返回 null 表示未命中
+     */
     public ReimbursementDTO mapFromTexts(List<String> texts) {
         if (!canMapTexts(texts)) {
             return null;
@@ -52,7 +52,7 @@ public class ReimburseMapRule implements AttachMapRule<ReimbursementDTO> {
             String cur = texts.get(i);
             if (cur.contains("开票日期")) {
                 String dateStr = cur.substring(5);
-                dto.setReimburseDate(AttachMapRule.parseDateString(dateStr));
+                dto.setReimburseDate(DateParseUtil.parseDateString(dateStr));
             }
             if (cur.contains("项目名称")) {
                 headerIdx = i;
@@ -128,10 +128,5 @@ public class ReimburseMapRule implements AttachMapRule<ReimbursementDTO> {
         }
 
         return dto;
-    }
-
-    @Override
-    public ReimbursementDTO mapFromGrid(List<List<String>> rows) {
-        return null;
     }
 }

@@ -17,23 +17,23 @@ import (
 )
 
 type BizService struct {
-	cache        cache.Cache
-	billRepo     *Repository
-	attachSrv    *attach.Service
-	attachMapSrv *attach.MapService
+	cache     cache.Cache
+	billRepo  *Repository
+	attachSrv *attach.Service
+	mapper    *ServiceBillMapper
 }
 
 func NewBizService(
 	cache cache.Cache,
 	billRepo *Repository,
 	attachSrv *attach.Service,
-	attachMapSrv *attach.MapService,
+	mapper *ServiceBillMapper,
 ) *BizService {
 	return &BizService{
-		cache:        cache,
-		billRepo:     billRepo,
-		attachSrv:    attachSrv,
-		attachMapSrv: attachMapSrv,
+		cache:     cache,
+		billRepo:  billRepo,
+		attachSrv: attachSrv,
+		mapper:    mapper,
 	}
 }
 
@@ -363,17 +363,13 @@ func (s *BizService) GenerateByFile(file *multipart.FileHeader) (*ServiceBillDTO
 	if err != nil {
 		return nil, err
 	}
-	data, err := s.attachMapSrv.MapTo(new((attaches)[0]))
+	attachment := attaches[0]
+	bill, err := s.mapper.Map(&attachment)
 	if err != nil {
 		return nil, err
 	}
-	if bill, ok := data.(*ServiceBillDTO); ok {
-		bill.Attachments = attaches
-		return bill, nil
-	}
-
-	return nil, errs.NewBizError("转换失败")
-
+	bill.Attachments = attaches
+	return bill, nil
 }
 
 func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {

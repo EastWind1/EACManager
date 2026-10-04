@@ -184,11 +184,11 @@ backend-java/src/main/java/pers/eastwind/billmanager/
                 util/JWTUtil, config/AuditConfig
   company/    — CompanyController/Service/Repository/Mapper
   servicebill/— ServiceBillController, ServiceBillBizService (state machine),
-                ServiceBillIOService + LD/WK AttachMapRule (import/export),
+                ServiceBillIOService + ServiceBillAttachMapper (LD/WK rules, import/export),
                 BillStatisticController/Service (+ StatisticRepository)
-  reimburse/  — ReimburseController/Service, ReimburseIOService + ReimburseMapRule (invoice import),
-                ReimburseStatisticController/Service (+ StatisticRepository)
-  attach/     — AttachmentController/Service, AttachMapService + AttachMapRule (binding rules),
+  reimburse/  — ReimburseController/Service, ReimburseIOService + ReimburseAttachMapper
+                (invoice rule, import), ReimburseStatisticController/Service (+ StatisticRepository)
+  attach/     — AttachmentController/Service, AttachContentService (image/PDF texts, Excel grid),
                 OCRService, util/{FileUtil, OfficeFileUtil, FileTxUtil}, config/AttachConfigProperties
 
 backend-go/
@@ -199,8 +199,8 @@ backend-go/
       service.go  business logic          store.go    GORM queries
       model.go    types/DTOs              query.go    query params (where present)
       stats: stat_handler.go / stat_svc.go / stat_store.go
-      attach extras: files.go, ocr.go, office.go, file_tx.go, attachmap.go
-      bill extras: ld_rule.go, wk_rule.go      reimburse extras: invoice_rule.go
+      attach extras: files.go, ocr.go, office.go, file_tx.go, content.go
+      bill extras: ld_rule.go, wk_rule.go, mapper.go   reimburse extras: invoice_rule.go, mapper.go
   pkg/        — audit, auth, cache, context, database, errs, logger, middleware, result, util
   config/     — config.go + config.yaml
   test/       — testify suites

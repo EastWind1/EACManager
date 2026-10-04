@@ -8,9 +8,10 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Service, attachMapSrc *attach.MapService) {
+func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Service, contentSrc *attach.ContentService) {
 	reimburseRepo := NewReimburseRepository(ctx.Db)
-	reimburseService := NewService(reimburseRepo, attachSrc, attachMapSrc, ctx.Cache)
+	reimburseMapper := NewMapper(contentSrc)
+	reimburseService := NewService(reimburseRepo, attachSrc, reimburseMapper)
 	reimburseController := NewReimburseController(reimburseService)
 	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, reimburseRepo))
 	reimburseGroup := router.Group("/reimburse")
@@ -29,13 +30,10 @@ func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Servi
 		reimburseGroup.Post("/export", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.Export)
 		reimburseGroup.Post("/import", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.ImportByFile)
 	}
-
-	attachMapSrc.RegisterRule(NewMapRule())
 }
 
-func SetupForTest(ctx *context.AppContext, attachSrv *attach.Service, attachMapSrv *attach.MapService) *Service {
+func SetupForTest(ctx *context.AppContext, attachSrv *attach.Service, contentSrv *attach.ContentService) *Service {
 	reimburseRepo := NewReimburseRepository(ctx.Db)
-	reimburseService := NewService(reimburseRepo, attachSrv, attachMapSrv, ctx.Cache)
-	attachMapSrv.RegisterRule(NewMapRule())
-	return reimburseService
+	reimburseMapper := NewMapper(contentSrv)
+	return NewService(reimburseRepo, attachSrv, reimburseMapper)
 }

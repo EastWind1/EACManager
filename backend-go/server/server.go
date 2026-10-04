@@ -52,9 +52,9 @@ func Run() {
 	{
 		user.Setup(ctx, router)
 		companySrv := company.Setup(ctx, router)
-		attachSrv, attachMapSrv := attach.Setup(ctx, router)
-		reimburse.Setup(ctx, router, attachSrv, attachMapSrv)
-		bill.Setup(ctx, router, companySrv, attachSrv, attachMapSrv)
+		attachSrv, contentSrv := attach.Setup(ctx, router)
+		reimburse.Setup(ctx, router, attachSrv, contentSrv)
+		bill.Setup(ctx, router, companySrv, attachSrv, contentSrv)
 	}
 
 	if err := server.Listen(fmt.Sprintf(":%d", cfg.Server.Port)); err != nil {

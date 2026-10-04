@@ -2,7 +2,6 @@ package pers.eastwind.billmanager.reimburse.service;
 
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.*;
-import pers.eastwind.billmanager.attach.service.AttachMapService;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
@@ -28,12 +27,12 @@ import java.util.stream.Collectors;
 @Service
 public class ReimburseIOService {
     private final AttachmentService attachmentService;
-    private final AttachMapService attachMapService;
+    private final ReimburseAttachMapper attachMapper;
     private final ReimburseRepository reimburseRepository;
 
-    public ReimburseIOService(AttachmentService attachmentService, AttachMapService attachMapService, ReimburseRepository reimburseRepository) {
+    public ReimburseIOService(AttachmentService attachmentService, ReimburseAttachMapper attachMapper, ReimburseRepository reimburseRepository) {
         this.attachmentService = attachmentService;
-        this.attachMapService = attachMapService;
+        this.attachMapper = attachMapper;
         this.reimburseRepository = reimburseRepository;
     }
 
@@ -110,7 +109,7 @@ public class ReimburseIOService {
      */
     public ReimbursementDTO generateByFile(org.springframework.core.io.Resource resource) {
         AttachmentDTO attachment = attachmentService.uploadTemps(List.of(resource)).getFirst();
-        ReimbursementDTO dto = attachMapService.map(attachment);
+        ReimbursementDTO dto = attachMapper.map(attachment);
         dto.setAttachments(List.of(attachment));
         return dto;
     }

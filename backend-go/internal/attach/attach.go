@@ -8,12 +8,11 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func Setup(ctx *context.AppContext, router fiber.Router) (*Service, *MapService) {
+func Setup(ctx *context.AppContext, router fiber.Router) (*Service, *ContentService) {
 	attachmentRepo := NewRepository(ctx.Db)
 	billAttachRepo := NewBillAttachRelRepo(ctx.Db)
 	attachmentService := NewService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo, billAttachRepo)
 	ocrService := NewOCRService(ctx.Cfg.OCR)
-	attachMapService := NewMapService(ctx.Cache, ocrService, attachmentService)
 	attachmentController := NewController(attachmentService)
 	attachGroup := router.Group("/attachment")
 	{
@@ -29,14 +28,13 @@ func Setup(ctx *context.AppContext, router fiber.Router) (*Service, *MapService)
 		}
 	}()
 
-	return attachmentService, attachMapService
+	return attachmentService, NewContentService(ocrService, attachmentService)
 }
 
-func SetupForTest(ctx *context.AppContext) (*Service, *MapService) {
+func SetupForTest(ctx *context.AppContext) (*Service, *ContentService) {
 	attachmentRepo := NewRepository(ctx.Db)
 	billAttachRepo := NewBillAttachRelRepo(ctx.Db)
 	attachmentService := NewService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo, billAttachRepo)
 	ocrService := NewOCRService(ctx.Cfg.OCR)
-	attachMapService := NewMapService(ctx.Cache, ocrService, attachmentService)
-	return attachmentService, attachMapService
+	return attachmentService, NewContentService(ocrService, attachmentService)
 }

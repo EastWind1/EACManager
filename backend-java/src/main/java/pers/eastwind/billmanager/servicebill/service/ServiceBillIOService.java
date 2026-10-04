@@ -3,7 +3,6 @@ package pers.eastwind.billmanager.servicebill.service;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.*;
-import pers.eastwind.billmanager.attach.service.AttachMapService;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
@@ -29,12 +28,12 @@ import java.util.stream.Collectors;
 public class ServiceBillIOService {
     private final ServiceBillRepository serviceBillRepository;
     private final AttachmentService attachmentService;
-    private final AttachMapService attachMapService;
+    private final ServiceBillAttachMapper attachMapper;
 
-    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService, AttachMapService attachMapService) {
+    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService, ServiceBillAttachMapper attachMapper) {
         this.serviceBillRepository = serviceBillRepository;
         this.attachmentService = attachmentService;
-        this.attachMapService = attachMapService;
+        this.attachMapper = attachMapper;
     }
 
     /**
@@ -45,7 +44,7 @@ public class ServiceBillIOService {
      */
     public ServiceBillDTO generateByFile(Resource resource) {
         AttachmentDTO attachment = attachmentService.uploadTemps(List.of(resource)).getFirst();
-        ServiceBillDTO bill = attachMapService.map(attachment);
+        ServiceBillDTO bill = attachMapper.map(attachment);
         bill.setAttachments(List.of(attachment));
         return bill;
     }

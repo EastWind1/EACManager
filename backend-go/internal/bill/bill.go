@@ -9,13 +9,9 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func Setup(ctx *context.AppContext, router fiber.Router, companySrv *company.Service, attachSrv *attach.Service, attachMapSrv *attach.MapService) {
+func Setup(ctx *context.AppContext, router fiber.Router, companySrv *company.Service, attachSrv *attach.Service, contentSrv *attach.ContentService) {
 	serviceBillRepo := NewRepository(ctx.Db)
-	bizSrv := NewBizService(ctx.Cache, serviceBillRepo, attachSrv, attachMapSrv)
-	wkMapRule := NewWKMapRule(companySrv)
-	ldMapRule := NewLDMapRule(wkMapRule)
-	attachMapSrv.RegisterRule(wkMapRule)
-	attachMapSrv.RegisterRule(ldMapRule)
+	bizSrv := NewBizService(ctx.Cache, serviceBillRepo, attachSrv, NewServiceBillMapper(contentSrv, companySrv))
 	serviceBillController := NewController(bizSrv)
 	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, serviceBillRepo))
 

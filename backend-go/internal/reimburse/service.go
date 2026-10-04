@@ -2,7 +2,6 @@ package reimburse
 
 import (
 	"backend-go/internal/attach"
-	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"context"
@@ -19,21 +18,18 @@ import (
 type Service struct {
 	reimburseRepo *Repository
 	attachService *attach.Service
-	attachMapSrv  *attach.MapService
-	cache         cache.Cache
+	mapper        *Mapper
 }
 
 func NewService(
 	reimburseRepo *Repository,
 	attachService *attach.Service,
-	attachMapSrv *attach.MapService,
-	cache cache.Cache,
+	mapper *Mapper,
 ) *Service {
 	return &Service{
 		reimburseRepo: reimburseRepo,
 		attachService: attachService,
-		attachMapSrv:  attachMapSrv,
-		cache:         cache,
+		mapper:        mapper,
 	}
 }
 
@@ -135,15 +131,13 @@ func (s *Service) GenerateByFile(file *multipart.FileHeader) (*DTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := s.attachMapSrv.MapTo(new((attaches)[0]))
+	attachment := attaches[0]
+	dto, err := s.mapper.Map(&attachment)
 	if err != nil {
 		return nil, err
 	}
-	if dto, ok := data.(*DTO); ok {
-		dto.Attachments = attaches
-		return dto, nil
-	}
-	return nil, errs.NewBizError("转换失败")
+	dto.Attachments = attaches
+	return dto, nil
 }
 
 func (s *Service) FindByParam(ctx context.Context, param *QueryParam) (*result.PageResult[DTO], error) {

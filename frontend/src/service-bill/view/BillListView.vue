@@ -9,7 +9,7 @@
         <v-container>
           <v-row>
             <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.number" clearable label="单号"/>
+              <v-text-field v-model="queryParam.number" clearable label="单号" />
             </v-col>
             <v-col cols="12" md="4" sm="6" xl="3">
               <v-select
@@ -23,7 +23,7 @@
               />
             </v-col>
             <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.projectName" clearable label="项目名称"/>
+              <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
             </v-col>
             <v-col cols="12" md="4" sm="6" xl="3">
               <v-date-input
@@ -69,16 +69,16 @@
             <v-btn :disabled="loading" variant="tonal" @click="importFile">导入</v-btn>
             <v-btn :disabled="loading" variant="tonal" @click="exportToZip">导出</v-btn>
             <v-btn :disabled="loading" color="primary" @click="reloadAfterAction(process)"
-            >开始处理
+              >开始处理
             </v-btn>
             <v-btn :disabled="loading" color="primary" @click="reloadAfterAction(processed)"
-            >处理完成
+              >处理完成
             </v-btn>
             <v-btn :disabled="loading" color="primary" @click="reloadAfterAction(finish)">
               回款完成
             </v-btn>
             <div v-role="[AuthorityRole.ROLE_ADMIN.value]">
-              <v-menu location="bottom" >
+              <v-menu location="bottom">
                 <template #activator="{ props }">
                   <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
                 </template>
@@ -96,7 +96,7 @@
               </v-menu>
             </div>
             <v-btn :disabled="loading" color="error" @click="reloadAfterAction(remove)"
-            >删除
+              >删除
             </v-btn>
           </v-row>
         </v-col>
@@ -147,7 +147,7 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
+import { ref } from 'vue'
 import {
   type ServiceBill,
   type ServiceBillQueryParam,
@@ -156,23 +156,23 @@ import {
   ServiceBillType,
 } from '../model/ServiceBill'
 import ServiceBillApi from '../api/ServiceBillApi'
-import type {PageResult} from '@/common/model/PageResult'
-import {useRoute, useRouter} from 'vue-router'
-import {useUIStore} from '@/common/store/UIStore'
-import {useFileSelector} from '@/attachment/composable/FileSelector'
-import {useBillActions} from '../composable/BillActions'
-import {storeToRefs} from 'pinia'
-import {useRouterStore} from '@/common/store/RouterStore'
-import {mdiFilter, mdiMagnify} from '@mdi/js'
-import {useDate, useHotkey} from 'vuetify/framework'
-import {AuthorityRole} from '@/user/model/User'
+import type { PageResult } from '@/common/model/PageResult'
+import { useRoute, useRouter } from 'vue-router'
+import { useUIStore } from '@/common/store/UIStore'
+import { useFileSelector } from '@/attachment/composable/FileSelector'
+import { useBillActions } from '../composable/BillActions'
+import { storeToRefs } from 'pinia'
+import { useRouterStore } from '@/common/store/RouterStore'
+import { mdiFilter, mdiMagnify } from '@mdi/js'
+import { useDate, useHotkey } from 'vuetify/framework'
+import { AuthorityRole } from '@/user/model/User'
 
 const store = useUIStore()
-const {info, warning, showLoading} = store
-const {loading} = storeToRefs(store)
+const { info, warning, showLoading } = store
+const { loading } = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
-const {setData} = useRouterStore()
+const { setData } = useRouterStore()
 const dateUtil = useDate()
 
 // 筛选条件区域
@@ -228,26 +228,26 @@ const queryParam = ref<QueryParam>({
 // 处理路由参数
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
-  queryParam.value = {...queryParam.value, ...data}
+  queryParam.value = { ...queryParam.value, ...data }
 } else {
   // 尝试从缓存恢复
   const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
   if (cache) {
     const data = JSON.parse(cache) as QueryParam
-    queryParam.value = {...queryParam.value, ...data}
+    queryParam.value = { ...queryParam.value, ...data }
   }
 }
 
 // 数据表格区域
 // 表头
 const headers = [
-  {title: '单号', key: 'number', sortable: false},
-  {title: '状态', key: 'state', sortable: false},
-  {title: '类型', key: 'type', sortable: false},
-  {title: '项目', key: 'projectName', sortable: false},
-  {title: '总金额', key: 'totalAmount', sortable: false},
-  {title: '创建时间', key: 'orderDate', sortable: false},
-  {title: '完工时间', key: 'processedDate', sortable: false},
+  { title: '单号', key: 'number', sortable: false },
+  { title: '状态', key: 'state', sortable: false },
+  { title: '类型', key: 'type', sortable: false },
+  { title: '项目', key: 'projectName', sortable: false },
+  { title: '总金额', key: 'totalAmount', sortable: false },
+  { title: '创建时间', key: 'orderDate', sortable: false },
+  { title: '完工时间', key: 'processedDate', sortable: false },
 ]
 
 // 列表数据
@@ -376,7 +376,7 @@ async function exportToZip() {
   }
 }
 
-const {process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish} =
+const { process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish } =
   useBillActions((id: number) => {
     const row = data.value.items.find((item) => item.id === id)
     if (row) {

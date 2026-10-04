@@ -1,4 +1,4 @@
-package pers.eastwind.billmanager.attach.service;
+package pers.eastwind.billmanager.common.util;
 
 import java.time.DateTimeException;
 import java.time.Instant;
@@ -9,16 +9,20 @@ import java.time.temporal.TemporalAccessor;
 import java.util.List;
 
 /**
- * 附件映射规则
+ * 文本日期解析
  */
-public interface AttachMapRule<T> {
+public class DateParseUtil {
+
+    private DateParseUtil() {
+    }
+
     /**
      * 解析日期字符串
      *
      * @param text 字符串
      * @return 时间戳, null 表示解析失败
      */
-    static Instant parseDateString(String text) {
+    public static Instant parseDateString(String text) {
         List<DateTimeFormatter> formatters = List.of(
                 DateTimeFormatter.ISO_INSTANT,
                 DateTimeFormatter.ISO_LOCAL_DATE_TIME,
@@ -40,28 +44,6 @@ public interface AttachMapRule<T> {
             } catch (Exception ignored) {
             }
         }
-        return null;
-    }
-
-    /**
-     * 从文本块映射
-     * <br/>用于 OCR 结果、纯文本文档
-     *
-     * @param texts ocr 文本
-     * @return 目标对象, 若返回 null 表示无法映射
-     */
-    default T mapFromTexts(List<String> texts) {
-        return null;
-    }
-
-    /**
-     * 从表格映射
-     * <br/>用于 Excel 等表格化数据
-     *
-     * @param rows Excel 内容
-     * @return 目标对象，若返回 null 表示无法映射
-     */
-    default T mapFromGrid(List<List<String>> rows) {
         return null;
     }
 }

@@ -14,8 +14,8 @@ type MapRule struct{}
 
 func NewMapRule() *MapRule { return &MapRule{} }
 
-// canMap 检测是否为税务发票
-func (r *MapRule) canMap(texts []string) bool {
+// CanMapTexts 检测是否为税务发票
+func (r *MapRule) CanMapTexts(texts []string) bool {
 	for _, t := range texts {
 		if strings.Contains(t, "发票") || strings.Contains(t, "价税合计") {
 			return true
@@ -31,9 +31,9 @@ func (r *MapRule) canMap(texts []string) bool {
 //  2. 每行按空白分割：第 1 项为名称，倒数第 3 项(金额) + 倒数第 1 项(税额) = 明细金额
 //  3. "价税合计"行中提取"小写）"之后的金额作为主表总金额
 //  4. "备\n注"开头的块之后的文本作为备注
-func (r *MapRule) MapFromTexts(texts []string) (any, error) {
-	if !r.canMap(texts) {
-		return nil, nil
+func (r *MapRule) MapFromTexts(texts []string) (*DTO, bool, error) {
+	if !r.CanMapTexts(texts) {
+		return nil, false, nil
 	}
 
 	dto := &DTO{
@@ -125,10 +125,5 @@ func (r *MapRule) MapFromTexts(texts []string) (any, error) {
 		dto.Remark = strings.Join(remarks, "\n")
 	}
 
-	return dto, nil
-}
-
-// MapFromGrid 始终返回 nil
-func (r *MapRule) MapFromGrid(_ [][]string) (any, error) {
-	return nil, nil
+	return dto, true, nil
 }

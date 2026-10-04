@@ -1,7 +1,6 @@
 package pers.eastwind.billmanager.servicebill.service;
 
-import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.service.AttachMapRule;
+import pers.eastwind.billmanager.common.util.DateParseUtil;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
 import pers.eastwind.billmanager.company.service.CompanyService;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
@@ -15,14 +14,16 @@ import java.util.function.BiConsumer;
 
 
 /**
- * 威垦服务单映射
+ * 服务单映射规则
+ * <p>威垦与菱电共用同一份表单模版，仅识别关键词与公司名不同，因此由构造参数区分，
+ * 不再为每家厂商各写一个规则类
  */
-@Service
-public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO> {
+public class ServiceBillAttachMapRule {
     private final CompanyService companyService;
+    private final String keyword;
     private final Map<String, BiConsumer<ServiceBillDTO, String>> mapRules = Map.of(
             "合同编号", ServiceBillDTO::setNumber,
-            "下单时间", (target, text) -> target.setOrderDate(AttachMapRule.parseDateString(text)),
+            "下单时间", (target, text) -> target.setOrderDate(DateParseUtil.parseDateString(text)),
             "项目名称", ServiceBillDTO::setProjectName,
             "监理、站长", ServiceBillDTO::setProjectContact,
             "现场联系人", ServiceBillDTO::setOnSiteContact,
@@ -30,11 +31,12 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
             "备注", ServiceBillDTO::setRemark
     );
 
-    public WKServiceBillAttachMapRule(CompanyService companyService) {
+    public ServiceBillAttachMapRule(CompanyService companyService, String keyword) {
         this.companyService = companyService;
+        this.keyword = keyword;
     }
 
-    protected void setByText(ServiceBillDTO target, String text) {
+    private void setByText(ServiceBillDTO target, String text) {
         if (text == null || text.isEmpty()) {
             return;
         }
@@ -52,19 +54,32 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
         mapRules.get(labels[0]).accept(target, labels[1]);
     }
 
-    private boolean canOCR(List<String> texts) {
+    private void setCompany(ServiceBillDTO target, String name) {
+        List<CompanyDTO> company = companyService.findByName(name);
+        if (!company.isEmpty()) {
+            target.setProductCompany(company.getFirst());
+        }
+    }
+
+    /**
+     * 文本是否命中本规则
+     */
+    public boolean canMapTexts(List<String> texts) {
         for (String text : texts) {
-            if (text.contains("威垦")) {
+            if (text.contains(keyword)) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean canExcel(List<List<String>> rows) {
+    /**
+     * 表格是否命中本规则
+     */
+    public boolean canMapGrid(List<List<String>> rows) {
         for (List<String> row : rows) {
             for (String text : row) {
-                if (text.contains("威垦")) {
+                if (text.contains(keyword)) {
                     return true;
                 }
             }
@@ -72,20 +87,15 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
         return false;
     }
 
-    protected void setCompany(ServiceBillDTO target, String name) {
-        List<CompanyDTO> company = companyService.findByName(name);
-        if (!company.isEmpty()) {
-            target.setProductCompany(company.getFirst());
-        }
-    }
-
-    @Override
+    /**
+     * 从文本块映射，返回 null 表示未命中
+     */
     public ServiceBillDTO mapFromTexts(List<String> texts) {
-        if (!canOCR(texts)) {
+        if (!canMapTexts(texts)) {
             return null;
         }
         ServiceBillDTO serviceBill = new ServiceBillDTO();
-        setCompany(serviceBill, "威垦");
+        setCompany(serviceBill, keyword);
         for (String text : texts) {
             setByText(serviceBill, text);
         }
@@ -93,13 +103,15 @@ public class WKServiceBillAttachMapRule implements AttachMapRule<ServiceBillDTO>
         return serviceBill;
     }
 
-    @Override
+    /**
+     * 从表格映射，返回 null 表示未命中
+     */
     public ServiceBillDTO mapFromGrid(List<List<String>> rows) {
-        if (!canExcel(rows)) {
+        if (!canMapGrid(rows)) {
             return null;
         }
         ServiceBillDTO serviceBill = new ServiceBillDTO();
-        setCompany(serviceBill, "威垦");
+        setCompany(serviceBill, keyword);
         serviceBill.setDetails(new ArrayList<>());
         // 明细开始索引行
         int detailStartIndex = -1;

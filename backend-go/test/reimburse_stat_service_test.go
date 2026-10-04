@@ -18,10 +18,10 @@ type ReimburseStatServiceTest struct {
 
 func NewReimburseStatServiceTest() *ReimburseStatServiceTest {
 	base := NewBaseServiceTest()
-	attachSrv, attachMapSrv := attach.SetupForTest(base.appCtx)
+	attachSrv, contentSrv := attach.SetupForTest(base.appCtx)
 	return &ReimburseStatServiceTest{
 		BaseServiceTest: base,
-		srv:             reimburse.SetupForTest(base.appCtx, attachSrv, attachMapSrv),
+		srv:             reimburse.SetupForTest(base.appCtx, attachSrv, contentSrv),
 		statSrv: reimburse.NewStatisticService(
 			base.appCtx.Cache,
 			reimburse.NewReimburseRepository(base.appCtx.Db),

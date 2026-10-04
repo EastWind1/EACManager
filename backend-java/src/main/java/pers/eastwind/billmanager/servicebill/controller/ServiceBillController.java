@@ -41,10 +41,8 @@ public class ServiceBillController {
      */
     @PostMapping("/query")
     public PageResult<ServiceBillDTO> queryByParam(@RequestBody ServiceBillQueryParam queryParam) {
-
         Page<ServiceBillDTO> pageResult = serviceBillBizService.findByParam(queryParam);
         return PageResult.fromPage(pageResult);
-
     }
 
     /**
