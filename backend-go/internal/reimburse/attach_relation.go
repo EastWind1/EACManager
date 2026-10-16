@@ -22,6 +22,10 @@ type AttachRelation struct {
 	Attach      attach.Attachment `gorm:"foreignKey:AttachId"`
 }
 
+func (r *AttachRelation) TableName() string {
+	return "reimburse_attach_relation"
+}
+
 // AttachRelRepo 报销单附件关联仓库
 type AttachRelRepo struct {
 	*database.BaseRepository[AttachRelation]
