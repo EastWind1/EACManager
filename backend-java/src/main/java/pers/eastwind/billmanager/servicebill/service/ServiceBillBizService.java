@@ -14,10 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.attach.model.Attachment;
-import pers.eastwind.billmanager.attach.model.BillType;
-import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
+import pers.eastwind.billmanager.common.util.Snowflake;
 import pers.eastwind.billmanager.company.model.Company;
 import pers.eastwind.billmanager.company.repository.CompanyRepository;
 import pers.eastwind.billmanager.servicebill.model.*;
@@ -25,8 +24,6 @@ import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -40,20 +37,20 @@ public class ServiceBillBizService {
 
     private final ServiceBillRepository serviceBillRepository;
     private final ServiceBillMapper serviceBillMapper;
-    private final AttachmentService attachmentService;
+    private final ServiceBillAttachRelService serviceBillAttachRelService;
     private final TransactionTemplate transactionTemplate;
     private final CompanyRepository companyRepository;
 
     public ServiceBillBizService(
             ServiceBillRepository serviceBillRepository,
             ServiceBillMapper serviceBillMapper,
-            AttachmentService attachmentService,
+            ServiceBillAttachRelService serviceBillAttachRelService,
             TransactionTemplate transactionTemplate,
             CompanyRepository companyRepository
     ) {
         this.serviceBillRepository = serviceBillRepository;
         this.serviceBillMapper = serviceBillMapper;
-        this.attachmentService = attachmentService;
+        this.serviceBillAttachRelService = serviceBillAttachRelService;
         this.transactionTemplate = transactionTemplate;
         this.companyRepository = companyRepository;
     }
@@ -72,10 +69,7 @@ public class ServiceBillBizService {
         if (bill == null) {
             throw new BizException("单据不存在");
         }
-        List<Attachment> attachments = attachmentService.getByBill(
-                bill.getId(),
-                BillType.SERVICE_BILL
-        );
+        List<Attachment> attachments = serviceBillAttachRelService.findAttachments(bill.getId());
         return serviceBillMapper.toDTO(bill, attachments);
     }
 
@@ -118,27 +112,13 @@ public class ServiceBillBizService {
     )
     @Transactional
     public ServiceBillDTO create(ServiceBillDTO serviceBillDTO) {
-        if (
-                serviceBillDTO.getId() != null &&
-                        serviceBillRepository.existsById(serviceBillDTO.getId())
-        ) {
+        if (serviceBillDTO.getId() != null && serviceBillRepository.existsById(serviceBillDTO.getId())) {
             throw new BizException("单据已存在");
         }
-        if (
-                serviceBillDTO.getNumber() == null ||
-                        serviceBillDTO.getNumber().isEmpty()
-        ) {
-            serviceBillDTO.setNumber(
-                    "S" +
-                            DateTimeFormatter.ofPattern("yyyyMMdd")
-                                    .withZone(ZoneId.systemDefault())
-                                    .format(Instant.now()) +
-                            Math.round(Math.random() * 1000)
-            );
+        if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {
+            serviceBillDTO.setNumber("S" + Snowflake.genIntID());
         } else {
-            if (
-                    serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())
-            ) {
+            if (serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())) {
                 throw new BizException("单据编号已存在");
             }
         }
@@ -146,16 +126,11 @@ public class ServiceBillBizService {
         validateAmount(bill);
         bill.setState(ServiceBillState.CREATED);
         bill = serviceBillRepository.save(bill);
-        attachmentService.updateRelativeAttach(
+        serviceBillAttachRelService.updateAttachments(
                 bill.getId(),
-                bill.getNumber(),
-                BillType.SERVICE_BILL,
                 serviceBillDTO.getAttachments()
         );
-        return serviceBillMapper.toDTO(
-                bill,
-                attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL)
-        );
+        return serviceBillMapper.toDTO(bill, serviceBillAttachRelService.findAttachments(bill.getId()));
     }
 
     /**
@@ -210,17 +185,8 @@ public class ServiceBillBizService {
         validateAmount(bill);
         bill = serviceBillRepository.save(bill);
 
-        attachmentService.updateRelativeAttach(
-                bill.getId(),
-                bill.getNumber(),
-                BillType.SERVICE_BILL,
-                serviceBillDTO.getAttachments()
-        );
-
-        return serviceBillMapper.toDTO(
-                bill,
-                attachmentService.getByBill(bill.getId(), BillType.SERVICE_BILL)
-        );
+        serviceBillAttachRelService.updateAttachments(bill.getId(), serviceBillDTO.getAttachments());
+        return serviceBillMapper.toDTO(bill, serviceBillAttachRelService.findAttachments(bill.getId()));
     }
 
     /**
@@ -358,12 +324,7 @@ public class ServiceBillBizService {
                     throw new BizException("非创建状态的单据不能删除");
                 }
                 serviceBillRepository.deleteById(id);
-                attachmentService.updateRelativeAttach(
-                        id,
-                        bill.getNumber(),
-                        BillType.SERVICE_BILL,
-                        new ArrayList<>()
-                );
+                serviceBillAttachRelService.updateAttachments(id, List.of());
             });
             return null;
         });

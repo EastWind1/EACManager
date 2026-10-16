@@ -43,18 +43,19 @@ public class AttachmentController {
     }
 
     /**
-     * 上传文件至临时路径
+     * 上传附件
      *
-     * @param files 文件
-     * @return 文件信息
+     * @param namespace 业务模块的命名空间
+     * @param files     文件
+     * @return 附件信息
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @PostMapping("/temp")
-    public List<AttachmentDTO> uploadTemp(@RequestParam List<MultipartFile> files) {
+    @PostMapping("/upload")
+    public List<AttachmentDTO> upload(@RequestParam String namespace, @RequestParam List<MultipartFile> files) {
         List<Resource> resources = new ArrayList<>();
         for (MultipartFile file : files) {
             resources.add(file.getResource());
         }
-        return attachmentService.uploadTemps(resources);
+        return attachmentService.upload(namespace, resources);
     }
 }

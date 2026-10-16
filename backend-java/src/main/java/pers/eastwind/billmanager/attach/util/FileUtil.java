@@ -1,7 +1,6 @@
 package pers.eastwind.billmanager.attach.util;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.file.PathUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -34,6 +33,9 @@ public class FileUtil {
      */
     private static AttachmentType getFileType(Path path) throws IOException {
         String mimeType = Files.probeContentType(path);
+        if (mimeType == null) {
+            return AttachmentType.OTHER;
+        }
         return switch (mimeType) {
             case "application/pdf" -> AttachmentType.PDF;
             case "image/jpeg", "image/png", "image/gif" -> AttachmentType.IMAGE;
@@ -86,46 +88,38 @@ public class FileUtil {
     }
 
     /**
-     * 上传单个文件
+     * 将上传文件写入指定路径，并返回判定出的文件类型
      *
-     * @param resource    文件资源
-     * @param tempDirPath 临时目录路径, 为空时使用系统临时目录
-     * @return 上传结果
+     * @param resource 文件资源
+     * @param target   目标文件路径
+     * @return 文件类型
      */
-    public static UploadResult upload(Resource resource, Path tempDirPath) {
+    public static AttachmentType save(Resource resource, Path target) {
         if (resource == null || !resource.exists()) {
-            throw new IllegalArgumentException("禁止上传空文件");
+            throw new FileOpException("禁止上传空文件");
         }
-
-        String fileName = resource.getFilename();
-        if (fileName == null || fileName.isEmpty()) {
-            throw new IllegalArgumentException("文件名不能为空");
-        }
-        if (tempDirPath == null) {
-            tempDirPath = PathUtils.getTempDirectory();
-        }
-        AttachmentType type;
-        Path target = null;
         try {
-            target = Files.createTempFile(tempDirPath, "", "-" + fileName);
-            target.toFile().deleteOnExit();
             Files.copy(resource.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            // 文件类型判断只能在保存文件之后
-            type = getFileType(target);
+            return getFileType(target);
         } catch (Exception e) {
-            try {
-                if (target != null) {
-                    Files.deleteIfExists(target);
-                }
-            } catch (IOException ei) {
-                log.error("删除临时文件失败", ei);
-            }
+            deleteQuietly(target);
             throw new FileOpException("上传文件失败", e);
         }
-
-        return new UploadResult(fileName, type, target);
     }
 
+    /**
+     * 静默删除文件
+     *
+     * @param path 路径
+     */
+    public static void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            log.error("删除附件文件失败: {}", path, e);
+        }
+    }
+    
     /**
      * 压缩文件或文件夹
      *
@@ -170,15 +164,5 @@ public class FileUtil {
             throw new FileOpException("压缩文件失败", e);
         }
         return target;
-    }
-
-    /**
-     * 上传结果
-     *
-     * @param filename 文件名
-     * @param type     类型
-     * @param path     相对路径
-     */
-    public record UploadResult(String filename, AttachmentType type, Path path) {
     }
 }

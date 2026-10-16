@@ -182,6 +182,7 @@
             <FormAttachDetail
               v-model="reimbursement.attachments"
               :readonly="!isEditState"
+              namespace="REIMBURSEMENT"
             ></FormAttachDetail>
           </v-tabs-window-item>
         </v-tabs-window>

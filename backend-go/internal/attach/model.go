@@ -88,6 +88,7 @@ type Attachment struct {
 	Name         string
 	Type         Type
 	RelativePath string
+	Status       Status `gorm:"index"`
 	audit.Audit
 }
 
@@ -128,31 +129,17 @@ func ToDTOs(a []Attachment) []AttachmentDTO {
 	return attaches
 }
 
-type BillType uint
+// Status 附件状态
+type Status uint
 
 const (
-	BillTypeServiceBill BillType = iota
-	BillTypeReimbursement
+	// StatusTemp 临时态，由临时目录管理
+	StatusTemp Status = iota
+	// StatusTransient 瞬时态，由定时任务清理
+	StatusTransient
+	// StatusPersistent 持久态
+	StatusPersistent
 )
-
-func (b BillType) String() string {
-	switch b {
-	case BillTypeServiceBill:
-		return "SERVICE_BILL"
-	case BillTypeReimbursement:
-		return "REIMBURSEMENT"
-	default:
-		return "Unknown"
-	}
-}
-
-type BillAttachRelation struct {
-	ID       uint `gorm:"primaryKey"`
-	BillId   uint
-	BillType BillType `gorm:"index"`
-	AttachId uint
-	Attach   Attachment `gorm:"foreignKey:AttachId"`
-}
 
 // FileOpType 文件操作类型
 type FileOpType int

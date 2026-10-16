@@ -19,8 +19,8 @@ public class JWTUtil {
     /**
      * 生成 TOKEN
      *
-     * @param secret   密钥
-     * @param subject  摘要
+     * @param secret  密钥
+     * @param subject 摘要
      * @return TOKEN
      */
     public static String generateToken(String secret, long expireSecond, String subject) {

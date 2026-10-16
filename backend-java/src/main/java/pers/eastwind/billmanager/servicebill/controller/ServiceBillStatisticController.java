@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pers.eastwind.billmanager.common.model.MonthSumAmount;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillState;
-import pers.eastwind.billmanager.servicebill.service.BillStatisticService;
+import pers.eastwind.billmanager.servicebill.service.ServiceBillStatisticService;
 
 import java.util.List;
 import java.util.Map;
@@ -17,12 +17,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/serviceBill")
 @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-public class BillStatisticController {
+public class ServiceBillStatisticController {
 
-    private final BillStatisticService billStatisticService;
+    private final ServiceBillStatisticService servicebillStatisticService;
 
-    public BillStatisticController(BillStatisticService billStatisticService) {
-        this.billStatisticService = billStatisticService;
+    public ServiceBillStatisticController(ServiceBillStatisticService serviceBillStatisticService) {
+        this.servicebillStatisticService = serviceBillStatisticService;
     }
 
     /**
@@ -31,7 +31,7 @@ public class BillStatisticController {
 
     @GetMapping("/countByState")
     public Map<ServiceBillState, Long> countBillsByState() {
-        return billStatisticService.countBillsByState();
+        return servicebillStatisticService.countBillsByState();
     }
 
     /**
@@ -39,6 +39,6 @@ public class BillStatisticController {
      */
     @GetMapping("/totalAmountGroupByMonth")
     public List<MonthSumAmount> sumBillReceiveAmountByMonth() {
-        return billStatisticService.sumReceiveAmountByMonth();
+        return servicebillStatisticService.sumReceiveAmountByMonth();
     }
 }

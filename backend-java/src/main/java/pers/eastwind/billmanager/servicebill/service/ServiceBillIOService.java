@@ -2,7 +2,10 @@ package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.*;
+import pers.eastwind.billmanager.attach.model.Attachment;
+import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.attach.model.FileOp;
+import pers.eastwind.billmanager.attach.model.FileOpType;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
@@ -28,11 +31,13 @@ import java.util.stream.Collectors;
 public class ServiceBillIOService {
     private final ServiceBillRepository serviceBillRepository;
     private final AttachmentService attachmentService;
+    private final ServiceBillAttachRelService serviceBillAttachRelService;
     private final ServiceBillAttachMapper attachMapper;
 
-    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService, ServiceBillAttachMapper attachMapper) {
+    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService, ServiceBillAttachRelService serviceBillAttachRelService, ServiceBillAttachMapper attachMapper) {
         this.serviceBillRepository = serviceBillRepository;
         this.attachmentService = attachmentService;
+        this.serviceBillAttachRelService = serviceBillAttachRelService;
         this.attachMapper = attachMapper;
     }
 
@@ -43,7 +48,7 @@ public class ServiceBillIOService {
      * @return 单据
      */
     public ServiceBillDTO generateByFile(Resource resource) {
-        AttachmentDTO attachment = attachmentService.uploadTemps(List.of(resource)).getFirst();
+        AttachmentDTO attachment = attachmentService.upload(ServiceBillAttachRelService.ATTACH_NAMESPACE, List.of(resource)).getFirst();
         ServiceBillDTO bill = attachMapper.map(attachment);
         bill.setAttachments(List.of(attachment));
         return bill;
@@ -91,7 +96,7 @@ public class ServiceBillIOService {
             Path curDir = tempPath.resolve(serviceBill.getNumber());
 
             // 拷贝当前单据所有附件
-            List<Attachment> attachments = attachmentService.getByBill(serviceBill.getId(), BillType.SERVICE_BILL);
+            List<Attachment> attachments = serviceBillAttachRelService.findAttachments(serviceBill.getId());
             for (Attachment attachment : attachments) {
                 Path origin = attachmentService.getAbsolutePathByRela(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());

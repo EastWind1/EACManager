@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/ledongthuc/pdf"
 )
 
@@ -179,48 +180,44 @@ type UploadResult struct {
 	Path     string
 }
 
-// Upload 上传单个文件
-func Upload(fileHeader *multipart.FileHeader, tempDirPath string) (*UploadResult, error) {
+// Save 将上传文件写入指定路径，并返回判定出的文件类型
+//
+// 与 Upload 的区别是不生成临时文件名：附件以 namespace/唯一id 为 key，
+// 直接落盘即可，之后不再移动。
+func Save(fileHeader *multipart.FileHeader, targetPath string) (Type, error) {
 	if fileHeader == nil {
-		return nil, errs.NewFileOpError("文件为空", "")
+		return Other, errs.NewFileOpError("文件为空", "")
 	}
-	fileName := fileHeader.Filename
-	if fileName == "" {
-		return nil, errs.NewFileOpError("文件名不能为空", "")
+	src, err := fileHeader.Open()
+	if err != nil {
+		return Other, errs.NewFileOpError("打开文件失败", targetPath, err)
 	}
-	if tempDirPath == "" {
-		tempDirPath = os.TempDir()
+	defer src.Close()
+
+	dst, err := os.Create(targetPath)
+	if err != nil {
+		return Other, errs.NewFileOpError("创建文件失败", targetPath, err)
+	}
+	defer dst.Close()
+
+	if _, err = io.Copy(dst, src); err != nil {
+		DeleteQuietly(targetPath)
+		return Other, errs.NewFileOpError("保存文件失败", targetPath, err)
 	}
 
-	file, err := fileHeader.Open()
+	fileType, err := GetFileType(targetPath)
 	if err != nil {
-		return nil, errs.NewFileOpError("打开文件失败", "", err)
+		DeleteQuietly(targetPath)
+		return Other, err
 	}
-	defer file.Close()
-	err = os.MkdirAll(filepath.Dir(tempDirPath), 0750)
-	if err != nil {
-		return nil, errs.NewFileOpError("创建目录失败", "", err)
-	}
-	targetFile, err := os.CreateTemp(tempDirPath, "*-"+fileName)
-	if err != nil {
-		return nil, errs.NewFileOpError("创建文件失败", "", err)
-	}
-	defer targetFile.Close()
-	_, err = io.Copy(targetFile, file)
-	if err != nil {
-		return nil, errs.NewFileOpError("保存文件失败", "", err)
-	}
+	return fileType, nil
+}
 
-	fileType, err := GetFileType(targetFile.Name())
-	if err != nil {
-		return nil, errs.NewFileOpError("", targetFile.Name(), err)
+// DeleteQuietly 静默删除文件
+func DeleteQuietly(path string) {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		log.Errorf("删除附件文件失败 %v: %v", path, err)
 	}
-
-	return &UploadResult{
-		FileName: fileName,
-		Type:     fileType,
-		Path:     targetFile.Name(),
-	}, nil
 }
 
 // Zip 压缩目录或文件至指定路径

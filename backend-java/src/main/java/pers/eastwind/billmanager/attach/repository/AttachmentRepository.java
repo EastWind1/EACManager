@@ -1,10 +1,13 @@
 package pers.eastwind.billmanager.attach.repository;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import pers.eastwind.billmanager.attach.model.Attachment;
-import pers.eastwind.billmanager.attach.model.BillType;
+import pers.eastwind.billmanager.attach.model.AttachmentStatus;
 import pers.eastwind.billmanager.common.repository.BaseRepository;
 
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -12,13 +15,21 @@ import java.util.List;
  */
 public interface AttachmentRepository extends BaseRepository<Attachment> {
     /**
-     * 根据业务单ID和业务单类型获取附件
+     * 持久化附件
      *
-     * @param billId   业务单ID
-     * @param billType 业务单类型
+     * @param ids 附件 ID
+     * @return 影响行数
+     */
+    @Modifying
+    @Query("update Attachment a set a.status = AttachmentStatus.PERSISTENT where a.id in :ids and a.status = AttachmentStatus.TRANSIENT")
+    int persistByIds(Collection<Integer> ids);
+
+    /**
+     * 查找某状态下创建时间早于 date 的附件
+     *
+     * @param status 状态
+     * @param date   创建时间上界
      * @return 附件
      */
-    @Query("select r.attach from  BillAttachRelation r " +
-            "where r.billId = :billId and r.billType = :billType")
-    List<Attachment> findByBill(Integer billId, BillType billType);
+    List<Attachment> findByStatusAndCreatedDateBefore(AttachmentStatus status, Instant date);
 }

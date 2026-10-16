@@ -8,14 +8,18 @@ const http = new HttpClient('/api/attachment')
  */
 const AttachmentApi = {
   /**
-   * 上传临时文件
+   * 上传附件
+   *
+   * 附件以 namespace/唯一id 为 key 落盘，key 一经生成不再变更。
+   * @param namespace 附件命名空间，由业务模块决定，需与后端常量一致
    * @param files 文件
    */
-  async uploadTemp(files: File[]) {
+  async upload(namespace: string, files: File[]) {
     if (!files || !files.length) {
       return Promise.resolve([])
     }
     const formData = new FormData()
+    formData.append('namespace', namespace)
 
     let totalSize = 0
     for (const file of files) {
@@ -27,7 +31,7 @@ const AttachmentApi = {
       warning('文件过大，总大小超过 5MB')
       return Promise.resolve([])
     }
-    return await http.postForm<Attachment[]>(`/temp`, formData)
+    return await http.postForm<Attachment[]>(`/upload`, formData)
   },
   /**
    * 下载文件

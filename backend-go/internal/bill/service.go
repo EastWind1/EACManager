@@ -5,11 +5,13 @@ import (
 	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
+	"backend-go/pkg/util"
 	"context"
 	"fmt"
 	"math"
 	"mime/multipart"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,23 +19,26 @@ import (
 )
 
 type BizService struct {
-	cache     cache.Cache
-	billRepo  *Repository
-	attachSrv *attach.Service
-	mapper    *ServiceBillMapper
+	cache        cache.Cache
+	billRepo     *Repository
+	attachSrv    *attach.Service
+	attachRelSrv *AttachRelService
+	mapper       *ServiceBillMapper
 }
 
 func NewBizService(
 	cache cache.Cache,
 	billRepo *Repository,
 	attachSrv *attach.Service,
+	attachRelSrv *AttachRelService,
 	mapper *ServiceBillMapper,
 ) *BizService {
 	return &BizService{
-		cache:     cache,
-		billRepo:  billRepo,
-		attachSrv: attachSrv,
-		mapper:    mapper,
+		cache:        cache,
+		billRepo:     billRepo,
+		attachSrv:    attachSrv,
+		attachRelSrv: attachRelSrv,
+		mapper:       mapper,
 	}
 }
 
@@ -53,13 +58,7 @@ func (s *BizService) ValidateAmount(bill *ServiceBill) error {
 }
 
 func (s *BizService) GenerateNumber() string {
-	now := time.Now()
-	timestamp := now.Format("20060102")
-	randomNum := now.UnixNano() % 1000
-	if randomNum < 0 {
-		randomNum = -randomNum
-	}
-	return fmt.Sprintf("S%s%04d", timestamp, randomNum)
+	return "S" + strconv.Itoa(int(util.GenIntID()))
 }
 
 func (s *BizService) FindByID(ctx context.Context, id uint) (*ServiceBillDTO, error) {
@@ -73,7 +72,7 @@ func (s *BizService) FindByID(ctx context.Context, id uint) (*ServiceBillDTO, er
 	if bill == nil {
 		return nil, errs.NewBizError("单据不存在")
 	}
-	attaches, err := s.attachSrv.GetByBill(ctx, bill.ID, attach.BillTypeServiceBill)
+	attaches, err := s.attachRelSrv.FindAttachments(ctx, bill.ID)
 	dto := bill.ToDTO(attaches)
 	return dto, nil
 }
@@ -127,14 +126,14 @@ func (s *BizService) Create(ctx context.Context, dto *ServiceBillDTO) (*ServiceB
 		if err := s.billRepo.Create(tx, entity); err != nil {
 			return err
 		}
-		return s.attachSrv.UpdateRelativeAttach(tx, entity.ID, entity.Number, attach.BillTypeServiceBill, dto.Attachments)
+		return s.attachRelSrv.UpdateAttachments(tx, entity.ID, dto.Attachments)
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	attaches, err := s.attachSrv.GetByBill(ctx, entity.ID, attach.BillTypeServiceBill)
+	attaches, err := s.attachRelSrv.FindAttachments(ctx, entity.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -164,14 +163,14 @@ func (s *BizService) Update(ctx context.Context, dto *ServiceBillDTO) (*ServiceB
 		if err = s.billRepo.Updates(tx, entity); err != nil {
 			return err
 		}
-		return s.attachSrv.UpdateRelativeAttach(tx, entity.ID, entity.Number, attach.BillTypeServiceBill, dto.Attachments)
+		return s.attachRelSrv.UpdateAttachments(tx, entity.ID, dto.Attachments)
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	attaches, err := s.attachSrv.GetByBill(ctx, entity.ID, attach.BillTypeServiceBill)
+	attaches, err := s.attachRelSrv.FindAttachments(ctx, entity.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +196,7 @@ func (s *BizService) Delete(ctx context.Context, ids []uint) (*result.ActionsRes
 			if err = s.billRepo.DeleteByID(tx, id); err != nil {
 				return err
 			}
-			return s.attachSrv.UpdateRelativeAttach(tx, bill.ID, bill.Number, attach.BillTypeReimbursement, nil)
+			return s.attachRelSrv.UpdateAttachments(tx, bill.ID, nil)
 		})
 		return nil, err
 	}), nil
@@ -358,8 +357,8 @@ func (s *BizService) CancelFinish(ctx context.Context, ids []uint) (*result.Acti
 	}), nil
 }
 
-func (s *BizService) GenerateByFile(file *multipart.FileHeader) (*ServiceBillDTO, error) {
-	attaches, err := s.attachSrv.UploadTemps([]*multipart.FileHeader{file})
+func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*ServiceBillDTO, error) {
+	attaches, err := s.attachSrv.Upload(ctx, AttachNamespace, []*multipart.FileHeader{file})
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +419,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 		totalAmount += bill.TotalAmount
 
 		// 获取当前单据的所有附件
-		attachments, err := s.attachSrv.GetByBill(ctx, bill.ID, attach.BillTypeServiceBill)
+		attachments, err := s.attachRelSrv.FindAttachments(ctx, bill.ID)
 		if err != nil {
 			return "", err
 		}

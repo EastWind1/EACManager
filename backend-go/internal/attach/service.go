@@ -4,37 +4,42 @@ import (
 	"backend-go/config"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
-	"backend-go/pkg/util"
 	"context"
-	"fmt"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
-	"sync"
 	"time"
+	"uuid"
 
 	"github.com/gofiber/fiber/v3/log"
 )
 
 // Service 附件服务
+//
+// 附件以「namespace/唯一id」为 key 存储，一经写入不再移动。
+// 上传即落库并标记为瞬时态，被单据提交时置为持久态，游离附件按状态回收。
 type Service struct {
-	attachRepo     *Repository
-	billAttachRepo *BillAttachRelRepo
-	rootPath       string
-	tempPath       string
-	cfg            *config.AttachmentConfig
-	tempFiles      sync.Map
+	attachRepo *Repository
+	rootPath   string
+	tempPath   string
+	cfg        *config.AttachmentConfig
 }
 
 // tempPrefix 临时文件夹前缀
 const tempPrefix = "eac-"
 
+// transientRetention 游离附件保留时长，超过后由 CleanTransientFiles 回收
+const transientRetention = 7 * 24 * time.Hour
+
+// namespacePattern 命名空间正则
+var namespacePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
 func NewService(
 	cfg *config.AttachmentConfig,
 	cache cache.Cache,
 	attachRepo *Repository,
-	billAttachRepo *BillAttachRelRepo,
 ) *Service {
 	appPath, err := os.Getwd()
 	if err != nil {
@@ -51,12 +56,10 @@ func NewService(
 	log.Infof("创建临时文件夹 %v", tempPath)
 
 	return &Service{
-		attachRepo:     attachRepo,
-		billAttachRepo: billAttachRepo,
-		rootPath:       rootPath,
-		tempPath:       tempPath,
-		cfg:            cfg,
-		tempFiles:      sync.Map{},
+		attachRepo: attachRepo,
+		rootPath:   rootPath,
+		tempPath:   tempPath,
+		cfg:        cfg,
 	}
 }
 
@@ -81,35 +84,17 @@ func (s *Service) CreateTempDir(prefix string) (string, error) {
 
 // GetAbsolutePathById 根据 ID 获取绝对路径
 func (s *Service) GetAbsolutePathById(ctx context.Context, id int) (string, error) {
-	if id == 0 {
-		return "", errs.NewBizError("ID 为空")
+	if id <= 0 {
+		return "", errs.NewBizError("附件 ID 不合法")
 	}
-	var absolutePath string
-	if id < 0 {
-		val, ok := s.tempFiles.Load(id)
-		if !ok {
-			return "", errs.NewBizError("附件不存在")
-		}
-		absolutePath = val.(string)
-		if !strings.HasPrefix(absolutePath, s.tempPath) {
-			return "", errs.NewBizError("路径不合法")
-		}
-		return absolutePath, nil
-	}
-
-	attach, err := s.attachRepo.FindByID(ctx, id)
+	attachment, err := s.attachRepo.FindByID(ctx, uint(id))
 	if err != nil {
 		return "", errs.Wrap(err)
 	}
-	if attach == nil {
+	if attachment == nil {
 		return "", errs.NewBizError("附件不存在")
 	}
-	absolutePath = filepath.Join(s.rootPath, attach.RelativePath)
-	absolutePath = filepath.Clean(absolutePath)
-	if !strings.HasPrefix(absolutePath, s.rootPath) {
-		return "", errs.NewBizError("路径不合法")
-	}
-	return absolutePath, nil
+	return s.GetAbsolutePathByRela(attachment.RelativePath)
 }
 
 // GetAbsolutePathByRela 根据相对路径获取绝对路径
@@ -117,9 +102,7 @@ func (s *Service) GetAbsolutePathByRela(relativePath string) (string, error) {
 	if relativePath == "" {
 		return "", errs.NewBizError("相对路径为空")
 	}
-	var absolutePath string
-	absolutePath = filepath.Join(s.rootPath, relativePath)
-	absolutePath = filepath.Clean(absolutePath)
+	absolutePath := filepath.Clean(filepath.Join(s.rootPath, relativePath))
 	if !strings.HasPrefix(absolutePath, s.rootPath) {
 		return "", errs.NewBizError("路径不合法")
 	}
@@ -142,26 +125,136 @@ func (s *Service) GetRelativePath(absolutePath string) (string, error) {
 	return relativePath, nil
 }
 
-// UploadTemps 上传临时文件
-func (s *Service) UploadTemps(fileHeaders []*multipart.FileHeader) ([]AttachmentDTO, error) {
-	var attachments []AttachmentDTO
+// Upload 上传附件
+func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*multipart.FileHeader) ([]AttachmentDTO, error) {
+	if !namespacePattern.MatchString(namespace) {
+		return nil, errs.NewBizError("附件命名空间不合法")
+	}
 	if len(fileHeaders) == 0 {
 		return nil, errs.NewBizError("文件不能为空")
 	}
+
+	attachments := make([]AttachmentDTO, 0, len(fileHeaders))
 	for _, fileHeader := range fileHeaders {
-		file, err := Upload(fileHeader, s.tempPath)
+		attachment, err := s.saveOne(ctx, namespace, fileHeader)
 		if err != nil {
 			return nil, err
 		}
-		id := int(-util.GenIntID())
-		s.tempFiles.Store(id, file.Path)
-		attachments = append(attachments, AttachmentDTO{
-			ID:   id,
-			Name: fileHeader.Filename,
-			Type: file.Type,
-		})
+		attachments = append(attachments, *attachment.ToDTO())
 	}
 	return attachments, nil
+}
+
+// saveOne 落盘并写入单条附件记录
+func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *multipart.FileHeader) (*Attachment, error) {
+	fileName := fileHeader.Filename
+	if fileName == "" {
+		return nil, errs.NewBizError("文件名不能为空")
+	}
+
+	relativePath := namespace + "/" + uuid.New().String() + "-" + fileName
+	targetPath, err := s.GetAbsolutePathByRela(relativePath)
+	if err != nil {
+		return nil, err
+	}
+	if err = CreateParentDirs(targetPath); err != nil {
+		return nil, err
+	}
+	fileType, err := Save(fileHeader, targetPath)
+	if err != nil {
+		return nil, err
+	}
+
+	attachment := &Attachment{
+		Name:         fileName,
+		Type:         fileType,
+		RelativePath: relativePath,
+		Status:       StatusTransient,
+	}
+	if err = s.attachRepo.Create(ctx, attachment); err != nil {
+		DeleteQuietly(targetPath)
+		return nil, err
+	}
+	return attachment, nil
+}
+
+// Persist 提交附件
+func (s *Service) Persist(ctx context.Context, ids []uint) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	affected, err := s.attachRepo.PersistByIds(ctx, ids)
+	if err != nil {
+		return err
+	}
+	if affected != int64(len(ids)) {
+		return errs.NewBizError("附件不存在或已被提交")
+	}
+	return nil
+}
+
+// Delete 删除附件及其物理文件
+func (s *Service) Delete(ctx context.Context, ids []uint) error {
+	unique := uniqueIDs(ids)
+	if len(unique) == 0 {
+		return nil
+	}
+	attachments, err := s.attachRepo.FindAll(ctx, "id in ?", unique)
+	if err != nil {
+		return err
+	}
+	if len(attachments) != len(unique) {
+		return errs.NewBizError("附件不存在")
+	}
+	if err = s.attachRepo.DeleteByIDs(ctx, unique); err != nil {
+		return err
+	}
+
+	var ops []FileOp
+	for _, attachment := range attachments {
+		targetPath, err := s.GetAbsolutePathByRela(attachment.RelativePath)
+		if err != nil {
+			return err
+		}
+		if !Exists(targetPath) {
+			continue
+		}
+		ops = append(ops, FileOp{Type: FileOpDelete, Target: targetPath})
+	}
+	return Exec(ops)
+}
+
+// CleanTransientFiles 回收过期的游离附件
+func (s *Service) CleanTransientFiles(ctx context.Context) error {
+	expired, err := s.attachRepo.FindByStatusBefore(ctx, StatusTransient, time.Now().Add(-transientRetention))
+	if err != nil {
+		return err
+	}
+	if len(expired) == 0 {
+		return nil
+	}
+
+	ids := make([]uint, 0, len(expired))
+	var ops []FileOp
+	for _, attachment := range expired {
+		ids = append(ids, attachment.ID)
+		targetPath, err := s.GetAbsolutePathByRela(attachment.RelativePath)
+		if err != nil {
+			continue
+		}
+		if !Exists(targetPath) {
+			continue
+		}
+		ops = append(ops, FileOp{Type: FileOpDelete, Target: targetPath})
+	}
+	if err = s.attachRepo.DeleteByIDs(ctx, ids); err != nil {
+		return err
+	}
+	if err = Exec(ops); err != nil {
+		log.Errorf("回收游离附件文件失败: %v", err)
+	}
+	log.Infof("回收游离附件 %v 个", len(ids))
+	return nil
 }
 
 // GetResource 获取文件资源
@@ -178,97 +271,16 @@ func (s *Service) GetResource(ctx context.Context, dto *AttachmentDTO) (filename
 	return
 }
 
-// GetByBill 获取业务单据附件
-func (s *Service) GetByBill(ctx context.Context, billID uint, billType BillType) ([]Attachment, error) {
-	attaches, err := s.attachRepo.FindByBill(ctx, billID, billType)
-	if err != nil {
-		return nil, err
+// uniqueIDs 去重附件 ID
+func uniqueIDs(ids []uint) []uint {
+	seen := make(map[uint]bool, len(ids))
+	unique := make([]uint, 0, len(ids))
+	for _, id := range ids {
+		if id == 0 || seen[id] {
+			continue
+		}
+		seen[id] = true
+		unique = append(unique, id)
 	}
-	return attaches, nil
-}
-
-// UpdateRelativeAttach 根据目标附件集合更新业务单据关联附件
-func (s *Service) UpdateRelativeAttach(ctx context.Context, billID uint, billNumber string, billType BillType, attachmentDTOs []AttachmentDTO) error {
-	oldRelations, err := s.billAttachRepo.FindByBillIDAndBillType(ctx, billID, billType)
-	if err != nil {
-		return err
-	}
-	// 待删除
-	removedIDs := make(map[uint]bool)
-	for _, rel := range oldRelations {
-		removedIDs[rel.AttachId] = true
-	}
-	var ops []FileOp
-	return s.billAttachRepo.Transaction(ctx, func(tx context.Context) error {
-		for _, dto := range attachmentDTOs {
-			// 新增
-			if dto.ID <= 0 {
-				originPath, err := s.GetAbsolutePathById(ctx, dto.ID)
-				addAttach := dto.TOEntity()
-				addAttach.ID = 0
-				if err != nil {
-					return err
-				}
-				targetRelPath := filepath.Join(billType.String(), billNumber, fmt.Sprintf("%v-%v", time.Now().UnixMilli(), addAttach.Name))
-				targetPath, err := s.GetAbsolutePathByRela(targetRelPath)
-				if err != nil {
-					return err
-				}
-				// 设置业务单据关联关系
-				addAttach.RelativePath = targetRelPath
-
-				billAttachRel := &BillAttachRelation{
-					BillId:   billID,
-					BillType: billType,
-					AttachId: addAttach.ID,
-					Attach:   *addAttach,
-				}
-				if err = s.billAttachRepo.Create(tx, billAttachRel); err != nil {
-					return err
-				}
-
-				ops = append(ops, FileOp{
-					Type:   FileOpMove,
-					Origin: originPath,
-					Target: targetPath,
-				})
-			} else {
-				delete(removedIDs, uint(dto.ID))
-			}
-		}
-
-		for _, rel := range oldRelations {
-			if removedIDs[rel.AttachId] {
-				if err = s.attachRepo.DeleteByID(tx, rel.AttachId); err != nil {
-					return err
-				}
-				if err = s.billAttachRepo.DeleteByID(tx, rel.ID); err != nil {
-					return err
-				}
-				targetPath, err := s.GetAbsolutePathByRela(rel.Attach.RelativePath)
-				if err != nil {
-					return err
-				}
-				ops = append(ops, FileOp{
-					Type:   FileOpDelete,
-					Target: targetPath,
-				})
-			}
-		}
-		if err = Exec(ops); err != nil {
-			return err
-		}
-		return nil
-	})
-}
-
-// CleanTempFiles  清理临时文件
-func (s *Service) CleanTempFiles() {
-	s.tempFiles.Range(func(k, v any) bool {
-		path := v.(string)
-		if !Exists(path) {
-			s.tempFiles.Delete(k)
-		}
-		return true
-	})
+	return unique
 }

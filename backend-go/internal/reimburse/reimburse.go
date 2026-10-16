@@ -11,7 +11,7 @@ import (
 func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Service, contentSrc *attach.ContentService) {
 	reimburseRepo := NewReimburseRepository(ctx.Db)
 	reimburseMapper := NewMapper(contentSrc)
-	reimburseService := NewService(reimburseRepo, attachSrc, reimburseMapper)
+	reimburseService := NewService(reimburseRepo, attachSrc, NewAttachRelService(ctx.Db, attachSrc), reimburseMapper)
 	reimburseController := NewReimburseController(reimburseService)
 	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, reimburseRepo))
 	reimburseGroup := router.Group("/reimburse")
@@ -35,5 +35,5 @@ func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Servi
 func SetupForTest(ctx *context.AppContext, attachSrv *attach.Service, contentSrv *attach.ContentService) *Service {
 	reimburseRepo := NewReimburseRepository(ctx.Db)
 	reimburseMapper := NewMapper(contentSrv)
-	return NewService(reimburseRepo, attachSrv, reimburseMapper)
+	return NewService(reimburseRepo, attachSrv, NewAttachRelService(ctx.Db, attachSrv), reimburseMapper)
 }

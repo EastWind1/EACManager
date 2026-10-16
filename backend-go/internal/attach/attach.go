@@ -2,39 +2,41 @@ package attach
 
 import (
 	"backend-go/pkg/auth"
-	"backend-go/pkg/context"
+	appContext "backend-go/pkg/context"
+	"context"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 )
 
-func Setup(ctx *context.AppContext, router fiber.Router) (*Service, *ContentService) {
+func Setup(ctx *appContext.AppContext, router fiber.Router) (*Service, *ContentService) {
 	attachmentRepo := NewRepository(ctx.Db)
-	billAttachRepo := NewBillAttachRelRepo(ctx.Db)
-	attachmentService := NewService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo, billAttachRepo)
+	attachmentService := NewService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo)
 	ocrService := NewOCRService(ctx.Cfg.OCR)
 	attachmentController := NewController(attachmentService)
 	attachGroup := router.Group("/attachment")
 	{
 		attachGroup.Get("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), attachmentController.Download)
-		attachGroup.Post("/temp", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), attachmentController.UploadTemp)
+		attachGroup.Post("/upload", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), attachmentController.Upload)
 	}
 
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
 		for range ticker.C {
-			go attachmentService.CleanTempFiles()
+			if err := attachmentService.CleanTransientFiles(context.Background()); err != nil {
+				log.Errorf("回收游离附件失败: %v", err)
+			}
 		}
 	}()
 
 	return attachmentService, NewContentService(ocrService, attachmentService)
 }
 
-func SetupForTest(ctx *context.AppContext) (*Service, *ContentService) {
+func SetupForTest(ctx *appContext.AppContext) (*Service, *ContentService) {
 	attachmentRepo := NewRepository(ctx.Db)
-	billAttachRepo := NewBillAttachRelRepo(ctx.Db)
-	attachmentService := NewService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo, billAttachRepo)
+	attachmentService := NewService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo)
 	ocrService := NewOCRService(ctx.Cfg.OCR)
 	return attachmentService, NewContentService(ocrService, attachmentService)
 }

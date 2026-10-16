@@ -4,6 +4,7 @@ import (
 	"backend-go/pkg/database"
 	"backend-go/pkg/errs"
 	"context"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -19,37 +20,39 @@ func NewRepository(db *gorm.DB) *Repository {
 	}
 }
 
-// FindByBill 根据业务单据查找附件
-func (r *Repository) FindByBill(ctx context.Context, billID uint, billType BillType) ([]Attachment, error) {
-	var attachments []Attachment
-	err := r.GetDB(ctx).WithContext(ctx).Table("attachment").
-		Joins("right join bill_attach_relation on attachment.id = bill_attach_relation.attach_id").
-		Select("attachment.*").
-		Where("bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType).
+// PersistByIds 持久化附件
+func (r *Repository) PersistByIds(ctx context.Context, ids []uint) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	var t Attachment
+	res := r.GetDB(ctx).
+		Model(&t).
+		Where("id in ? and status = ?", ids, StatusTransient).
+		Update("status", StatusPersistent)
+	if res.Error != nil {
+		return 0, errs.Wrap(res.Error)
+	}
+	return res.RowsAffected, nil
+}
+
+// DeleteByIDs 根据 ID 批量删除附件
+func (r *Repository) DeleteByIDs(ctx context.Context, ids []uint) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	var t Attachment
+	return errs.Wrap(r.GetDB(ctx).Where("id in ?", ids).Delete(&t).Error)
+}
+
+// FindByStatusBefore 查找某状态下创建时间早于 cutoff 的附件
+func (r *Repository) FindByStatusBefore(ctx context.Context, status Status, cutoff time.Time) ([]Attachment, error) {
+	attachments := make([]Attachment, 0)
+	err := r.GetDB(ctx).
+		Where("status = ? and created_date < ?", status, cutoff).
 		Find(&attachments).Error
 	if err != nil {
 		return nil, errs.Wrap(err)
 	}
 	return attachments, nil
-}
-
-// BillAttachRelRepo 业务单据附件关系仓库
-type BillAttachRelRepo struct {
-	*database.BaseRepository[BillAttachRelation]
-}
-
-func NewBillAttachRelRepo(db *gorm.DB) *BillAttachRelRepo {
-	return &BillAttachRelRepo{
-		BaseRepository: database.NewBaseRepository[BillAttachRelation](db),
-	}
-}
-
-// FindByBillIDAndBillType 根据业务单据ID和类型查找附件关系
-func (r *BillAttachRelRepo) FindByBillIDAndBillType(ctx context.Context, billID uint, billType BillType) ([]BillAttachRelation, error) {
-	res := make([]BillAttachRelation, 0)
-	if err := r.GetDB(ctx).WithContext(ctx).Preload("Attach").
-		Find(&res, "bill_attach_relation.bill_id = ? and bill_attach_relation.bill_type = ?", billID, billType).Error; err != nil {
-		return nil, errs.Wrap(err)
-	}
-	return res, nil
 }

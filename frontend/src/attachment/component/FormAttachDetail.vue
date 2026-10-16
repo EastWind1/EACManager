@@ -95,8 +95,10 @@ import { useUIStore } from '@/common/store/UIStore'
 import { useFileSelector } from '../composable/FileSelector'
 
 // 是否可编辑
-defineProps<{
+const props = defineProps<{
   readonly: boolean
+  // 附件命名空间，由使用该组件的业务模块给出
+  namespace: string
 }>()
 
 const ExcelPreview = defineAsyncComponent(() => import('./ExcelPreview.vue'))
@@ -211,8 +213,7 @@ async function download(attach: Attachment) {
  */
 async function upload() {
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt', true)
-  // 上传至临时目录
-  const attach = await AttachmentApi.uploadTemp(Array.from(fileList))
+  const attach = await AttachmentApi.upload(props.namespace, Array.from(fileList))
   attachments.value?.push(...attach)
 }
 
@@ -241,8 +242,8 @@ async function drop(e: DragEvent) {
     warning('请上传文档或图片')
     return
   }
-  // 上传至临时目录
-  const attach = await AttachmentApi.uploadTemp(fileList)
+  // 上传附件
+  const attach = await AttachmentApi.upload(props.namespace, fileList)
   attachments.value?.push(...attach)
 }
 

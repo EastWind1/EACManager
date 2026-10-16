@@ -29,4 +29,9 @@ public class Attachment extends AuditEntity {
      * 文件相对路径
      */
     private String relativePath;
+    /**
+     * 附件状态
+     */
+    @Enumerated
+    private AttachmentStatus status = AttachmentStatus.TEMP;
 }

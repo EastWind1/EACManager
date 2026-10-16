@@ -246,6 +246,7 @@
             <FormAttachDetail
               v-model="serviceBill.attachments"
               :readonly="!isEditState"
+              namespace="SERVICE_BILL"
             ></FormAttachDetail>
           </v-tabs-window-item>
         </v-tabs-window>

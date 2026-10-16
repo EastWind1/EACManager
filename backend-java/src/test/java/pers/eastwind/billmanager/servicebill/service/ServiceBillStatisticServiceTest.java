@@ -25,13 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 /**
  * BillStatisticService 统计功能集成测试
  */
-class BillStatisticServiceTest extends BaseServiceTest {
+class ServiceBillStatisticServiceTest extends BaseServiceTest {
 
     @Autowired
     private ServiceBillBizService serviceBillBizService;
 
     @Autowired
-    private BillStatisticService billStatisticService;
+    private ServiceBillStatisticService serviceBillStatisticService;
 
     @Autowired
     private CacheManager cacheManager;
@@ -52,14 +52,14 @@ class BillStatisticServiceTest extends BaseServiceTest {
     @DisplayName("按状态统计服务单数量")
     void shouldCountBillsByState() {
         evictStatCache();
-        Map<ServiceBillState, Long> before = billStatisticService.countBillsByState();
+        Map<ServiceBillState, Long> before = serviceBillStatisticService.countBillsByState();
 
         createBill(new BigDecimal("1000.00"), ServiceBillState.CREATED);
         createBill(new BigDecimal("2000.00"), ServiceBillState.PROCESSING);
         createBill(new BigDecimal("3000.00"), ServiceBillState.PROCESSED);
 
         evictStatCache();
-        Map<ServiceBillState, Long> after = billStatisticService.countBillsByState();
+        Map<ServiceBillState, Long> after = serviceBillStatisticService.countBillsByState();
 
         assertEquals(before.getOrDefault(ServiceBillState.CREATED, 0L) + 1, after.get(ServiceBillState.CREATED));
         assertEquals(before.getOrDefault(ServiceBillState.PROCESSING, 0L) + 1, after.get(ServiceBillState.PROCESSING));
@@ -74,7 +74,7 @@ class BillStatisticServiceTest extends BaseServiceTest {
         Instant otherMonth = Instant.now().minusSeconds(40L * 24 * 3600);
 
         evictStatCache();
-        List<MonthSumAmount> before = billStatisticService.sumReceiveAmountByMonth();
+        List<MonthSumAmount> before = serviceBillStatisticService.sumReceiveAmountByMonth();
         Map<String, BigDecimal> beforeMap = toMonthMap(before);
 
         // 两张处理完成单据分别落在当前月与更早的月份，金额为 1000 / 2000
@@ -82,7 +82,7 @@ class BillStatisticServiceTest extends BaseServiceTest {
         createProcessedBill(new BigDecimal("2000.00"), otherMonth);
 
         evictStatCache();
-        List<MonthSumAmount> after = billStatisticService.sumReceiveAmountByMonth();
+        List<MonthSumAmount> after = serviceBillStatisticService.sumReceiveAmountByMonth();
         Map<String, BigDecimal> afterMap = toMonthMap(after);
 
         // 只有新增的两个月份产生正向增量，合计恰好为 3000
@@ -91,7 +91,7 @@ class BillStatisticServiceTest extends BaseServiceTest {
 
         // 统计结果不为空，且重复调用不报错
         assertNotNull(after);
-        List<MonthSumAmount> cached = billStatisticService.sumReceiveAmountByMonth();
+        List<MonthSumAmount> cached = serviceBillStatisticService.sumReceiveAmountByMonth();
         assertEquals(after.size(), cached.size());
     }
 

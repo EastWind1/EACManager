@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict KeLfr1A3HiCTOnFgdUhDoqlQrFJ85vduqBBesw6ceXgX5el9B4wp8aIDXp4Q399
+\restrict mDpb7JZnpBMuek1Qv0aWWMahEwIZtKVGcMagKAQotF0NXKR1nBAMRcqhkdeveoB
 
--- Dumped from database version 18.1
--- Dumped by pg_dump version 18.1
+-- Dumped from database version 18.6
+-- Dumped by pg_dump version 18.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,29 +18,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
-
---
--- Name: attachment; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.attachment (
-    id integer NOT NULL,
-    name character varying(255),
-    relative_path character varying(255),
-    type smallint,
-    created_date timestamp(6) with time zone,
-    last_modified_date timestamp(6) with time zone,
-    created_by_id integer,
-    last_modified_by_id integer,
-    CONSTRAINT attachment_type_check CHECK (((type >= 0) AND (type <= 4)))
-);
-
-
-ALTER TABLE public.attachment OWNER TO postgres;
 
 --
 -- Name: attachment_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -56,28 +33,36 @@ CREATE SEQUENCE public.attachment_seq
 
 ALTER SEQUENCE public.attachment_seq OWNER TO postgres;
 
-ALTER TABLE ONLY public.attachment ALTER COLUMN id SET DEFAULT nextval('public."attachment_seq"'::regclass);
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
 
 --
--- Name: bill_attach_relation; Type: TABLE; Schema: public; Owner: postgres
+-- Name: attachment; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.bill_attach_relation (
-    id integer NOT NULL,
-    attach_id integer,
-    bill_id integer,
-    bill_type smallint,
-    CONSTRAINT bill_attach_relation_bill_type_check CHECK (((bill_type >= 0) AND (bill_type <= 1)))
+CREATE TABLE public.attachment (
+    id integer DEFAULT nextval('public.attachment_seq'::regclass) NOT NULL,
+    name character varying(255),
+    relative_path character varying(255),
+    type smallint,
+    created_date timestamp(6) with time zone,
+    last_modified_date timestamp(6) with time zone,
+    created_by_id integer,
+    last_modified_by_id integer,
+    status smallint NOT NULL,
+    CONSTRAINT attachment_status_check CHECK (((status >= 0) AND (status <= 2))),
+    CONSTRAINT attachment_type_check CHECK (((type >= 0) AND (type <= 4)))
 );
 
 
-ALTER TABLE public.bill_attach_relation OWNER TO postgres;
+ALTER TABLE public.attachment OWNER TO postgres;
 
 --
--- Name: bill_attach_relation_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: company_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.bill_attach_relation_seq
+CREATE SEQUENCE public.company_seq
     START WITH 1
     INCREMENT BY 50
     NO MINVALUE
@@ -85,17 +70,14 @@ CREATE SEQUENCE public.bill_attach_relation_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.bill_attach_relation_seq OWNER TO postgres;
-
-ALTER TABLE ONLY public.bill_attach_relation ALTER COLUMN id SET DEFAULT nextval('public."bill_attach_relation_seq"'::regclass);
+ALTER SEQUENCE public.company_seq OWNER TO postgres;
 
 --
 -- Name: company; Type: TABLE; Schema: public; Owner: postgres
 --
 
-
 CREATE TABLE public.company (
-    id integer NOT NULL,
+    id integer DEFAULT nextval('public.company_seq'::regclass) NOT NULL,
     address character varying(255),
     contact_name character varying(255),
     contact_phone character varying(255),
@@ -112,11 +94,10 @@ CREATE TABLE public.company (
 ALTER TABLE public.company OWNER TO postgres;
 
 --
--- Name: company_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: reimburse_attach_relation_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-
-CREATE SEQUENCE public.company_seq
+CREATE SEQUENCE public.reimburse_attach_relation_seq
     START WITH 1
     INCREMENT BY 50
     NO MINVALUE
@@ -124,23 +105,20 @@ CREATE SEQUENCE public.company_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.company_seq OWNER TO postgres;
-
-ALTER TABLE ONLY public.company ALTER COLUMN id SET DEFAULT nextval('public."company_seq"'::regclass);
+ALTER SEQUENCE public.reimburse_attach_relation_seq OWNER TO postgres;
 
 --
--- Name: reimburse_detail; Type: TABLE; Schema: public; Owner: postgres
+-- Name: reimburse_attach_relation; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.reimburse_detail (
-    id integer NOT NULL,
-    amount numeric(38,2),
-    name character varying(255),
-    reimbursement_id integer
+CREATE TABLE public.reimburse_attach_relation (
+    id integer DEFAULT nextval('public.reimburse_attach_relation_seq'::regclass) NOT NULL,
+    reimburse_id integer,
+    attach_id integer
 );
 
 
-ALTER TABLE public.reimburse_detail OWNER TO postgres;
+ALTER TABLE public.reimburse_attach_relation OWNER TO postgres;
 
 --
 -- Name: reimburse_detail_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -156,15 +134,40 @@ CREATE SEQUENCE public.reimburse_detail_seq
 
 ALTER SEQUENCE public.reimburse_detail_seq OWNER TO postgres;
 
-ALTER TABLE ONLY public.reimburse_detail ALTER COLUMN id SET DEFAULT nextval('public."reimburse_detail_seq"'::regclass);
+--
+-- Name: reimburse_detail; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.reimburse_detail (
+    id integer DEFAULT nextval('public.reimburse_detail_seq'::regclass) NOT NULL,
+    amount numeric(38,2),
+    name character varying(255),
+    reimbursement_id integer
+);
+
+
+ALTER TABLE public.reimburse_detail OWNER TO postgres;
+
+--
+-- Name: reimbursement_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.reimbursement_seq
+    START WITH 1
+    INCREMENT BY 50
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.reimbursement_seq OWNER TO postgres;
 
 --
 -- Name: reimbursement; Type: TABLE; Schema: public; Owner: postgres
 --
 
-
 CREATE TABLE public.reimbursement (
-    id integer NOT NULL,
+    id integer DEFAULT nextval('public.reimbursement_seq'::regclass) NOT NULL,
     created_date timestamp(6) with time zone,
     last_modified_date timestamp(6) with time zone,
     number character varying(255),
@@ -183,11 +186,10 @@ CREATE TABLE public.reimbursement (
 ALTER TABLE public.reimbursement OWNER TO postgres;
 
 --
--- Name: reimbursement_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: service_bill_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-
-CREATE SEQUENCE public.reimbursement_seq
+CREATE SEQUENCE public.service_bill_seq
     START WITH 1
     INCREMENT BY 50
     NO MINVALUE
@@ -195,16 +197,14 @@ CREATE SEQUENCE public.reimbursement_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.reimbursement_seq OWNER TO postgres;
-
-ALTER TABLE ONLY public.reimbursement ALTER COLUMN id SET DEFAULT nextval('public."reimbursement_seq"'::regclass);
+ALTER SEQUENCE public.service_bill_seq OWNER TO postgres;
 
 --
 -- Name: service_bill; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.service_bill (
-    id integer NOT NULL,
+    id integer DEFAULT nextval('public.service_bill_seq'::regclass) NOT NULL,
     created_date timestamp(6) with time zone,
     last_modified_date timestamp(6) with time zone,
     elevator_info character varying(255),
@@ -234,21 +234,31 @@ CREATE TABLE public.service_bill (
 ALTER TABLE public.service_bill OWNER TO postgres;
 
 --
--- Name: service_bill_detail; Type: TABLE; Schema: public; Owner: postgres
+-- Name: service_bill_attach_relation_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.service_bill_detail (
-    id integer NOT NULL,
-    device character varying(255),
-    quantity numeric(38,2),
-    remark character varying(255),
-    subtotal numeric(38,2),
-    unit_price numeric(38,2),
-    service_bill_id integer
+CREATE SEQUENCE public.service_bill_attach_relation_seq
+    START WITH 1
+    INCREMENT BY 50
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.service_bill_attach_relation_seq OWNER TO postgres;
+
+--
+-- Name: service_bill_attach_relation; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.service_bill_attach_relation (
+    id integer DEFAULT nextval('public.service_bill_attach_relation_seq'::regclass) NOT NULL,
+    service_bill_id integer,
+    attach_id integer
 );
 
 
-ALTER TABLE public.service_bill_detail OWNER TO postgres;
+ALTER TABLE public.service_bill_attach_relation OWNER TO postgres;
 
 --
 -- Name: service_bill_detail_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -264,12 +274,26 @@ CREATE SEQUENCE public.service_bill_detail_seq
 
 ALTER SEQUENCE public.service_bill_detail_seq OWNER TO postgres;
 
-ALTER TABLE ONLY public.service_bill_detail ALTER COLUMN id SET DEFAULT nextval('public."service_bill_detail_seq"'::regclass);
+--
+-- Name: service_bill_detail; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.service_bill_detail (
+    id integer DEFAULT nextval('public.service_bill_detail_seq'::regclass) NOT NULL,
+    device character varying(255),
+    quantity numeric(38,2),
+    remark character varying(255),
+    subtotal numeric(38,2),
+    unit_price numeric(38,2),
+    service_bill_id integer
+);
+
+
+ALTER TABLE public.service_bill_detail OWNER TO postgres;
 
 --
 -- Name: service_bill_processor_detail_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
-
 
 CREATE SEQUENCE public.service_bill_processor_detail_seq
     START WITH 1
@@ -282,11 +306,10 @@ CREATE SEQUENCE public.service_bill_processor_detail_seq
 ALTER SEQUENCE public.service_bill_processor_detail_seq OWNER TO postgres;
 
 --
--- Name: service_bill_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: sys_user_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-
-CREATE SEQUENCE public.service_bill_seq
+CREATE SEQUENCE public.sys_user_seq
     START WITH 1
     INCREMENT BY 50
     NO MINVALUE
@@ -294,17 +317,14 @@ CREATE SEQUENCE public.service_bill_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.service_bill_seq OWNER TO postgres;
-
-ALTER TABLE ONLY public.service_bill ALTER COLUMN id SET DEFAULT nextval('public."service_bill_seq"'::regclass);
+ALTER SEQUENCE public.sys_user_seq OWNER TO postgres;
 
 --
 -- Name: sys_user; Type: TABLE; Schema: public; Owner: postgres
 --
 
-
 CREATE TABLE public.sys_user (
-    id integer NOT NULL,
+    id integer DEFAULT nextval('public.sys_user_seq'::regclass) NOT NULL,
     created_date timestamp(6) with time zone,
     last_modified_date timestamp(6) with time zone,
     email character varying(255),
@@ -323,23 +343,6 @@ CREATE TABLE public.sys_user (
 ALTER TABLE public.sys_user OWNER TO postgres;
 
 --
--- Name: sys_user_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-
-CREATE SEQUENCE public.sys_user_seq
-    START WITH 1
-    INCREMENT BY 50
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.sys_user_seq OWNER TO postgres;
-
-ALTER TABLE ONLY public.sys_user ALTER COLUMN id SET DEFAULT nextval('public."sys_user_seq"'::regclass);
-
---
 -- Name: attachment attachment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -348,19 +351,19 @@ ALTER TABLE ONLY public.attachment
 
 
 --
--- Name: bill_attach_relation bill_attach_relation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.bill_attach_relation
-    ADD CONSTRAINT bill_attach_relation_pkey PRIMARY KEY (id);
-
-
---
 -- Name: company company_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.company
     ADD CONSTRAINT company_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reimburse_attach_relation reimburse_attach_relation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.reimburse_attach_relation
+    ADD CONSTRAINT reimburse_attach_relation_pkey PRIMARY KEY (id);
 
 
 --
@@ -380,6 +383,14 @@ ALTER TABLE ONLY public.reimbursement
 
 
 --
+-- Name: service_bill_attach_relation service_bill_attach_relation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.service_bill_attach_relation
+    ADD CONSTRAINT service_bill_attach_relation_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: service_bill_detail service_bill_detail_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -396,7 +407,7 @@ ALTER TABLE ONLY public.service_bill
 
 
 --
--- Name: sys_user uk5c856itaihtmi69ni04cmpc4m; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: sys_user uk_user_username; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sys_user
@@ -412,49 +423,64 @@ ALTER TABLE ONLY public.sys_user
 
 
 --
--- Name: idx1hodheaf11p1xnhvwox2jxmw1; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_attachment_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_service_bill_created_date ON public.service_bill USING btree (created_date);
-
-
---
--- Name: idx5c856itaihtmi69ni04cmpc4m; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_user_username ON public.sys_user USING btree (username);
+CREATE INDEX idx_attachment_status ON public.attachment USING btree (status);
 
 
 --
--- Name: idx6uqfwev5w9njpqvlc77acrdbd; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_reimburse_attach_relation_bill_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_service_bill_number ON public.service_bill USING btree (number);
+CREATE INDEX idx_reimburse_attach_relation_bill_id ON public.reimburse_attach_relation USING btree (reimburse_id);
 
 
 --
--- Name: idxc8xi5vctt5t10ly24scxsxs74; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_reimbursement_number; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX idx_reimbursement_number ON public.reimbursement USING btree (number);
 
 
 --
--- Name: idxg9dtiobulo9ix8pwhhrx1eae3; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_bill_attach_relation_bill_id_bill_type ON public.bill_attach_relation USING btree (bill_id, bill_type);
-
-
---
--- Name: idxp1cel7o82cqqhhoeehwyaf5cj; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_reimbursement_reimburse_date; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE INDEX idx_reimbursement_reimburse_date ON public.reimbursement USING btree (reimburse_date);
 
 
 --
+-- Name: idx_service_bill_attach_relation_bill_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_service_bill_attach_relation_bill_id ON public.service_bill_attach_relation USING btree (service_bill_id);
+
+
+--
+-- Name: idx_service_bill_created_date; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_service_bill_created_date ON public.service_bill USING btree (created_date);
+
+
+--
+-- Name: idx_service_bill_number; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_service_bill_number ON public.service_bill USING btree (number);
+
+
+--
+-- Name: idx_user_username; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_username ON public.sys_user USING btree (username);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict KeLfr1A3HiCTOnFgdUhDoqlQrFJ85vduqBBesw6ceXgX5el9B4wp8aIDXp4Q399
+\unrestrict mDpb7JZnpBMuek1Qv0aWWMahEwIZtKVGcMagKAQotF0NXKR1nBAMRcqhkdeveoB
+

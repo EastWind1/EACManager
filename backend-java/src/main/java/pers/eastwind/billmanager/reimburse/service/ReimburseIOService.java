@@ -1,7 +1,11 @@
 package pers.eastwind.billmanager.reimburse.service;
 
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.*;
+import pers.eastwind.billmanager.attach.model.Attachment;
+import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.attach.model.FileOp;
+import pers.eastwind.billmanager.attach.model.FileOpType;
 import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
@@ -27,11 +31,13 @@ import java.util.stream.Collectors;
 @Service
 public class ReimburseIOService {
     private final AttachmentService attachmentService;
+    private final ReimburseAttachRelService reimburseAttachRelService;
     private final ReimburseAttachMapper attachMapper;
     private final ReimburseRepository reimburseRepository;
 
-    public ReimburseIOService(AttachmentService attachmentService, ReimburseAttachMapper attachMapper, ReimburseRepository reimburseRepository) {
+    public ReimburseIOService(AttachmentService attachmentService, ReimburseAttachRelService reimburseAttachRelService, ReimburseAttachMapper attachMapper, ReimburseRepository reimburseRepository) {
         this.attachmentService = attachmentService;
+        this.reimburseAttachRelService = reimburseAttachRelService;
         this.attachMapper = attachMapper;
         this.reimburseRepository = reimburseRepository;
     }
@@ -50,9 +56,8 @@ public class ReimburseIOService {
         if (reimbursements.isEmpty()) {
             throw new BizException("id不存在");
         }
-        // 临时目录
+
         Path tempPath = attachmentService.createTempDir("export");
-        // 文件操作
         List<FileOp> ops = new ArrayList<>();
 
         // 遍历生成 excel行，并拷贝附件
@@ -74,7 +79,7 @@ public class ReimburseIOService {
             // 创建当前单据附件文件夹
             Path curDir = tempPath.resolve(reimbursement.getNumber());
             // 拷贝当前单据所有附件
-            List<Attachment> attachments = attachmentService.getByBill(reimbursement.getId(), BillType.REIMBURSEMENT);
+            List<Attachment> attachments = reimburseAttachRelService.findAttachments(reimbursement.getId());
             for (Attachment attachment : attachments) {
                 Path origin = attachmentService.getAbsolutePathByRela(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());
@@ -89,13 +94,13 @@ public class ReimburseIOService {
         }
         // 表合计
         rows.add(List.of("", "合计", totalAmount.toString(), "", ""));
-        // 获取当前时间字符串
+
         String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         Path excel = tempPath.resolve("导出结果" + timeStr + ".xlsx");
         OfficeFileUtil.generateExcelFromList(rows, excel);
         // 执行文件拷贝
         FileTxUtil.exec(ops);
-        // 生成压缩包
+
         Path zip = attachmentService.getTempPath().resolve(tempPath + ".zip");
         FileUtil.zip(tempPath, zip);
         return zip;
@@ -107,8 +112,8 @@ public class ReimburseIOService {
      * @param resource 文件资源
      * @return 报销单 DTO
      */
-    public ReimbursementDTO generateByFile(org.springframework.core.io.Resource resource) {
-        AttachmentDTO attachment = attachmentService.uploadTemps(List.of(resource)).getFirst();
+    public ReimbursementDTO generateByFile(Resource resource) {
+        AttachmentDTO attachment = attachmentService.upload(ReimburseAttachRelService.ATTACH_NAMESPACE, List.of(resource)).getFirst();
         ReimbursementDTO dto = attachMapper.map(attachment);
         dto.setAttachments(List.of(attachment));
         return dto;

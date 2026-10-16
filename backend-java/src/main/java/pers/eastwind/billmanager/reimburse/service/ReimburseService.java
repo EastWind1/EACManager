@@ -8,16 +8,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import pers.eastwind.billmanager.attach.model.Attachment;
-import pers.eastwind.billmanager.attach.model.BillType;
-import pers.eastwind.billmanager.attach.service.AttachmentService;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
+import pers.eastwind.billmanager.common.util.Snowflake;
 import pers.eastwind.billmanager.reimburse.model.*;
 import pers.eastwind.billmanager.reimburse.repository.ReimburseRepository;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,13 +24,13 @@ import java.util.List;
 @Service
 public class ReimburseService {
     private final ReimburseMapper reimburseMapper;
-    private final AttachmentService attachmentService;
+    private final ReimburseAttachRelService reimburseAttachRelService;
     private final ReimburseRepository reimburseRepository;
     private final TransactionTemplate transactionTemplate;
 
-    public ReimburseService(ReimburseMapper reimburseMapper1, AttachmentService attachmentService, ReimburseRepository reimburseRepository, TransactionTemplate transactionTemplate) {
+    public ReimburseService(ReimburseMapper reimburseMapper1, ReimburseAttachRelService reimburseAttachRelService, ReimburseRepository reimburseRepository, TransactionTemplate transactionTemplate) {
         this.reimburseMapper = reimburseMapper1;
-        this.attachmentService = attachmentService;
+        this.reimburseAttachRelService = reimburseAttachRelService;
         this.reimburseRepository = reimburseRepository;
         this.transactionTemplate = transactionTemplate;
     }
@@ -53,7 +49,7 @@ public class ReimburseService {
         if (bill == null) {
             throw new BizException("单据不存在");
         }
-        List<Attachment> attachments = attachmentService.getByBill(id, BillType.REIMBURSEMENT);
+        List<Attachment> attachments = reimburseAttachRelService.findAttachments(id);
         return reimburseMapper.toDTO(bill, attachments);
     }
 
@@ -69,7 +65,7 @@ public class ReimburseService {
             reimbursementDTO.setId(null);
         }
         if (reimbursementDTO.getNumber() == null || reimbursementDTO.getNumber().isEmpty()) {
-            reimbursementDTO.setNumber("R" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.systemDefault()).format(Instant.now()) + Math.round(Math.random() * 1000));
+            reimbursementDTO.setNumber("R" + Snowflake.genIntID());
         } else {
             if (reimburseRepository.existsByNumber(reimbursementDTO.getNumber())) {
                 throw new BizException("单据编号已存在");
@@ -77,8 +73,8 @@ public class ReimburseService {
         }
         reimbursementDTO.setState(ReimburseState.CREATED);
         Reimbursement bill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
-        attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
-        return reimburseMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.REIMBURSEMENT));
+        reimburseAttachRelService.updateAttachments(bill.getId(), reimbursementDTO.getAttachments());
+        return reimburseMapper.toDTO(bill, reimburseAttachRelService.findAttachments(bill.getId()));
     }
 
 
@@ -101,8 +97,8 @@ public class ReimburseService {
         reimburseMapper.updateEntityFromDTO(reimbursementDTO, bill);
         bill.setState(originState);
         bill = reimburseRepository.save(bill);
-        attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, reimbursementDTO.getAttachments());
-        return reimburseMapper.toDTO(bill, attachmentService.getByBill(bill.getId(), BillType.REIMBURSEMENT));
+        reimburseAttachRelService.updateAttachments(bill.getId(), reimbursementDTO.getAttachments());
+        return reimburseMapper.toDTO(bill, reimburseAttachRelService.findAttachments(bill.getId()));
     }
 
     /**
@@ -162,7 +158,7 @@ public class ReimburseService {
                     throw new BizException("非创建状态不能删除");
                 }
                 reimburseRepository.deleteById(id);
-                attachmentService.updateRelativeAttach(bill.getId(), bill.getNumber(), BillType.REIMBURSEMENT, new ArrayList<>());
+                reimburseAttachRelService.updateAttachments(bill.getId(), List.of());
             });
             return null;
         });

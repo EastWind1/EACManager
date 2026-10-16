@@ -13,10 +13,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
-public class BillStatisticService {
+public class ServiceBillStatisticService {
     private final ServiceBillStatisticRepository serviceBillStatisticRepository;
 
-    public BillStatisticService(ServiceBillStatisticRepository serviceBillStatisticRepository) {
+    public ServiceBillStatisticService(ServiceBillStatisticRepository serviceBillStatisticRepository) {
         this.serviceBillStatisticRepository = serviceBillStatisticRepository;
     }
 

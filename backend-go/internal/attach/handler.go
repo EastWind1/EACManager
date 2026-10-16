@@ -17,7 +17,7 @@ func NewController(attachService *Service) *Controller {
 	}
 }
 
-func (c *Controller) UploadTemp(ctx fiber.Ctx) error {
+func (c *Controller) Upload(ctx fiber.Ctx) error {
 	form, err := ctx.MultipartForm()
 	if err != nil {
 		return err
@@ -26,12 +26,17 @@ func (c *Controller) UploadTemp(ctx fiber.Ctx) error {
 	if len(files) == 0 {
 		return errs.NewBizError("没有文件上传")
 	}
-	temps, err := c.attachService.UploadTemps(files)
+	// 命名空间由业务侧决定，附件模块只把它当作隔离前缀
+	namespace := form.Value["namespace"]
+	if len(namespace) == 0 {
+		return errs.NewBizError("附件命名空间不能为空")
+	}
+	attachments, err := c.attachService.Upload(ctx, namespace[0], files)
 	if err != nil {
 		return err
 	}
 
-	result.SetResult(ctx, temps)
+	result.SetResult(ctx, attachments)
 	return nil
 }
 

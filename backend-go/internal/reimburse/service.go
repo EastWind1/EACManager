@@ -4,11 +4,12 @@ import (
 	"backend-go/internal/attach"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
+	"backend-go/pkg/util"
 	"context"
 	"fmt"
-	"math/rand"
 	"mime/multipart"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,25 +19,26 @@ import (
 type Service struct {
 	reimburseRepo *Repository
 	attachService *attach.Service
+	attachRelSrv  *AttachRelService
 	mapper        *Mapper
 }
 
 func NewService(
 	reimburseRepo *Repository,
 	attachService *attach.Service,
+	attachRelSrv *AttachRelService,
 	mapper *Mapper,
 ) *Service {
 	return &Service{
 		reimburseRepo: reimburseRepo,
 		attachService: attachService,
+		attachRelSrv:  attachRelSrv,
 		mapper:        mapper,
 	}
 }
 
 func (s *Service) GenerateNumber() string {
-	timestamp := time.Now().Format("20060102")
-	randomNum := rand.Intn(1000)
-	return fmt.Sprintf("R%s%04d", timestamp, randomNum)
+	return "R" + strconv.Itoa(int(util.GenIntID()))
 }
 
 func (s *Service) FindByID(ctx context.Context, id uint) (*DTO, error) {
@@ -50,7 +52,7 @@ func (s *Service) FindByID(ctx context.Context, id uint) (*DTO, error) {
 	if bill == nil {
 		return nil, errs.NewBizError("单据不存在")
 	}
-	attachments, err := s.attachService.GetByBill(ctx, bill.ID, attach.BillTypeReimbursement)
+	attachments, err := s.attachRelSrv.FindAttachments(ctx, bill.ID)
 	if err != nil {
 		return nil, errs.NewBizError("获取附件失败")
 	}
@@ -75,7 +77,7 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 			return err
 		}
 
-		if err := s.attachService.UpdateRelativeAttach(tx, entity.ID, entity.Number, attach.BillTypeReimbursement, dto.Attachments); err != nil {
+		if err := s.attachRelSrv.UpdateAttachments(tx, entity.ID, dto.Attachments); err != nil {
 			return err
 		}
 		return nil
@@ -85,7 +87,7 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 		return nil, err
 	}
 
-	attaches, err := s.attachService.GetByBill(ctx, entity.ID, attach.BillTypeReimbursement)
+	attaches, err := s.attachRelSrv.FindAttachments(ctx, entity.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +109,7 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 		if bill == nil {
 			return errs.NewBizError("单据不存在")
 		}
-		err = s.attachService.UpdateRelativeAttach(tx, entity.ID, entity.Number, attach.BillTypeReimbursement, dto.Attachments)
+		err = s.attachRelSrv.UpdateAttachments(tx, entity.ID, dto.Attachments)
 		if err != nil {
 			return err
 		}
@@ -119,15 +121,15 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 		return nil, err
 	}
 
-	attaches, err := s.attachService.GetByBill(ctx, entity.ID, attach.BillTypeReimbursement)
+	attaches, err := s.attachRelSrv.FindAttachments(ctx, entity.ID)
 	if err != nil {
 		return nil, err
 	}
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *Service) GenerateByFile(file *multipart.FileHeader) (*DTO, error) {
-	attaches, err := s.attachService.UploadTemps([]*multipart.FileHeader{file})
+func (s *Service) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*DTO, error) {
+	attaches, err := s.attachService.Upload(ctx, AttachNamespace, []*multipart.FileHeader{file})
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +171,7 @@ func (s *Service) Delete(ctx context.Context, ids []uint) (*result.ActionsResult
 			if bill.State != Created {
 				return errs.NewBizError("非创建状态不能删除")
 			}
-			if err = s.attachService.UpdateRelativeAttach(tx, bill.ID, bill.Number, attach.BillTypeReimbursement, nil); err != nil {
+			if err = s.attachRelSrv.UpdateAttachments(tx, bill.ID, nil); err != nil {
 				return err
 			}
 			return s.reimburseRepo.Delete(tx, bill)
@@ -322,7 +324,7 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		totalAmount += reimbursement.TotalAmount
 
 		// 获取当前单据的所有附件
-		attachments, err := s.attachService.GetByBill(ctx, reimbursement.ID, attach.BillTypeReimbursement)
+		attachments, err := s.attachRelSrv.FindAttachments(ctx, reimbursement.ID)
 		if err != nil {
 			return "", err
 		}

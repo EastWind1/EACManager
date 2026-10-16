@@ -40,7 +40,7 @@ endpoints pass `responseType: 'blob'`; `onDownloadProgress` / `onUploadProgress`
 
 ## Database (PostgreSQL)
 
-8 tables, integer PKs from `SEQUENCE`s (increment 50), audit columns on all: `created_by_id`,
+9 tables, integer PKs from `SEQUENCE`s (increment 50), audit columns on all: `created_by_id`,
 `created_date`, `last_modified_by_id`, `last_modified_date`.
 
 | Table | Key fields |
@@ -51,13 +51,38 @@ endpoints pass `responseType: 'blob'`; `onDownloadProgress` / `onUploadProgress`
 | `service_bill_detail` | `device`, `quantity`, `unit_price`, `subtotal`, `remark`, FK `service_bill_id` |
 | `reimbursement` | `number`, `state`, `total_amount`, `reimburse_date`, `summary`, `remark`, `version` |
 | `reimburse_detail` | `name`, `amount`, FK `reimbursement_id` |
-| `attachment` | `name`, `relative_path`, `type` (IMAGE=0/PDF=1/WORD=2/EXCEL=3/OTHER=4) |
-| `bill_attach_relation` | FK `attach_id`, FK `bill_id`, `bill_type` (SERVICE_BILL=0/REIMBURSEMENT=1) |
+| `attachment` | `name`, `relative_path` (存储 key), `type` (IMAGE=0/PDF=1/WORD=2/EXCEL=3/OTHER=4), `status` (TEMP=0/TRANSIENT=1/PERSISTENT=2) |
+| `service_bill_attach_relation` | `service_bill_id`, `attach_id` — owned by the service-bill module |
+| `reimburse_attach_relation` | `reimburse_id`, `attach_id` — owned by the reimburse module |
 
 `authority` ∈ ROLE_ADMIN / ROLE_USER / ROLE_FINANCE / ROLE_GUEST. `version` is the Go
 optimistic-lock column. Indexes exist on `service_bill(number, created_date)`,
 `reimbursement(number, reimburse_date)`, `sys_user(username)`,
-`bill_attach_relation(bill_id, bill_type)`.
+`service_bill_attach_relation(service_bill_id)`, `reimburse_attach_relation(reimburse_id)`,
+`attachment(status)`.
+
+**Attachments are S3-shaped, not filesystem-shaped.** The storage key is
+`{namespace}/{uuid}{original-file-name}` — generated once at upload and **never moved**, so there is
+no cross-system "update the row and move the file" operation to make atomic. `POST /upload` writes
+the file *and* inserts the `attachment` row as `TRANSIENT` in one step; committing a bill flips the
+row to `PERSISTENT` with a single conditional `UPDATE ... WHERE status = TRANSIENT` (affected-rows
+checked), which also makes an attachment committable exactly once — i.e. it structurally belongs to
+one bill. `TEMP` is reserved for attachments managed from the temp directory and is not written by
+the current upload path. Expired `TRANSIENT` rows are reclaimed by a scheduled status scan (7 days,
+`cleanTransientFiles()`), not by an in-process map, so a restart no longer leaks orphans.
+
+Bill↔attachment links are **not** shared: each business module owns its own relation table and
+repository. The `attach` module exposes only `upload` / `persist` / `delete` plus download, knows no
+document concept (the namespace is an opaque string supplied by the caller), and never touches a
+relation table. There is no `bill_type` discriminator column.
+Each business module diffs its own link rows against the submitted set as a plain set operation —
+no temp-id sign convention, no path building, no file operations.
+
+`deploy/database/migrate_attachment.sql` is the one-off migration for all of the above: it splits
+the old shared `bill_attach_relation` into the two per-module tables **and** adds
+`attachment.status` (existing rows become `PERSISTENT`). It moves no files — legacy
+`SERVICE_BILL/<number>/…` paths stay valid — and aborts loudly if it finds a partially migrated
+database.
 
 `attachment.relative_path` is internal storage layout — never expose it in DTOs or API responses.
 `service_bill_detail` / `reimburse_detail` own no audit columns and are cascade-deleted with their
@@ -73,8 +98,9 @@ CREATED(0) ─process→ PROCESSING(1) ─processed→ PROCESSED(2) ─finish→
 
 Each forward transition requires the exact prior state; each `cancel-*` steps back exactly one
 state and clears the matching date field (`processed_date` / `finished_date`). Only `CREATED` bills
-are deletable. Numbers: `S` + `YYYYMMDD` + 3-digit suffix (`time.Now().UnixNano() % 1000` in Go,
-`Math.random()`-derived in Java); duplicate numbers are rejected when supplied manually.
+are deletable. Numbers: `S` + `genIntID()` (26-bit millisecond stamp shifted left 5 bits OR'd with a
+1..31 per-millisecond sequence — `common/util/Snowflake` in Java, `pkg/util.GenIntID` in Go);
+duplicate numbers are rejected when supplied manually.
 
 ### Reimbursement state machine
 
@@ -83,7 +109,7 @@ CREATED(0) ─process→ PROCESSING(1) ─finish→ FINISHED(2)
      ←cancel-process─       ←cancel-finish─
 ```
 
-Same one-step revert rule; only `CREATED` is deletable. Numbers: `R` + `YYYYMMDD` + 3-digit random.
+Same one-step revert rule; only `CREATED` is deletable. Numbers: `R` + `genIntID()`.
 
 ## API Surface
 
@@ -95,17 +121,21 @@ Roles: A=ADMIN, U=USER, F=FINANCE. "auth" means any authenticated role.
 | `/api/company` | `GET /` A/U · `POST /` A · `PUT /` A · `DELETE /:id` (disable) A |
 | `/api/serviceBill` | `POST /query` · `GET /:id` · `POST /` · `PUT /` · `DELETE /` (batch, CREATED only) · `POST /import` (OCR) · `PUT /process` `processed` `finish` `cancel-process` `cancel-processed` `cancel-finish` · `POST /export` · `GET /countByState` · `GET /totalAmountGroupByMonth` |
 | `/api/reimburse` | `POST /query` · `GET /:id` · `POST /` · `PUT /` · `DELETE /` · `POST /import` (invoice OCR → prefilled DTO) · `PUT /process` `finish` `cancel-process` `cancel-finish` · `POST /export` · `GET /countByState` · `GET /totalAmountGroupByMonth` |
-| `/api/attachment` | `POST /temp` (upload temp files → DTOs) · `GET /` (download, attachment DTO as query params) |
+| `/api/attachment` | `POST /upload` (namespace + files → attachment DTOs, rows created as `TRANSIENT`) · `GET /` (download, attachment DTO as query params) |
 
 Business endpoints are `auth` unless noted; Go tightens several: bill `cancel-*` are A-only,
 company `POST`/`DELETE` are A-only, user `GET`/`PUT` are A/U/F. Go's company `PUT /` currently
 registers **no** role middleware — treat that as a gap, not a contract.
 
-Attachments have no standalone delete/OCR endpoint: `POST /temp` stages files in a JVM/temp
-directory, then bill/reimburse create/update re-binds them through `bill_attach_relation`
-(unreferenced temp entries are swept — lazily on read in Java, by a background
-`CleanTempFiles()` goroutine in Go). Physical moves are transactional (`FileTxUtil` /
-`file_tx.go`). Exports are Excel streams; the service-bill export bundles attachments as a zip.
+Attachments have no standalone delete/OCR endpoint. The frontend uploads with
+`POST /api/attachment/upload?namespace=…` (the namespace must match the backend constant
+`ServiceBillAttachRelService.ATTACH_NAMESPACE` / `AttachRelService.ATTACH_NAMESPACE`,
+i.e. `SERVICE_BILL` or `REIMBURSEMENT`); the row is created as `TRANSIENT` right away. When the bill is
+saved, the business module diffs the submitted ids against its own link rows and calls
+`persist(added)` / `delete(removed)` on the attach module — no paths, no file operations, no temp-id
+convention. Uploads that are never bound stay `TRANSIENT` and are reclaimed by the scheduled status scan
+(`cleanTransientFiles()` in Java, a daily goroutine in Go); `FileTxUtil` / `file_tx.go` now only ever
+soft-delete files. Exports are Excel streams; the service-bill export bundles attachments as a zip.
 
 Statistics: `countByState` returns per-state counts; `totalAmountGroupByMonth` sums by
 `processed_date` (bills) / `reimburse_date` (reimbursements) and is cached in Go.
@@ -179,16 +209,23 @@ mocked-DB tier, so the suite fails at setup without a database.
 backend-java/src/main/java/pers/eastwind/billmanager/
   EACAfterSaleMgrApplication.java   — entry point
   common/     — Result, PageResult, QueryParam, ActionsResult, AuditEntity, AuthorityRole,
-                BizException, ControllerAdvice, GlobalErrorController, AuthUtil, config/CacheConfig
+                BizException, ControllerAdvice, GlobalErrorController, AuthUtil, Snowflake,
+                config/CacheConfig
   user/       — controller, service, UserProperties, security/{SecurityConfig, JWTTokenFilter},
                 util/JWTUtil, config/AuditConfig
   company/    — CompanyController/Service/Repository/Mapper
   servicebill/— ServiceBillController, ServiceBillBizService (state machine),
                 ServiceBillIOService + ServiceBillAttachMapper (LD/WK rules, import/export),
+                ServiceBillAttachRelService + model/ServiceBillAttachRelation
+                (+ ServiceBillAttachRelRepo) for the bill↔attachment links,
                 BillStatisticController/Service (+ StatisticRepository)
   reimburse/  — ReimburseController/Service, ReimburseIOService + ReimburseAttachMapper
-                (invoice rule, import), ReimburseStatisticController/Service (+ StatisticRepository)
-  attach/     — AttachmentController/Service, AttachContentService (image/PDF texts, Excel grid),
+                (invoice rule, import), ReimburseAttachRelService +
+                model/ReimburseAttachRelation (+ ReimburseAttachRelRepo) for the bill↔attachment
+                links, ReimburseStatisticController/Service (+ StatisticRepository)
+  attach/     — AttachmentController/Service (upload/persist/delete + download; keys are
+                `{namespace}/{uuid}{name}` and never move; owns no relation table and no business
+                concept), AttachContentService (image/PDF texts, Excel grid),
                 OCRService, util/{FileUtil, OfficeFileUtil, FileTxUtil}, config/AttachConfigProperties
 
 backend-go/
@@ -199,8 +236,11 @@ backend-go/
       service.go  business logic          store.go    GORM queries
       model.go    types/DTOs              query.go    query params (where present)
       stats: stat_handler.go / stat_svc.go / stat_store.go
-      attach extras: files.go, ocr.go, office.go, file_tx.go, content.go
-      bill extras: ld_rule.go, wk_rule.go, mapper.go   reimburse extras: invoice_rule.go, mapper.go
+      attach extras: files.go, ocr.go, office.go, file_tx.go, content.go   (no relation table, no
+          business concept — `Upload` / `Persist` / `Delete` only; the caller owns the namespace
+          and the link rows)
+      bill extras: ld_rule.go, wk_rule.go, mapper.go, attach_relation.go
+      reimburse extras: invoice_rule.go, mapper.go, attach_relation.go
   pkg/        — audit, auth, cache, context, database, errs, logger, middleware, result, util
   config/     — config.go + config.yaml
   test/       — testify suites
@@ -218,6 +258,8 @@ frontend/src/
 deploy/
   compose-java.yml / compose.yml    — postgres + backend + Caddy (Java / Go)
   database/init_scheme.sql          — full schema      database/init_user.sql — default admin
+  database/migrate_attachment.sql   — one-off migration: split bill_attach_relation into the two
+                                    per-module relation tables + add attachment.status
   frontend/{html,conf,cert}         — Vite output, Caddyfile, certificates
   ocr-server/                       — optional RapidOCR service (copied from ocr-server/)
   build.sh / build.bat, backup.sh
