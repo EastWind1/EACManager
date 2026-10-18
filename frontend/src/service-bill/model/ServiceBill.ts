@@ -1,4 +1,4 @@
-import type { Attachment } from '@/attachment/model/Attachment'
+import type { Attach } from '@/attachment/model/Attach'
 import type { QueryParam } from '@/common/model/QueryParam'
 import type { Company } from '@/company/model/Company'
 
@@ -122,7 +122,7 @@ export interface ServiceBill {
   /**
    * 附件
    */
-  attachments: Attachment[]
+  attachments: Attach[]
   /**
    * 总金额
    */

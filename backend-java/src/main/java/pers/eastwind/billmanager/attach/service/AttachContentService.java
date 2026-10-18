@@ -2,8 +2,8 @@ package pers.eastwind.billmanager.attach.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
-import pers.eastwind.billmanager.attach.model.AttachmentType;
+import pers.eastwind.billmanager.attach.model.AttachDTO;
+import pers.eastwind.billmanager.attach.model.AttachType;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
@@ -20,11 +20,11 @@ import java.util.List;
 @Service
 public class AttachContentService {
     private final OCRService ocrService;
-    private final AttachmentService attachmentService;
+    private final AttachService attachService;
 
-    public AttachContentService(OCRService ocrService, AttachmentService attachmentService) {
+    public AttachContentService(OCRService ocrService, AttachService attachService) {
         this.ocrService = ocrService;
-        this.attachmentService = attachmentService;
+        this.attachService = attachService;
     }
 
     /**
@@ -34,8 +34,8 @@ public class AttachContentService {
      * @param attachment 附件
      * @return 文本块
      */
-    public List<String> text(AttachmentDTO attachment) {
-        Path path = attachmentService.getAbsolutePathById(attachment.getId());
+    public List<String> text(AttachDTO attachment) {
+        Path path = attachService.getAbsolutePathById(attachment.getId());
         return switch (attachment.getType()) {
             case IMAGE -> ocrService.parseImage(path);
             case PDF -> {
@@ -43,7 +43,7 @@ public class AttachContentService {
                 if (texts.length > 0) {
                     yield Arrays.asList(texts);
                 }
-                Path temp = attachmentService.createTempFile("PDFToImage", "png");
+                Path temp = attachService.createTempFile("PDFToImage", "png");
                 FileUtil.convertPDFToImage(path, temp);
                 yield ocrService.parseImage(temp);
             }
@@ -57,9 +57,9 @@ public class AttachContentService {
      * @param attachment 附件
      * @return 表格内容
      */
-    public List<List<String>> grid(AttachmentDTO attachment) {
-        Path path = attachmentService.getAbsolutePathById(attachment.getId());
-        if (attachment.getType() == AttachmentType.EXCEL) {
+    public List<List<String>> grid(AttachDTO attachment) {
+        Path path = attachService.getAbsolutePathById(attachment.getId());
+        if (attachment.getType() == AttachType.EXCEL) {
             return OfficeFileUtil.parseExcel(path);
         }
         throw new BizException("不支持解析为表格的附件类型");

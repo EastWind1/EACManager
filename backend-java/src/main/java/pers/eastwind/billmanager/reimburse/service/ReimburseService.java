@@ -7,7 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import pers.eastwind.billmanager.attach.model.Attachment;
+import pers.eastwind.billmanager.attach.model.Attach;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.util.Snowflake;
@@ -24,13 +24,13 @@ import java.util.List;
 @Service
 public class ReimburseService {
     private final ReimburseMapper reimburseMapper;
-    private final ReimburseAttachRelService reimburseAttachRelService;
+    private final ReimburseAttachService reimburseAttachService;
     private final ReimburseRepository reimburseRepository;
     private final TransactionTemplate transactionTemplate;
 
-    public ReimburseService(ReimburseMapper reimburseMapper1, ReimburseAttachRelService reimburseAttachRelService, ReimburseRepository reimburseRepository, TransactionTemplate transactionTemplate) {
+    public ReimburseService(ReimburseMapper reimburseMapper1, ReimburseAttachService reimburseAttachService, ReimburseRepository reimburseRepository, TransactionTemplate transactionTemplate) {
         this.reimburseMapper = reimburseMapper1;
-        this.reimburseAttachRelService = reimburseAttachRelService;
+        this.reimburseAttachService = reimburseAttachService;
         this.reimburseRepository = reimburseRepository;
         this.transactionTemplate = transactionTemplate;
     }
@@ -39,66 +39,66 @@ public class ReimburseService {
      * 根据 id 查询
      *
      * @param id ID
-     * @return ReimbursementDTO
+     * @return ReimburseDTO
      */
-    public ReimbursementDTO findById(Integer id) {
+    public ReimburseDTO findById(Integer id) {
         if (id == null) {
             throw new BizException("id不能为空");
         }
-        Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+        Reimburse bill = reimburseRepository.findById(id).orElse(null);
         if (bill == null) {
             throw new BizException("单据不存在");
         }
-        List<Attachment> attachments = reimburseAttachRelService.findAttachments(id);
+        List<Attach> attachments = reimburseAttachService.findAttachments(id);
         return reimburseMapper.toDTO(bill, attachments);
     }
 
     /**
      * 创建单据
      *
-     * @param reimbursementDTO 单据
+     * @param reimburseDTO 单据
      * @return 保存后的单据
      */
     @Transactional
-    public ReimbursementDTO create(ReimbursementDTO reimbursementDTO) {
-        if (reimbursementDTO.getId() != null) {
-            reimbursementDTO.setId(null);
+    public ReimburseDTO create(ReimburseDTO reimburseDTO) {
+        if (reimburseDTO.getId() != null) {
+            reimburseDTO.setId(null);
         }
-        if (reimbursementDTO.getNumber() == null || reimbursementDTO.getNumber().isEmpty()) {
-            reimbursementDTO.setNumber("R" + Snowflake.genIntID());
+        if (reimburseDTO.getNumber() == null || reimburseDTO.getNumber().isEmpty()) {
+            reimburseDTO.setNumber("R" + Snowflake.genIntID());
         } else {
-            if (reimburseRepository.existsByNumber(reimbursementDTO.getNumber())) {
+            if (reimburseRepository.existsByNumber(reimburseDTO.getNumber())) {
                 throw new BizException("单据编号已存在");
             }
         }
-        reimbursementDTO.setState(ReimburseState.CREATED);
-        Reimbursement bill = reimburseRepository.save(reimburseMapper.toEntity(reimbursementDTO));
-        reimburseAttachRelService.updateAttachments(bill.getId(), reimbursementDTO.getAttachments());
-        return reimburseMapper.toDTO(bill, reimburseAttachRelService.findAttachments(bill.getId()));
+        reimburseDTO.setState(ReimburseState.CREATED);
+        Reimburse bill = reimburseRepository.save(reimburseMapper.toEntity(reimburseDTO));
+        reimburseAttachService.updateAttachments(bill.getId(), reimburseDTO.getAttachments());
+        return reimburseMapper.toDTO(bill, reimburseAttachService.findAttachments(bill.getId()));
     }
 
 
     /**
      * 更新单据
      *
-     * @param reimbursementDTO 单据
+     * @param reimburseDTO 单据
      * @return 更新后的单据
      */
     @Transactional
-    public ReimbursementDTO update(ReimbursementDTO reimbursementDTO) {
-        if (reimbursementDTO.getId() == null) {
+    public ReimburseDTO update(ReimburseDTO reimburseDTO) {
+        if (reimburseDTO.getId() == null) {
             throw new BizException("id不能为空");
         }
-        Reimbursement bill = reimburseRepository.findById(reimbursementDTO.getId()).orElse(null);
+        Reimburse bill = reimburseRepository.findById(reimburseDTO.getId()).orElse(null);
         if (bill == null) {
             throw new BizException("单据不存在");
         }
         var originState = bill.getState();
-        reimburseMapper.updateEntityFromDTO(reimbursementDTO, bill);
+        reimburseMapper.updateEntityFromDTO(reimburseDTO, bill);
         bill.setState(originState);
         bill = reimburseRepository.save(bill);
-        reimburseAttachRelService.updateAttachments(bill.getId(), reimbursementDTO.getAttachments());
-        return reimburseMapper.toDTO(bill, reimburseAttachRelService.findAttachments(bill.getId()));
+        reimburseAttachService.updateAttachments(bill.getId(), reimburseDTO.getAttachments());
+        return reimburseMapper.toDTO(bill, reimburseAttachService.findAttachments(bill.getId()));
     }
 
     /**
@@ -107,11 +107,11 @@ public class ReimburseService {
      * @param param 查询参数
      * @return 分页结果
      */
-    public Page<ReimbursementDTO> findByParam(ReimburseQueryParam param) {
+    public Page<ReimburseDTO> findByParam(ReimburseQueryParam param) {
         if (param == null) {
             throw new BizException("查询参数为空");
         }
-        Specification<Reimbursement> specification = (root, query, cb) -> {
+        Specification<Reimburse> specification = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (param.getNumber() != null) {
                 predicates.add(cb.like(root.get("number"), param.getNumber() + "%"));
@@ -134,7 +134,7 @@ public class ReimburseService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        Page<Reimbursement> pageResult = reimburseRepository.findAll(specification, param.getPageable());
+        Page<Reimburse> pageResult = reimburseRepository.findAll(specification, param.getPageable());
         return pageResult.map(reimburseMapper::toBaseDTO);
     }
 
@@ -150,7 +150,7 @@ public class ReimburseService {
         }
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                Reimburse bill = reimburseRepository.findById(id).orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }
@@ -158,7 +158,7 @@ public class ReimburseService {
                     throw new BizException("非创建状态不能删除");
                 }
                 reimburseRepository.deleteById(id);
-                reimburseAttachRelService.updateAttachments(bill.getId(), List.of());
+                reimburseAttachService.updateAttachments(bill.getId(), List.of());
             });
             return null;
         });
@@ -173,7 +173,7 @@ public class ReimburseService {
         }
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                Reimburse bill = reimburseRepository.findById(id).orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }
@@ -197,7 +197,7 @@ public class ReimburseService {
         }
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                Reimburse bill = reimburseRepository.findById(id).orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }
@@ -221,7 +221,7 @@ public class ReimburseService {
         }
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                Reimburse bill = reimburseRepository.findById(id).orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }
@@ -245,7 +245,7 @@ public class ReimburseService {
         }
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(status -> {
-                Reimbursement bill = reimburseRepository.findById(id).orElse(null);
+                Reimburse bill = reimburseRepository.findById(id).orElse(null);
                 if (bill == null) {
                     throw new BizException("单据不存在");
                 }

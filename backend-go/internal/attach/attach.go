@@ -12,7 +12,7 @@ import (
 
 func Setup(ctx *appContext.AppContext, router fiber.Router) (*Service, *ContentService) {
 	attachmentRepo := NewRepository(ctx.Db)
-	attachmentService := NewService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo)
+	attachmentService := NewService(ctx.Cfg.Attach, ctx.Cache, attachmentRepo)
 	ocrService := NewOCRService(ctx.Cfg.OCR)
 	attachmentController := NewController(attachmentService)
 	attachGroup := router.Group("/attachment")
@@ -36,7 +36,7 @@ func Setup(ctx *appContext.AppContext, router fiber.Router) (*Service, *ContentS
 
 func SetupForTest(ctx *appContext.AppContext) (*Service, *ContentService) {
 	attachmentRepo := NewRepository(ctx.Db)
-	attachmentService := NewService(ctx.Cfg.Attachment, ctx.Cache, attachmentRepo)
+	attachmentService := NewService(ctx.Cfg.Attach, ctx.Cache, attachmentRepo)
 	ocrService := NewOCRService(ctx.Cfg.OCR)
 	return attachmentService, NewContentService(ocrService, attachmentService)
 }

@@ -166,7 +166,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
 import { ServiceBillState, type ServiceBillStateValue } from '@/service-bill/model/ServiceBill'
-import { ReimburseState, type ReimburseStateValue } from '@/reimburse/model/Reimbursement'
+import { ReimburseState, type ReimburseStateValue } from '@/reimburse/model/Reimburse'
 import { StatisticApi } from '../api/StatisticApi'
 import { useRouter } from 'vue-router'
 import { mdiCash, mdiCurrencyUsd, mdiMonitorDashboard, mdiReceipt } from '@mdi/js'

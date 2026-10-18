@@ -11,9 +11,9 @@ import (
 
 func Setup(ctx *context.AppContext, router fiber.Router, companySrv *company.Service, attachSrv *attach.Service, contentSrv *attach.ContentService) {
 	serviceBillRepo := NewRepository(ctx.Db)
-	attachRelSrv := NewAttachRelService(ctx.Db, attachSrv)
-	bizSrv := NewBizService(ctx.Cache, serviceBillRepo, attachSrv, attachRelSrv, NewServiceBillMapper(contentSrv, companySrv))
-	serviceBillController := NewController(bizSrv)
+	relSrv := NewAttachRelService(ctx.Db, attachSrv)
+	srv := NewService(ctx.Cache, serviceBillRepo, attachSrv, relSrv, NewServiceBillMapper(contentSrv, companySrv))
+	serviceBillController := NewController(srv)
 	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, serviceBillRepo))
 
 	serviceBillGroup := router.Group("/serviceBill", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser))
@@ -38,10 +38,10 @@ func Setup(ctx *context.AppContext, router fiber.Router, companySrv *company.Ser
 	}
 }
 
-func SetupForTest(ctx *context.AppContext, attachSrv *attach.Service) (*BizService, *StatisticService) {
+func SetupForTest(ctx *context.AppContext, attachSrv *attach.Service) (*Service, *StatisticService) {
 	serviceBillRepo := NewRepository(ctx.Db)
-	attachRelSrv := NewAttachRelService(ctx.Db, attachSrv)
-	bizSrv := NewBizService(ctx.Cache, serviceBillRepo, attachSrv, attachRelSrv, nil)
+	relSrv := NewAttachRelService(ctx.Db, attachSrv)
+	srv := NewService(ctx.Cache, serviceBillRepo, attachSrv, relSrv, nil)
 	statisticSrv := NewStatisticService(ctx.Cache, serviceBillRepo)
-	return bizSrv, statisticSrv
+	return srv, statisticSrv
 }

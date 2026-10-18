@@ -1,7 +1,7 @@
 package pers.eastwind.billmanager.reimburse.repository;
 
 import org.springframework.data.jpa.repository.Query;
-import pers.eastwind.billmanager.reimburse.model.Reimbursement;
+import pers.eastwind.billmanager.reimburse.model.Reimburse;
 
 import java.time.Instant;
 import java.util.List;
@@ -9,19 +9,19 @@ import java.util.List;
 /**
  * 报销单统计 Repository
  */
-public interface ReimburseStatisticRepository extends org.springframework.data.repository.Repository<Reimbursement, Integer> {
+public interface ReimburseStatisticRepository extends org.springframework.data.repository.Repository<Reimburse, Integer> {
 
     /**
      * 按状态分组统计报销单数量
      */
-    @Query("SELECT r.state, COUNT(r) FROM Reimbursement r GROUP BY r.state")
+    @Query("SELECT r.state, COUNT(r) FROM Reimburse r GROUP BY r.state")
     List<Object[]> countByState();
 
     /**
      * 按报销日期的年月分组，统计近一年报销金额总和
      */
     @Query("select year(r.reimburseDate), month(r.reimburseDate), sum(r.totalAmount) " +
-            "from Reimbursement r " +
+            "from Reimburse r " +
             "where r.reimburseDate is not null " +
             "and r.reimburseDate between :start and :end " +
             "group by year(r.reimburseDate), month(r.reimburseDate)")

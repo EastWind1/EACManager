@@ -1,7 +1,7 @@
 package pers.eastwind.billmanager.servicebill.model;
 
 import lombok.Data;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.attach.model.AttachDTO;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
 
 import java.math.BigDecimal;
@@ -66,7 +66,7 @@ public class ServiceBillDTO {
     /**
      * 附件列表
      */
-    private List<AttachmentDTO> attachments = new ArrayList<>();
+    private List<AttachDTO> attachments = new ArrayList<>();
     /**
      * 总金额
      */

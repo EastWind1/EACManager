@@ -53,8 +53,10 @@ func (s *State) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Reimbursement 摘要
-type Reimbursement struct {
+// Reimburse 摘要
+//
+// 类名简化为 Reimburse，表名仍为 reimbursement，故显式指定。
+type Reimburse struct {
 	audit.Audit
 	ID     uint   `gorm:"primaryKey"`
 	Number string `gorm:"uniqueIndex"`
@@ -66,28 +68,36 @@ type Reimbursement struct {
 	ReimburseDate *time.Time `gorm:"type:timestamptz;index"`
 	// 备注
 	Remark  string
-	Details []ReimburseDetail `gorm:"foreignKey:ReimbursementID"`
+	Details []Detail `gorm:"foreignKey:ReimbursementID"`
 	Version optimisticlock.Version
 }
 
-// ReimburseDetail 摘要明细
-type ReimburseDetail struct {
+func (r *Reimburse) TableName() string {
+	return "reimbursement"
+}
+
+// Detail 摘要明细
+type Detail struct {
 	ID              uint `gorm:"primaryKey"`
 	ReimbursementID int  `gorm:"index"`
 	Name            string
 	Amount          float64
 }
 
+func (d *Detail) TableName() string {
+	return "reimburse_detail"
+}
+
 type DTO struct {
-	ID            uint                   `json:"id"`
-	Number        string                 `json:"number"`
-	State         State                  `json:"state"`
-	Summary       string                 `json:"summary"`
-	TotalAmount   float64                `json:"totalAmount"`
-	ReimburseDate *time.Time             `json:"reimburseDate"`
-	Remark        string                 `json:"remark"`
-	Details       []DetailDTO            `json:"details"`
-	Attachments   []attach.AttachmentDTO `json:"attachments"`
+	ID            uint               `json:"id"`
+	Number        string             `json:"number"`
+	State         State              `json:"state"`
+	Summary       string             `json:"summary"`
+	TotalAmount   float64            `json:"totalAmount"`
+	ReimburseDate *time.Time         `json:"reimburseDate"`
+	Remark        string             `json:"remark"`
+	Details       []DetailDTO        `json:"details"`
+	Attachments   []attach.AttachDTO `json:"attachments"`
 }
 
 type DetailDTO struct {
@@ -97,12 +107,12 @@ type DetailDTO struct {
 }
 
 // ToDTO 转换为详细 DTO
-func (r *Reimbursement) ToDTO(attaches []attach.Attachment) *DTO {
+func (r *Reimburse) ToDTO(attaches []attach.Attach) *DTO {
 	details := make([]DetailDTO, len(r.Details))
 	for i, d := range r.Details {
 		details[i] = *d.ToDTO()
 	}
-	attachDTOes := make([]attach.AttachmentDTO, len(attaches))
+	attachDTOes := make([]attach.AttachDTO, len(attaches))
 	for i, d := range attaches {
 		attachDTOes[i] = *d.ToDTO()
 	}
@@ -113,7 +123,7 @@ func (r *Reimbursement) ToDTO(attaches []attach.Attachment) *DTO {
 }
 
 // ToBaseDTO 转换为基础 DTO
-func (r *Reimbursement) ToBaseDTO() *DTO {
+func (r *Reimburse) ToBaseDTO() *DTO {
 	return &DTO{
 		ID:            r.ID,
 		Number:        r.Number,
@@ -126,7 +136,7 @@ func (r *Reimbursement) ToBaseDTO() *DTO {
 }
 
 // ToBaseDTOs 转换为基础 DTO，用于列表展示
-func ToBaseDTOs(entities []Reimbursement) []DTO {
+func ToBaseDTOs(entities []Reimburse) []DTO {
 	details := make([]DTO, len(entities))
 	for i, d := range entities {
 		details[i] = *(d.ToBaseDTO())
@@ -134,16 +144,16 @@ func ToBaseDTOs(entities []Reimbursement) []DTO {
 	return details
 }
 
-func (r *ReimburseDetail) ToDTO() *DetailDTO {
+func (d *Detail) ToDTO() *DetailDTO {
 	return &DetailDTO{
-		ID:     r.ID,
-		Name:   r.Name,
-		Amount: r.Amount,
+		ID:     d.ID,
+		Name:   d.Name,
+		Amount: d.Amount,
 	}
 }
 
-func (r *DTO) ToEntity() *Reimbursement {
-	entity := Reimbursement{
+func (r *DTO) ToEntity() *Reimburse {
+	entity := Reimburse{
 		ID:            r.ID,
 		Number:        r.Number,
 		State:         r.State,
@@ -152,9 +162,9 @@ func (r *DTO) ToEntity() *Reimbursement {
 		ReimburseDate: r.ReimburseDate,
 		Remark:        r.Remark,
 	}
-	details := make([]ReimburseDetail, len(r.Details))
+	details := make([]Detail, len(r.Details))
 	for i, d := range r.Details {
-		details[i] = ReimburseDetail{
+		details[i] = Detail{
 			ID:     d.ID,
 			Name:   d.Name,
 			Amount: d.Amount,

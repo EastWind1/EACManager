@@ -150,11 +150,11 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import {
-  type Reimbursement,
+  type Reimburse,
   type ReimburseQueryParam,
   ReimburseState,
   type ReimburseStateValue,
-} from '../model/Reimbursement'
+} from '../model/Reimburse'
 import ReimburseApi from '../api/ReimburseApi'
 import type { PageResult } from '@/common/model/PageResult'
 import { useRoute, useRouter } from 'vue-router'
@@ -242,7 +242,7 @@ const headers = [
 ]
 
 // 列表数据
-const data = ref<PageResult<Reimbursement>>({
+const data = ref<PageResult<Reimburse>>({
   items: [],
   totalCount: 0,
   totalPages: 0,

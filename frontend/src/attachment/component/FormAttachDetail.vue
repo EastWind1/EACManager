@@ -33,7 +33,7 @@
               </div>
               <template v-else>
                 <div>
-                  <v-icon :icon="AttachmentType[attach.type].icon"></v-icon>
+                  <v-icon :icon="AttachType[attach.type].icon"></v-icon>
                 </div>
                 <div>{{ attach.name }}</div>
               </template>
@@ -64,17 +64,17 @@
       </template>
       <v-card-text class="overflow-auto d-flex justify-center">
         <PDFPreview
-          v-if="previewInfo.attachment.type === AttachmentType.PDF.value"
+          v-if="previewInfo.attachment.type === AttachType.PDF.value"
           :src="previewInfo.objectUrl"
         />
         <img
-          v-if="previewInfo.attachment.type === AttachmentType.IMAGE.value"
+          v-if="previewInfo.attachment.type === AttachType.IMAGE.value"
           :alt="previewInfo.attachment.name"
           :src="previewInfo.objectUrl"
           style="object-fit: contain; max-width: 100%"
         />
         <ExcelPreview
-          v-if="previewInfo.attachment.type === AttachmentType.EXCEL.value"
+          v-if="previewInfo.attachment.type === AttachType.EXCEL.value"
           :src="previewInfo.objectUrl"
         />
       </v-card-text>
@@ -87,10 +87,10 @@
 </template>
 
 <script lang="ts" setup>
-import { type Attachment, AttachmentType } from '../model/Attachment'
+import { type Attach, AttachType } from '../model/Attach'
 import { mdiPlus } from '@mdi/js'
 import { defineAsyncComponent, onUnmounted, ref } from 'vue'
-import AttachmentApi from '../api/AttachmentApi'
+import AttachApi from '../api/AttachApi'
 import { useUIStore } from '@/common/store/UIStore'
 import { useFileSelector } from '../composable/FileSelector'
 
@@ -106,7 +106,7 @@ const PDFPreview = defineAsyncComponent(() => import('./PDFPreview.vue'))
 
 const { warning } = useUIStore()
 
-const attachments = defineModel<Attachment[]>()
+const attachments = defineModel<Attach[]>()
 
 const downInfo = ref<Map<number, { downloading: boolean; progress: number }>>(new Map())
 // 预览窗口
@@ -116,11 +116,11 @@ const isDragging = ref(false)
 // 预览信息
 const previewInfo = ref<{
   // 附件
-  attachment: Attachment
+  attachment: Attach
   // 对象 URL
   objectUrl: string
 }>({
-  attachment: { id: 0, name: '', type: AttachmentType.OTHER.value },
+  attachment: { id: 0, name: '', type: AttachType.OTHER.value },
   objectUrl: '',
 })
 // 文件缓存，避免多次从服务器获取同一文件
@@ -129,7 +129,7 @@ const fileCache = new Map<number, string>()
 /**
  * 获取附件对象 URL，本地没有时从服务器下载，并在附件卡片上显示进度
  */
-async function loadFile(attach: Attachment): Promise<string> {
+async function loadFile(attach: Attach): Promise<string> {
   const cached = fileCache.get(attach.id)
   if (cached) {
     return cached
@@ -138,7 +138,7 @@ async function loadFile(attach: Attachment): Promise<string> {
   // 先登记下载状态，避免请求过快失败时 finally 取不到记录
   downInfo.value.set(attach.id, { downloading: true, progress: 0 })
 
-  return await AttachmentApi.download(attach, (e) => {
+  return await AttachApi.download(attach, (e) => {
     const info = downInfo.value.get(attach.id)
     if (!info) {
       return
@@ -165,13 +165,13 @@ async function loadFile(attach: Attachment): Promise<string> {
 /**
  * 预览附件
  */
-async function preview(attach: Attachment) {
+async function preview(attach: Attach) {
   if (attach == null) {
     warning('文件为空')
     return
   }
 
-  if (attach.type == AttachmentType.WORD.value || attach.type == AttachmentType.OTHER.value) {
+  if (attach.type == AttachType.WORD.value || attach.type == AttachType.OTHER.value) {
     warning('该文件类型暂不支持预览，请直接下载')
     return
   }
@@ -189,7 +189,7 @@ async function preview(attach: Attachment) {
 /**
  * 下载附件
  */
-async function download(attach: Attachment) {
+async function download(attach: Attach) {
   if (attach == null) {
     warning('文件为空')
     return
@@ -213,7 +213,7 @@ async function download(attach: Attachment) {
  */
 async function upload() {
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt', true)
-  const attach = await AttachmentApi.upload(props.namespace, Array.from(fileList))
+  const attach = await AttachApi.upload(props.namespace, Array.from(fileList))
   attachments.value?.push(...attach)
 }
 
@@ -243,14 +243,14 @@ async function drop(e: DragEvent) {
     return
   }
   // 上传附件
-  const attach = await AttachmentApi.upload(props.namespace, fileList)
+  const attach = await AttachApi.upload(props.namespace, fileList)
   attachments.value?.push(...attach)
 }
 
 /**
  * 删除附件
  */
-function deleteAttach(attach: Attachment) {
+function deleteAttach(attach: Attach) {
   attachments.value?.splice(
     attachments.value.findIndex((i) => i === attach),
     1,

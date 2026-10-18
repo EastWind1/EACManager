@@ -12,25 +12,25 @@ import (
 )
 
 type Repository struct {
-	*database.BaseRepository[Reimbursement]
+	*database.BaseRepository[Reimburse]
 }
 
 func NewReimburseRepository(db *gorm.DB) *Repository {
 	return &Repository{
-		BaseRepository: database.NewBaseRepository[Reimbursement](db),
+		BaseRepository: database.NewBaseRepository[Reimburse](db),
 	}
 }
 
 // ExistsByNumber 是否存在对应单号
 func (r *Repository) ExistsByNumber(ctx context.Context, number string) (bool, error) {
 	var count int64
-	err := r.GetDB(ctx).Model(&Reimbursement{}).Where("number = ?", number).Count(&count).Error
+	err := r.GetDB(ctx).Model(&Reimburse{}).Where("number = ?", number).Count(&count).Error
 	return count > 0, errs.Wrap(err)
 }
 
 // FindFullById 查询完整实体
-func (r *Repository) FindFullById(ctx context.Context, id uint) (*Reimbursement, error) {
-	var res Reimbursement
+func (r *Repository) FindFullById(ctx context.Context, id uint) (*Reimburse, error) {
+	var res Reimburse
 	if err := r.GetDB(ctx).Preload("Details").Where("reimbursement.id = ?", id).Take(&res).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -41,7 +41,7 @@ func (r *Repository) FindFullById(ctx context.Context, id uint) (*Reimbursement,
 }
 
 // Updates 更新
-func (r *Repository) Updates(ctx context.Context, entity *Reimbursement) error {
+func (r *Repository) Updates(ctx context.Context, entity *Reimburse) error {
 	res := r.GetDB(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(entity)
 	if res.Error != nil {
 		return errs.Wrap(res.Error)
@@ -53,7 +53,7 @@ func (r *Repository) Updates(ctx context.Context, entity *Reimbursement) error {
 }
 
 // Delete 删除整个实体
-func (r *Repository) Delete(ctx context.Context, entity *Reimbursement) error {
+func (r *Repository) Delete(ctx context.Context, entity *Reimburse) error {
 	res := r.GetDB(ctx).Select("Details").Delete(entity)
 	if res.Error != nil {
 		return errs.Wrap(res.Error)
@@ -65,8 +65,8 @@ func (r *Repository) Delete(ctx context.Context, entity *Reimbursement) error {
 }
 
 // FindByParam 根据查询条件查询
-func (r *Repository) FindByParam(ctx context.Context, param *QueryParam) (*result.PageResult[Reimbursement], error) {
-	q := r.GetDB(ctx).Model(&Reimbursement{}).WithContext(ctx)
+func (r *Repository) FindByParam(ctx context.Context, param *QueryParam) (*result.PageResult[Reimburse], error) {
+	q := r.GetDB(ctx).Model(&Reimburse{}).WithContext(ctx)
 	if param.Number != "" {
 		q = q.Where("number = ?", param.Number)
 	}
@@ -91,7 +91,7 @@ func (r *Repository) FindByParam(ctx context.Context, param *QueryParam) (*resul
 	if err != nil {
 		return nil, err
 	}
-	var reimbursements []Reimbursement
+	var reimbursements []Reimburse
 	if err := q.Find(&reimbursements).Error; err != nil {
 		return nil, errs.Wrap(err)
 	}

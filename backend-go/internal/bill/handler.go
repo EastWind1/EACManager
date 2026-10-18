@@ -9,22 +9,22 @@ import (
 )
 
 type Controller struct {
-	bizSrv *BizService
+	srv *Service
 }
 
-func NewController(bizSrv *BizService) *Controller {
+func NewController(srv *Service) *Controller {
 	return &Controller{
-		bizSrv: bizSrv,
+		srv: srv,
 	}
 }
 
 func (c *Controller) QueryByParam(ctx fiber.Ctx) error {
-	var param ServiceBillQueryParam
+	var param QueryParam
 	if err := ctx.Bind().Body(&param); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.FindByParam(ctx, &param)
+	res, err := c.srv.FindByParam(ctx, &param)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (c *Controller) GetByID(ctx fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	res, err := c.bizSrv.FindByID(ctx, uint(id))
+	res, err := c.srv.FindByID(ctx, uint(id))
 	if err != nil {
 		return err
 	}
@@ -50,12 +50,12 @@ func (c *Controller) GetByID(ctx fiber.Ctx) error {
 }
 
 func (c *Controller) Create(ctx fiber.Ctx) error {
-	var dto ServiceBillDTO
+	var dto DTO
 	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Create(ctx, &dto)
+	res, err := c.srv.Create(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (c *Controller) ImportByFile(ctx fiber.Ctx) error {
 	if len(files) == 0 {
 		return errs.NewBizError("没有文件上传")
 	}
-	res, err := c.bizSrv.GenerateByFile(ctx, files[0])
+	res, err := c.srv.GenerateByFile(ctx, files[0])
 	if err != nil {
 		return err
 	}
@@ -82,12 +82,12 @@ func (c *Controller) ImportByFile(ctx fiber.Ctx) error {
 }
 
 func (c *Controller) Update(ctx fiber.Ctx) error {
-	var dto ServiceBillDTO
+	var dto DTO
 	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
 
-	res, err := c.bizSrv.Update(ctx, &dto)
+	res, err := c.srv.Update(ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (c *Controller) Delete(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.bizSrv.Delete(ctx, ids)
+	res, err := c.srv.Delete(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (c *Controller) Process(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.bizSrv.Process(ctx, ids)
+	res, err := c.srv.Process(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (c *Controller) Processed(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.bizSrv.Processed(ctx, param.Ids, param.ProcessedDate)
+	res, err := c.srv.Processed(ctx, param.Ids, param.ProcessedDate)
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func (c *Controller) Finish(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.bizSrv.Finish(ctx, param.Ids, param.FinishedDate)
+	res, err := c.srv.Finish(ctx, param.Ids, param.FinishedDate)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (c *Controller) CancelProcess(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.bizSrv.CancelProcess(ctx, ids)
+	res, err := c.srv.CancelProcess(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (c *Controller) CancelProcessed(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.bizSrv.CancelProcessed(ctx, ids)
+	res, err := c.srv.CancelProcessed(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func (c *Controller) CancelFinish(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.bizSrv.CancelFinish(ctx, ids)
+	res, err := c.srv.CancelFinish(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (c *Controller) Export(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.bizSrv.Export(ctx, ids)
+	res, err := c.srv.Export(ctx, ids)
 	if err != nil {
 		return err
 	}

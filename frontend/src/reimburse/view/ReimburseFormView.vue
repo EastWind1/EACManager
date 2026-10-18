@@ -193,7 +193,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { type Reimbursement, ReimburseState } from '../model/Reimbursement'
+import { type Reimburse, ReimburseState } from '../model/Reimburse'
 import ReimburseDetail from '../component/ReimburseDetail.vue'
 import ReimburseApi from '../api/ReimburseApi'
 import { storeToRefs } from 'pinia'
@@ -216,7 +216,7 @@ const dateUtil = useDate()
 const userStore = useUserStore()
 
 // 初始化表单数据
-const reimbursement = ref<Reimbursement>({
+const reimbursement = ref<Reimburse>({
   state: ReimburseState.CREATED.value,
   summary: '',
   details: [],
@@ -323,7 +323,7 @@ async function init() {
       // 导入
       case 'import':
         const { getData } = useRouterStore()
-        const importData = getData() as Reimbursement
+        const importData = getData() as Reimburse
         if (!importData) {
           warning('未获取到识别结果')
           return

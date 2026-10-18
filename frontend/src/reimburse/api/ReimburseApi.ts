@@ -1,6 +1,6 @@
 import type { PageResult } from '@/common/model/PageResult'
 import type { ActionsResult } from '@/common/model/ActionsResult'
-import type { Reimbursement, ReimburseQueryParam } from '../model/Reimbursement'
+import type { Reimburse, ReimburseQueryParam } from '../model/Reimburse'
 import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/reimburse')
@@ -14,7 +14,7 @@ const ReimburseApi = {
    * @param queryParam 查询参数
    */
   async getByQueryParam(queryParam: ReimburseQueryParam) {
-    return await http.post<PageResult<Reimbursement>>(`/query`, queryParam)
+    return await http.post<PageResult<Reimburse>>(`/query`, queryParam)
   },
 
   /**
@@ -22,7 +22,7 @@ const ReimburseApi = {
    * @param id 单据 ID
    */
   async getById(id: number) {
-    return await http.get<Reimbursement>(`/${id}`)
+    return await http.get<Reimburse>(`/${id}`)
   },
 
   /**
@@ -31,23 +31,23 @@ const ReimburseApi = {
   async import(file: File) {
     const formData = new FormData()
     formData.append('file', file)
-    return await http.postForm<Reimbursement>(`/import`, formData)
+    return await http.postForm<Reimburse>(`/import`, formData)
   },
 
   /**
    * 新建
    * @param reimbursement 单据
    */
-  async create(reimbursement: Reimbursement) {
-    return await http.post<Reimbursement>('', reimbursement)
+  async create(reimbursement: Reimburse) {
+    return await http.post<Reimburse>('', reimbursement)
   },
 
   /**
    * 保存
    * @param reimbursement 单据
    */
-  async save(reimbursement: Reimbursement) {
-    return await http.put<Reimbursement>('', reimbursement)
+  async save(reimbursement: Reimburse) {
+    return await http.put<Reimburse>('', reimbursement)
   },
 
   /**

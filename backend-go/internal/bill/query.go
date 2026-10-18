@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type ServiceBillQueryParam struct {
+type QueryParam struct {
 	Number             string  `json:"number"`
 	States             []State `json:"states"`
 	ProjectName        string  `json:"projectName"`

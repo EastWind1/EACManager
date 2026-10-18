@@ -6,19 +6,13 @@ import (
 	"encoding/json/v2"
 )
 
-// Type 附件类型
 type Type uint
 
 const (
-	// Image 图片
 	Image Type = iota
-	// PDF PDF
 	PDF
-	// Word Word
 	Word
-	// Excel Excel
 	Excel
-	// Other 其他
 	Other
 )
 
@@ -82,8 +76,7 @@ func (s *Type) UnmarshalText(data []byte) error {
 	return nil
 }
 
-// Attachment 附件
-type Attachment struct {
+type Attach struct {
 	ID           uint `gorm:"primaryKey"`
 	Name         string
 	Type         Type
@@ -92,44 +85,43 @@ type Attachment struct {
 	audit.Audit
 }
 
-// AttachmentDTO 附件DTO
-type AttachmentDTO struct {
+func (a *Attach) TableName() string {
+	return "attachment"
+}
+
+type AttachDTO struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 	Type Type   `json:"type"`
 }
 
-// ToDTO 转换为DTO
-func (a *Attachment) ToDTO() *AttachmentDTO {
-	return &AttachmentDTO{
+func (a *Attach) ToDTO() *AttachDTO {
+	return &AttachDTO{
 		ID:   int(a.ID),
 		Name: a.Name,
 		Type: a.Type,
 	}
 }
 
-// TOEntity 转换为DTO
-func (a *AttachmentDTO) TOEntity() *Attachment {
-	return &Attachment{
+func (a *AttachDTO) TOEntity() *Attach {
+	return &Attach{
 		ID:   uint(a.ID),
 		Name: a.Name,
 		Type: a.Type,
 	}
 }
 
-// ToDTOs 转换为 DTOs
-func ToDTOs(a []Attachment) []AttachmentDTO {
+func ToDTOs(a []Attach) []AttachDTO {
 	if a == nil {
 		return nil
 	}
-	attaches := make([]AttachmentDTO, len(a))
+	attaches := make([]AttachDTO, len(a))
 	for i, attachment := range a {
 		attaches[i] = *attachment.ToDTO()
 	}
 	return attaches
 }
 
-// Status 附件状态
 type Status uint
 
 const (
@@ -141,7 +133,6 @@ const (
 	StatusPersistent
 )
 
-// FileOpType 文件操作类型
 type FileOpType int
 
 const (
@@ -166,7 +157,6 @@ func (f FileOpType) String() string {
 	}
 }
 
-// FileOp 文件操作
 type FileOp struct {
 	Type   FileOpType
 	Origin string

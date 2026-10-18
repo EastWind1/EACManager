@@ -117,11 +117,11 @@ type ServiceBill struct {
 	// 回款完成日期
 	FinishedDate *time.Time
 	Remark       string
-	Details      []ServiceBillDetail `gorm:"foreignKey:ServiceBillID"`
+	Details      []Detail `gorm:"foreignKey:ServiceBillID"`
 	Version      optimisticlock.Version
 }
 
-type ServiceBillDetail struct {
+type Detail struct {
 	ID            uint `gorm:"primaryKey"`
 	ServiceBillID int  `gorm:"index"`
 	// 设备信息
@@ -133,29 +133,33 @@ type ServiceBillDetail struct {
 	Remark    string
 }
 
-type ServiceBillDTO struct {
-	ID                  uint                   `json:"id"`
-	Number              string                 `json:"number"`
-	Type                Type                   `json:"type"`
-	State               State                  `json:"state"`
-	ProductCompany      *company.DTO           `json:"productCompany"`
-	ProjectName         string                 `json:"projectName"`
-	ProjectAddress      string                 `json:"projectAddress"`
-	ProjectContact      string                 `json:"projectContact"`
-	ProjectContactPhone string                 `json:"projectPhone"`
-	OnSiteContact       string                 `json:"onSiteContact"`
-	OnSitePhone         string                 `json:"onSitePhone"`
-	ElevatorInfo        string                 `json:"elevatorInfo"`
-	TotalAmount         float64                `json:"totalAmount"`
-	OrderDate           *time.Time             `json:"orderDate"`
-	ProcessedDate       *time.Time             `json:"processedDate"`
-	FinishedDate        *time.Time             `json:"finishedDate"`
-	Remark              string                 `json:"remark"`
-	Details             []ServiceBillDetailDTO `json:"details"`
-	Attachments         []attach.AttachmentDTO `json:"attachments"`
+func (d *Detail) TableName() string {
+	return "service_bill_detail"
 }
 
-type ServiceBillDetailDTO struct {
+type DTO struct {
+	ID                  uint               `json:"id"`
+	Number              string             `json:"number"`
+	Type                Type               `json:"type"`
+	State               State              `json:"state"`
+	ProductCompany      *company.DTO       `json:"productCompany"`
+	ProjectName         string             `json:"projectName"`
+	ProjectAddress      string             `json:"projectAddress"`
+	ProjectContact      string             `json:"projectContact"`
+	ProjectContactPhone string             `json:"projectPhone"`
+	OnSiteContact       string             `json:"onSiteContact"`
+	OnSitePhone         string             `json:"onSitePhone"`
+	ElevatorInfo        string             `json:"elevatorInfo"`
+	TotalAmount         float64            `json:"totalAmount"`
+	OrderDate           *time.Time         `json:"orderDate"`
+	ProcessedDate       *time.Time         `json:"processedDate"`
+	FinishedDate        *time.Time         `json:"finishedDate"`
+	Remark              string             `json:"remark"`
+	Details             []DetailDTO        `json:"details"`
+	Attachments         []attach.AttachDTO `json:"attachments"`
+}
+
+type DetailDTO struct {
 	ID        uint    `json:"id"`
 	Device    string  `json:"device"`
 	Quantity  float64 `json:"quantity"`
@@ -164,12 +168,12 @@ type ServiceBillDetailDTO struct {
 	Remark    string  `json:"remark"`
 }
 
-func (s *ServiceBill) ToDTO(attaches []attach.Attachment) *ServiceBillDTO {
-	details := make([]ServiceBillDetailDTO, len(s.Details))
+func (s *ServiceBill) ToDTO(attaches []attach.Attach) *DTO {
+	details := make([]DetailDTO, len(s.Details))
 	for i, d := range s.Details {
 		details[i] = *d.ToDTO()
 	}
-	attachDTOes := make([]attach.AttachmentDTO, len(attaches))
+	attachDTOes := make([]attach.AttachDTO, len(attaches))
 	for i, d := range attaches {
 		attachDTOes[i] = *d.ToDTO()
 	}
@@ -179,12 +183,12 @@ func (s *ServiceBill) ToDTO(attaches []attach.Attachment) *ServiceBillDTO {
 	return dto
 }
 
-func (s *ServiceBill) ToBaseDTO() *ServiceBillDTO {
+func (s *ServiceBill) ToBaseDTO() *DTO {
 	var productCompanyDTO *company.DTO
 	if s.ProductCompany != nil {
 		productCompanyDTO = s.ProductCompany.ToDTO()
 	}
-	return &ServiceBillDTO{
+	return &DTO{
 		ID:                  s.ID,
 		Number:              s.Number,
 		Type:                s.Type,
@@ -205,8 +209,8 @@ func (s *ServiceBill) ToBaseDTO() *ServiceBillDTO {
 	}
 }
 
-func (s *ServiceBillDTO) ToEntity() *ServiceBill {
-	details := make([]ServiceBillDetail, len(s.Details))
+func (s *DTO) ToEntity() *ServiceBill {
+	details := make([]Detail, len(s.Details))
 	for i, d := range s.Details {
 		details[i] = *d.ToEntity()
 	}
@@ -235,16 +239,16 @@ func (s *ServiceBillDTO) ToEntity() *ServiceBill {
 	return &entity
 }
 
-func ToBaseDTOs(entities []ServiceBill) []ServiceBillDTO {
-	res := make([]ServiceBillDTO, len(entities))
+func ToBaseDTOs(entities []ServiceBill) []DTO {
+	res := make([]DTO, len(entities))
 	for i, e := range entities {
 		res[i] = *e.ToBaseDTO()
 	}
 	return res
 }
 
-func (s *ServiceBillDetail) ToDTO() *ServiceBillDetailDTO {
-	return &ServiceBillDetailDTO{
+func (s *Detail) ToDTO() *DetailDTO {
+	return &DetailDTO{
 		ID:        s.ID,
 		Device:    s.Device,
 		Quantity:  s.Quantity,
@@ -254,8 +258,8 @@ func (s *ServiceBillDetail) ToDTO() *ServiceBillDetailDTO {
 	}
 }
 
-func (s *ServiceBillDetailDTO) ToEntity() *ServiceBillDetail {
-	return &ServiceBillDetail{
+func (s *DetailDTO) ToEntity() *Detail {
+	return &Detail{
 		ID:        s.ID,
 		Device:    s.Device,
 		Quantity:  s.Quantity,

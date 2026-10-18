@@ -16,28 +16,24 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
-// Service 附件服务
-//
 // 附件以「namespace/唯一id」为 key 存储，一经写入不再移动。
 // 上传即落库并标记为瞬时态，被单据提交时置为持久态，游离附件按状态回收。
 type Service struct {
 	attachRepo *Repository
 	rootPath   string
 	tempPath   string
-	cfg        *config.AttachmentConfig
+	cfg        *config.AttachConfig
 }
 
-// tempPrefix 临时文件夹前缀
 const tempPrefix = "eac-"
 
 // transientRetention 游离附件保留时长，超过后由 CleanTransientFiles 回收
 const transientRetention = 7 * 24 * time.Hour
 
-// namespacePattern 命名空间正则
 var namespacePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 func NewService(
-	cfg *config.AttachmentConfig,
+	cfg *config.AttachConfig,
 	cache cache.Cache,
 	attachRepo *Repository,
 ) *Service {
@@ -45,7 +41,11 @@ func NewService(
 	if err != nil {
 		log.Fatal(err)
 	}
-	rootPath := filepath.Clean(filepath.Join(appPath, cfg.Path))
+	rootPath := cfg.Path
+	if !filepath.IsAbs(rootPath) {
+		rootPath = filepath.Join(appPath, rootPath)
+	}
+	rootPath = filepath.Clean(rootPath)
 	if err := os.MkdirAll(rootPath, 0755); err != nil {
 		log.Fatalf("创建附件根目录失败: %v - %v", rootPath, err)
 	}
@@ -63,7 +63,6 @@ func NewService(
 	}
 }
 
-// CreateTempFile 创建临时文件
 func (s *Service) CreateTempFile(prefix string, suffix string) (string, error) {
 	file, err := os.CreateTemp(s.tempPath, prefix+"*"+suffix)
 	if err != nil {
@@ -73,7 +72,6 @@ func (s *Service) CreateTempFile(prefix string, suffix string) (string, error) {
 	return file.Name(), nil
 }
 
-// CreateTempDir 创建临时文件
 func (s *Service) CreateTempDir(prefix string) (string, error) {
 	dir, err := os.MkdirTemp(s.tempPath, prefix+"*")
 	if err != nil {
@@ -82,7 +80,6 @@ func (s *Service) CreateTempDir(prefix string) (string, error) {
 	return dir, nil
 }
 
-// GetAbsolutePathById 根据 ID 获取绝对路径
 func (s *Service) GetAbsolutePathById(ctx context.Context, id int) (string, error) {
 	if id <= 0 {
 		return "", errs.NewBizError("附件 ID 不合法")
@@ -97,7 +94,6 @@ func (s *Service) GetAbsolutePathById(ctx context.Context, id int) (string, erro
 	return s.GetAbsolutePathByRela(attachment.RelativePath)
 }
 
-// GetAbsolutePathByRela 根据相对路径获取绝对路径
 func (s *Service) GetAbsolutePathByRela(relativePath string) (string, error) {
 	if relativePath == "" {
 		return "", errs.NewBizError("相对路径为空")
@@ -109,7 +105,6 @@ func (s *Service) GetAbsolutePathByRela(relativePath string) (string, error) {
 	return absolutePath, nil
 }
 
-// GetRelativePath 获取相对路径
 func (s *Service) GetRelativePath(absolutePath string) (string, error) {
 	if absolutePath == "" {
 		return "", errs.NewBizError("路径不能为空")
@@ -125,8 +120,7 @@ func (s *Service) GetRelativePath(absolutePath string) (string, error) {
 	return relativePath, nil
 }
 
-// Upload 上传附件
-func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*multipart.FileHeader) ([]AttachmentDTO, error) {
+func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*multipart.FileHeader) ([]AttachDTO, error) {
 	if !namespacePattern.MatchString(namespace) {
 		return nil, errs.NewBizError("附件命名空间不合法")
 	}
@@ -134,7 +128,7 @@ func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*m
 		return nil, errs.NewBizError("文件不能为空")
 	}
 
-	attachments := make([]AttachmentDTO, 0, len(fileHeaders))
+	attachments := make([]AttachDTO, 0, len(fileHeaders))
 	for _, fileHeader := range fileHeaders {
 		attachment, err := s.saveOne(ctx, namespace, fileHeader)
 		if err != nil {
@@ -146,7 +140,7 @@ func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*m
 }
 
 // saveOne 落盘并写入单条附件记录
-func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *multipart.FileHeader) (*Attachment, error) {
+func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *multipart.FileHeader) (*Attach, error) {
 	fileName := fileHeader.Filename
 	if fileName == "" {
 		return nil, errs.NewBizError("文件名不能为空")
@@ -165,7 +159,7 @@ func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *mul
 		return nil, err
 	}
 
-	attachment := &Attachment{
+	attachment := &Attach{
 		Name:         fileName,
 		Type:         fileType,
 		RelativePath: relativePath,
@@ -257,8 +251,7 @@ func (s *Service) CleanTransientFiles(ctx context.Context) error {
 	return nil
 }
 
-// GetResource 获取文件资源
-func (s *Service) GetResource(ctx context.Context, dto *AttachmentDTO) (filename string, path string, err error) {
+func (s *Service) GetResource(ctx context.Context, dto *AttachDTO) (filename string, path string, err error) {
 	if dto == nil {
 		return "", "", errs.NewBizError("附件信息不能为空")
 	}
@@ -271,7 +264,6 @@ func (s *Service) GetResource(ctx context.Context, dto *AttachmentDTO) (filename
 	return
 }
 
-// uniqueIDs 去重附件 ID
 func uniqueIDs(ids []uint) []uint {
 	seen := make(map[uint]bool, len(ids))
 	unique := make([]uint, 0, len(ids))

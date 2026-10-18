@@ -43,7 +43,7 @@ func (r *Repository) FindFullById(ctx context.Context, id uint) (*ServiceBill, e
 }
 
 // FindByParam 根据查询条件查询
-func (r *Repository) FindByParam(ctx context.Context, param *ServiceBillQueryParam) (*result.PageResult[ServiceBill], error) {
+func (r *Repository) FindByParam(ctx context.Context, param *QueryParam) (*result.PageResult[ServiceBill], error) {
 	q := r.GetDB(ctx).WithContext(ctx).Model(&ServiceBill{})
 	if param.Number != "" {
 		q = q.Where("number = ?", param.Number)

@@ -2,17 +2,17 @@ package pers.eastwind.billmanager.reimburse.service;
 
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.Attachment;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.attach.model.Attach;
+import pers.eastwind.billmanager.attach.model.AttachDTO;
 import pers.eastwind.billmanager.attach.model.FileOp;
 import pers.eastwind.billmanager.attach.model.FileOpType;
-import pers.eastwind.billmanager.attach.service.AttachmentService;
+import pers.eastwind.billmanager.attach.service.AttachService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.common.exception.BizException;
-import pers.eastwind.billmanager.reimburse.model.Reimbursement;
-import pers.eastwind.billmanager.reimburse.model.ReimbursementDTO;
+import pers.eastwind.billmanager.reimburse.model.Reimburse;
+import pers.eastwind.billmanager.reimburse.model.ReimburseDTO;
 import pers.eastwind.billmanager.reimburse.repository.ReimburseRepository;
 
 import java.math.BigDecimal;
@@ -30,14 +30,14 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ReimburseIOService {
-    private final AttachmentService attachmentService;
-    private final ReimburseAttachRelService reimburseAttachRelService;
-    private final ReimburseAttachMapper attachMapper;
+    private final AttachService attachService;
+    private final ReimburseAttachService reimburseAttachService;
+    private final ReimburseImportMapper attachMapper;
     private final ReimburseRepository reimburseRepository;
 
-    public ReimburseIOService(AttachmentService attachmentService, ReimburseAttachRelService reimburseAttachRelService, ReimburseAttachMapper attachMapper, ReimburseRepository reimburseRepository) {
-        this.attachmentService = attachmentService;
-        this.reimburseAttachRelService = reimburseAttachRelService;
+    public ReimburseIOService(AttachService attachService, ReimburseAttachService reimburseAttachService, ReimburseImportMapper attachMapper, ReimburseRepository reimburseRepository) {
+        this.attachService = attachService;
+        this.reimburseAttachService = reimburseAttachService;
         this.attachMapper = attachMapper;
         this.reimburseRepository = reimburseRepository;
     }
@@ -52,12 +52,12 @@ public class ReimburseIOService {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
         }
-        List<Reimbursement> reimbursements = reimburseRepository.findAllById(ids);
+        List<Reimburse> reimbursements = reimburseRepository.findAllById(ids);
         if (reimbursements.isEmpty()) {
             throw new BizException("id不存在");
         }
 
-        Path tempPath = attachmentService.createTempDir("export");
+        Path tempPath = attachService.createTempDir("export");
         List<FileOp> ops = new ArrayList<>();
 
         // 遍历生成 excel行，并拷贝附件
@@ -65,7 +65,7 @@ public class ReimburseIOService {
         rows.add(List.of("单据编号", "摘要", "总额", "报销日期", "备注"));
         BigDecimal totalAmount = BigDecimal.ZERO;
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        for (Reimbursement reimbursement : reimbursements) {
+        for (Reimburse reimbursement : reimbursements) {
             rows.add(List.of(
                     reimbursement.getNumber(),
                     reimbursement.getSummary(),
@@ -79,9 +79,9 @@ public class ReimburseIOService {
             // 创建当前单据附件文件夹
             Path curDir = tempPath.resolve(reimbursement.getNumber());
             // 拷贝当前单据所有附件
-            List<Attachment> attachments = reimburseAttachRelService.findAttachments(reimbursement.getId());
-            for (Attachment attachment : attachments) {
-                Path origin = attachmentService.getAbsolutePathByRela(attachment.getRelativePath());
+            List<Attach> attachments = reimburseAttachService.findAttachments(reimbursement.getId());
+            for (Attach attachment : attachments) {
+                Path origin = attachService.getAbsolutePathByRela(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());
                 // 处理可能的重名
                 int repeatCount = 1;
@@ -101,7 +101,7 @@ public class ReimburseIOService {
         // 执行文件拷贝
         FileTxUtil.exec(ops);
 
-        Path zip = attachmentService.getTempPath().resolve(tempPath + ".zip");
+        Path zip = attachService.getTempPath().resolve(tempPath + ".zip");
         FileUtil.zip(tempPath, zip);
         return zip;
     }
@@ -112,9 +112,9 @@ public class ReimburseIOService {
      * @param resource 文件资源
      * @return 报销单 DTO
      */
-    public ReimbursementDTO generateByFile(Resource resource) {
-        AttachmentDTO attachment = attachmentService.upload(ReimburseAttachRelService.ATTACH_NAMESPACE, List.of(resource)).getFirst();
-        ReimbursementDTO dto = attachMapper.map(attachment);
+    public ReimburseDTO generateByFile(Resource resource) {
+        AttachDTO attachment = attachService.upload(ReimburseAttachService.ATTACH_NAMESPACE, List.of(resource)).getFirst();
+        ReimburseDTO dto = attachMapper.map(attachment);
         dto.setAttachments(List.of(attachment));
         return dto;
     }

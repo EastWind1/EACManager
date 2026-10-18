@@ -9,7 +9,7 @@ import pers.eastwind.billmanager.common.BaseServiceTest;
 import pers.eastwind.billmanager.common.model.MonthSumAmount;
 import pers.eastwind.billmanager.reimburse.model.ReimburseDetailDTO;
 import pers.eastwind.billmanager.reimburse.model.ReimburseState;
-import pers.eastwind.billmanager.reimburse.model.ReimbursementDTO;
+import pers.eastwind.billmanager.reimburse.model.ReimburseDTO;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -96,8 +96,8 @@ class ReimburseStatisticServiceTest extends BaseServiceTest {
     /**
      * 创建报销单并推进到指定状态
      */
-    private ReimbursementDTO createReimburse(BigDecimal total, ReimburseState targetState) {
-        ReimbursementDTO created = reimburseService.create(createRawReimburse(total, Instant.now()));
+    private ReimburseDTO createReimburse(BigDecimal total, ReimburseState targetState) {
+        ReimburseDTO created = reimburseService.create(createRawReimburse(total, Instant.now()));
         List<Integer> ids = List.of(created.getId());
         if (targetState == ReimburseState.PROCESSING || targetState == ReimburseState.FINISHED) {
             reimburseService.process(ids);
@@ -111,12 +111,12 @@ class ReimburseStatisticServiceTest extends BaseServiceTest {
     /**
      * 创建报销单，指定报销日期
      */
-    private ReimbursementDTO createReimburseAt(BigDecimal total, Instant date) {
+    private ReimburseDTO createReimburseAt(BigDecimal total, Instant date) {
         return reimburseService.create(createRawReimburse(total, date));
     }
 
-    private ReimbursementDTO createRawReimburse(BigDecimal total, Instant date) {
-        ReimbursementDTO reimbursement = new ReimbursementDTO();
+    private ReimburseDTO createRawReimburse(BigDecimal total, Instant date) {
+        ReimburseDTO reimbursement = new ReimburseDTO();
         reimbursement.setSummary("统计测试报销");
         reimbursement.setTotalAmount(total);
         reimbursement.setReimburseDate(date);

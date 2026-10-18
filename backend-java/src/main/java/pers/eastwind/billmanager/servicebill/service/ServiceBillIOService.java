@@ -2,11 +2,11 @@ package pers.eastwind.billmanager.servicebill.service;
 
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.attach.model.Attachment;
-import pers.eastwind.billmanager.attach.model.AttachmentDTO;
+import pers.eastwind.billmanager.attach.model.Attach;
+import pers.eastwind.billmanager.attach.model.AttachDTO;
 import pers.eastwind.billmanager.attach.model.FileOp;
 import pers.eastwind.billmanager.attach.model.FileOpType;
-import pers.eastwind.billmanager.attach.service.AttachmentService;
+import pers.eastwind.billmanager.attach.service.AttachService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
@@ -30,14 +30,14 @@ import java.util.stream.Collectors;
 @Service
 public class ServiceBillIOService {
     private final ServiceBillRepository serviceBillRepository;
-    private final AttachmentService attachmentService;
-    private final ServiceBillAttachRelService serviceBillAttachRelService;
-    private final ServiceBillAttachMapper attachMapper;
+    private final AttachService attachService;
+    private final ServiceBillAttachService serviceBillAttachService;
+    private final ServiceBillImportMapper attachMapper;
 
-    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachmentService attachmentService, ServiceBillAttachRelService serviceBillAttachRelService, ServiceBillAttachMapper attachMapper) {
+    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachService attachService, ServiceBillAttachService serviceBillAttachService, ServiceBillImportMapper attachMapper) {
         this.serviceBillRepository = serviceBillRepository;
-        this.attachmentService = attachmentService;
-        this.serviceBillAttachRelService = serviceBillAttachRelService;
+        this.attachService = attachService;
+        this.serviceBillAttachService = serviceBillAttachService;
         this.attachMapper = attachMapper;
     }
 
@@ -48,7 +48,7 @@ public class ServiceBillIOService {
      * @return 单据
      */
     public ServiceBillDTO generateByFile(Resource resource) {
-        AttachmentDTO attachment = attachmentService.upload(ServiceBillAttachRelService.ATTACH_NAMESPACE, List.of(resource)).getFirst();
+        AttachDTO attachment = attachService.upload(ServiceBillAttachService.ATTACH_NAMESPACE, List.of(resource)).getFirst();
         ServiceBillDTO bill = attachMapper.map(attachment);
         bill.setAttachments(List.of(attachment));
         return bill;
@@ -69,7 +69,7 @@ public class ServiceBillIOService {
             throw new BizException("id不存在");
         }
         // 创建临时目录
-        Path tempPath = attachmentService.createTempDir("export");
+        Path tempPath = attachService.createTempDir("export");
         // 文件操作
         List<FileOp> ops = new ArrayList<>();
         // Excel 表头
@@ -96,9 +96,9 @@ public class ServiceBillIOService {
             Path curDir = tempPath.resolve(serviceBill.getNumber());
 
             // 拷贝当前单据所有附件
-            List<Attachment> attachments = serviceBillAttachRelService.findAttachments(serviceBill.getId());
-            for (Attachment attachment : attachments) {
-                Path origin = attachmentService.getAbsolutePathByRela(attachment.getRelativePath());
+            List<Attach> attachments = serviceBillAttachService.findAttachments(serviceBill.getId());
+            for (Attach attachment : attachments) {
+                Path origin = attachService.getAbsolutePathByRela(attachment.getRelativePath());
                 Path target = curDir.resolve(attachment.getName());
                 // 处理可能的重名
                 int repeatCount = 1;
@@ -117,7 +117,7 @@ public class ServiceBillIOService {
         // 执行文件拷贝
         FileTxUtil.exec(ops);
         // 生成压缩包
-        Path zip = attachmentService.getTempPath().resolve(tempPath + ".zip");
+        Path zip = attachService.getTempPath().resolve(tempPath + ".zip");
         FileUtil.zip(tempPath, zip);
         return zip;
     }

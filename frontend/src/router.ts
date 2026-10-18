@@ -36,12 +36,12 @@ const router = createRouter({
         // 服务单列表
         {
           path: '/services',
-          component: () => import('@/service-bill/view/BillListView.vue'),
+          component: () => import('@/service-bill/view/ServiceBillListView.vue'),
         },
         // 服务单卡片
         {
           path: '/service/:id?',
-          component: () => import('@/service-bill/view/BillFormView.vue'),
+          component: () => import('@/service-bill/view/ServiceBillFormView.vue'),
         },
         // 报销单列表
         {

@@ -6,7 +6,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.core.io.Resource;
-import pers.eastwind.billmanager.attach.model.AttachmentType;
+import pers.eastwind.billmanager.attach.model.AttachType;
 import pers.eastwind.billmanager.common.exception.FileOpException;
 
 import javax.imageio.ImageIO;
@@ -31,22 +31,22 @@ public class FileUtil {
      * @param path 文件路径
      * @return 文件类型
      */
-    private static AttachmentType getFileType(Path path) throws IOException {
+    private static AttachType getFileType(Path path) throws IOException {
         String mimeType = Files.probeContentType(path);
         if (mimeType == null) {
-            return AttachmentType.OTHER;
+            return AttachType.OTHER;
         }
         return switch (mimeType) {
-            case "application/pdf" -> AttachmentType.PDF;
-            case "image/jpeg", "image/png", "image/gif" -> AttachmentType.IMAGE;
+            case "application/pdf" -> AttachType.PDF;
+            case "image/jpeg", "image/png", "image/gif" -> AttachType.IMAGE;
             case "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
-                    AttachmentType.WORD;
+                    AttachType.WORD;
             case "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
-                    AttachmentType.EXCEL;
+                    AttachType.EXCEL;
             // 禁止可执行文件
             case "application/x-msdownload", "application/x-executable", "application/x-sh", "application/x-bat" ->
                     throw new FileOpException("不支持的文件类型: " + mimeType);
-            default -> AttachmentType.OTHER;
+            default -> AttachType.OTHER;
         };
     }
 
@@ -94,7 +94,7 @@ public class FileUtil {
      * @param target   目标文件路径
      * @return 文件类型
      */
-    public static AttachmentType save(Resource resource, Path target) {
+    public static AttachType save(Resource resource, Path target) {
         if (resource == null || !resource.exists()) {
             throw new FileOpException("禁止上传空文件");
         }

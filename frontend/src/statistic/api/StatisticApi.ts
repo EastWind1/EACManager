@@ -1,5 +1,5 @@
 import { type ServiceBillStateValue } from '@/service-bill/model/ServiceBill'
-import { type ReimburseStateValue } from '@/reimburse/model/Reimbursement'
+import { type ReimburseStateValue } from '@/reimburse/model/Reimburse'
 import { HttpClient } from '@/common/api/HttpClient'
 
 const serviceBillHttp = new HttpClient('/api/serviceBill')

@@ -9,7 +9,7 @@ import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.reimburse.model.ReimburseDetailDTO;
 import pers.eastwind.billmanager.reimburse.model.ReimburseQueryParam;
 import pers.eastwind.billmanager.reimburse.model.ReimburseState;
-import pers.eastwind.billmanager.reimburse.model.ReimbursementDTO;
+import pers.eastwind.billmanager.reimburse.model.ReimburseDTO;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -34,10 +34,10 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试根据ID查找报销单")
     void shouldFindReimbursementById() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
 
-        ReimbursementDTO foundReimburse = reimburseService.findById(createdReimburse.getId());
+        ReimburseDTO foundReimburse = reimburseService.findById(createdReimburse.getId());
 
         assertNotNull(foundReimburse);
         assertEquals(createdReimburse.getId(), foundReimburse.getId());
@@ -47,8 +47,8 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试创建报销单")
     void shouldCreateReimbursement() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
         assertNotNull(createdReimburse);
         assertNotNull(createdReimburse.getId());
         assertNotNull(createdReimburse.getNumber()); // 单号应该自动生成
@@ -59,12 +59,12 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试更新报销单")
     void shouldUpdateReimbursement() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
 
         createdReimburse.setSummary("更新后的摘要");
         createdReimburse.setTotalAmount(new BigDecimal("2000.00"));
-        ReimbursementDTO updatedReimburse = reimburseService.update(createdReimburse);
+        ReimburseDTO updatedReimburse = reimburseService.update(createdReimburse);
 
         assertNotNull(updatedReimburse);
         assertEquals("更新后的摘要", updatedReimburse.getSummary());
@@ -74,13 +74,13 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试根据条件查询报销单")
     void shouldFindByParam() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
+        ReimburseDTO newReimburse = createTestReimbursement();
         reimburseService.create(newReimburse);
 
         ReimburseQueryParam param = new ReimburseQueryParam();
         param.setSummary("集成测试");
 
-        Page<ReimbursementDTO> result = reimburseService.findByParam(param);
+        Page<ReimburseDTO> result = reimburseService.findByParam(param);
 
         assertNotNull(result);
         assertTrue(result.getTotalElements() >= 1);
@@ -89,10 +89,10 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试批量删除报销单")
     void shouldDeleteReimbursements() {
-        ReimbursementDTO reimburse1 = createTestReimbursement();
-        ReimbursementDTO reimburse2 = createTestReimbursement();
-        ReimbursementDTO created1 = reimburseService.create(reimburse1);
-        ReimbursementDTO created2 = reimburseService.create(reimburse2);
+        ReimburseDTO reimburse1 = createTestReimbursement();
+        ReimburseDTO reimburse2 = createTestReimbursement();
+        ReimburseDTO created1 = reimburseService.create(reimburse1);
+        ReimburseDTO created2 = reimburseService.create(reimburse2);
 
         List<Integer> idsToDelete = Arrays.asList(created1.getId(), created2.getId());
 
@@ -105,37 +105,37 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试处理报销单")
     void shouldProcessReimbursements() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
         List<Integer> idsToProcess = List.of(createdReimburse.getId());
 
         ActionsResult<Integer, Void> result = reimburseService.process(idsToProcess);
 
         assertNotNull(result);
-        ReimbursementDTO processedReimburse = reimburseService.findById(createdReimburse.getId());
+        ReimburseDTO processedReimburse = reimburseService.findById(createdReimburse.getId());
         assertEquals(ReimburseState.PROCESSING, processedReimburse.getState());
     }
 
     @Test
     @DisplayName("测试完成报销单")
     void shouldFinishReimbursements() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
         List<Integer> idsToProcess = List.of(createdReimburse.getId());
         reimburseService.process(idsToProcess);
 
         ActionsResult<Integer, Void> result = reimburseService.finish(idsToProcess);
 
         assertNotNull(result);
-        ReimbursementDTO finishedReimburse = reimburseService.findById(createdReimburse.getId());
+        ReimburseDTO finishedReimburse = reimburseService.findById(createdReimburse.getId());
         assertEquals(ReimburseState.FINISHED, finishedReimburse.getState());
     }
 
     @Test
     @DisplayName("测试导出报销单")
     void shouldExportReimbursements() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
         List<Integer> idsToExport = List.of(createdReimburse.getId());
 
         Path exportPath = reimburseIOService.export(idsToExport);
@@ -153,7 +153,7 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试使用无效ID更新报销单")
     void shouldNotUpdateWithInvalidID() {
-        ReimbursementDTO invalidReimburse = new ReimbursementDTO();
+        ReimburseDTO invalidReimburse = new ReimburseDTO();
         invalidReimburse.setId(0); // 无效ID
         invalidReimburse.setSummary("无效ID的更新");
         
@@ -163,8 +163,8 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试删除非创建状态的报销单")
     void shouldNotDeleteInvalidStateReimbursement() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
         
         // 先提交，使其变为处理中状态
         List<Integer> idsToProcess = List.of(createdReimburse.getId());
@@ -184,8 +184,8 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试无效的状态转换")
     void shouldHandleInvalidStateTransitions() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
         List<Integer> ids = List.of(createdReimburse.getId());
         
         // 测试从创建直接到完成（跳过处理状态）
@@ -238,8 +238,8 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试取消处理状态")
     void shouldCancelProcessReimbursements() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
         List<Integer> idsToProcess = List.of(createdReimburse.getId());
 
         // 提交到处理状态
@@ -248,7 +248,7 @@ class ReimburseServiceTest extends BaseServiceTest {
         assertEquals(0, processResult.getFailCount());
 
         // 验证状态为处理中
-        ReimbursementDTO processedReimburse = reimburseService.findById(createdReimburse.getId());
+        ReimburseDTO processedReimburse = reimburseService.findById(createdReimburse.getId());
         assertEquals(ReimburseState.PROCESSING, processedReimburse.getState());
 
         // 取消处理（处理中 -> 新建）
@@ -257,7 +257,7 @@ class ReimburseServiceTest extends BaseServiceTest {
         assertEquals(0, cancelProcessResult.getFailCount());
 
         // 验证状态回退到新建
-        ReimbursementDTO cancelledReimburse = reimburseService.findById(createdReimburse.getId());
+        ReimburseDTO cancelledReimburse = reimburseService.findById(createdReimburse.getId());
         assertEquals(ReimburseState.CREATED, cancelledReimburse.getState());
     }
 
@@ -270,8 +270,8 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试取消处理完成状态")
     void shouldCancelFinishReimbursements() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
         List<Integer> idsToProcess = List.of(createdReimburse.getId());
 
         // 提交到处理状态
@@ -283,7 +283,7 @@ class ReimburseServiceTest extends BaseServiceTest {
         assertEquals(0, finishResult.getFailCount());
 
         // 验证状态为完成
-        ReimbursementDTO finishedReimburse = reimburseService.findById(createdReimburse.getId());
+        ReimburseDTO finishedReimburse = reimburseService.findById(createdReimburse.getId());
         assertEquals(ReimburseState.FINISHED, finishedReimburse.getState());
 
         // 取消完成（完成 -> 处理中）
@@ -292,7 +292,7 @@ class ReimburseServiceTest extends BaseServiceTest {
         assertEquals(0, cancelFinishRes.getFailCount());
 
         // 验证状态回退到处理中
-        ReimbursementDTO cancelledReimburse = reimburseService.findById(createdReimburse.getId());
+        ReimburseDTO cancelledReimburse = reimburseService.findById(createdReimburse.getId());
         assertEquals(ReimburseState.PROCESSING, cancelledReimburse.getState());
     }
 
@@ -305,8 +305,8 @@ class ReimburseServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试取消处理完成状态时使用无效状态")
     void shouldNotCancelFinishWithInvalidState() {
-        ReimbursementDTO newReimburse = createTestReimbursement();
-        ReimbursementDTO createdReimburse = reimburseService.create(newReimburse);
+        ReimburseDTO newReimburse = createTestReimbursement();
+        ReimburseDTO createdReimburse = reimburseService.create(newReimburse);
 
         // 创建状态不能取消完成
         ActionsResult<Integer, Void> cancelFinishRes = reimburseService.cancelFinish(List.of(createdReimburse.getId()));
@@ -345,8 +345,8 @@ class ReimburseServiceTest extends BaseServiceTest {
     /**
      * 创建测试用的报销单DTO
      */
-    private ReimbursementDTO createTestReimbursement() {
-        ReimbursementDTO reimbursement = new ReimbursementDTO();
+    private ReimburseDTO createTestReimbursement() {
+        ReimburseDTO reimbursement = new ReimburseDTO();
         reimbursement.setSummary("集成测试报销");
         reimbursement.setTotalAmount(new BigDecimal("1000.00"));
         reimbursement.setReimburseDate(Instant.now());

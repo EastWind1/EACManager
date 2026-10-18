@@ -30,7 +30,7 @@ func Run() {
 	// 初始化服务
 	server := fiber.New(fiber.Config{
 		ErrorHandler: middleware.ErrorHandler(),
-		BodyLimit:    int(cfg.Attachment.MaxFileSize),
+		BodyLimit:    int(cfg.Attach.MaxFileSize),
 	})
 	ctx.Server = server
 	// 初始化日志

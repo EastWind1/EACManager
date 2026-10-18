@@ -8,24 +8,24 @@ import (
 
 // MapRule 服务单映射规则
 //
-// 仅在本模块内部使用，不对外注册，规则集合由 ServiceBillMapper 自己持有
+// 仅在本模块内部使用，不对外注册，规则集合由 Mapper 自己持有
 type MapRule interface {
 	CanMapTexts(texts []string) bool
 	CanMapGrid(rows [][]string) bool
-	MapFromTexts(texts []string) (*ServiceBillDTO, bool, error)
-	MapFromGrid(rows [][]string) (*ServiceBillDTO, bool, error)
+	MapFromTexts(texts []string) (*DTO, bool, error)
+	MapFromGrid(rows [][]string) (*DTO, bool, error)
 }
 
-// ServiceBillMapper 服务单映射
+// Mapper 服务单映射
 //
 // 规则集合由本模块自己维护：菱电判定更具体，排在威垦之前
-type ServiceBillMapper struct {
+type Mapper struct {
 	content *attach.ContentService
 	rules   []MapRule
 }
 
-func NewServiceBillMapper(content *attach.ContentService, companySrc *company.Service) *ServiceBillMapper {
-	return &ServiceBillMapper{
+func NewServiceBillMapper(content *attach.ContentService, companySrc *company.Service) *Mapper {
+	return &Mapper{
 		content: content,
 		rules: []MapRule{
 			newWKMapRule(companySrc, "菱电"),
@@ -35,7 +35,7 @@ func NewServiceBillMapper(content *attach.ContentService, companySrc *company.Se
 }
 
 // Map 附件映射为服务单
-func (m *ServiceBillMapper) Map(attachment *attach.AttachmentDTO) (*ServiceBillDTO, error) {
+func (m *Mapper) Map(attachment *attach.AttachDTO) (*DTO, error) {
 	if attachment == nil {
 		return nil, errs.NewBizError("附件为空")
 	}
@@ -54,7 +54,7 @@ func (m *ServiceBillMapper) Map(attachment *attach.AttachmentDTO) (*ServiceBillD
 }
 
 // fromTexts 按本模块规则顺序尝试文本映射，命中即返回；规则解析出错直接上报
-func (m *ServiceBillMapper) fromTexts(texts []string) (*ServiceBillDTO, error) {
+func (m *Mapper) fromTexts(texts []string) (*DTO, error) {
 	for _, rule := range m.rules {
 		if !rule.CanMapTexts(texts) {
 			continue
@@ -71,7 +71,7 @@ func (m *ServiceBillMapper) fromTexts(texts []string) (*ServiceBillDTO, error) {
 }
 
 // fromGrid 按本模块规则顺序尝试表格映射，命中即返回；规则解析出错直接上报
-func (m *ServiceBillMapper) fromGrid(rows [][]string) (*ServiceBillDTO, error) {
+func (m *Mapper) fromGrid(rows [][]string) (*DTO, error) {
 	for _, rule := range m.rules {
 		if !rule.CanMapGrid(rows) {
 			continue

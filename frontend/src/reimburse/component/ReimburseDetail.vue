@@ -59,11 +59,11 @@
 
 <script lang="ts" setup>
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
-import { type ReimburseDetail, type Reimbursement } from '../model/Reimbursement'
+import { type ReimburseDetail, type Reimburse } from '../model/Reimburse'
 import { computed, ref, toRefs } from 'vue'
 
 // 当前订单数据
-const reimbursement = defineModel<Reimbursement>()
+const reimbursement = defineModel<Reimburse>()
 // 是否可编辑
 const props = defineProps<{
   readonly: boolean

@@ -17,32 +17,32 @@ import (
 type WKMapRule struct {
 	companySrc *company.Service
 	keyword    string
-	maps       map[string]func(*ServiceBillDTO, string)
+	maps       map[string]func(*DTO, string)
 }
 
 func newWKMapRule(companySrc *company.Service, keyword string) *WKMapRule {
 	return &WKMapRule{
 		companySrc: companySrc,
 		keyword:    keyword,
-		maps: map[string]func(*ServiceBillDTO, string){
-			"合同编号": func(dto *ServiceBillDTO, value string) { dto.Number = value },
-			"下单时间": func(dto *ServiceBillDTO, value string) {
+		maps: map[string]func(*DTO, string){
+			"合同编号": func(dto *DTO, value string) { dto.Number = value },
+			"下单时间": func(dto *DTO, value string) {
 				t, err := util.ParseDateTime(value)
 				if err != nil {
 					t = new(time.Now())
 				}
 				dto.OrderDate = t
 			},
-			"项目名称":  func(dto *ServiceBillDTO, value string) { dto.ProjectName = value },
-			"监理、站长": func(dto *ServiceBillDTO, value string) { dto.ProjectContact = value },
-			"现场联系人": func(dto *ServiceBillDTO, value string) { dto.OnSiteContact = value },
-			"项目地址":  func(dto *ServiceBillDTO, value string) { dto.ProjectAddress = value },
-			"备注":    func(dto *ServiceBillDTO, value string) { dto.Remark = value },
+			"项目名称":  func(dto *DTO, value string) { dto.ProjectName = value },
+			"监理、站长": func(dto *DTO, value string) { dto.ProjectContact = value },
+			"现场联系人": func(dto *DTO, value string) { dto.OnSiteContact = value },
+			"项目地址":  func(dto *DTO, value string) { dto.ProjectAddress = value },
+			"备注":    func(dto *DTO, value string) { dto.Remark = value },
 		},
 	}
 }
 
-func (r *WKMapRule) SetByText(target *ServiceBillDTO, text string) {
+func (r *WKMapRule) SetByText(target *DTO, text string) {
 	if text == "" {
 		return
 	}
@@ -58,7 +58,7 @@ func (r *WKMapRule) SetByText(target *ServiceBillDTO, text string) {
 	}
 }
 
-func (r *WKMapRule) SetCompany(target *ServiceBillDTO, name string) {
+func (r *WKMapRule) SetCompany(target *DTO, name string) {
 	if name == "" {
 		return
 	}
@@ -100,11 +100,11 @@ func (r *WKMapRule) CanMapGrid(rows [][]string) bool {
 	return false
 }
 
-func (r *WKMapRule) MapFromTexts(texts []string) (*ServiceBillDTO, bool, error) {
+func (r *WKMapRule) MapFromTexts(texts []string) (*DTO, bool, error) {
 	if !r.CanMapTexts(texts) {
 		return nil, false, nil
 	}
-	dto := ServiceBillDTO{}
+	dto := DTO{}
 	r.SetCompany(&dto, r.keyword)
 	for _, text := range texts {
 		r.SetByText(&dto, text)
@@ -118,13 +118,13 @@ func matchNumberPattern(s string) bool {
 	return matched
 }
 
-func (r *WKMapRule) MapFromGrid(rows [][]string) (*ServiceBillDTO, bool, error) {
+func (r *WKMapRule) MapFromGrid(rows [][]string) (*DTO, bool, error) {
 	if !r.CanMapGrid(rows) {
 		return nil, false, nil
 	}
 
-	serviceBill := &ServiceBillDTO{
-		Details: []ServiceBillDetailDTO{},
+	serviceBill := &DTO{
+		Details: []DetailDTO{},
 	}
 
 	// 设置公司
@@ -153,7 +153,7 @@ func (r *WKMapRule) MapFromGrid(rows [][]string) (*ServiceBillDTO, bool, error) 
 		} else {
 			// 普通列表项, 首个单元格为数字
 			if len(row) > 0 && matchNumberPattern(row[0]) {
-				detail := ServiceBillDetailDTO{}
+				detail := DetailDTO{}
 				if len(row) > 1 {
 					detail.Device = row[1]
 				}
@@ -185,7 +185,7 @@ func (r *WKMapRule) MapFromGrid(rows [][]string) (*ServiceBillDTO, bool, error) 
 				// 特殊子项
 				for j, text := range row {
 					if strings.Contains(text, "路") && j+2 < len(row) && row[j+2] != "" {
-						detail := ServiceBillDetailDTO{
+						detail := DetailDTO{
 							Device: "路费补贴",
 						}
 						if price, err := strconv.ParseFloat(strings.TrimSpace(row[j+2]), 64); err == nil {

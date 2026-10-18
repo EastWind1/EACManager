@@ -21,7 +21,7 @@ func NewContentService(ocrService *OCRService, attachService *Service) *ContentS
 }
 
 // Texts 读取文本块：图片走 OCR；PDF 先取文本层，未识别到文本时降级 OCR
-func (s *ContentService) Texts(attachment *AttachmentDTO) ([]string, error) {
+func (s *ContentService) Texts(attachment *AttachDTO) ([]string, error) {
 	path, err := s.attachService.GetAbsolutePathById(context.Background(), attachment.ID)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (s *ContentService) Texts(attachment *AttachmentDTO) ([]string, error) {
 }
 
 // Grid 读取表格：仅 Excel
-func (s *ContentService) Grid(attachment *AttachmentDTO) ([][]string, error) {
+func (s *ContentService) Grid(attachment *AttachDTO) ([][]string, error) {
 	path, err := s.attachService.GetAbsolutePathById(context.Background(), attachment.ID)
 	if err != nil {
 		return nil, err

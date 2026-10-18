@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.reimburse.model.ReimburseQueryParam;
-import pers.eastwind.billmanager.reimburse.model.ReimbursementDTO;
+import pers.eastwind.billmanager.reimburse.model.ReimburseDTO;
 import pers.eastwind.billmanager.reimburse.service.ReimburseIOService;
 import pers.eastwind.billmanager.reimburse.service.ReimburseService;
 
@@ -39,9 +39,9 @@ public class ReimburseController {
      */
     @PostMapping("/query")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
-    public PageResult<ReimbursementDTO> queryByParam(@RequestBody ReimburseQueryParam queryParam) {
+    public PageResult<ReimburseDTO> queryByParam(@RequestBody ReimburseQueryParam queryParam) {
 
-        Page<ReimbursementDTO> pageResult = reimburseService.findByParam(queryParam);
+        Page<ReimburseDTO> pageResult = reimburseService.findByParam(queryParam);
         return PageResult.fromPage(pageResult);
 
     }
@@ -51,32 +51,32 @@ public class ReimburseController {
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
     @GetMapping("/{id}")
-    public ReimbursementDTO getById(@PathVariable Integer id) {
+    public ReimburseDTO getById(@PathVariable Integer id) {
         return reimburseService.findById(id);
     }
 
     /**
      * 创建报销单
      *
-     * @param reimbursementDTO 报销单
+     * @param reimburseDTO 报销单
      * @return 保存后的报销单
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping
-    public ReimbursementDTO create(@RequestBody ReimbursementDTO reimbursementDTO) {
-        return reimburseService.create(reimbursementDTO);
+    public ReimburseDTO create(@RequestBody ReimburseDTO reimburseDTO) {
+        return reimburseService.create(reimburseDTO);
     }
 
     /**
      * 保存报销单
      *
-     * @param reimbursementDTO 报销单
+     * @param reimburseDTO 报销单
      * @return 保存后的报销单
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping
-    public ReimbursementDTO save(@RequestBody ReimbursementDTO reimbursementDTO) {
-        return reimburseService.update(reimbursementDTO);
+    public ReimburseDTO save(@RequestBody ReimburseDTO reimburseDTO) {
+        return reimburseService.update(reimburseDTO);
     }
 
     /**
@@ -129,7 +129,7 @@ public class ReimburseController {
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping("/import")
-    public ReimbursementDTO importByFile(MultipartFile file) {
+    public ReimburseDTO importByFile(MultipartFile file) {
         return reimburseIOService.generateByFile(file.getResource());
     }
 

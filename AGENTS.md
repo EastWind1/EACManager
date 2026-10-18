@@ -129,7 +129,7 @@ registers **no** role middleware — treat that as a gap, not a contract.
 
 Attachments have no standalone delete/OCR endpoint. The frontend uploads with
 `POST /api/attachment/upload?namespace=…` (the namespace must match the backend constant
-`ServiceBillAttachRelService.ATTACH_NAMESPACE` / `AttachRelService.ATTACH_NAMESPACE`,
+`ServiceBillAttachService.ATTACH_NAMESPACE` / `ReimburseAttachService.ATTACH_NAMESPACE`,
 i.e. `SERVICE_BILL` or `REIMBURSEMENT`); the row is created as `TRANSIENT` right away. When the bill is
 saved, the business module diffs the submitted ids against its own link rows and calls
 `persist(added)` / `delete(removed)` on the attach module — no paths, no file operations, no temp-id
@@ -147,14 +147,15 @@ Statistics: `countByState` returns per-state counts; `totalAmountGroupByMonth` s
 and `config.jwt.expire=604800` (7d), attachment dir `${user.dir}/attachment`. Local dev credentials
 live in `application-dev.yml` (profile `dev`, which tests activate).
 
-**Go** (`backend-go/config/config.yaml`, loaded by Viper from `./config`, `.`, `../config`, `..`) —
-`server.port`, `log.level`, `db.*`, `cache.expire=86400`, `jwt.secret`/`jwt.expire=604800`,
-`attachment.path=attachment`, `attachment.maxFileSize=5242880`, `ocr.url`. Note: `viper.AutomaticEnv()`
-is called without `BindEnv`, so `db.*` / `ocr.url` are **not** actually overridable by the
-`DB_*` / `OCR_URL` env vars that `deploy/compose.yml` sets — edit the YAML.
+**Go** (`backend-go/config/config.yaml`, loaded by Viper from `./config`, `.`, `../config`, `..`,
+`../../config`) — `server.port`, `log.level`, `db.*`, `cache.expire=86400`,
+`jwt.secret`/`jwt.expire=604800`, `attachment.path=attachment`, `attachment.maxFileSize=5242880`,
+`ocr.url`. Note: `viper.AutomaticEnv()` is called without `BindEnv`, so `db.*` / `ocr.url` are **not**
+actually overridable by the `DB_*` / `OCR_URL` env vars that `deploy/compose.yml` sets — edit the
+YAML.
 
 **Upload limit is 5 MB** on both backends (`spring.servlet.multipart.max-file-size` and Fiber
-`BodyLimit` / `attachment.maxFileSize`); the Go **test** config raises it to 50 MB.
+`BodyLimit` / `attachment.maxFileSize`).
 
 **OCR:** Java runs RapidOCR locally (ONNX, Windows + Linux native deps, Chinese). Go has no native
 Chinese OCR and calls a remote HTTP API instead — `ocr.url` is the **full endpoint**, default
@@ -189,10 +190,20 @@ cross-compiles the Go binary into `deploy/backend-go`, and copies the Vite `dist
 proxy, automatic Let's Encrypt HTTPS via `DOMAIN` / `CA_EMAIL`).
 
 **Tests:** Java — JUnit 5 on `@SpringBootTest` + `@Transactional` (per-test rollback), base class
-`common/BaseServiceTest`, Mockito for collaborators, profile `dev`. Go — `testify/suite` integration
-tests in `backend-go/test` (begin transaction in `SetupTest`, roll back in `TearDownTest`). Run with
-`mvn test` and `go test ./test/...`. Both are **integration** tests that need a reachable
-PostgreSQL (`backend-go/test/config/config.yaml` for Go, the `dev` profile for Java) — there is no
+`common/BaseServiceTest`, Mockito for collaborators, profile `dev`. Go — **one `_test.go` per
+package**, named after it (`internal/bill/bill_test.go`, likewise `reimburse`, `company`, `user`,
+`attach`), each holding every suite for that module in package `bill_test` etc. There is **no shared
+base struct and no `TestMain`**: `internal/testutil` is package-level support, not a superclass —
+`testutil.AppCtx()` lazily initialises the shared environment once per test binary (one connection
+pool / logger / config) on first use, each suite's `SetupSuite` wires its own services into suite
+fields, and each `SetupTest` opens its own transaction with `s.ctx = testutil.BeginTx(s.T())` (plus
+per-test fixtures), which registers the rollback via `t.Cleanup` so a forgotten teardown cannot leak
+data. `testutil.Tx(t, ctx)` exposes the transaction for raw SQL. Go tests load the **same**
+`backend-go/config/config.yaml` as the app (`NewConfig` also searches `../../config` so it resolves
+from `internal/<pkg>`); only the attachment root is redirected to the OS temp dir so test runs do not
+scatter `attachment/` folders into module directories.
+Run with `mvn test` and `go test ./...`. Both are **integration** tests that need a reachable
+PostgreSQL (`backend-go/config/config.yaml` for Go, the `dev` profile for Java) — there is no
 mocked-DB tier, so the suite fails at setup without a database.
 
 ## Conventions
@@ -214,16 +225,16 @@ backend-java/src/main/java/pers/eastwind/billmanager/
   user/       — controller, service, UserProperties, security/{SecurityConfig, JWTTokenFilter},
                 util/JWTUtil, config/AuditConfig
   company/    — CompanyController/Service/Repository/Mapper
-  servicebill/— ServiceBillController, ServiceBillBizService (state machine),
-                ServiceBillIOService + ServiceBillAttachMapper (LD/WK rules, import/export),
-                ServiceBillAttachRelService + model/ServiceBillAttachRelation
-                (+ ServiceBillAttachRelRepo) for the bill↔attachment links,
-                BillStatisticController/Service (+ StatisticRepository)
-  reimburse/  — ReimburseController/Service, ReimburseIOService + ReimburseAttachMapper
-                (invoice rule, import), ReimburseAttachRelService +
-                model/ReimburseAttachRelation (+ ReimburseAttachRelRepo) for the bill↔attachment
+  servicebill/— ServiceBillController, ServiceBillService (state machine),
+                ServiceBillIOService + ServiceBillImportMapper/-Rule (LD/WK rules, import/export),
+                ServiceBillAttachService + model/ServiceBillAttach
+                (+ ServiceBillAttachRepository) for the bill↔attachment links,
+                ServiceBillStatisticController/Service (+ StatisticRepository)
+  reimburse/  — ReimburseController/Service, ReimburseIOService + ReimburseImportMapper/-Rule
+                (invoice rule, import), ReimburseAttachService +
+                model/ReimburseAttach (+ ReimburseAttachRepository) for the bill↔attachment
                 links, ReimburseStatisticController/Service (+ StatisticRepository)
-  attach/     — AttachmentController/Service (upload/persist/delete + download; keys are
+  attach/     — AttachController/Service (upload/persist/delete + download; keys are
                 `{namespace}/{uuid}{name}` and never move; owns no relation table and no business
                 concept), AttachContentService (image/PDF texts, Excel grid),
                 OCRService, util/{FileUtil, OfficeFileUtil, FileTxUtil}, config/AttachConfigProperties
@@ -241,9 +252,18 @@ backend-go/
           and the link rows)
       bill extras: ld_rule.go, wk_rule.go, mapper.go, attach_relation.go
       reimburse extras: invoice_rule.go, mapper.go, attach_relation.go
+  internal/testutil/ — package-level test support (NOT a base class, no TestMain): AppCtx lazily
+                       initialises the shared env, BeginTx (rollback via t.Cleanup), Tx, upload
+                       helpers
   pkg/        — audit, auth, cache, context, database, errs, logger, middleware, result, util
-  config/     — config.go + config.yaml
-  test/       — testify suites
+  config/     — config.go + config.yaml (also what the tests load)
+
+Naming — Java is `{Entity}{Role}` with the word roots `ServiceBill` / `Reimburse` / `Attach`
+(never `Reimbursement`/`Attachment`, never `Biz`/`Rel` abbreviations), e.g. `ServiceBillService`,
+`ReimburseAttachRepository`, `AttachDTO`. Go uses the package as the namespace, so types drop the
+entity prefix (`bill.Service`, `bill.DTO`, `bill.Mapper`, `reimburse.Service`); entities keep their
+table words (`bill.ServiceBill`, `reimburse.Reimburse`, `attach.Attach`) and pin the DB table with
+`TableName()` where the Go name differs from it.
 
 frontend/src/
   main.ts                 — app bootstrap, Vuetify theme/locale, registers v-role

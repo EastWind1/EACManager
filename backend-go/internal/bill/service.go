@@ -18,31 +18,31 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
-type BizService struct {
-	cache        cache.Cache
-	billRepo     *Repository
-	attachSrv    *attach.Service
-	attachRelSrv *AttachRelService
-	mapper       *ServiceBillMapper
+type Service struct {
+	cache     cache.Cache
+	billRepo  *Repository
+	attachSrv *attach.Service
+	relSrv    *AttachRelService
+	mapper    *Mapper
 }
 
-func NewBizService(
+func NewService(
 	cache cache.Cache,
 	billRepo *Repository,
 	attachSrv *attach.Service,
-	attachRelSrv *AttachRelService,
-	mapper *ServiceBillMapper,
-) *BizService {
-	return &BizService{
-		cache:        cache,
-		billRepo:     billRepo,
-		attachSrv:    attachSrv,
-		attachRelSrv: attachRelSrv,
-		mapper:       mapper,
+	relSrv *AttachRelService,
+	mapper *Mapper,
+) *Service {
+	return &Service{
+		cache:     cache,
+		billRepo:  billRepo,
+		attachSrv: attachSrv,
+		relSrv:    relSrv,
+		mapper:    mapper,
 	}
 }
 
-func (s *BizService) ValidateAmount(bill *ServiceBill) error {
+func (s *Service) ValidateAmount(bill *ServiceBill) error {
 	totalAmount := 0.0
 	for _, detail := range bill.Details {
 		expectedSubtotal := detail.Quantity * detail.UnitPrice
@@ -57,11 +57,11 @@ func (s *BizService) ValidateAmount(bill *ServiceBill) error {
 	return nil
 }
 
-func (s *BizService) GenerateNumber() string {
+func (s *Service) GenerateNumber() string {
 	return "S" + strconv.Itoa(int(util.GenIntID()))
 }
 
-func (s *BizService) FindByID(ctx context.Context, id uint) (*ServiceBillDTO, error) {
+func (s *Service) FindByID(ctx context.Context, id uint) (*DTO, error) {
 	if id == 0 {
 		return nil, errs.NewBizError("ID不能为空")
 	}
@@ -72,12 +72,12 @@ func (s *BizService) FindByID(ctx context.Context, id uint) (*ServiceBillDTO, er
 	if bill == nil {
 		return nil, errs.NewBizError("单据不存在")
 	}
-	attaches, err := s.attachRelSrv.FindAttachments(ctx, bill.ID)
+	attaches, err := s.relSrv.FindAttachments(ctx, bill.ID)
 	dto := bill.ToDTO(attaches)
 	return dto, nil
 }
 
-func (s *BizService) FindByParam(ctx context.Context, param *ServiceBillQueryParam) (*result.PageResult[ServiceBillDTO], error) {
+func (s *Service) FindByParam(ctx context.Context, param *QueryParam) (*result.PageResult[DTO], error) {
 	if param == nil {
 		return nil, errs.NewBizError("查询参数为空")
 	}
@@ -90,7 +90,7 @@ func (s *BizService) FindByParam(ctx context.Context, param *ServiceBillQueryPar
 	return result.NewDTOPageResult(res, ToBaseDTOs), nil
 }
 
-func (s *BizService) Create(ctx context.Context, dto *ServiceBillDTO) (*ServiceBillDTO, error) {
+func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	if dto.ID != 0 {
 		return nil, errs.NewBizError("单据 ID 自动生成")
 	}
@@ -126,14 +126,14 @@ func (s *BizService) Create(ctx context.Context, dto *ServiceBillDTO) (*ServiceB
 		if err := s.billRepo.Create(tx, entity); err != nil {
 			return err
 		}
-		return s.attachRelSrv.UpdateAttachments(tx, entity.ID, dto.Attachments)
+		return s.relSrv.UpdateAttachments(tx, entity.ID, dto.Attachments)
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	attaches, err := s.attachRelSrv.FindAttachments(ctx, entity.ID)
+	attaches, err := s.relSrv.FindAttachments(ctx, entity.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (s *BizService) Create(ctx context.Context, dto *ServiceBillDTO) (*ServiceB
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *BizService) Update(ctx context.Context, dto *ServiceBillDTO) (*ServiceBillDTO, error) {
+func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("单据 ID 为空")
 	}
@@ -163,21 +163,21 @@ func (s *BizService) Update(ctx context.Context, dto *ServiceBillDTO) (*ServiceB
 		if err = s.billRepo.Updates(tx, entity); err != nil {
 			return err
 		}
-		return s.attachRelSrv.UpdateAttachments(tx, entity.ID, dto.Attachments)
+		return s.relSrv.UpdateAttachments(tx, entity.ID, dto.Attachments)
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	attaches, err := s.attachRelSrv.FindAttachments(ctx, entity.ID)
+	attaches, err := s.relSrv.FindAttachments(ctx, entity.ID)
 	if err != nil {
 		return nil, err
 	}
 	return entity.ToDTO(attaches), nil
 }
 
-func (s *BizService) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *Service) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -196,13 +196,13 @@ func (s *BizService) Delete(ctx context.Context, ids []uint) (*result.ActionsRes
 			if err = s.billRepo.DeleteByID(tx, id); err != nil {
 				return err
 			}
-			return s.attachRelSrv.UpdateAttachments(tx, bill.ID, nil)
+			return s.relSrv.UpdateAttachments(tx, bill.ID, nil)
 		})
 		return nil, err
 	}), nil
 }
 
-func (s *BizService) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *Service) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -226,7 +226,7 @@ func (s *BizService) Process(ctx context.Context, ids []uint) (*result.ActionsRe
 	}), nil
 }
 
-func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *time.Time) (*result.ActionsResult[uint, any], error) {
+func (s *Service) Processed(ctx context.Context, ids []uint, processedDate *time.Time) (*result.ActionsResult[uint, any], error) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -254,7 +254,7 @@ func (s *BizService) Processed(ctx context.Context, ids []uint, processedDate *t
 	}), nil
 }
 
-func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.Time) (*result.ActionsResult[uint, any], error) {
+func (s *Service) Finish(ctx context.Context, ids []uint, finishedDate *time.Time) (*result.ActionsResult[uint, any], error) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -282,7 +282,7 @@ func (s *BizService) Finish(ctx context.Context, ids []uint, finishedDate *time.
 	}), nil
 }
 
-func (s *BizService) CancelProcess(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *Service) CancelProcess(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -307,7 +307,7 @@ func (s *BizService) CancelProcess(ctx context.Context, ids []uint) (*result.Act
 	}), nil
 }
 
-func (s *BizService) CancelProcessed(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *Service) CancelProcessed(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -332,7 +332,7 @@ func (s *BizService) CancelProcessed(ctx context.Context, ids []uint) (*result.A
 	}), nil
 }
 
-func (s *BizService) CancelFinish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
+func (s *Service) CancelFinish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
@@ -357,7 +357,7 @@ func (s *BizService) CancelFinish(ctx context.Context, ids []uint) (*result.Acti
 	}), nil
 }
 
-func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*ServiceBillDTO, error) {
+func (s *Service) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*DTO, error) {
 	attaches, err := s.attachSrv.Upload(ctx, AttachNamespace, []*multipart.FileHeader{file})
 	if err != nil {
 		return nil, err
@@ -371,7 +371,7 @@ func (s *BizService) GenerateByFile(ctx context.Context, file *multipart.FileHea
 	return bill, nil
 }
 
-func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
+func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 	if len(ids) == 0 {
 		return "", errs.NewBizError("ID 不能为空")
 	}
@@ -419,7 +419,7 @@ func (s *BizService) Export(ctx context.Context, ids []uint) (string, error) {
 		totalAmount += bill.TotalAmount
 
 		// 获取当前单据的所有附件
-		attachments, err := s.attachRelSrv.FindAttachments(ctx, bill.ID)
+		attachments, err := s.relSrv.FindAttachments(ctx, bill.ID)
 		if err != nil {
 			return "", err
 		}

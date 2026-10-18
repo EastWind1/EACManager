@@ -10,13 +10,13 @@ import (
 
 // Config 配置
 type Config struct {
-	Server     *ServerConfig
-	Log        *LogConfig
-	Db         *DatabaseConfig
-	JWT        *JWTConfig `mapstructure:"jwt"`
-	Cache      *CacheConfig
-	OCR        *OCRConfig `mapstructure:"ocr"`
-	Attachment *AttachmentConfig
+	Server *ServerConfig
+	Log    *LogConfig
+	Db     *DatabaseConfig
+	JWT    *JWTConfig `mapstructure:"jwt"`
+	Cache  *CacheConfig
+	OCR    *OCRConfig    `mapstructure:"ocr"`
+	Attach *AttachConfig `mapstructure:"attachment"`
 }
 
 // LogConfig 日志配置
@@ -63,10 +63,10 @@ type JWTConfig struct {
 	Expire int
 }
 
-// AttachmentConfig 附件配置
-type AttachmentConfig struct {
+// AttachConfig 附件配置
+type AttachConfig struct {
 	Path        string
-	MaxFileSize int64
+	MaxFileSize int64 `mapstructure:"maxFileSize"`
 }
 
 // NewConfig 加载配置
@@ -75,6 +75,8 @@ func NewConfig() *Config {
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("../config")
 	viper.AddConfigPath("..")
+	// 测试在 internal/<pkg> 目录下运行
+	viper.AddConfigPath("../../config")
 
 	// 读取 yaml
 	viper.SetConfigName("config")

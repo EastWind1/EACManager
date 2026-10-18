@@ -12,7 +12,7 @@ import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillQueryParam;
-import pers.eastwind.billmanager.servicebill.service.ServiceBillBizService;
+import pers.eastwind.billmanager.servicebill.service.ServiceBillService;
 import pers.eastwind.billmanager.servicebill.service.ServiceBillIOService;
 
 import java.time.Instant;
@@ -26,11 +26,11 @@ import java.util.List;
 @RequestMapping("/api/serviceBill")
 @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class ServiceBillController {
-    private final ServiceBillBizService serviceBillBizService;
+    private final ServiceBillService serviceBillService;
     private final ServiceBillIOService serviceBillIOService;
 
-    public ServiceBillController(ServiceBillBizService serviceBillBizService, ServiceBillIOService serviceBillIOService) {
-        this.serviceBillBizService = serviceBillBizService;
+    public ServiceBillController(ServiceBillService serviceBillService, ServiceBillIOService serviceBillIOService) {
+        this.serviceBillService = serviceBillService;
         this.serviceBillIOService = serviceBillIOService;
     }
 
@@ -41,7 +41,7 @@ public class ServiceBillController {
      */
     @PostMapping("/query")
     public PageResult<ServiceBillDTO> queryByParam(@RequestBody ServiceBillQueryParam queryParam) {
-        Page<ServiceBillDTO> pageResult = serviceBillBizService.findByParam(queryParam);
+        Page<ServiceBillDTO> pageResult = serviceBillService.findByParam(queryParam);
         return PageResult.fromPage(pageResult);
     }
 
@@ -50,7 +50,7 @@ public class ServiceBillController {
      */
     @GetMapping("/{id}")
     public ServiceBillDTO getById(@PathVariable Integer id) {
-        return serviceBillBizService.findById(id);
+        return serviceBillService.findById(id);
     }
 
     /**
@@ -61,7 +61,7 @@ public class ServiceBillController {
      */
     @PostMapping
     public ServiceBillDTO create(@RequestBody ServiceBillDTO serviceBillDTO) {
-        return serviceBillBizService.create(serviceBillDTO);
+        return serviceBillService.create(serviceBillDTO);
     }
 
     /**
@@ -72,7 +72,7 @@ public class ServiceBillController {
      */
     @PutMapping
     public ServiceBillDTO update(@RequestBody ServiceBillDTO serviceBillDTO) {
-        return serviceBillBizService.update(serviceBillDTO);
+        return serviceBillService.update(serviceBillDTO);
     }
 
     /**
@@ -88,7 +88,7 @@ public class ServiceBillController {
      */
     @DeleteMapping
     public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
-        return serviceBillBizService.delete(ids);
+        return serviceBillService.delete(ids);
     }
 
     /**
@@ -96,7 +96,7 @@ public class ServiceBillController {
      */
     @PutMapping("/process")
     public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
-        return serviceBillBizService.process(ids);
+        return serviceBillService.process(ids);
     }
 
     /**
@@ -104,7 +104,7 @@ public class ServiceBillController {
      */
     @PutMapping("/processed")
     public ActionsResult<Integer, Void> processed(@RequestBody ProcessedParam param) {
-        return serviceBillBizService.processed(param.ids, param.processedDate);
+        return serviceBillService.processed(param.ids, param.processedDate);
     }
 
     /**
@@ -112,7 +112,7 @@ public class ServiceBillController {
      */
     @PutMapping("/finish")
     public ActionsResult<Integer, Void> finish(@RequestBody FinishParam param) {
-        return serviceBillBizService.finish(param.ids, param.finishedDate);
+        return serviceBillService.finish(param.ids, param.finishedDate);
     }
 
     /**
@@ -121,7 +121,7 @@ public class ServiceBillController {
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/cancel-process")
     public ActionsResult<Integer, Void> cancelProcess(@RequestBody List<Integer> ids) {
-        return serviceBillBizService.cancelProcess(ids);
+        return serviceBillService.cancelProcess(ids);
     }
 
     /**
@@ -130,7 +130,7 @@ public class ServiceBillController {
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/cancel-processed")
     public ActionsResult<Integer, Void> cancelProcessed(@RequestBody List<Integer> ids) {
-        return serviceBillBizService.cancelProcessed(ids);
+        return serviceBillService.cancelProcessed(ids);
     }
 
     /**
@@ -139,7 +139,7 @@ public class ServiceBillController {
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/cancel-finish")
     public ActionsResult<Integer, Void> cancelFinish(@RequestBody List<Integer> ids) {
-        return serviceBillBizService.cancelFinish(ids);
+        return serviceBillService.cancelFinish(ids);
     }
 
     /**
