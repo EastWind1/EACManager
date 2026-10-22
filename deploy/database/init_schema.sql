@@ -292,20 +292,6 @@ CREATE TABLE public.service_bill_detail (
 ALTER TABLE public.service_bill_detail OWNER TO postgres;
 
 --
--- Name: service_bill_processor_detail_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.service_bill_processor_detail_seq
-    START WITH 1
-    INCREMENT BY 50
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.service_bill_processor_detail_seq OWNER TO postgres;
-
---
 -- Name: sys_user_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
