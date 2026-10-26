@@ -29,7 +29,7 @@ public class AttachController {
      *
      * @param attachment 文件 DTO
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.attach.permission.AttachPermission).DOWNLOAD.getCode())")
     @GetMapping(value = "/")
     public ResponseEntity<Resource> download(AttachDTO attachment) {
         if (attachment == null) {
@@ -49,7 +49,7 @@ public class AttachController {
      * @param files     文件
      * @return 附件信息
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.attach.permission.AttachPermission).UPLOAD.getCode())")
     @PostMapping("/upload")
     public List<AttachDTO> upload(@RequestParam String namespace, @RequestParam List<MultipartFile> files) {
         List<Resource> resources = new ArrayList<>();

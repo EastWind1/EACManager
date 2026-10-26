@@ -1,86 +1,94 @@
 <!-- 公司管理 -->
 <template>
-  <v-data-table-server
-    :headers="headers"
-    :items="data.items"
-    :items-length="data.totalCount"
-    :items-per-page="data.pageSize ? data.pageSize : 25"
-    :items-per-page-options="[
+  <v-container>
+    <v-data-table-server
+      :headers="headers"
+      :items="data.items"
+      :items-length="data.totalCount"
+      :items-per-page="data.pageSize ? data.pageSize : 25"
+      :items-per-page-options="[
       { value: 10, title: '10' },
       { value: 25, title: '25' },
       { value: 50, title: '50' },
       { value: 100, title: '100' },
     ]"
-    show-select
-    @update:options="loadItems"
-  >
-    <template #[`item.actions`]="{ item }">
-      <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value">
-        <v-btn :icon="mdiPencil" size="small" variant="plain" @click="edit(item)"></v-btn>
-        <v-btn :icon="mdiClose" size="small" variant="plain" @click="disable(item)"></v-btn>
+      show-select
+      @update:options="loadItems"
+    >
+      <template #[`item.actions`]="{ item }">
+        <v-btn
+          v-permission="Permission.COMPANY_UPDATE"
+          :icon="mdiPencil"
+          size="small"
+          variant="plain"
+          @click="edit(item)"
+        ></v-btn>
+        <v-btn
+          v-permission="Permission.COMPANY_DISABLE"
+          :icon="mdiClose"
+          size="small"
+          variant="plain"
+          @click="disable(item)"
+        ></v-btn>
       </template>
-    </template>
-    <!-- 最后一行添加加号按钮 -->
-    <template v-if="curUser?.authority === AuthorityRole.ROLE_ADMIN.value" #[`body.append`]>
-      <tr>
-        <td :colspan="headers.length" class="align-center">
-          <v-btn block variant="plain" @click="add">
-            <v-icon :icon="mdiPlus"></v-icon>
-          </v-btn>
-        </td>
-      </tr>
-    </template>
-  </v-data-table-server>
+      <!-- 最后一行添加加号按钮 -->
+      <template #[`body.append`]>
+        <tr v-permission="Permission.COMPANY_CREATE">
+          <td :colspan="headers.length" class="align-center">
+            <v-btn block variant="plain" @click="add">
+              <v-icon :icon="mdiPlus"></v-icon>
+            </v-btn>
+          </td>
+        </tr>
+      </template>
+    </v-data-table-server>
 
-  <!-- 编辑用户弹窗 -->
-  <v-dialog v-model="dialogData.show" max-width="500">
-    <v-card v-if="dialogData.company">
-      <template #title>{{ dialogData.title }}</template>
-      <template #text>
-        <v-form v-model="dialogData.valid">
-          <v-text-field
-            v-model="dialogData.company.name"
-            :rules="[required]"
-            label="名称"
-          ></v-text-field>
-          <v-text-field v-model="dialogData.company.contactName" label="联系人"></v-text-field>
-          <v-text-field v-model="dialogData.company.contactPhone" label="电话"></v-text-field>
-          <v-text-field
-            v-model="dialogData.company.email"
-            :rules="[emailValid]"
-            label="邮箱"
-          ></v-text-field>
-          <v-text-field v-model="dialogData.company.address" label="地址"></v-text-field>
-          <div class="text-right">
-            <v-btn color="primary" @click="save">保存</v-btn>
-            <v-btn @click="dialogData.show = false">取消</v-btn>
-          </div>
-        </v-form>
-      </template>
-    </v-card>
-  </v-dialog>
+    <!-- 编辑用户弹窗 -->
+    <v-dialog v-model="dialogData.show" max-width="500">
+      <v-card v-if="dialogData.company">
+        <template #title>{{ dialogData.title }}</template>
+        <template #text>
+          <v-form v-model="dialogData.valid">
+            <v-text-field
+              v-model="dialogData.company.name"
+              :rules="[required]"
+              label="名称"
+            ></v-text-field>
+            <v-text-field v-model="dialogData.company.contactName" label="联系人"></v-text-field>
+            <v-text-field v-model="dialogData.company.contactPhone" label="电话"></v-text-field>
+            <v-text-field
+              v-model="dialogData.company.email"
+              :rules="[emailValid]"
+              label="邮箱"
+            ></v-text-field>
+            <v-text-field v-model="dialogData.company.address" label="地址"></v-text-field>
+            <div class="text-right">
+              <v-btn color="primary" @click="save">保存</v-btn>
+              <v-btn @click="dialogData.show = false">取消</v-btn>
+            </div>
+          </v-form>
+        </template>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { AuthorityRole } from '@/user/model/User'
-import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
-import { useUIStore } from '@/common/store/UIStore'
-import { useUserStore } from '@/user/store/UserStore'
-import type { Company } from '../model/Company'
+import {ref} from 'vue'
+import {Permission} from '../model/Permission'
+import {mdiClose, mdiPencil, mdiPlus} from '@mdi/js'
+import {useUIStore} from '@/common/store/UIStore'
+import type {Company} from '../model/Company'
 import CompanyApi from '../api/CompanyApi'
-import type { PageResult } from '@/common/model/PageResult'
-
-// 当前登录用户，用于权限控制
-const curUser = useUserStore().getUser()
+import type {PageResult} from '@/common/model/PageResult'
 
 // 表头
 const headers = [
-  { title: '名称', key: 'name', sortable: false },
-  { title: '联系人', key: 'contactName', sortable: false },
-  { title: '电话', key: 'contactPhone', sortable: false },
-  { title: '地址', key: 'address', sortable: false },
-  { title: '操作', key: 'actions', sortable: false },
+  {title: '名称', key: 'name', sortable: false},
+  {title: '联系人', key: 'contactName', sortable: false},
+  {title: '电话', key: 'contactPhone', sortable: false},
+  {title: '地址', key: 'address', sortable: false},
+  {title: '操作', key: 'actions', sortable: false},
 ]
 // 新增默认值
 const COMPANY_DEFAULT = {
@@ -113,7 +121,7 @@ const dialogData = ref<{
   // 表单是否合法
   valid: true,
   // 表单当前公司
-  company: { ...COMPANY_DEFAULT },
+  company: {...COMPANY_DEFAULT},
 })
 
 // 必填
@@ -136,14 +144,14 @@ async function loadItems(options: {
 
 // 添加
 function add() {
-  dialogData.value.company = { ...COMPANY_DEFAULT }
+  dialogData.value.company = {...COMPANY_DEFAULT}
   dialogData.value.title = '新增'
   dialogData.value.show = true
 }
 
 // 编辑
 function edit(company: Company) {
-  dialogData.value.company = { ...company }
+  dialogData.value.company = {...company}
   dialogData.value.title = '编辑'
   dialogData.value.show = true
 }
@@ -154,7 +162,7 @@ async function save() {
     return
   }
   // 上传公司信息，复制一份避免修改影响界面
-  const postCompany = { ...dialogData.value.company }
+  const postCompany = {...dialogData.value.company}
   // 修改
   if (postCompany.id) {
     const index = data.value.items.findIndex((u) => u.id === postCompany.id)
@@ -169,7 +177,7 @@ async function save() {
 
 // 禁用
 async function disable(company: Company) {
-  const { confirm } = useUIStore()
+  const {confirm} = useUIStore()
   if (company.id && (await confirm('确认', '确定要禁用该公司吗？'))) {
     await CompanyApi.disable(company.id)
     const index = data.value.items.findIndex((u) => u.id === company.id)

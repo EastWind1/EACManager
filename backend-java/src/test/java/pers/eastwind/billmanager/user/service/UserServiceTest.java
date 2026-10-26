@@ -7,8 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import pers.eastwind.billmanager.common.BaseServiceTest;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
-import pers.eastwind.billmanager.common.model.AuthorityRole;
+import pers.eastwind.billmanager.security.model.RoleDTO;
 import pers.eastwind.billmanager.user.model.UserDTO;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,7 +30,7 @@ class UserServiceTest extends BaseServiceTest {
         testUser.setUsername("innerTestUser");
         testUser.setPassword("password123");
         testUser.setName("测试用户");
-        testUser.setAuthority(AuthorityRole.ROLE_USER);
+        testUser.setRoles(List.of(new RoleDTO(null, "USER", "普通用户", 2, false)));
     }
 
 
@@ -52,7 +54,7 @@ class UserServiceTest extends BaseServiceTest {
         assertNotNull(createdUser.getId());
         assertEquals(testUser.getUsername(), createdUser.getUsername());
         assertEquals(testUser.getName(), createdUser.getName());
-        assertEquals(AuthorityRole.ROLE_USER, createdUser.getAuthority());
+        assertEquals(List.of("USER"), createdUser.getRoles().stream().map(RoleDTO::getCode).toList());
     }
 
     @Test
@@ -74,8 +76,9 @@ class UserServiceTest extends BaseServiceTest {
     void shouldDisableUser() {
         userService.create(testUser);
         userService.disable(testUser.getUsername());
-        var createdUser = userService.loadUserByUsername(testUser.getUsername());
-        assertTrue(createdUser.isDisabled());
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> userService.login(testUser.getUsername(), "password123"));
+        assertTrue(ex.getMessage().contains("用户已禁用"));
     }
 
     @Test
@@ -116,7 +119,7 @@ class UserServiceTest extends BaseServiceTest {
         duplicate.setUsername(testUser.getUsername());
         duplicate.setPassword("password456");
         duplicate.setName("重复用户");
-        duplicate.setAuthority(AuthorityRole.ROLE_USER);
+        duplicate.setRoles(List.of(new RoleDTO(null, "USER", "普通用户", 2, false)));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.create(duplicate));
         assertNotNull(ex.getMessage());

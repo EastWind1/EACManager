@@ -117,6 +117,10 @@ erDiagram
     SYS_USER ||--o{ REIMBURSEMENT : "created_by_id / last_modified_by_id"
     SYS_USER ||--o{ COMPANY : "created_by_id / last_modified_by_id"
     SYS_USER ||--o{ ATTACHMENT : "created_by_id / last_modified_by_id"
+    SYS_USER ||--o{ SYS_USER_ROLE : "user_id"
+    SYS_ROLE ||--o{ SYS_USER_ROLE : "role_id"
+    SYS_ROLE ||--o{ SYS_ROLE_PERMISSION : "role_id"
+    SYS_PERMISSION ||--o{ SYS_ROLE_PERMISSION : "permission_id"
 
     SYS_USER {
         int id PK
@@ -125,11 +129,55 @@ erDiagram
         varchar password "bcrypt 哈希"
         varchar phone "手机号"
         varchar email "邮箱"
-        varchar authority "ROLE_ADMIN / ROLE_USER / ROLE_FINANCE / ROLE_GUEST"
         bool disabled "停用标记"
         int created_by_id FK "自引用"
         timestamptz created_date
         int last_modified_by_id FK "自引用"
+        timestamptz last_modified_date
+    }
+
+    SYS_ROLE {
+        int id PK
+        varchar code UK "角色编码，如 ADMIN"
+        varchar name "角色名称"
+        int sort_order "排序号"
+        bool disabled "停用标记"
+        int created_by_id FK "审计"
+        timestamptz created_date
+        int last_modified_by_id FK "审计"
+        timestamptz last_modified_date
+    }
+
+    SYS_USER_ROLE {
+        int id PK
+        int user_id FK
+        int role_id FK
+        int created_by_id FK "审计"
+        timestamptz created_date
+        int last_modified_by_id FK "审计"
+        timestamptz last_modified_date
+    }
+
+    SYS_PERMISSION {
+        int id PK
+        varchar code UK "动作权限编码，如 serviceBill:create"
+        varchar module "模块编码，如 serviceBill"
+        varchar module_name "模块名称，如 服务单"
+        varchar name "权限名称，如 新增服务单"
+        int sort_order "排序号"
+        int created_by_id FK "审计"
+        timestamptz created_date
+        int last_modified_by_id FK "审计"
+        timestamptz last_modified_date
+    }
+
+    SYS_ROLE_PERMISSION {
+        int id PK
+        int role_id FK
+        int permission_id FK "引用 SYS_PERMISSION.id"
+        int created_by_id FK "审计"
+        timestamptz created_date
+        int last_modified_by_id FK "审计"
         timestamptz last_modified_date
     }
 ```

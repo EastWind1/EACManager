@@ -22,6 +22,30 @@ func NewController(cfg *config.JWTConfig, userService *Service) *Controller {
 	}
 }
 
+// InitializationStatus 查询是否需要初始化管理员
+func (c *Controller) InitializationStatus(ctx fiber.Ctx) error {
+	required, err := c.userService.IsInitializationRequired(ctx)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, InitStatus{Required: required})
+	return nil
+}
+
+// Initialize 初始化首个管理员
+func (c *Controller) Initialize(ctx fiber.Ctx) error {
+	var dto InitDTO
+	if err := ctx.Bind().Body(&dto); err != nil {
+		return err
+	}
+	user, err := c.userService.Initialize(ctx, &dto)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, user)
+	return nil
+}
+
 // Login 用户登录
 func (c *Controller) Login(ctx fiber.Ctx) error {
 	var param LoginParam

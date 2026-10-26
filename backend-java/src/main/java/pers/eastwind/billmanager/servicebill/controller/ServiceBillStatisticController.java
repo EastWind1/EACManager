@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/serviceBill")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+@PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.servicebill.permission.ServiceBillPermission).STATISTIC.getCode())")
 public class ServiceBillStatisticController {
 
     private final ServiceBillStatisticService servicebillStatisticService;

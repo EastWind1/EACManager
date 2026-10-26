@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { mdiAccount, mdiEye, mdiEyeOff, mdiLock } from '@mdi/js'
 import UserApi from '../api/UserApi'
 import { useRoute, useRouter } from 'vue-router'
@@ -75,4 +75,11 @@ async function login() {
 }
 
 useHotkey('enter', login)
+
+onMounted(async () => {
+  const status = await UserApi.getInitializationStatus()
+  if (status.required) {
+    await router.replace('/user/init')
+  }
+})
 </script>

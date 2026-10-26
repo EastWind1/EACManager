@@ -1,7 +1,7 @@
 package attach
 
 import (
-	"backend-go/pkg/audit"
+	"backend-go/internal/security"
 	"backend-go/pkg/errs"
 	"encoding/json/v2"
 )
@@ -82,28 +82,28 @@ type Attach struct {
 	Type         Type
 	RelativePath string
 	Status       Status `gorm:"index"`
-	audit.Audit
+	security.Audit
 }
 
 func (a *Attach) TableName() string {
 	return "attachment"
 }
 
-type AttachDTO struct {
+type DTO struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 	Type Type   `json:"type"`
 }
 
-func (a *Attach) ToDTO() *AttachDTO {
-	return &AttachDTO{
+func (a *Attach) ToDTO() *DTO {
+	return &DTO{
 		ID:   int(a.ID),
 		Name: a.Name,
 		Type: a.Type,
 	}
 }
 
-func (a *AttachDTO) TOEntity() *Attach {
+func (a *DTO) TOEntity() *Attach {
 	return &Attach{
 		ID:   uint(a.ID),
 		Name: a.Name,
@@ -111,11 +111,11 @@ func (a *AttachDTO) TOEntity() *Attach {
 	}
 }
 
-func ToDTOs(a []Attach) []AttachDTO {
+func ToDTOs(a []Attach) []DTO {
 	if a == nil {
 		return nil
 	}
-	attaches := make([]AttachDTO, len(a))
+	attaches := make([]DTO, len(a))
 	for i, attachment := range a {
 		attaches[i] = *attachment.ToDTO()
 	}

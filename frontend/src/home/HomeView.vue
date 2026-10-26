@@ -47,10 +47,22 @@
 <script lang="ts" setup>
 import { RouterView, useRouter } from 'vue-router'
 import { computed, ref } from 'vue'
-import { mdiAccount, mdiCash, mdiDomain, mdiMenu, mdiMonitorDashboard } from '@mdi/js'
+import {
+  mdiAccount,
+  mdiCash,
+  mdiDomain,
+  mdiMenu,
+  mdiMonitorDashboard,
+  mdiShieldAccount,
+} from '@mdi/js'
 import { useUserStore } from '@/user/store/UserStore.ts'
 import { useTheme } from 'vuetify/framework'
 import UserApi from '@/user/api/UserApi.ts'
+import { Permission as UserPermission } from '@/user/model/Permission'
+import { Permission as CompanyPermission } from '@/company/model/Permission'
+import { Permission as ServiceBillPermission } from '@/service-bill/model/Permission'
+import { Permission as ReimbursePermission } from '@/reimburse/model/Permission'
+import { Permission as ConfigPermission } from '@/permission/model/PermissionCode'
 
 // 当前路由
 const router = useRouter()
@@ -71,7 +83,11 @@ const isDark = computed({
   },
 })
 
-const menuItems = [
+const allMenuItems: {
+  title: string
+  props: { prependIcon: string; to: string }
+  permission?: string
+}[] = [
   {
     title: '仪表盘',
     props: {
@@ -80,11 +96,20 @@ const menuItems = [
     },
   },
   {
+    title: '权限配置',
+    props: {
+      prependIcon: mdiShieldAccount,
+      to: '/permission',
+    },
+    permission: ConfigPermission.PERMISSION_QUERY,
+  },
+  {
     title: '用户管理',
     props: {
       prependIcon: mdiAccount,
       to: '/user',
     },
+    permission: UserPermission.USER_QUERY,
   },
   {
     title: '公司管理',
@@ -92,6 +117,7 @@ const menuItems = [
       prependIcon: mdiDomain,
       to: '/company',
     },
+    permission: CompanyPermission.COMPANY_QUERY,
   },
   {
     title: '服务单',
@@ -99,6 +125,7 @@ const menuItems = [
       prependIcon: mdiMenu,
       to: '/services',
     },
+    permission: ServiceBillPermission.SERVICE_BILL_QUERY,
   },
   {
     title: '报销单',
@@ -106,8 +133,16 @@ const menuItems = [
       prependIcon: mdiCash,
       to: '/reimburses',
     },
+    permission: ReimbursePermission.REIMBURSE_QUERY,
   },
 ]
+
+// 根据动作权限过滤菜单
+const menuItems = computed(() =>
+  allMenuItems
+    .filter((item) => !item.permission || userStore.hasPermission(item.permission))
+    .map((item) => ({ title: item.title, props: item.props })),
+)
 
 // 退出登录
 async function logout() {

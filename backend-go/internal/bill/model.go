@@ -3,7 +3,7 @@ package bill
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/company"
-	"backend-go/pkg/audit"
+	"backend-go/internal/security"
 	"backend-go/pkg/errs"
 	"encoding/json"
 	"time"
@@ -93,7 +93,7 @@ func (s *Type) UnmarshalJSON(data []byte) error {
 }
 
 type ServiceBill struct {
-	audit.Audit
+	security.Audit
 	ID                  uint   `gorm:"primaryKey"`
 	Number              string `gorm:"uniqueIndex"`
 	Type                Type
@@ -138,25 +138,25 @@ func (d *Detail) TableName() string {
 }
 
 type DTO struct {
-	ID                  uint               `json:"id"`
-	Number              string             `json:"number"`
-	Type                Type               `json:"type"`
-	State               State              `json:"state"`
-	ProductCompany      *company.DTO       `json:"productCompany"`
-	ProjectName         string             `json:"projectName"`
-	ProjectAddress      string             `json:"projectAddress"`
-	ProjectContact      string             `json:"projectContact"`
-	ProjectContactPhone string             `json:"projectPhone"`
-	OnSiteContact       string             `json:"onSiteContact"`
-	OnSitePhone         string             `json:"onSitePhone"`
-	ElevatorInfo        string             `json:"elevatorInfo"`
-	TotalAmount         float64            `json:"totalAmount"`
-	OrderDate           *time.Time         `json:"orderDate"`
-	ProcessedDate       *time.Time         `json:"processedDate"`
-	FinishedDate        *time.Time         `json:"finishedDate"`
-	Remark              string             `json:"remark"`
-	Details             []DetailDTO        `json:"details"`
-	Attachments         []attach.AttachDTO `json:"attachments"`
+	ID                  uint         `json:"id"`
+	Number              string       `json:"number"`
+	Type                Type         `json:"type"`
+	State               State        `json:"state"`
+	ProductCompany      *company.DTO `json:"productCompany"`
+	ProjectName         string       `json:"projectName"`
+	ProjectAddress      string       `json:"projectAddress"`
+	ProjectContact      string       `json:"projectContact"`
+	ProjectContactPhone string       `json:"projectPhone"`
+	OnSiteContact       string       `json:"onSiteContact"`
+	OnSitePhone         string       `json:"onSitePhone"`
+	ElevatorInfo        string       `json:"elevatorInfo"`
+	TotalAmount         float64      `json:"totalAmount"`
+	OrderDate           *time.Time   `json:"orderDate"`
+	ProcessedDate       *time.Time   `json:"processedDate"`
+	FinishedDate        *time.Time   `json:"finishedDate"`
+	Remark              string       `json:"remark"`
+	Details             []DetailDTO  `json:"details"`
+	Attachments         []attach.DTO `json:"attachments"`
 }
 
 type DetailDTO struct {
@@ -173,7 +173,7 @@ func (s *ServiceBill) ToDTO(attaches []attach.Attach) *DTO {
 	for i, d := range s.Details {
 		details[i] = *d.ToDTO()
 	}
-	attachDTOes := make([]attach.AttachDTO, len(attaches))
+	attachDTOes := make([]attach.DTO, len(attaches))
 	for i, d := range attaches {
 		attachDTOes[i] = *d.ToDTO()
 	}

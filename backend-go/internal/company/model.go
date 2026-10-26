@@ -1,7 +1,7 @@
 package company
 
 import (
-	"backend-go/pkg/audit"
+	"backend-go/internal/security"
 )
 
 // Company 公司
@@ -15,7 +15,7 @@ type Company struct {
 	Email        string
 	Address      string
 	Disabled     bool
-	audit.Audit
+	security.Audit
 }
 
 // DTO 公司 DTO

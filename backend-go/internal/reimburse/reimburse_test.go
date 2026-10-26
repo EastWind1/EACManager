@@ -3,7 +3,7 @@ package reimburse_test
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/reimburse"
-	"backend-go/internal/testutil"
+	"backend-go/internal/test_util"
 	"backend-go/pkg/result"
 	"context"
 	"strconv"
@@ -27,12 +27,12 @@ func TestReimburseService(t *testing.T) {
 }
 
 func (s *ReimburseServiceTest) SetupSuite() {
-	attachSvc, contentSrv := attach.SetupForTest(testutil.AppCtx())
-	s.srv = reimburse.SetupForTest(testutil.AppCtx(), attachSvc, contentSrv)
+	attachSvc, contentSrv := attach.SetupForTest(test_util.AppCtx())
+	s.srv = reimburse.SetupForTest(test_util.AppCtx(), attachSvc, contentSrv)
 }
 
 func (s *ReimburseServiceTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 	s.testReim = &reimburse.DTO{
 		Summary:       "测试报销",
 		TotalAmount:   1000.00,
@@ -378,16 +378,16 @@ func TestReimburseStatService(t *testing.T) {
 }
 
 func (s *ReimburseStatServiceTest) SetupSuite() {
-	appCtx := testutil.AppCtx()
+	appCtx := test_util.AppCtx()
 	attachSvc, contentSrv := attach.SetupForTest(appCtx)
 	s.srv = reimburse.SetupForTest(appCtx, attachSvc, contentSrv)
 	s.statSrv = reimburse.NewStatisticService(appCtx.Cache, reimburse.NewReimburseRepository(appCtx.Db))
 }
 
 func (s *ReimburseStatServiceTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 	// 月度金额统计带缓存，逐个用例前清空，避免脏数据串扰
-	testutil.AppCtx().Cache.Clear()
+	test_util.AppCtx().Cache.Clear()
 }
 
 func (s *ReimburseStatServiceTest) TestCountReimburseByState() {
@@ -426,7 +426,7 @@ func (s *ReimburseStatServiceTest) TestSumAmountByMonth() {
 	now := time.Now()
 	otherMonth := now.AddDate(0, 0, -40)
 
-	repo := reimburse.NewReimburseRepository(testutil.AppCtx().Db)
+	repo := reimburse.NewReimburseRepository(test_util.AppCtx().Db)
 	before, err := repo.SumAmountByMonth(s.ctx)
 	s.NoError(err)
 	beforeMap := monthSumToMap(before)
@@ -521,7 +521,7 @@ func TestReimburseAttach(t *testing.T) {
 }
 
 func (s *ReimburseAttachTest) SetupSuite() {
-	appCtx := testutil.AppCtx()
+	appCtx := test_util.AppCtx()
 	attachSvc, contentSrv := attach.SetupForTest(appCtx)
 	s.attachSrv = attachSvc
 	s.srv = reimburse.SetupForTest(appCtx, attachSvc, contentSrv)
@@ -529,11 +529,11 @@ func (s *ReimburseAttachTest) SetupSuite() {
 }
 
 func (s *ReimburseAttachTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 }
 
-func (s *ReimburseAttachTest) upload(name string) attach.AttachDTO {
-	headers, err := testutil.UploadFileHeaders(name, "attach content")
+func (s *ReimburseAttachTest) upload(name string) attach.DTO {
+	headers, err := test_util.UploadFileHeaders(name, "attach content")
 	s.Require().NoError(err)
 	attaches, err := s.attachSrv.Upload(s.ctx, reimburse.AttachNamespace, headers)
 	s.Require().NoError(err)
@@ -541,7 +541,7 @@ func (s *ReimburseAttachTest) upload(name string) attach.AttachDTO {
 	return attaches[0]
 }
 
-func (s *ReimburseAttachTest) newReimburseDTO(attachments ...attach.AttachDTO) *reimburse.DTO {
+func (s *ReimburseAttachTest) newReimburseDTO(attachments ...attach.DTO) *reimburse.DTO {
 	return &reimburse.DTO{
 		Summary:       "附件关联测试报销",
 		TotalAmount:   100.00,

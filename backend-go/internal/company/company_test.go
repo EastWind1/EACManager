@@ -2,7 +2,7 @@ package company_test
 
 import (
 	"backend-go/internal/company"
-	"backend-go/internal/testutil"
+	"backend-go/internal/test_util"
 	"backend-go/pkg/result"
 	"context"
 	"strconv"
@@ -24,11 +24,11 @@ func TestCompanyService(t *testing.T) {
 }
 
 func (s *CompanyServiceTest) SetupSuite() {
-	s.srv = company.SetupForTest(testutil.AppCtx())
+	s.srv = company.SetupForTest(test_util.AppCtx())
 }
 
 func (s *CompanyServiceTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 	s.testCom = &company.DTO{
 		Name:         "测试公司",
 		ContactName:  "联系人",

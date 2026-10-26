@@ -2,7 +2,7 @@ package reimburse
 
 import (
 	"backend-go/internal/attach"
-	"backend-go/pkg/audit"
+	"backend-go/internal/security"
 	"backend-go/pkg/errs"
 	"encoding/json"
 	"time"
@@ -57,7 +57,7 @@ func (s *State) UnmarshalJSON(data []byte) error {
 //
 // 类名简化为 Reimburse，表名仍为 reimbursement，故显式指定。
 type Reimburse struct {
-	audit.Audit
+	security.Audit
 	ID     uint   `gorm:"primaryKey"`
 	Number string `gorm:"uniqueIndex"`
 	State  State
@@ -89,15 +89,15 @@ func (d *Detail) TableName() string {
 }
 
 type DTO struct {
-	ID            uint               `json:"id"`
-	Number        string             `json:"number"`
-	State         State              `json:"state"`
-	Summary       string             `json:"summary"`
-	TotalAmount   float64            `json:"totalAmount"`
-	ReimburseDate *time.Time         `json:"reimburseDate"`
-	Remark        string             `json:"remark"`
-	Details       []DetailDTO        `json:"details"`
-	Attachments   []attach.AttachDTO `json:"attachments"`
+	ID            uint         `json:"id"`
+	Number        string       `json:"number"`
+	State         State        `json:"state"`
+	Summary       string       `json:"summary"`
+	TotalAmount   float64      `json:"totalAmount"`
+	ReimburseDate *time.Time   `json:"reimburseDate"`
+	Remark        string       `json:"remark"`
+	Details       []DetailDTO  `json:"details"`
+	Attachments   []attach.DTO `json:"attachments"`
 }
 
 type DetailDTO struct {
@@ -112,7 +112,7 @@ func (r *Reimburse) ToDTO(attaches []attach.Attach) *DTO {
 	for i, d := range r.Details {
 		details[i] = *d.ToDTO()
 	}
-	attachDTOes := make([]attach.AttachDTO, len(attaches))
+	attachDTOes := make([]attach.DTO, len(attaches))
 	for i, d := range attaches {
 		attachDTOes[i] = *d.ToDTO()
 	}

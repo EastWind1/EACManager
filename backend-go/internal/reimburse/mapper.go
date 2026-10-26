@@ -21,7 +21,7 @@ func NewMapper(content *attach.ContentService) *Mapper {
 }
 
 // Map 附件映射为报销单
-func (m *Mapper) Map(attachment *attach.AttachDTO) (*DTO, error) {
+func (m *Mapper) Map(attachment *attach.DTO) (*DTO, error) {
 	if attachment == nil {
 		return nil, errs.NewBizError("附件为空")
 	}

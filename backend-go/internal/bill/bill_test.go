@@ -3,7 +3,7 @@ package bill_test
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/bill"
-	"backend-go/internal/testutil"
+	"backend-go/internal/test_util"
 	"backend-go/pkg/result"
 	"context"
 	"strconv"
@@ -27,12 +27,12 @@ func TestBillService(t *testing.T) {
 }
 
 func (s *BillServiceTest) SetupSuite() {
-	attachSvc, _ := attach.SetupForTest(testutil.AppCtx())
-	s.srv, _ = bill.SetupForTest(testutil.AppCtx(), attachSvc)
+	attachSvc, _ := attach.SetupForTest(test_util.AppCtx())
+	s.srv, _ = bill.SetupForTest(test_util.AppCtx(), attachSvc)
 }
 
 func (s *BillServiceTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 	s.testBill = &bill.DTO{
 		State:          bill.Created,
 		ProjectName:    "测试项目",
@@ -562,14 +562,14 @@ func TestBillStatService(t *testing.T) {
 }
 
 func (s *BillStatServiceTest) SetupSuite() {
-	attachSvc, _ := attach.SetupForTest(testutil.AppCtx())
-	s.srv, s.statSrv = bill.SetupForTest(testutil.AppCtx(), attachSvc)
+	attachSvc, _ := attach.SetupForTest(test_util.AppCtx())
+	s.srv, s.statSrv = bill.SetupForTest(test_util.AppCtx(), attachSvc)
 }
 
 func (s *BillStatServiceTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 	// 月度金额统计带缓存，逐个用例前清空，避免脏数据串扰
-	testutil.AppCtx().Cache.Clear()
+	test_util.AppCtx().Cache.Clear()
 }
 
 func (s *BillStatServiceTest) TestCountBillsByState() {
@@ -600,7 +600,7 @@ func (s *BillStatServiceTest) TestSumAmountByMonth() {
 	now := time.Now()
 	otherMonth := now.AddDate(0, 0, -40)
 
-	repo := bill.NewRepository(testutil.AppCtx().Db)
+	repo := bill.NewRepository(test_util.AppCtx().Db)
 	before, err := repo.SumReceiveAmountByMonth(s.ctx)
 	s.NoError(err)
 	beforeMap := monthSumToMap(before)
@@ -708,7 +708,7 @@ func TestBillAttach(t *testing.T) {
 }
 
 func (s *BillAttachTest) SetupSuite() {
-	appCtx := testutil.AppCtx()
+	appCtx := test_util.AppCtx()
 	attachSvc, _ := attach.SetupForTest(appCtx)
 	s.attachSrv = attachSvc
 	s.srv, _ = bill.SetupForTest(appCtx, attachSvc)
@@ -716,11 +716,11 @@ func (s *BillAttachTest) SetupSuite() {
 }
 
 func (s *BillAttachTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 }
 
-func (s *BillAttachTest) upload(name string) attach.AttachDTO {
-	headers, err := testutil.UploadFileHeaders(name, "attach content")
+func (s *BillAttachTest) upload(name string) attach.DTO {
+	headers, err := test_util.UploadFileHeaders(name, "attach content")
 	s.Require().NoError(err)
 	attaches, err := s.attachSrv.Upload(s.ctx, bill.AttachNamespace, headers)
 	s.Require().NoError(err)
@@ -728,7 +728,7 @@ func (s *BillAttachTest) upload(name string) attach.AttachDTO {
 	return attaches[0]
 }
 
-func (s *BillAttachTest) newBillDTO(attachments ...attach.AttachDTO) *bill.DTO {
+func (s *BillAttachTest) newBillDTO(attachments ...attach.DTO) *bill.DTO {
 	return &bill.DTO{
 		ProjectName: "附件关联测试项目",
 		TotalAmount: 100.00,
@@ -770,7 +770,7 @@ func (s *BillAttachTest) TestAttachRelation() {
 	s.Require().NoError(err)
 	s.Empty(rels)
 
-	remaining, err := attach.NewRepository(testutil.AppCtx().Db).FindByID(s.ctx, uint(attachment.ID))
+	remaining, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, uint(attachment.ID))
 	s.Require().NoError(err)
 	s.Nil(remaining)
 }

@@ -1,7 +1,7 @@
 package attach
 
 import (
-	"backend-go/pkg/auth"
+	"backend-go/internal/security"
 	appContext "backend-go/pkg/context"
 	"context"
 	"time"
@@ -10,15 +10,17 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
-func Setup(ctx *appContext.AppContext, router fiber.Router) (*Service, *ContentService) {
+func Setup(ctx *appContext.AppContext, router fiber.Router, permissionSrv *security.Service,
+	permissionSyncSrv *security.PermissionSyncService) (*Service, *ContentService) {
+	permissionSyncSrv.Register(attachPermissions()...)
 	attachmentRepo := NewRepository(ctx.Db)
 	attachmentService := NewService(ctx.Cfg.Attach, ctx.Cache, attachmentRepo)
 	ocrService := NewOCRService(ctx.Cfg.OCR)
 	attachmentController := NewController(attachmentService)
 	attachGroup := router.Group("/attachment")
 	{
-		attachGroup.Get("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), attachmentController.Download)
-		attachGroup.Post("/upload", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), attachmentController.Upload)
+		attachGroup.Get("/", security.Middleware(permissionSrv, DownloadAuthCode), attachmentController.Download)
+		attachGroup.Post("/upload", security.Middleware(permissionSrv, UploadAuthCode), attachmentController.Upload)
 	}
 
 	go func() {

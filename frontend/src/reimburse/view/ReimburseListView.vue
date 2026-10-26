@@ -1,154 +1,174 @@
 <template>
-  <v-expansion-panels>
-    <v-expansion-panel>
-      <template #title>
-        <v-icon :icon="mdiFilter" class="me-2"></v-icon>
-        过滤条件
-      </template>
+  <v-container>
+    <v-expansion-panels>
+      <v-expansion-panel>
+        <template #title>
+          <v-icon :icon="mdiFilter" class="me-2"></v-icon>
+          过滤条件
+        </template>
+        <template #text>
+          <v-container>
+            <v-row>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-text-field v-model="queryParam.number" clearable label="单号"/>
+              </v-col>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-select
+                  v-model="queryParam.states"
+                  :items="stateOptions"
+                  chips
+                  clearable
+                  closable-chips
+                  label="状态"
+                  multiple
+                />
+              </v-col>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-date-input
+                  v-model="queryParam.reimburseDateRange"
+                  clearable
+                  label="报销日期"
+                  multiple="range"
+                  prepend-icon=""
+                  prepend-inner-icon="$calendar"
+                ></v-date-input>
+              </v-col>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-text-field v-model="queryParam.summary" clearable label="摘要"/>
+              </v-col>
+              <v-col class="d-flex justify-end align-center">
+                <v-btn variant="tonal" @click="search = new Date().toString()">
+                  <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
+                  查询
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-container>
+        </template>
+      </v-expansion-panel>
+    </v-expansion-panels>
+    <v-card>
       <template #text>
-        <v-container>
-          <v-row>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.number" clearable label="单号" />
-            </v-col>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-select
-                v-model="queryParam.states"
-                :items="stateOptions"
-                chips
-                clearable
-                closable-chips
-                label="状态"
-                multiple
-              />
-            </v-col>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-date-input
-                v-model="queryParam.reimburseDateRange"
-                clearable
-                label="报销日期"
-                multiple="range"
-                prepend-icon=""
-                prepend-inner-icon="$calendar"
-              ></v-date-input>
-            </v-col>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.summary" clearable label="摘要" />
-            </v-col>
-            <v-col class="d-flex justify-end align-center">
-              <v-btn variant="tonal" @click="search = new Date().toString()">
-                <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
-                查询
-              </v-btn>
-            </v-col>
-          </v-row>
-        </v-container>
-      </template>
-    </v-expansion-panel>
-  </v-expansion-panels>
-  <v-card>
-    <template #text>
-      <v-row class="justify-between">
-        <v-col cols="3" md="2" v-if="selectedIds.length > 0" class="text-caption ml-5">
-          已选中 {{ selectedIds.length }} 项
-        </v-col>
-        <v-col>
-          <v-row class="justify-end" gap="0">
-            <v-btn
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :disabled="loading"
-              color="primary"
-              @click="create"
+        <v-row class="justify-between">
+          <v-col cols="3" md="2" v-if="selectedIds.length > 0" class="text-caption ml-5">
+            已选中 {{ selectedIds.length }} 项
+          </v-col>
+          <v-col>
+            <v-row class="justify-end" gap="0">
+              <v-btn
+                v-permission="Permission.REIMBURSE_CREATE"
+                :disabled="loading"
+                color="primary"
+                @click="create"
               >新增
-            </v-btn>
-            <v-btn
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :disabled="loading"
-              variant="tonal"
-              @click="importFile"
+              </v-btn>
+              <v-btn
+                v-permission="Permission.REIMBURSE_IMPORT"
+                :disabled="loading"
+                variant="tonal"
+                @click="importFile"
               >导入
-            </v-btn>
+              </v-btn>
 
-            <v-btn
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :disabled="loading"
-              color="primary"
-              @click="reloadAfterAction(process)"
+              <v-btn
+                v-permission="Permission.REIMBURSE_PROCESS"
+                :disabled="loading"
+                color="primary"
+                @click="reloadAfterAction(process)"
               >提交
-            </v-btn>
-            <v-btn
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :disabled="loading"
-              color="primary"
-              @click="reloadAfterAction(finish)"
+              </v-btn>
+              <v-btn
+                v-permission="Permission.REIMBURSE_FINISH"
+                :disabled="loading"
+                color="primary"
+                @click="reloadAfterAction(finish)"
               >完成
-            </v-btn>
-            <div v-role="[AuthorityRole.ROLE_ADMIN.value]">
-              <v-menu location="bottom">
-                <template #activator="{ props }">
-                  <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
-                </template>
-                <v-list density="compact">
-                  <v-list-item @click="reloadAfterAction(cancelProcess)">
-                    <v-list-item-title>取消处理</v-list-item-title>
-                  </v-list-item>
-                  <v-list-item @click="reloadAfterAction(cancelFinish)">
-                    <v-list-item-title>取消处理完成</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
-            </div>
-            <v-btn
-              v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-              :disabled="loading"
-              color="error"
-              @click="reloadAfterAction(remove)"
+              </v-btn>
+              <div
+                v-permission="[
+                Permission.REIMBURSE_CANCEL_PROCESS,
+                Permission.REIMBURSE_CANCEL_FINISH,
+              ]"
+              >
+                <v-menu location="bottom">
+                  <template #activator="{ props }">
+                    <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
+                  </template>
+                  <v-list density="compact">
+                    <v-list-item
+                      v-permission="Permission.REIMBURSE_CANCEL_PROCESS"
+                      @click="reloadAfterAction(cancelProcess)"
+                    >
+                      <v-list-item-title>取消处理</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item
+                      v-permission="Permission.REIMBURSE_CANCEL_FINISH"
+                      @click="reloadAfterAction(cancelFinish)"
+                    >
+                      <v-list-item-title>取消处理完成</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </div>
+              <v-btn
+                v-permission="Permission.REIMBURSE_DELETE"
+                :disabled="loading"
+                color="error"
+                @click="reloadAfterAction(remove)"
               >删除
-            </v-btn>
-            <v-btn :disabled="loading" variant="tonal" @click="exportToZip">导出</v-btn>
-          </v-row>
-        </v-col>
-      </v-row>
-    </template>
-  </v-card>
-  <v-data-table-server
-    v-model="selectedIds"
-    :headers="headers"
-    :items="data.items"
-    :items-length="data.totalCount"
-    :items-per-page="data.pageSize ? data.pageSize : 25"
-    :items-per-page-options="[
+              </v-btn>
+              <v-btn
+                v-permission="Permission.REIMBURSE_EXPORT"
+                :disabled="loading"
+                variant="tonal"
+                @click="exportToZip"
+              >导出
+              </v-btn
+              >
+            </v-row>
+          </v-col>
+        </v-row>
+      </template>
+    </v-card>
+    <v-data-table-server
+      v-model="selectedIds"
+      :headers="headers"
+      :items="data.items"
+      :items-length="data.totalCount"
+      :items-per-page="data.pageSize ? data.pageSize : 25"
+      :items-per-page-options="[
       { value: 10, title: '10' },
       { value: 25, title: '25' },
       { value: 50, title: '50' },
       { value: 100, title: '100' },
     ]"
-    :search="search"
-    :sort-by="queryParam.sorts"
-    class="flex-grow-1"
-    mobile-breakpoint="sm"
-    show-select
-    @update:options="loadItems"
-  >
-    <template #[`item.number`]="{ item }">
-      <RouterLink :to="`/reimburse/${item.id}`">{{ item.number }}</RouterLink>
-    </template>
-    <template #[`item.state`]="{ item }">
-      <v-chip :color="ReimburseState[item.state].color" class="text-white" size="small">
-        {{ ReimburseState[item.state].title }}
-      </v-chip>
-    </template>
-    <template #[`item.totalAmount`]="{ item }">
-      <div class="text-right">{{ item.totalAmount ? item.totalAmount.toFixed(2) : '0.00' }}</div>
-    </template>
-    <template #[`item.reimburseDate`]="{ item }">
-      {{ item.reimburseDate ? dateUtil.format(item.reimburseDate, 'keyboardDate') : '' }}
-    </template>
-  </v-data-table-server>
+      :search="search"
+      :sort-by="queryParam.sorts"
+      class="flex-grow-1"
+      mobile-breakpoint="sm"
+      show-select
+      @update:options="loadItems"
+    >
+      <template #[`item.number`]="{ item }">
+        <RouterLink :to="`/reimburse/${item.id}`">{{ item.number }}</RouterLink>
+      </template>
+      <template #[`item.state`]="{ item }">
+        <v-chip :color="ReimburseState[item.state].color" class="text-white" size="small">
+          {{ ReimburseState[item.state].title }}
+        </v-chip>
+      </template>
+      <template #[`item.totalAmount`]="{ item }">
+        <div class="text-right">{{ item.totalAmount ? item.totalAmount.toFixed(2) : '0.00' }}</div>
+      </template>
+      <template #[`item.reimburseDate`]="{ item }">
+        {{ item.reimburseDate ? dateUtil.format(item.reimburseDate, 'keyboardDate') : '' }}
+      </template>
+    </v-data-table-server>
+  </v-container>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import {ref} from 'vue'
 import {
   type Reimburse,
   type ReimburseQueryParam,
@@ -156,23 +176,23 @@ import {
   type ReimburseStateValue,
 } from '../model/Reimburse'
 import ReimburseApi from '../api/ReimburseApi'
-import type { PageResult } from '@/common/model/PageResult'
-import { useRoute, useRouter } from 'vue-router'
-import { useUIStore } from '@/common/store/UIStore'
-import { useReimburseActions } from '../composable/ReimburseActions'
-import { storeToRefs } from 'pinia'
-import { AuthorityRole } from '@/user/model/User'
-import { mdiFilter, mdiMagnify } from '@mdi/js'
-import { useDate, useHotkey } from 'vuetify/framework'
-import { useRouterStore } from '@/common/store/RouterStore'
-import { useFileSelector } from '@/attachment/composable/FileSelector'
+import type {PageResult} from '@/common/model/PageResult'
+import {useRoute, useRouter} from 'vue-router'
+import {useUIStore} from '@/common/store/UIStore'
+import {useReimburseActions} from '../composable/ReimburseActions'
+import {storeToRefs} from 'pinia'
+import {Permission} from '../model/Permission'
+import {mdiFilter, mdiMagnify} from '@mdi/js'
+import {useDate, useHotkey} from 'vuetify/framework'
+import {useRouterStore} from '@/common/store/RouterStore'
+import {useFileSelector} from '@/attachment/composable/FileSelector'
 
 const store = useUIStore()
-const { info, warning, showLoading } = store
-const { loading } = storeToRefs(store)
+const {info, warning, showLoading} = store
+const {loading} = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
-const { setData } = useRouterStore()
+const {setData} = useRouterStore()
 const dateUtil = useDate()
 
 // 筛选条件区域
@@ -221,24 +241,24 @@ const queryParam = ref<QueryParam>({
 // 处理路由参数
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
-  queryParam.value = { ...queryParam.value, ...data }
+  queryParam.value = {...queryParam.value, ...data}
 } else {
   // 尝试从缓存恢复查询条件
   const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
   if (cache) {
     const data = JSON.parse(cache) as QueryParam
-    queryParam.value = { ...queryParam.value, ...data }
+    queryParam.value = {...queryParam.value, ...data}
   }
 }
 
 // 数据表格区域
 // 表头
 const headers = [
-  { title: '单号', key: 'number', sortable: false },
-  { title: '状态', key: 'state', sortable: false },
-  { title: '摘要', key: 'summary', sortable: false },
-  { title: '总金额', key: 'totalAmount', sortable: false },
-  { title: '报销日期', key: 'reimburseDate', sortable: false },
+  {title: '单号', key: 'number', sortable: false},
+  {title: '状态', key: 'state', sortable: false},
+  {title: '摘要', key: 'summary', sortable: false},
+  {title: '总金额', key: 'totalAmount', sortable: false},
+  {title: '报销日期', key: 'reimburseDate', sortable: false},
 ]
 
 // 列表数据
@@ -303,7 +323,7 @@ async function loadItems(options: {
 }
 
 // 动作结果
-const { process, finish, remove, cancelProcess, cancelFinish } = useReimburseActions(
+const {process, finish, remove, cancelProcess, cancelFinish} = useReimburseActions(
   (id: number) => {
     const row = data.value.items.find((item) => item.id === id)
     if (row) {
@@ -348,7 +368,7 @@ async function importFile() {
   setData(data)
   await router.push({
     path: '/reimburse',
-    query: { action: 'import' },
+    query: {action: 'import'},
   })
 }
 

@@ -3,8 +3,8 @@ package pers.eastwind.billmanager.servicebill.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import pers.eastwind.billmanager.common.model.AuditEntity;
 import pers.eastwind.billmanager.company.model.Company;
+import pers.eastwind.billmanager.security.model.AuditEntity;
 
 import java.math.BigDecimal;
 import java.time.Instant;

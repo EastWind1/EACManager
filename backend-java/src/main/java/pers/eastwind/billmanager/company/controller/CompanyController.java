@@ -20,25 +20,25 @@ public class CompanyController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.company.permission.CompanyPermission).QUERY.getCode())")
     public PageResult<CompanyDTO> getAll(QueryParam queryParam) {
         return companyService.findEnabled(queryParam);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.company.permission.CompanyPermission).CREATE.getCode())")
     public CompanyDTO create(@RequestBody CompanyDTO companyDTO) {
         return companyService.create(companyDTO);
     }
 
     @PutMapping
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.company.permission.CompanyPermission).UPDATE.getCode())")
     public CompanyDTO update(@RequestBody CompanyDTO companyDTO) {
         return companyService.update(companyDTO);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.company.permission.CompanyPermission).DISABLE.getCode())")
     public void delete(@PathVariable Integer id) {
         companyService.disable(id);
     }

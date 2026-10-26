@@ -22,6 +22,26 @@ const UserApi = {
     })
   },
   /**
+   * 查询是否需要初始化管理员
+   */
+  async getInitializationStatus() {
+    return await http.get<{ required: boolean }>('/initialization', { useLoad: false })
+  },
+
+  /**
+   * 初始化首个管理员
+   */
+  async initialize(user: {
+    username: string
+    password: string
+    name: string
+    phone?: string
+    email?: string
+  }) {
+    return await http.post<User>('/initialization', user, { useLoad: false })
+  },
+
+  /**
    * 登出
    */
   async logout() {

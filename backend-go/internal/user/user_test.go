@@ -1,9 +1,9 @@
 package user_test
 
 import (
-	"backend-go/internal/testutil"
+	"backend-go/internal/security"
+	"backend-go/internal/test_util"
 	"backend-go/internal/user"
-	"backend-go/pkg/auth"
 	"backend-go/pkg/result"
 	"context"
 	"strconv"
@@ -25,16 +25,16 @@ func TestUserService(t *testing.T) {
 }
 
 func (s *UserServiceTest) SetupSuite() {
-	s.srv = user.SetupForTest(testutil.AppCtx())
+	s.srv = user.SetupForTest(test_util.AppCtx())
 }
 
 func (s *UserServiceTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 	s.testUser = &user.DTO{
-		Username:  "testUser",
-		Password:  new("password123"),
-		Name:      "测试用户",
-		Authority: "ROLE_ADMIN",
+		Username: "testUser",
+		Password: new("password123"),
+		Name:     "测试用户",
+		Roles:    []security.RoleDTO{{Code: "ADMIN"}},
 	}
 }
 
@@ -74,10 +74,10 @@ func (s *UserServiceTest) TestLogin() {
 func (s *UserServiceTest) TestGetAll() {
 	for i := range 3 {
 		newUser := &user.DTO{
-			Username:  "user" + strconv.Itoa(i),
-			Password:  new("password"),
-			Name:      "用户" + strconv.Itoa(i),
-			Authority: auth.RoleAdmin,
+			Username: "user" + strconv.Itoa(i),
+			Password: new("password"),
+			Name:     "用户" + strconv.Itoa(i),
+			Roles:    []security.RoleDTO{{Code: "ADMIN"}},
 		}
 		_, err := s.srv.Create(s.ctx, newUser)
 		s.NoError(err)
@@ -118,10 +118,10 @@ func (s *UserServiceTest) TestCreateDuplicateUsername() {
 	s.NoError(err)
 
 	duplicate := &user.DTO{
-		Username:  "testUser",
-		Password:  new("password123"),
-		Name:      "重复用户",
-		Authority: auth.RoleUser,
+		Username: "testUser",
+		Password: new("password123"),
+		Name:     "重复用户",
+		Roles:    []security.RoleDTO{{Code: "USER"}},
 	}
 	_, err = s.srv.Create(s.ctx, duplicate)
 	s.Error(err)

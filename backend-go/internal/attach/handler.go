@@ -41,7 +41,7 @@ func (c *Controller) Upload(ctx fiber.Ctx) error {
 }
 
 func (c *Controller) Download(ctx fiber.Ctx) error {
-	var dto AttachDTO
+	var dto DTO
 	if err := ctx.Bind().Query(&dto); err != nil {
 		return err
 	}

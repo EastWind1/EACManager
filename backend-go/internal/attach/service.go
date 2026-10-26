@@ -120,7 +120,7 @@ func (s *Service) GetRelativePath(absolutePath string) (string, error) {
 	return relativePath, nil
 }
 
-func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*multipart.FileHeader) ([]AttachDTO, error) {
+func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*multipart.FileHeader) ([]DTO, error) {
 	if !namespacePattern.MatchString(namespace) {
 		return nil, errs.NewBizError("附件命名空间不合法")
 	}
@@ -128,7 +128,7 @@ func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*m
 		return nil, errs.NewBizError("文件不能为空")
 	}
 
-	attachments := make([]AttachDTO, 0, len(fileHeaders))
+	attachments := make([]DTO, 0, len(fileHeaders))
 	for _, fileHeader := range fileHeaders {
 		attachment, err := s.saveOne(ctx, namespace, fileHeader)
 		if err != nil {
@@ -251,7 +251,7 @@ func (s *Service) CleanTransientFiles(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) GetResource(ctx context.Context, dto *AttachDTO) (filename string, path string, err error) {
+func (s *Service) GetResource(ctx context.Context, dto *DTO) (filename string, path string, err error) {
 	if dto == nil {
 		return "", "", errs.NewBizError("附件信息不能为空")
 	}

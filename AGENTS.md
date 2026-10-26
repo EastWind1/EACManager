@@ -21,31 +21,45 @@ per-module layering. Java follows `controller → service → repository → mod
 mappers; Go flattens each domain into one package with `handler.go` / `service.go` / `store.go` /
 `model.go`.
 
-**Auth (identical contract):** `POST /api/user/token` is the only public endpoint; it sets an
-`X-Auth-Token` httpOnly cookie (`path=/api`, `SameSite=Strict`, `Secure`) and returns the user.
-Go additionally accepts `Authorization: Bearer <token>`. Java enforces roles with
-`@PreAuthorize`, Go with `auth.RoleMiddleware` (this is why some Go routes differ — see below).
+**Auth (identical contract):** `POST /api/user/token` and the first-admin initialization endpoints
+are public; login sets an
+`X-Auth-Token` httpOnly cookie (`path=/api`, `SameSite=Strict`, `Secure`) and returns the user with
+its `roles` and deduplicated action permissions. Go additionally accepts
+`Authorization: Bearer <token>`. Authorization is **action-level**, not role-level: each endpoint
+requires a permission code such as `serviceBill:create` or `reimburse:cancel-finish`. Java enforces
+them with `@PreAuthorize("hasAuthority(T(…Permission).CODE.getCode())")`: `UserService.loadUserByUsername` asks
+`SecurityService` to assemble roles + permissions into the transient `AuthorityUser.authorities`
+set, which is exactly what `getAuthorities()` returns. It is intentionally not cached, so DB
+role/permission edits take effect on the next request. Go uses `security.Middleware` backed by
+`internal/security`.
 
-**Modules:** `user` (login/JWT), `company`, `servicebill`/`bill` (work orders + statistics),
-`reimburse` (expense reports + statistics), `attach` (upload/OCR/export). Statistics live inside
+**Modules:** `user` (login/user profile), `security` (roles, permissions, role↔user assignment,
+audit config), `company`, `servicebill`/`bill` (work orders + statistics), `reimburse` (expense
+reports + statistics), `attach` (upload/OCR/export). Users and roles are decoupled through
+`sys_user_role`; `user` never stores a role column. Statistics live inside
 each business module — no standalone `statistic` backend module; only the dashboard frontend is
 `frontend/src/statistic/`.
 
 **Frontend:** Vue 3 + Vuetify 4 (`zhHans`, dark-mode aware) + Pinia + Vue Router, built with Vite.
-Routes: `/login`, `/dashboard`, `/user`, `/company`, `/services`, `/service/:id?`, `/reimburses`,
-`/reimburse/:id?`, plus a catch-all 404. `common/api/HttpClient.ts` wraps `axios` (request dedup
+Routes: `/login`, `/user/init` (public first-admin setup), `/dashboard`, `/user`, `/company`,
+`/services`, `/service/:id?`, `/reimburses`, `/reimburse/:id?`, `/permission`, plus a catch-all 404. `common/api/HttpClient.ts` wraps `axios` (request dedup
 via `AbortController`, loading bar, 401→login redirect, 403/500 toasts, unwraps `data`; binary
 endpoints pass `responseType: 'blob'`; `onDownloadProgress` / `onUploadProgress` report progress).
-`v-role` hides elements by setting `display: none` (it does not unmount them).
+`v-permission` (action codes) hides elements by setting `display: none` (it does not unmount them);
+route `meta.permissions` is checked in a global guard. `v-role` no longer exists.
 
 ## Database (PostgreSQL)
 
-9 tables, integer PKs from `SEQUENCE`s (increment 50), audit columns on all: `created_by_id`,
+13 tables, integer PKs from `SEQUENCE`s (increment 50), audit columns on all: `created_by_id`,
 `created_date`, `last_modified_by_id`, `last_modified_date`.
 
 | Table | Key fields |
 |---|---|
-| `sys_user` | `username` (unique), `name`, `password` (bcrypt), `phone`, `email`, `authority`, `disabled` |
+| `sys_user` | `username` (unique), `name`, `password` (bcrypt), `phone`, `email`, `disabled` — no role column |
+| `sys_role` | `code` (unique, e.g. `ADMIN`), `name`, `sort_order`, `disabled` |
+| `sys_user_role` | `user_id`, `role_id`, unique `(user_id, role_id)` |
+| `sys_permission` | `code` (unique), `module`, `module_name`, `name`, `sort_order` — module permission definitions synced here at startup |
+| `sys_role_permission` | `role_id`, `permission_id`, unique `(role_id, permission_id)` |
 | `company` | `name`, `contact_name`, `contact_phone`, `address`, `email`, `disabled` |
 | `service_bill` | `number`, `type` (INSTALL=0/FIX=1), `state`, `total_amount`, `project_name`, `project_address`, `project_contact(_phone)`, `elevator_info`, `on_site_contact`, `on_site_phone`, `order_date`, `processed_date`, `finished_date`, `remark`, `product_company_id`, `version` |
 | `service_bill_detail` | `device`, `quantity`, `unit_price`, `subtotal`, `remark`, FK `service_bill_id` |
@@ -55,11 +69,26 @@ endpoints pass `responseType: 'blob'`; `onDownloadProgress` / `onUploadProgress`
 | `service_bill_attach_relation` | `service_bill_id`, `attach_id` — owned by the service-bill module |
 | `reimburse_attach_relation` | `reimburse_id`, `attach_id` — owned by the reimburse module |
 
-`authority` ∈ ROLE_ADMIN / ROLE_USER / ROLE_FINANCE / ROLE_GUEST. `version` is the Go
-optimistic-lock column. Indexes exist on `service_bill(number, created_date)`,
+Roles live in `sys_role` (startup ensures `ADMIN`/`USER`; `FINANCE`/`GUEST` can be added through the
+role API); a user owns any number of roles
+through `sys_user_role`. Permission **types** are declared by each module (Java
+`*PermissionProvider` enums; Go each business package declares `<Action>AuthCode` string constants
+and an inline `[]security.PermissionDTO` list via `xxxPermissions()`, called from its `Setup`;
+`security.Middleware` takes the code string directly) and synced into `sys_permission` at startup — upsert only, DB-only extras are kept and logged, not deleted. After the
+permission sync, both backends ensure the `ADMIN` and `USER` roles exist and grant `ADMIN`
+`permission:query` / `permission:update`. If no user has the `ADMIN` role, the login page checks
+`GET /api/user/initialization` and redirects to `/user/init`; unauthenticated API calls still return
+HTTP 428. The public initialization endpoint creates exactly one admin, using a row lock to prevent
+concurrent double initialization. Role grants
+are rows in `sys_role_permission`. The security API reads the DB catalog and validates grants
+against it. Codes are `{module}:{action}` (`user`, `company`, `serviceBill`, `reimburse`, `attach`,
+`security`). Admin (`ADMIN`) must always keep `permission:query` and `permission:update` (enforced on
+save) so the permission page cannot lock itself out. `version` is the Go optimistic-lock column.
+Indexes exist on `service_bill(number, created_date)`,
 `reimbursement(number, reimburse_date)`, `sys_user(username)`,
 `service_bill_attach_relation(service_bill_id)`, `reimburse_attach_relation(reimburse_id)`,
-`attachment(status)`.
+`attachment(status)`, `sys_role_permission(role_id, permission_id)`,
+`sys_user_role(user_id, role_id)`, `sys_permission(module)`.
 
 **Attachments are S3-shaped, not filesystem-shaped.** The storage key is
 `{namespace}/{uuid}{original-file-name}` — generated once at upload and **never moved**, so there is
@@ -86,8 +115,10 @@ database.
 
 `attachment.relative_path` is internal storage layout — never expose it in DTOs or API responses.
 `service_bill_detail` / `reimburse_detail` own no audit columns and are cascade-deleted with their
-parent. Default admin `root` is seeded by `deploy/database/init_user.sql` (scheme in
-`init_scheme.sql`).
+parent. Fresh databases are created by `deploy/database/init_schema.sql`; the first admin is created
+through the initialization endpoint, and startup ensures the `ADMIN` and `USER` roles exist.
+Existing databases run `deploy/database/migrations/migrate_security.sql` once (migrations live in a
+subdirectory so the Postgres init scripts do not execute them on fresh databases).
 
 ### Service bill state machine
 
@@ -117,15 +148,20 @@ Roles: A=ADMIN, U=USER, F=FINANCE. "auth" means any authenticated role.
 
 | Module | Endpoints |
 |---|---|
-| `/api/user` | `POST /token` (public) · `PUT /logout` · `GET /` A/U/F · `POST /` A · `PUT /` A/U/F · `DELETE /:username` (disable) A |
-| `/api/company` | `GET /` A/U · `POST /` A · `PUT /` A · `DELETE /:id` (disable) A |
+| `/api/user` | `POST /token` (public) · `GET /initialization` (public) · `POST /initialization` (public, only while no admin exists) · `PUT /logout` · `GET /` `user:query` · `POST /` `user:create` · `PUT /` `user:update` · `DELETE /:username` (disable) `user:disable` — user DTO carries `roles` + `permissions` |
+| `/api/company` | `GET /` `company:query` · `POST /` `company:create` · `PUT /` `company:update` · `DELETE /:id` (disable) `company:disable` |
+| `/api/security` | `GET /permissions` `permission:query` · `GET /roles` `user:query` or `permission:query` · `POST/PUT /roles` `permission:update` · `DELETE /roles/:id` `permission:update` · `GET/PUT /roles/:id/permissions` `permission:query` / `permission:update` — `GET /permissions` returns a `{module: PermissionDTO[]}` map; role permissions return ids |
 | `/api/serviceBill` | `POST /query` · `GET /:id` · `POST /` · `PUT /` · `DELETE /` (batch, CREATED only) · `POST /import` (OCR) · `PUT /process` `processed` `finish` `cancel-process` `cancel-processed` `cancel-finish` · `POST /export` · `GET /countByState` · `GET /totalAmountGroupByMonth` |
 | `/api/reimburse` | `POST /query` · `GET /:id` · `POST /` · `PUT /` · `DELETE /` · `POST /import` (invoice OCR → prefilled DTO) · `PUT /process` `finish` `cancel-process` `cancel-finish` · `POST /export` · `GET /countByState` · `GET /totalAmountGroupByMonth` |
 | `/api/attachment` | `POST /upload` (namespace + files → attachment DTOs, rows created as `TRANSIENT`) · `GET /` (download, attachment DTO as query params) |
 
-Business endpoints are `auth` unless noted; Go tightens several: bill `cancel-*` are A-only,
-company `POST`/`DELETE` are A-only, user `GET`/`PUT` are A/U/F. Go's company `PUT /` currently
-registers **no** role middleware — treat that as a gap, not a contract.
+Every business endpoint requires the action permission named after its module and action (for
+example `serviceBill:query`, `serviceBill:detail`, `serviceBill:cancel-process`,
+`reimburse:export`, `attach:upload`). Statistics use `serviceBill:statistic` /
+`reimburse:statistic`. Both backends now register the same permission middleware/method checks;
+the old "Go tightens some routes" gap in company `PUT /` is closed. Startup only grants the
+`ADMIN` role `permission:query` / `permission:update`; other role grants are configured through the
+permission page. The `USER` role is created automatically but starts with no permissions.
 
 Attachments have no standalone delete/OCR endpoint. The frontend uploads with
 `POST /api/attachment/upload?namespace=…` (the namespace must match the backend constant
@@ -193,12 +229,12 @@ proxy, automatic Let's Encrypt HTTPS via `DOMAIN` / `CA_EMAIL`).
 `common/BaseServiceTest`, Mockito for collaborators, profile `dev`. Go — **one `_test.go` per
 package**, named after it (`internal/bill/bill_test.go`, likewise `reimburse`, `company`, `user`,
 `attach`), each holding every suite for that module in package `bill_test` etc. There is **no shared
-base struct and no `TestMain`**: `internal/testutil` is package-level support, not a superclass —
-`testutil.AppCtx()` lazily initialises the shared environment once per test binary (one connection
+base struct and no `TestMain`**: `internal/test_util` is package-level support, not a superclass —
+`test_util.AppCtx()` lazily initialises the shared environment once per test binary (one connection
 pool / logger / config) on first use, each suite's `SetupSuite` wires its own services into suite
-fields, and each `SetupTest` opens its own transaction with `s.ctx = testutil.BeginTx(s.T())` (plus
+fields, and each `SetupTest` opens its own transaction with `s.ctx = test_util.BeginTx(s.T())` (plus
 per-test fixtures), which registers the rollback via `t.Cleanup` so a forgotten teardown cannot leak
-data. `testutil.Tx(t, ctx)` exposes the transaction for raw SQL. Go tests load the **same**
+data. `test_util.Tx(t, ctx)` exposes the transaction for raw SQL. Go tests load the **same**
 `backend-go/config/config.yaml` as the app (`NewConfig` also searches `../../config` so it resolves
 from `internal/<pkg>`); only the attachment root is redirected to the OS temp dir so test runs do not
 scatter `attachment/` folders into module directories.
@@ -219,11 +255,15 @@ mocked-DB tier, so the suite fails at setup without a database.
 ```
 backend-java/src/main/java/pers/eastwind/billmanager/
   EACAfterSaleMgrApplication.java   — entry point
-  common/     — Result, PageResult, QueryParam, ActionsResult, AuditEntity, AuthorityRole,
-                BizException, ControllerAdvice, GlobalErrorController, AuthUtil, Snowflake,
-                config/CacheConfig
-  user/       — controller, service, UserProperties, security/{SecurityConfig, JWTTokenFilter},
-                util/JWTUtil, config/AuditConfig
+  common/     — Result, PageResult, QueryParam, ActionsResult, BizException,
+                ControllerAdvice, GlobalErrorController, Snowflake, config/CacheConfig
+  security/   — Role/PermissionEntity/RolePermission/UserRole/AuthorityUser/AuditEntity entities,
+                SecurityService (roles CRUD, user-role assignment, authority assembly),
+                PermissionSyncService (module PermissionDTO → PermissionEntity), SecurityController,
+                SecurityConfig/JWTTokenFilter/JWTUtil/UserProperties, config/AuditConfig,
+                util/AuthUtil, provider/SecurityPermissionProvider
+  user/       — User entity (extends AuditEntity, no role column), UserDTO implements AuthorityUser,
+                UserController/Service/Mapper, UserRepository
   company/    — CompanyController/Service/Repository/Mapper
   servicebill/— ServiceBillController, ServiceBillService (state machine),
                 ServiceBillIOService + ServiceBillImportMapper/-Rule (LD/WK rules, import/export),
@@ -238,12 +278,24 @@ backend-java/src/main/java/pers/eastwind/billmanager/
                 `{namespace}/{uuid}{name}` and never move; owns no relation table and no business
                 concept), AttachContentService (image/PDF texts, Excel grid),
                 OCRService, util/{FileUtil, OfficeFileUtil, FileTxUtil}, config/AttachConfigProperties
+  {user,company,servicebill,reimburse,attach}/permission/*PermissionProvider.java
+                — per-module permission enums + provider beans collected by PermissionSyncService
 
 backend-go/
   cmd/main.go                       — entry point
   server/server.go                  — Fiber bootstrap, middleware, module wiring under /api
-  internal/{user,company,bill,reimburse,attach}/ — one flat package per domain
+  internal/{user,company,bill,reimburse,attach,security}/ — one flat package per domain
+      security/ — Role/UserRole/Permission/RolePermission + Audit, Permission is the
+                  `sys_permission` entity, PermissionDTO is explicit, code constants and inline
+                  DTO providers live in each business package (security keeps only
+                  QueryAuthCode/UpdateAuthCode), middleware accepts code strings.
+                  service.go is business-only (SecurityService equivalent); sync.go holds
+                  PermissionSyncService (upsert permission catalog) and SecurityInitializer
+                  (ensure ADMIN/USER + grant ADMIN permission:query/update), matching Java's two runners
+      {user,company,bill,reimburse,attach}/permission.go — `<Action>AuthCode` constants and inline
+                  PermissionDTO list; registered from each Setup and synced once by server.Run
       {name}.go   Setup() + routes        handler.go  HTTP handlers
+      sync.go     PermissionSyncService + SecurityInitializer (startup only)
       service.go  business logic          store.go    GORM queries
       model.go    types/DTOs              query.go    query params (where present)
       stats: stat_handler.go / stat_svc.go / stat_store.go
@@ -252,10 +304,10 @@ backend-go/
           and the link rows)
       bill extras: ld_rule.go, wk_rule.go, mapper.go, attach_relation.go
       reimburse extras: invoice_rule.go, mapper.go, attach_relation.go
-  internal/testutil/ — package-level test support (NOT a base class, no TestMain): AppCtx lazily
+  internal/test_util/ — package-level test support (NOT a base class, no TestMain): AppCtx lazily
                        initialises the shared env, BeginTx (rollback via t.Cleanup), Tx, upload
                        helpers
-  pkg/        — audit, auth, cache, context, database, errs, logger, middleware, result, util
+  pkg/        — auth (current user only), cache, context, database, errs, logger, middleware, result, util
   config/     — config.go + config.yaml (also what the tests load)
 
 Naming — Java is `{Entity}{Role}` with the word roots `ServiceBill` / `Reimburse` / `Attach`
@@ -266,20 +318,29 @@ table words (`bill.ServiceBill`, `reimburse.Reimburse`, `attach.Attach`) and pin
 `TableName()` where the Go name differs from it.
 
 frontend/src/
-  main.ts                 — app bootstrap, Vuetify theme/locale, registers v-role
+  main.ts                 — app bootstrap, Vuetify theme/locale, registers v-permission
   App.vue, router.ts, assets/style.css
   common/                 — api/HttpClient.ts, model/, store/{UIStore, RouterStore},
                             component/, view/{HomeView, NotFoundView},
-                            directive/role.ts (hides by role), util/Crypto.ts
-  {user,company,service-bill,reimburse,attachment,statistic}/
+                            directive/permission.ts (hides by action permission), util/Crypto.ts
+  {user,company,service-bill,reimburse,attachment,statistic,permission}/
       api/ HttpClient calls · model/ TS interfaces · view/ pages · component/ sub-components
       composable/ (service-bill, reimburse, attachment) · store/ (user)
+  {user,company,service-bill,reimburse,attachment}/model/Permission.ts
+                          — each module owns its action-code constants; catalog/names still come
+                            from the backend DB
+  permission/model/PermissionCode.ts — permission:query/update action codes
+  common/ directive/store accept plain permission-code strings (no shared union type)
+  permission/             — role×action permission configuration page (`/permission`), built with
+                            Vuetify `v-data-table` + `v-dialog` + module checkbox cards
 
 deploy/
   compose-java.yml / compose.yml    — postgres + backend + Caddy (Java / Go)
-  database/init_scheme.sql          — full schema      database/init_user.sql — default admin
+  database/init_schema.sql          — full schema; startup creates ADMIN/USER roles, first admin via API
   database/migrate_attachment.sql   — one-off migration: split bill_attach_relation into the two
                                     per-module relation tables + add attachment.status
+  database/migrations/migrate_security.sql — upgrade authority/role(varchar) to sys_role +
+                                    sys_user_role + role_id links; run manually on existing DBs
   frontend/{html,conf,cert}         — Vite output, Caddyfile, certificates
   ocr-server/                       — optional RapidOCR service (copied from ocr-server/)
   build.sh / build.bat, backup.sh

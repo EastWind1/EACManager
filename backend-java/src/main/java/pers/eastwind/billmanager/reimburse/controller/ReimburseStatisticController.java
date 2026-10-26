@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/reimburse")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
+@PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).STATISTIC.getCode())")
 public class ReimburseStatisticController {
 
     private final ReimburseStatisticService reimburseStatisticService;

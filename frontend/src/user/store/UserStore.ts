@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { AuthorityRoleValue, User } from '../model/User'
+import type { User } from '../model/User'
 
 /**
  * 用户存储
@@ -12,7 +12,16 @@ export const useUserStore = defineStore('userStore', () => {
   const user = ref<User | undefined>()
   if (userJSON) {
     try {
-      user.value = JSON.parse(userJSON)
+      const cached = JSON.parse(userJSON) as User
+      // 旧版本缓存使用的是权限编码数组，清理并强制重新登录以获取新结构
+      if (
+        Array.isArray(cached.permissions) &&
+        cached.permissions.every((permission) => typeof permission === 'object')
+      ) {
+        user.value = cached
+      } else {
+        localStorage.removeItem(USER_KEY)
+      }
     } catch {
       user.value = undefined
     }
@@ -42,17 +51,24 @@ export const useUserStore = defineStore('userStore', () => {
   }
 
   /**
-   * 是否有任何身份
+   * 是否拥有指定动作权限
    */
-  function hasAnyRole(roles: AuthorityRoleValue[]) {
-    const values = roles.map((role) => (role.startsWith('ROLE_') ? role : `ROLE_${role}`))
-    return user.value && values.includes(user.value.authority)
+  function hasPermission(permission: string) {
+    return !!user.value?.permissions?.some((item) => item.code === permission)
+  }
+
+  /**
+   * 是否拥有任意一个动作权限
+   */
+  function hasAnyPermission(permissions: string[]) {
+    return !!user.value && permissions.some((permission) => hasPermission(permission))
   }
 
   return {
     setUser,
     getUser,
     removeUser,
-    hasAnyRole,
+    hasPermission,
+    hasAnyPermission,
   }
 })

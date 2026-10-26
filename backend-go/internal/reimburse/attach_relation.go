@@ -77,7 +77,7 @@ func (s *AttachRelService) FindAttachments(ctx context.Context, billID uint) ([]
 	return attaches, nil
 }
 
-func (s *AttachRelService) UpdateAttachments(ctx context.Context, billID uint, dtoes []attach.AttachDTO) error {
+func (s *AttachRelService) UpdateAttachments(ctx context.Context, billID uint, dtoes []attach.DTO) error {
 	rels, err := s.relRepo.FindByBillID(ctx, billID)
 	if err != nil {
 		return err

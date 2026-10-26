@@ -1,219 +1,217 @@
 <template>
-  <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
-    <!-- 单据状态 -->
-    <v-stepper v-model="reimbursement.state">
-      <v-stepper-header>
-        <template v-for="(state, key, index) in ReimburseState" :key="index">
-          <v-divider v-if="index"></v-divider>
-          <v-stepper-item :color="state.color" :title="state.title" :value="key">
-            <template #icon>{{ index + 1 }}</template>
-          </v-stepper-item>
-        </template>
-      </v-stepper-header>
-    </v-stepper>
-    <!-- 单据头部 -->
-    <v-card>
-      <template #text>
-        <v-row>
-          <!-- 左侧：单号和状态信息 -->
-          <v-col cols="12" md="6">
-            <v-row>
-              <v-col v-if="reimbursement.state !== ReimburseState.CREATED.value">
-                <div class="text-caption text-grey-darken-1">单号</div>
-                <div class="text-headline-small text-no-wrap">{{ reimbursement.number }}</div>
-              </v-col>
-              <v-col>
-                <div class="text-caption text-grey-darken-1">总金额</div>
-                <div class="text-headline-small font-weight-bold text-primary">
-                  ￥{{ reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00' }}
-                </div>
-              </v-col>
-            </v-row>
-          </v-col>
-
-          <v-col cols="12" md="6">
-            <v-row class="justify-end" gap="0">
-              <v-btn
-                v-if="
-                  reimbursement.id &&
-                  (reimbursement.state !== ReimburseState.FINISHED.value ||
-                    userStore.hasAnyRole([AuthorityRole.ROLE_ADMIN.value]))
-                "
-                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :disabled="isEditState"
-                color="primary"
-                @click="isEditState = true"
-                >编辑
-              </v-btn>
-              <v-btn
-                v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
-                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :disabled="loading"
-                @click="reloadAfterAction(process)"
-                >提交
-              </v-btn>
-              <v-btn
-                v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
-                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :disabled="loading"
-                @click="reloadAfterAction(finish)"
-                >处理完成
-              </v-btn>
-              <v-btn
-                v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
-                v-role="[AuthorityRole.ROLE_ADMIN.value]"
-                :disabled="loading"
-                color="warning"
-                @click="reloadAfterAction(cancelProcess)"
-                >取消处理
-              </v-btn>
-              <v-btn
-                v-if="!isEditState && reimbursement.state === ReimburseState.FINISHED.value"
-                v-role="[AuthorityRole.ROLE_ADMIN.value]"
-                :disabled="loading"
-                color="warning"
-                @click="reloadAfterAction(cancelFinish)"
-                >取消完成
-              </v-btn>
-              <v-btn
-                v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
-                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :disabled="loading"
-                color="error"
-                @click="backAfterAction(remove)"
-                >删除
-              </v-btn>
-              <v-btn
-                v-if="isEditState"
-                v-role="[AuthorityRole.ROLE_ADMIN.value, AuthorityRole.ROLE_USER.value]"
-                :disabled="loading"
-                color="primary"
-                type="submit"
-                >保存
-              </v-btn>
-              <v-btn v-if="isEditState" :disabled="loading" color="warning" @click="cancel"
-                >取消
-              </v-btn>
-            </v-row>
-          </v-col>
-        </v-row>
-      </template>
-    </v-card>
-    <v-card>
-      <template #title>
-        <v-icon :icon="mdiFileDocument" size="small"></v-icon>
-        基本信息
-      </template>
-      <template #text>
-        <v-container>
+  <v-container>
+    <v-form ref="form" v-model="valid" :readonly="!isEditState" @submit.prevent="save">
+      <!-- 单据状态 -->
+      <v-stepper v-model="reimbursement.state">
+        <v-stepper-header>
+          <template v-for="(state, key, index) in ReimburseState" :key="index">
+            <v-divider v-if="index"></v-divider>
+            <v-stepper-item :color="state.color" :title="state.title" :value="key">
+              <template #icon>{{ index + 1 }}</template>
+            </v-stepper-item>
+          </template>
+        </v-stepper-header>
+      </v-stepper>
+      <!-- 单据头部 -->
+      <v-card>
+        <template #text>
           <v-row>
-            <v-col
-              v-if="reimbursement.state === ReimburseState.CREATED.value"
-              cols="12"
-              md="4"
-              sm="6"
-              xl="3"
-            >
-              <v-text-field
-                v-model="reimbursement.number"
-                label="单号"
-                placeholder="可生成自动"
-              ></v-text-field>
+            <!-- 左侧：单号和状态信息 -->
+            <v-col cols="12" md="6">
+              <v-row>
+                <v-col v-if="reimbursement.state !== ReimburseState.CREATED.value">
+                  <div class="text-caption text-grey-darken-1">单号</div>
+                  <div class="text-headline-small text-no-wrap">{{ reimbursement.number }}</div>
+                </v-col>
+                <v-col>
+                  <div class="text-caption text-grey-darken-1">总金额</div>
+                  <div class="text-headline-small font-weight-bold text-primary">
+                    ￥{{ reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00' }}
+                  </div>
+                </v-col>
+              </v-row>
             </v-col>
-            <!-- 摘要 -->
-            <v-col>
-              <v-text-field
-                v-model="reimbursement.summary"
-                :rules="[requiredRule]"
-                label="摘要"
-              ></v-text-field>
-            </v-col>
-            <!-- 备注 -->
-            <v-col cols="12">
-              <v-textarea v-model="reimbursement.remark" label="备注"></v-textarea>
-            </v-col>
-            <!-- 报销日期 -->
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <div
-                v-if="reimbursement.state !== ReimburseState.CREATED.value"
-                class="text-subtitle-2 mb-1"
-              >
-                报销日期
-                {{
-                  reimbursement.reimburseDate
-                    ? dateUtil.format(reimbursement.reimburseDate, 'keyboardDate')
-                    : ''
-                }}
-              </div>
-              <v-date-input
-                v-else
-                v-model="reimbursement.reimburseDate"
-                :readonly="!isEditState"
-                density="compact"
-                label="报销日期"
-                variant="outlined"
-              ></v-date-input>
+
+            <v-col cols="12" md="6">
+              <v-row class="justify-end" gap="0">
+                <v-btn
+                  v-if="reimbursement.id"
+                  v-permission="Permission.REIMBURSE_UPDATE"
+                  :disabled="isEditState"
+                  color="primary"
+                  @click="isEditState = true"
+                >编辑
+                </v-btn>
+                <v-btn
+                  v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
+                  v-permission="Permission.REIMBURSE_PROCESS"
+                  :disabled="loading"
+                  @click="reloadAfterAction(process)"
+                >提交
+                </v-btn>
+                <v-btn
+                  v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
+                  v-permission="Permission.REIMBURSE_FINISH"
+                  :disabled="loading"
+                  @click="reloadAfterAction(finish)"
+                >处理完成
+                </v-btn>
+                <v-btn
+                  v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
+                  v-permission="Permission.REIMBURSE_CANCEL_PROCESS"
+                  :disabled="loading"
+                  color="warning"
+                  @click="reloadAfterAction(cancelProcess)"
+                >取消处理
+                </v-btn>
+                <v-btn
+                  v-if="!isEditState && reimbursement.state === ReimburseState.FINISHED.value"
+                  v-permission="Permission.REIMBURSE_CANCEL_FINISH"
+                  :disabled="loading"
+                  color="warning"
+                  @click="reloadAfterAction(cancelFinish)"
+                >取消完成
+                </v-btn>
+                <v-btn
+                  v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
+                  v-permission="Permission.REIMBURSE_DELETE"
+                  :disabled="loading"
+                  color="error"
+                  @click="backAfterAction(remove)"
+                >删除
+                </v-btn>
+                <v-btn
+                  v-if="isEditState"
+                  v-permission="
+                  reimbursement.id ? Permission.REIMBURSE_UPDATE : Permission.REIMBURSE_CREATE
+                "
+                  :disabled="loading"
+                  color="primary"
+                  type="submit"
+                >保存
+                </v-btn>
+                <v-btn v-if="isEditState" :disabled="loading" color="warning" @click="cancel"
+                >取消
+                </v-btn>
+              </v-row>
             </v-col>
           </v-row>
-        </v-container>
-      </template>
-    </v-card>
-    <v-card>
-      <template #title>
-        <v-tabs v-model="tab">
-          <v-tab value="detail">
-            <v-icon :icon="mdiListBox" class="me-2"></v-icon>
-            明细
-          </v-tab>
-          <v-tab value="attachment">
-            <v-icon :icon="mdiPaperclip" class="me-2"></v-icon>
-            附件
-          </v-tab>
-        </v-tabs>
-      </template>
-      <template #text>
-        <v-tabs-window v-model="tab">
-          <!-- 报销单明细 -->
-          <v-tabs-window-item value="detail">
-            <ReimburseDetail v-model="reimbursement" :readonly="!isEditState"></ReimburseDetail>
-          </v-tabs-window-item>
-          <!-- 附件 -->
-          <v-tabs-window-item value="attachment">
-            <FormAttachDetail
-              v-model="reimbursement.attachments"
-              :readonly="!isEditState"
-              namespace="REIMBURSEMENT"
-            ></FormAttachDetail>
-          </v-tabs-window-item>
-        </v-tabs-window>
-      </template>
-    </v-card>
-  </v-form>
+        </template>
+      </v-card>
+      <v-card>
+        <template #title>
+          <v-icon :icon="mdiFileDocument" size="small"></v-icon>
+          基本信息
+        </template>
+        <template #text>
+          <v-container>
+            <v-row>
+              <v-col
+                v-if="reimbursement.state === ReimburseState.CREATED.value"
+                cols="12"
+                md="4"
+                sm="6"
+                xl="3"
+              >
+                <v-text-field
+                  v-model="reimbursement.number"
+                  label="单号"
+                  placeholder="可生成自动"
+                ></v-text-field>
+              </v-col>
+              <!-- 摘要 -->
+              <v-col>
+                <v-text-field
+                  v-model="reimbursement.summary"
+                  :rules="[requiredRule]"
+                  label="摘要"
+                ></v-text-field>
+              </v-col>
+              <!-- 备注 -->
+              <v-col cols="12">
+                <v-textarea v-model="reimbursement.remark" label="备注"></v-textarea>
+              </v-col>
+              <!-- 报销日期 -->
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <div
+                  v-if="reimbursement.state !== ReimburseState.CREATED.value"
+                  class="text-subtitle-2 mb-1"
+                >
+                  报销日期
+                  {{
+                    reimbursement.reimburseDate
+                      ? dateUtil.format(reimbursement.reimburseDate, 'keyboardDate')
+                      : ''
+                  }}
+                </div>
+                <v-date-input
+                  v-else
+                  v-model="reimbursement.reimburseDate"
+                  :readonly="!isEditState"
+                  density="compact"
+                  label="报销日期"
+                  variant="outlined"
+                ></v-date-input>
+              </v-col>
+            </v-row>
+          </v-container>
+        </template>
+      </v-card>
+      <v-card>
+        <template #title>
+          <v-tabs v-model="tab">
+            <v-tab value="detail">
+              <v-icon :icon="mdiListBox" class="me-2"></v-icon>
+              明细
+            </v-tab>
+            <v-tab value="attachment">
+              <v-icon :icon="mdiPaperclip" class="me-2"></v-icon>
+              附件
+            </v-tab>
+          </v-tabs>
+        </template>
+        <template #text>
+          <v-tabs-window v-model="tab">
+            <!-- 报销单明细 -->
+            <v-tabs-window-item value="detail">
+              <ReimburseDetail v-model="reimbursement" :readonly="!isEditState"></ReimburseDetail>
+            </v-tabs-window-item>
+            <!-- 附件 -->
+            <v-tabs-window-item value="attachment">
+              <FormAttachDetail
+                v-model="reimbursement.attachments"
+                :readonly="!isEditState"
+                namespace="REIMBURSEMENT"
+              ></FormAttachDetail>
+            </v-tabs-window-item>
+          </v-tabs-window>
+        </template>
+      </v-card>
+    </v-form>
+  </v-container>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { type Reimburse, ReimburseState } from '../model/Reimburse'
+import {ref} from 'vue'
+import {type Reimburse, ReimburseState} from '../model/Reimburse'
 import ReimburseDetail from '../component/ReimburseDetail.vue'
 import ReimburseApi from '../api/ReimburseApi'
-import { storeToRefs } from 'pinia'
+import {storeToRefs} from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useUIStore } from '@/common/store/UIStore'
-import { useReimburseActions } from '../composable/ReimburseActions'
-import { AuthorityRole } from '@/user/model/User'
-import { useDate } from 'vuetify/framework'
-import { useRouterStore } from '@/common/store/RouterStore'
-import { mdiFileDocument, mdiListBox, mdiPaperclip } from '@mdi/js'
-import { useUserStore } from '@/user/store/UserStore'
+import {useRoute, useRouter} from 'vue-router'
+import {useUIStore} from '@/common/store/UIStore'
+import {useReimburseActions} from '../composable/ReimburseActions'
+import {Permission} from '../model/Permission'
+import {useDate} from 'vuetify/framework'
+import {useRouterStore} from '@/common/store/RouterStore'
+import {mdiFileDocument, mdiListBox, mdiPaperclip} from '@mdi/js'
 
 const store = useUIStore()
-const { loading } = storeToRefs(store)
-const { warning, success } = store
+const {loading} = storeToRefs(store)
+const {warning, success} = store
 const route = useRoute()
 const router = useRouter()
 const dateUtil = useDate()
-const userStore = useUserStore()
 
 // 初始化表单数据
 const reimbursement = ref<Reimburse>({
@@ -281,7 +279,7 @@ async function cancel() {
   }
 }
 
-const { process, finish, remove, cancelProcess, cancelFinish } = useReimburseActions(
+const {process, finish, remove, cancelProcess, cancelFinish} = useReimburseActions(
   () => reimbursement.value.number!,
 )
 
@@ -322,7 +320,7 @@ async function init() {
         break
       // 导入
       case 'import':
-        const { getData } = useRouterStore()
+        const {getData} = useRouterStore()
         const importData = getData() as Reimburse
         if (!importData) {
           warning('未获取到识别结果')

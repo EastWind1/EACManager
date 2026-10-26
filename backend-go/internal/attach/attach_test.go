@@ -2,7 +2,7 @@ package attach_test
 
 import (
 	"backend-go/internal/attach"
-	"backend-go/internal/testutil"
+	"backend-go/internal/test_util"
 	"context"
 	"strings"
 	"testing"
@@ -25,15 +25,15 @@ func TestService(t *testing.T) {
 }
 
 func (s *ServiceTest) SetupSuite() {
-	s.srv, _ = attach.SetupForTest(testutil.AppCtx())
+	s.srv, _ = attach.SetupForTest(test_util.AppCtx())
 }
 
 func (s *ServiceTest) SetupTest() {
-	s.ctx = testutil.BeginTx(s.T())
+	s.ctx = test_util.BeginTx(s.T())
 }
 
-func (s *ServiceTest) upload(name string) attach.AttachDTO {
-	headers, err := testutil.UploadFileHeaders(name, "attach content")
+func (s *ServiceTest) upload(name string) attach.DTO {
+	headers, err := test_util.UploadFileHeaders(name, "attach content")
 	s.Require().NoError(err)
 	attaches, err := s.srv.Upload(s.ctx, testNamespace, headers)
 	s.Require().NoError(err)
@@ -46,7 +46,7 @@ func (s *ServiceTest) TestUploadPersistsTransient() {
 	uploaded := s.upload("附件.txt")
 	s.Positive(uploaded.ID)
 
-	attachment, err := attach.NewRepository(testutil.AppCtx().Db).FindByID(s.ctx, uint(uploaded.ID))
+	attachment, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, uint(uploaded.ID))
 	s.Require().NoError(err)
 	s.Require().NotNil(attachment)
 	s.Equal(attach.StatusTransient, attachment.Status)
@@ -60,7 +60,7 @@ func (s *ServiceTest) TestPersist() {
 
 	s.Require().NoError(s.srv.Persist(s.ctx, ids))
 
-	attachment, err := attach.NewRepository(testutil.AppCtx().Db).FindByID(s.ctx, ids[0])
+	attachment, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, ids[0])
 	s.Require().NoError(err)
 	s.Require().NotNil(attachment)
 	s.Equal(attach.StatusPersistent, attachment.Status)
@@ -78,7 +78,7 @@ func (s *ServiceTest) TestDelete() {
 
 	s.Require().NoError(s.srv.Delete(s.ctx, ids))
 
-	remaining, err := attach.NewRepository(testutil.AppCtx().Db).FindByID(s.ctx, ids[0])
+	remaining, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, ids[0])
 	s.Require().NoError(err)
 	s.Nil(remaining)
 	s.False(attach.Exists(path))
@@ -88,13 +88,13 @@ func (s *ServiceTest) TestDelete() {
 func (s *ServiceTest) TestCleanTransientFiles() {
 	uploaded := s.upload("过期游离附件.txt")
 
-	s.Require().NoError(testutil.Tx(s.T(), s.ctx).
+	s.Require().NoError(test_util.Tx(s.T(), s.ctx).
 		Exec("update attachment set created_date = ? where id = ?", time.Now().Add(-8*24*time.Hour), uploaded.ID).
 		Error)
 
 	s.Require().NoError(s.srv.CleanTransientFiles(s.ctx))
 
-	remaining, err := attach.NewRepository(testutil.AppCtx().Db).FindByID(s.ctx, uint(uploaded.ID))
+	remaining, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, uint(uploaded.ID))
 	s.Require().NoError(err)
 	s.Nil(remaining)
 }

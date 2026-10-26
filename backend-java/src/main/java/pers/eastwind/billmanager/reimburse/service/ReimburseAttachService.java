@@ -54,7 +54,7 @@ public class ReimburseAttachService {
     /**
      * 将报销单附件更新为目标集合
      *
-     * @param billId         报销单 ID
+     * @param billId     报销单 ID
      * @param attachDTOs 要更新为的附件集合
      */
     public void updateAttachments(Integer billId, List<AttachDTO> attachDTOs) {

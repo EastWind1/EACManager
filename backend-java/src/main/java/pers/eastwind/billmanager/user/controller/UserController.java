@@ -6,10 +6,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
-import pers.eastwind.billmanager.user.config.UserProperties;
+import pers.eastwind.billmanager.security.config.JWTProperties;
 import pers.eastwind.billmanager.user.model.LoginResult;
 import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
+
+import java.util.Map;
 
 /**
  * 用户控制器
@@ -17,10 +19,10 @@ import pers.eastwind.billmanager.user.service.UserService;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
-    private final UserProperties config;
+    private final JWTProperties config;
     private final UserService userService;
 
-    public UserController(UserProperties config, UserService userService) {
+    public UserController(JWTProperties config, UserService userService) {
         this.config = config;
         this.userService = userService;
     }
@@ -46,6 +48,22 @@ public class UserController {
     }
 
     /**
+     * 查询系统是否需要初始化管理员
+     */
+    @GetMapping("/initialization")
+    public Map<String, Boolean> initializationStatus() {
+        return Map.of("required", userService.isInitializationRequired());
+    }
+
+    /**
+     * 初始化首个管理员
+     */
+    @PostMapping("/initialization")
+    public UserDTO initialize(@RequestBody UserDTO param) {
+        return userService.initialize(param);
+    }
+
+    /**
      * 登出
      * TODO：此处登出仅销毁 cookie，还需要结合 token 作废实现
      */
@@ -63,7 +81,7 @@ public class UserController {
     /**
      * 查询
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).QUERY.getCode())")
     @GetMapping
     public PageResult<UserDTO> getAll(QueryParam queryParam) {
         return userService.getAll(queryParam);
@@ -72,7 +90,7 @@ public class UserController {
     /**
      * 创建
      */
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).CREATE.getCode())")
     @PostMapping
     public UserDTO create(@RequestBody UserDTO user) {
         return userService.create(user);
@@ -81,7 +99,7 @@ public class UserController {
     /**
      * 修改
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'FINANCE')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).UPDATE.getCode())")
     @PutMapping
     public UserDTO update(@RequestBody UserDTO user) {
         return userService.update(user);
@@ -93,7 +111,7 @@ public class UserController {
      * @param username 用户名
      */
     @DeleteMapping("/{username}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).DISABLE.getCode())")
     public void disable(@PathVariable String username) {
         userService.disable(username);
     }

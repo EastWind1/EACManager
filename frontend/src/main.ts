@@ -9,7 +9,7 @@ import { createVuetify } from 'vuetify'
 import { zhHans } from 'vuetify/locale'
 import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 import { createPinia } from 'pinia'
-import role from '@/common/directive/role'
+import permission from '@/common/directive/permission'
 
 const vuetify = createVuetify({
   // 中文
@@ -40,6 +40,11 @@ const vuetify = createVuetify({
     VTextField: {
       variant: 'outlined',
     },
+    VCheckbox: {
+      variant: 'outlined',
+      density: "compact",
+      color: "primary",
+    },
     VSelect: {
       variant: 'outlined',
     },
@@ -66,6 +71,6 @@ createApp(App)
   .use(createPinia())
   .use(router)
   .use(vuetify)
-  // 权限指令，控制元素渲染
-  .directive('role', role)
+  // 动作权限指令，控制元素渲染
+  .directive('permission', permission)
   .mount('#app')

@@ -2,13 +2,15 @@ package reimburse
 
 import (
 	"backend-go/internal/attach"
-	"backend-go/pkg/auth"
+	"backend-go/internal/security"
 	"backend-go/pkg/context"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Service, contentSrc *attach.ContentService) {
+func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Service, contentSrc *attach.ContentService,
+	permissionSrv *security.Service, permissionSyncSrv *security.PermissionSyncService) {
+	permissionSyncSrv.Register(reimbursePermissions()...)
 	reimburseRepo := NewReimburseRepository(ctx.Db)
 	reimburseMapper := NewMapper(contentSrc)
 	reimburseService := NewService(reimburseRepo, attachSrc, NewAttachRelService(ctx.Db, attachSrc), reimburseMapper)
@@ -16,19 +18,19 @@ func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Servi
 	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, reimburseRepo))
 	reimburseGroup := router.Group("/reimburse")
 	{
-		reimburseGroup.Get("/countByState", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), statisticController.CountReimburseByState)
-		reimburseGroup.Get("/totalAmountGroupByMonth", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), statisticController.SumAmountByMonth)
-		reimburseGroup.Post("/query", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.QueryByParam)
-		reimburseGroup.Get("/:id", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.GetByID)
-		reimburseGroup.Post("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Create)
-		reimburseGroup.Put("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Update)
-		reimburseGroup.Delete("/", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Delete)
-		reimburseGroup.Put("/process", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Process)
-		reimburseGroup.Put("/finish", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.Finish)
-		reimburseGroup.Put("/cancel-process", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.CancelProcess)
-		reimburseGroup.Put("/cancel-finish", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.CancelFinish)
-		reimburseGroup.Post("/export", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser, auth.RoleFinance), reimburseController.Export)
-		reimburseGroup.Post("/import", auth.RoleMiddleware(auth.RoleAdmin, auth.RoleUser), reimburseController.ImportByFile)
+		reimburseGroup.Get("/countByState", security.Middleware(permissionSrv, StatisticAuthCode), statisticController.CountReimburseByState)
+		reimburseGroup.Get("/totalAmountGroupByMonth", security.Middleware(permissionSrv, StatisticAuthCode), statisticController.SumAmountByMonth)
+		reimburseGroup.Post("/query", security.Middleware(permissionSrv, QueryAuthCode), reimburseController.QueryByParam)
+		reimburseGroup.Get("/:id", security.Middleware(permissionSrv, DetailAuthCode), reimburseController.GetByID)
+		reimburseGroup.Post("/", security.Middleware(permissionSrv, CreateAuthCode), reimburseController.Create)
+		reimburseGroup.Put("/", security.Middleware(permissionSrv, UpdateAuthCode), reimburseController.Update)
+		reimburseGroup.Delete("/", security.Middleware(permissionSrv, DeleteAuthCode), reimburseController.Delete)
+		reimburseGroup.Put("/process", security.Middleware(permissionSrv, ProcessAuthCode), reimburseController.Process)
+		reimburseGroup.Put("/finish", security.Middleware(permissionSrv, FinishAuthCode), reimburseController.Finish)
+		reimburseGroup.Put("/cancel-process", security.Middleware(permissionSrv, CancelProcessAuthCode), reimburseController.CancelProcess)
+		reimburseGroup.Put("/cancel-finish", security.Middleware(permissionSrv, CancelFinishAuthCode), reimburseController.CancelFinish)
+		reimburseGroup.Post("/export", security.Middleware(permissionSrv, ExportAuthCode), reimburseController.Export)
+		reimburseGroup.Post("/import", security.Middleware(permissionSrv, ImportAuthCode), reimburseController.ImportByFile)
 	}
 }
 

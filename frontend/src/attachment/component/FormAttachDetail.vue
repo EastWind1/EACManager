@@ -25,9 +25,18 @@
                 </v-progress-circular>
               </div>
               <div v-else-if="isHovering" class="d-flex justify-center ga-2">
-                <v-btn @click="preview(attach)">预览</v-btn>
-                <v-btn @click="download(attach)">下载</v-btn>
-                <v-btn :disabled="readonly" color="error" @click="deleteAttach(attach)">
+                <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="preview(attach)"
+                  >预览</v-btn
+                >
+                <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="download(attach)"
+                  >下载</v-btn
+                >
+                <v-btn
+                  v-permission="Permission.ATTACH_UPLOAD"
+                  :disabled="readonly"
+                  color="error"
+                  @click="deleteAttach(attach)"
+                >
                   删除
                 </v-btn>
               </div>
@@ -41,7 +50,7 @@
           </v-card>
         </v-hover>
       </v-col>
-      <v-col v-if="!readonly" cols="1">
+      <v-col v-if="!readonly" v-permission="Permission.ATTACH_UPLOAD" cols="1">
         <v-hover v-slot="{ isHovering, props }">
           <v-card
             v-bind="props"
@@ -79,7 +88,9 @@
         />
       </v-card-text>
       <v-card-actions>
-        <v-btn @click="download(previewInfo.attachment)">下载</v-btn>
+        <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="download(previewInfo.attachment)"
+          >下载</v-btn
+        >
         <v-btn @click="previewDialog = false">关闭</v-btn>
       </v-card-actions>
     </v-card>
@@ -93,6 +104,8 @@ import { defineAsyncComponent, onUnmounted, ref } from 'vue'
 import AttachApi from '../api/AttachApi'
 import { useUIStore } from '@/common/store/UIStore'
 import { useFileSelector } from '../composable/FileSelector'
+import { useUserStore } from '@/user/store/UserStore'
+import { Permission } from '../model/Permission'
 
 // 是否可编辑
 const props = defineProps<{
@@ -105,6 +118,7 @@ const ExcelPreview = defineAsyncComponent(() => import('./ExcelPreview.vue'))
 const PDFPreview = defineAsyncComponent(() => import('./PDFPreview.vue'))
 
 const { warning } = useUIStore()
+const userStore = useUserStore()
 
 const attachments = defineModel<Attach[]>()
 
@@ -212,6 +226,9 @@ async function download(attach: Attach) {
  * 上传附件
  */
 async function upload() {
+  if (!userStore.hasPermission(Permission.ATTACH_UPLOAD)) {
+    return
+  }
   const fileList = await useFileSelector('.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt', true)
   const attach = await AttachApi.upload(props.namespace, Array.from(fileList))
   attachments.value?.push(...attach)
@@ -222,6 +239,9 @@ async function upload() {
  */
 async function drop(e: DragEvent) {
   isDragging.value = false
+  if (!userStore.hasPermission(Permission.ATTACH_UPLOAD)) {
+    return
+  }
   const fileList = Array.from(e.dataTransfer!.files)
   const validType = new Set<string>([
     '.pdf',

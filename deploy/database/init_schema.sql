@@ -292,6 +292,135 @@ CREATE TABLE public.service_bill_detail (
 ALTER TABLE public.service_bill_detail OWNER TO postgres;
 
 --
+-- Name: sys_permission_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sys_permission_seq
+    START WITH 1
+    INCREMENT BY 50
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.sys_permission_seq OWNER TO postgres;
+
+--
+-- Name: sys_permission; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sys_permission (
+    id integer DEFAULT nextval('public.sys_permission_seq'::regclass) NOT NULL,
+    code character varying(64) NOT NULL,
+    module character varying(32) NOT NULL,
+    module_name character varying(64) NOT NULL,
+    name character varying(64) NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_date timestamp(6) with time zone,
+    last_modified_date timestamp(6) with time zone,
+    created_by_id integer,
+    last_modified_by_id integer
+);
+
+
+ALTER TABLE public.sys_permission OWNER TO postgres;
+
+--
+-- Name: sys_role_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sys_role_seq
+    START WITH 1
+    INCREMENT BY 50
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.sys_role_seq OWNER TO postgres;
+
+--
+-- Name: sys_role; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sys_role (
+    id integer DEFAULT nextval('public.sys_role_seq'::regclass) NOT NULL,
+    code character varying(64) NOT NULL,
+    name character varying(64) NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    disabled boolean DEFAULT false NOT NULL,
+    created_date timestamp(6) with time zone,
+    last_modified_date timestamp(6) with time zone,
+    created_by_id integer,
+    last_modified_by_id integer
+);
+
+
+ALTER TABLE public.sys_role OWNER TO postgres;
+
+--
+-- Name: sys_user_role_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sys_user_role_seq
+    START WITH 1
+    INCREMENT BY 50
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.sys_user_role_seq OWNER TO postgres;
+
+--
+-- Name: sys_user_role; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sys_user_role (
+    id integer DEFAULT nextval('public.sys_user_role_seq'::regclass) NOT NULL,
+    user_id integer NOT NULL,
+    role_id integer NOT NULL,
+    created_date timestamp(6) with time zone,
+    last_modified_date timestamp(6) with time zone,
+    created_by_id integer,
+    last_modified_by_id integer
+);
+
+
+ALTER TABLE public.sys_user_role OWNER TO postgres;
+
+--
+-- Name: sys_role_permission_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sys_role_permission_seq
+    START WITH 1
+    INCREMENT BY 50
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.sys_role_permission_seq OWNER TO postgres;
+
+--
+-- Name: sys_role_permission; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sys_role_permission (
+    id integer DEFAULT nextval('public.sys_role_permission_seq'::regclass) NOT NULL,
+    role_id integer NOT NULL,
+    permission_id integer NOT NULL,
+    created_date timestamp(6) with time zone,
+    last_modified_date timestamp(6) with time zone,
+    created_by_id integer,
+    last_modified_by_id integer
+);
+
+
+ALTER TABLE public.sys_role_permission OWNER TO postgres;
+
+--
 -- Name: sys_user_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -320,9 +449,7 @@ CREATE TABLE public.sys_user (
     phone character varying(255),
     username text,
     created_by_id integer,
-    last_modified_by_id integer,
-    authority character varying(255),
-    CONSTRAINT user_authority_check CHECK (((authority)::text = ANY (ARRAY[('ROLE_ADMIN'::character varying)::text, ('ROLE_USER'::character varying)::text, ('ROLE_GUEST'::character varying)::text, ('ROLE_FINANCE'::character varying)::text])))
+    last_modified_by_id integer
 );
 
 
@@ -393,6 +520,70 @@ ALTER TABLE ONLY public.service_bill
 
 
 --
+-- Name: sys_permission sys_permission_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sys_permission
+    ADD CONSTRAINT sys_permission_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_permission uk_permission_code; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sys_permission
+    ADD CONSTRAINT uk_permission_code UNIQUE (code);
+
+
+--
+-- Name: sys_role sys_role_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sys_role
+    ADD CONSTRAINT sys_role_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_role uk_role_code; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sys_role
+    ADD CONSTRAINT uk_role_code UNIQUE (code);
+
+
+--
+-- Name: sys_user_role sys_user_role_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sys_user_role
+    ADD CONSTRAINT sys_user_role_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_user_role uk_user_role; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sys_user_role
+    ADD CONSTRAINT uk_user_role UNIQUE (user_id, role_id);
+
+
+--
+-- Name: sys_role_permission sys_role_permission_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sys_role_permission
+    ADD CONSTRAINT sys_role_permission_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sys_role_permission uk_role_permission; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sys_role_permission
+    ADD CONSTRAINT uk_role_permission UNIQUE (role_id, permission_id);
+
+
+--
 -- Name: sys_user uk_user_username; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -455,6 +646,35 @@ CREATE INDEX idx_service_bill_created_date ON public.service_bill USING btree (c
 --
 
 CREATE INDEX idx_service_bill_number ON public.service_bill USING btree (number);
+
+
+--
+-- Name: idx_permission_module; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_permission_module ON public.sys_permission USING btree (module);
+
+
+--
+-- Name: idx_role_permission_role_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_role_permission_role_id ON public.sys_role_permission USING btree (role_id);
+CREATE INDEX idx_role_permission_permission_id ON public.sys_role_permission USING btree (permission_id);
+
+
+--
+-- Name: idx_user_role_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_role_user_id ON public.sys_user_role USING btree (user_id);
+
+
+--
+-- Name: idx_user_role_role_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_role_role_id ON public.sys_user_role USING btree (role_id);
 
 
 --

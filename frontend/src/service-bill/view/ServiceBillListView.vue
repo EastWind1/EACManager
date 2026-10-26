@@ -1,153 +1,208 @@
 <template>
-  <v-expansion-panels>
-    <v-expansion-panel>
-      <template #title>
-        <v-icon :icon="mdiFilter" class="me-2"></v-icon>
-        过滤条件
-      </template>
+  <v-container>
+    <v-expansion-panels>
+      <v-expansion-panel>
+        <template #title>
+          <v-icon :icon="mdiFilter" class="me-2"></v-icon>
+          过滤条件
+        </template>
+        <template #text>
+          <v-container>
+            <v-row>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-text-field v-model="queryParam.number" clearable label="单号"/>
+              </v-col>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-select
+                  v-model="queryParam.states"
+                  :items="stateOptions"
+                  chips
+                  clearable
+                  closable-chips
+                  label="状态"
+                  multiple
+                />
+              </v-col>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-text-field v-model="queryParam.projectName" clearable label="项目名称"/>
+              </v-col>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-date-input
+                  v-model="queryParam.orderDateRange"
+                  clearable
+                  label="创建日期"
+                  multiple="range"
+                  prepend-icon=""
+                  prepend-inner-icon="$calendar"
+                ></v-date-input>
+              </v-col>
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-date-input
+                  v-model="queryParam.processedDateRange"
+                  clearable
+                  label="完工日期"
+                  multiple="range"
+                  prepend-icon=""
+                  prepend-inner-icon="$calendar"
+                ></v-date-input>
+              </v-col>
+              <v-spacer></v-spacer>
+              <v-col class="d-flex justify-end align-center">
+                <v-btn variant="tonal" @click="search = new Date().toString()">
+                  <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
+                  查询
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-container>
+        </template>
+      </v-expansion-panel>
+    </v-expansion-panels>
+    <v-card>
       <template #text>
-        <v-container>
-          <v-row>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.number" clearable label="单号" />
-            </v-col>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-select
-                v-model="queryParam.states"
-                :items="stateOptions"
-                chips
-                clearable
-                closable-chips
-                label="状态"
-                multiple
-              />
-            </v-col>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
-            </v-col>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-date-input
-                v-model="queryParam.orderDateRange"
-                clearable
-                label="创建日期"
-                multiple="range"
-                prepend-icon=""
-                prepend-inner-icon="$calendar"
-              ></v-date-input>
-            </v-col>
-            <v-col cols="12" md="4" sm="6" xl="3">
-              <v-date-input
-                v-model="queryParam.processedDateRange"
-                clearable
-                label="完工日期"
-                multiple="range"
-                prepend-icon=""
-                prepend-inner-icon="$calendar"
-              ></v-date-input>
-            </v-col>
-            <v-spacer></v-spacer>
-            <v-col class="d-flex justify-end align-center">
-              <v-btn variant="tonal" @click="search = new Date().toString()">
-                <v-icon :icon="mdiMagnify" class="me-2"></v-icon>
-                查询
-              </v-btn>
-            </v-col>
-          </v-row>
-        </v-container>
-      </template>
-    </v-expansion-panel>
-  </v-expansion-panels>
-  <v-card>
-    <template #text>
-      <v-row class="justify-between">
-        <v-col cols="3" md="2" v-if="selectedIds.length > 0" class="text-caption ml-5">
-          已选中 {{ selectedIds.length }} 项
-        </v-col>
-        <v-col>
-          <v-row class="justify-end" gap="0">
-            <v-btn :disabled="loading" color="primary" @click="create">新增</v-btn>
-            <v-btn :disabled="loading" variant="tonal" @click="importFile">导入</v-btn>
-            <v-btn :disabled="loading" variant="tonal" @click="exportToZip">导出</v-btn>
-            <v-btn :disabled="loading" color="primary" @click="reloadAfterAction(process)"
+        <v-row class="justify-between">
+          <v-col cols="3" md="2" v-if="selectedIds.length > 0" class="text-caption ml-5">
+            已选中 {{ selectedIds.length }} 项
+          </v-col>
+          <v-col>
+            <v-row class="justify-end" gap="0">
+              <v-btn
+                v-permission="Permission.SERVICE_BILL_CREATE"
+                :disabled="loading"
+                color="primary"
+                @click="create"
+              >新增
+              </v-btn
+              >
+              <v-btn
+                v-permission="Permission.SERVICE_BILL_IMPORT"
+                :disabled="loading"
+                variant="tonal"
+                @click="importFile"
+              >导入
+              </v-btn
+              >
+              <v-btn
+                v-permission="Permission.SERVICE_BILL_EXPORT"
+                :disabled="loading"
+                variant="tonal"
+                @click="exportToZip"
+              >导出
+              </v-btn
+              >
+              <v-btn
+                v-permission="Permission.SERVICE_BILL_PROCESS"
+                :disabled="loading"
+                color="primary"
+                @click="reloadAfterAction(process)"
               >开始处理
-            </v-btn>
-            <v-btn :disabled="loading" color="primary" @click="reloadAfterAction(processed)"
+              </v-btn>
+              <v-btn
+                v-permission="Permission.SERVICE_BILL_PROCESSED"
+                :disabled="loading"
+                color="primary"
+                @click="reloadAfterAction(processed)"
               >处理完成
-            </v-btn>
-            <v-btn :disabled="loading" color="primary" @click="reloadAfterAction(finish)">
-              回款完成
-            </v-btn>
-            <div v-role="[AuthorityRole.ROLE_ADMIN.value]">
-              <v-menu location="bottom">
-                <template #activator="{ props }">
-                  <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
-                </template>
-                <v-list density="compact">
-                  <v-list-item @click="reloadAfterAction(cancelProcess)">
-                    <v-list-item-title>取消处理</v-list-item-title>
-                  </v-list-item>
-                  <v-list-item @click="reloadAfterAction(cancelProcessed)">
-                    <v-list-item-title>取消处理完成</v-list-item-title>
-                  </v-list-item>
-                  <v-list-item @click="reloadAfterAction(cancelFinish)">
-                    <v-list-item-title>取消完成</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
-            </div>
-            <v-btn :disabled="loading" color="error" @click="reloadAfterAction(remove)"
+              </v-btn>
+              <v-btn
+                v-permission="Permission.SERVICE_BILL_FINISH"
+                :disabled="loading"
+                color="primary"
+                @click="reloadAfterAction(finish)"
+              >
+                回款完成
+              </v-btn>
+              <div
+                v-permission="[
+                Permission.SERVICE_BILL_CANCEL_PROCESS,
+                Permission.SERVICE_BILL_CANCEL_PROCESSED,
+                Permission.SERVICE_BILL_CANCEL_FINISH,
+              ]"
+              >
+                <v-menu location="bottom">
+                  <template #activator="{ props }">
+                    <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
+                  </template>
+                  <v-list density="compact">
+                    <v-list-item
+                      v-permission="Permission.SERVICE_BILL_CANCEL_PROCESS"
+                      @click="reloadAfterAction(cancelProcess)"
+                    >
+                      <v-list-item-title>取消处理</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item
+                      v-permission="Permission.SERVICE_BILL_CANCEL_PROCESSED"
+                      @click="reloadAfterAction(cancelProcessed)"
+                    >
+                      <v-list-item-title>取消处理完成</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item
+                      v-permission="Permission.SERVICE_BILL_CANCEL_FINISH"
+                      @click="reloadAfterAction(cancelFinish)"
+                    >
+                      <v-list-item-title>取消完成</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </div>
+              <v-btn
+                v-permission="Permission.SERVICE_BILL_DELETE"
+                :disabled="loading"
+                color="error"
+                @click="reloadAfterAction(remove)"
               >删除
-            </v-btn>
-          </v-row>
-        </v-col>
-      </v-row>
-    </template>
-  </v-card>
-  <v-data-table-server
-    v-model="selectedIds"
-    :headers="headers"
-    :items="data.items"
-    :items-length="data.totalCount"
-    :items-per-page="data.pageSize ? data.pageSize : 25"
-    :items-per-page-options="[
+              </v-btn>
+            </v-row>
+          </v-col>
+        </v-row>
+      </template>
+    </v-card>
+    <v-data-table-server
+      v-model="selectedIds"
+      :headers="headers"
+      :items="data.items"
+      :items-length="data.totalCount"
+      :items-per-page="data.pageSize ? data.pageSize : 25"
+      :items-per-page-options="[
       { value: 10, title: '10' },
       { value: 25, title: '25' },
       { value: 50, title: '50' },
       { value: 100, title: '100' },
     ]"
-    :search="search"
-    :sort-by="queryParam.sorts"
-    mobile-breakpoint="sm"
-    show-select
-    @update:options="loadItems"
-  >
-    <template #[`item.number`]="{ item }">
-      <RouterLink :to="`/service/${item.id}`">{{ item.number }}</RouterLink>
-    </template>
-    <template #[`item.state`]="{ item }">
-      <v-chip :color="ServiceBillState[item.state].color" class="text-white" size="small">
-        {{ ServiceBillState[item.state].title }}
-      </v-chip>
-    </template>
-    <template #[`item.type`]="{ item }">
-      <v-chip :color="ServiceBillType[item.type].color" class="text-white" size="small">
-        {{ ServiceBillType[item.type].title }}
-      </v-chip>
-    </template>
-    <template #[`item.totalAmount`]="{ item }">
-      <div class="text-right">{{ item.totalAmount.toFixed(2) }}</div>
-    </template>
-    <template #[`item.orderDate`]="{ item }">
-      {{ item.orderDate ? dateUtil.format(item.orderDate, 'keyboardDate') : '' }}
-    </template>
-    <template #[`item.processedDate`]="{ item }">
-      {{ item.processedDate ? dateUtil.format(item.processedDate, 'keyboardDate') : '' }}
-    </template>
-  </v-data-table-server>
+      :search="search"
+      :sort-by="queryParam.sorts"
+      mobile-breakpoint="sm"
+      show-select
+      @update:options="loadItems"
+    >
+      <template #[`item.number`]="{ item }">
+        <RouterLink :to="`/service/${item.id}`">{{ item.number }}</RouterLink>
+      </template>
+      <template #[`item.state`]="{ item }">
+        <v-chip :color="ServiceBillState[item.state].color" class="text-white" size="small">
+          {{ ServiceBillState[item.state].title }}
+        </v-chip>
+      </template>
+      <template #[`item.type`]="{ item }">
+        <v-chip :color="ServiceBillType[item.type].color" class="text-white" size="small">
+          {{ ServiceBillType[item.type].title }}
+        </v-chip>
+      </template>
+      <template #[`item.totalAmount`]="{ item }">
+        <div class="text-right">{{ item.totalAmount.toFixed(2) }}</div>
+      </template>
+      <template #[`item.orderDate`]="{ item }">
+        {{ item.orderDate ? dateUtil.format(item.orderDate, 'keyboardDate') : '' }}
+      </template>
+      <template #[`item.processedDate`]="{ item }">
+        {{ item.processedDate ? dateUtil.format(item.processedDate, 'keyboardDate') : '' }}
+      </template>
+    </v-data-table-server>
+  </v-container>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import {ref} from 'vue'
 import {
   type ServiceBill,
   type ServiceBillQueryParam,
@@ -156,23 +211,23 @@ import {
   ServiceBillType,
 } from '../model/ServiceBill'
 import ServiceBillApi from '../api/ServiceBillApi'
-import type { PageResult } from '@/common/model/PageResult'
-import { useRoute, useRouter } from 'vue-router'
-import { useUIStore } from '@/common/store/UIStore'
-import { useFileSelector } from '@/attachment/composable/FileSelector'
-import { useServiceBillActions } from '../composable/ServiceBillActions'
-import { storeToRefs } from 'pinia'
-import { useRouterStore } from '@/common/store/RouterStore'
-import { mdiFilter, mdiMagnify } from '@mdi/js'
-import { useDate, useHotkey } from 'vuetify/framework'
-import { AuthorityRole } from '@/user/model/User'
+import type {PageResult} from '@/common/model/PageResult'
+import {useRoute, useRouter} from 'vue-router'
+import {useUIStore} from '@/common/store/UIStore'
+import {useFileSelector} from '@/attachment/composable/FileSelector'
+import {useServiceBillActions} from '../composable/ServiceBillActions'
+import {storeToRefs} from 'pinia'
+import {useRouterStore} from '@/common/store/RouterStore'
+import {mdiFilter, mdiMagnify} from '@mdi/js'
+import {useDate, useHotkey} from 'vuetify/framework'
+import {Permission} from '../model/Permission'
 
 const store = useUIStore()
-const { info, warning, showLoading } = store
-const { loading } = storeToRefs(store)
+const {info, warning, showLoading} = store
+const {loading} = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
-const { setData } = useRouterStore()
+const {setData} = useRouterStore()
 const dateUtil = useDate()
 
 // 筛选条件区域
@@ -228,26 +283,26 @@ const queryParam = ref<QueryParam>({
 // 处理路由参数
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
-  queryParam.value = { ...queryParam.value, ...data }
+  queryParam.value = {...queryParam.value, ...data}
 } else {
   // 尝试从缓存恢复
   const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
   if (cache) {
     const data = JSON.parse(cache) as QueryParam
-    queryParam.value = { ...queryParam.value, ...data }
+    queryParam.value = {...queryParam.value, ...data}
   }
 }
 
 // 数据表格区域
 // 表头
 const headers = [
-  { title: '单号', key: 'number', sortable: false },
-  { title: '状态', key: 'state', sortable: false },
-  { title: '类型', key: 'type', sortable: false },
-  { title: '项目', key: 'projectName', sortable: false },
-  { title: '总金额', key: 'totalAmount', sortable: false },
-  { title: '创建时间', key: 'orderDate', sortable: false },
-  { title: '完工时间', key: 'processedDate', sortable: false },
+  {title: '单号', key: 'number', sortable: false},
+  {title: '状态', key: 'state', sortable: false},
+  {title: '类型', key: 'type', sortable: false},
+  {title: '项目', key: 'projectName', sortable: false},
+  {title: '总金额', key: 'totalAmount', sortable: false},
+  {title: '创建时间', key: 'orderDate', sortable: false},
+  {title: '完工时间', key: 'processedDate', sortable: false},
 ]
 
 // 列表数据
@@ -376,7 +431,7 @@ async function exportToZip() {
   }
 }
 
-const { process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish } =
+const {process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish} =
   useServiceBillActions((id: number) => {
     const row = data.value.items.find((item) => item.id === id)
     if (row) {

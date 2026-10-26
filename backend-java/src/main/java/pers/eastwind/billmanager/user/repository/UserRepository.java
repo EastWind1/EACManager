@@ -13,6 +13,7 @@ public interface UserRepository extends BaseRepository<User> {
 
     User findByUsername(String username);
 
-
+    User findByUsernameAndDisabled(String username, boolean disabled);
+    
     Page<User> findByDisabled(boolean disabled, Pageable pageable);
 }

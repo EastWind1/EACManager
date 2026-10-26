@@ -1,7 +1,10 @@
 <template>
   <v-container>
+    <v-alert v-if="!canBillStatistic && !canReimburseStatistic" type="info" variant="tonal">
+      当前账号没有统计权限，请联系管理员配置。
+    </v-alert>
     <!-- 服务单统计 -->
-    <v-row>
+    <v-row v-if="canBillStatistic">
       <!-- 待处理单据与处理中单据 -->
       <v-col cols="12" md="6">
         <v-card class="h-100">
@@ -82,7 +85,7 @@
     </v-row>
 
     <!-- 报销单统计 -->
-    <v-row>
+    <v-row v-if="canReimburseStatistic">
       <v-col cols="12" md="6">
         <v-card class="h-100">
           <template #title>
@@ -170,8 +173,16 @@ import { ReimburseState, type ReimburseStateValue } from '@/reimburse/model/Reim
 import { StatisticApi } from '../api/StatisticApi'
 import { useRouter } from 'vue-router'
 import { mdiCash, mdiCurrencyUsd, mdiMonitorDashboard, mdiReceipt } from '@mdi/js'
+import { useUserStore } from '@/user/store/UserStore'
+import { Permission as ServiceBillPermission } from '@/service-bill/model/Permission'
+import { Permission as ReimbursePermission } from '@/reimburse/model/Permission'
 
 const router = useRouter()
+const userStore = useUserStore()
+
+// 统计权限
+const canBillStatistic = userStore.hasPermission(ServiceBillPermission.SERVICE_BILL_STATISTIC)
+const canReimburseStatistic = userStore.hasPermission(ReimbursePermission.REIMBURSE_STATISTIC)
 
 // 服务单数量
 const countByState = ref<{ [key in ServiceBillStateValue]?: number }>({
@@ -229,18 +240,22 @@ async function reimburseStateClick(state: ReimburseStateValue) {
 
 // 初始化
 async function init() {
-  StatisticApi.countBillsByState().then((res) => {
-    countByState.value = res
-  })
-  StatisticApi.sumTotalAmountByMonth().then((res) => {
-    amountGroupByMonth.value = res
-  })
-  StatisticApi.countReimbursesByState().then((res) => {
-    reimburseCountByState.value = res
-  })
-  StatisticApi.sumReimburseTotalAmountByMonth().then((res) => {
-    reimburseAmountGroupByMonth.value = res
-  })
+  if (canBillStatistic) {
+    StatisticApi.countBillsByState().then((res) => {
+      countByState.value = res
+    })
+    StatisticApi.sumTotalAmountByMonth().then((res) => {
+      amountGroupByMonth.value = res
+    })
+  }
+  if (canReimburseStatistic) {
+    StatisticApi.countReimbursesByState().then((res) => {
+      reimburseCountByState.value = res
+    })
+    StatisticApi.sumReimburseTotalAmountByMonth().then((res) => {
+      reimburseAmountGroupByMonth.value = res
+    })
+  }
 }
 
 init()

@@ -3,7 +3,6 @@ package auth
 import (
 	"backend-go/pkg/errs"
 	"context"
-	"slices"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -11,29 +10,9 @@ import (
 // CurUserKey 当前用户在上下文中的 Key
 type CurUserKey struct{}
 
-// AuthorityRole 角色
-type AuthorityRole string
-
-// 角色常量
-const (
-	// RoleAdmin 管理员
-	RoleAdmin AuthorityRole = "ROLE_ADMIN"
-	// RoleUser 用户
-	RoleUser AuthorityRole = "ROLE_USER"
-	// RoleGuest 游客
-	RoleGuest AuthorityRole = "ROLE_GUEST"
-	// RoleFinance 财务
-	RoleFinance AuthorityRole = "ROLE_FINANCE"
-)
-
-func (a AuthorityRole) String() string {
-	return string(a)
-}
-
-// User 鉴权用户
+// User 鉴权用户；角色与权限由 security 模块按用户 ID 加载
 type User interface {
 	GetID() uint
-	GetRole() AuthorityRole
 }
 
 // SetCurrentUser 设置当前用户
@@ -52,30 +31,4 @@ func GetCurrentUser(c context.Context) (User, error) {
 		return nil, errs.NewBizError("转换用户失败")
 	}
 	return user, nil
-}
-
-// HasRole 检查当前用户是否有指定的角色
-func HasRole(ctx context.Context, roles ...AuthorityRole) (bool, error) {
-	user, err := GetCurrentUser(ctx)
-	if err != nil {
-		return false, err
-	}
-	if slices.Contains(roles, user.GetRole()) {
-		return true, nil
-	}
-	return false, nil
-}
-
-// RoleMiddleware 角色鉴权中间件
-func RoleMiddleware(roles ...AuthorityRole) fiber.Handler {
-	return func(c fiber.Ctx) error {
-		res, err := HasRole(c, roles...)
-		if err != nil {
-			return err
-		}
-		if !res {
-			return errs.NewAuthError("没有权限")
-		}
-		return c.Next()
-	}
 }
