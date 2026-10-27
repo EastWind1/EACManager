@@ -13,9 +13,6 @@ import pers.eastwind.billmanager.user.service.UserService;
 
 import java.util.Map;
 
-/**
- * 用户控制器
- */
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
@@ -27,13 +24,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    /**
-     * 登录
-     * 设置 token 至响应头
-     *
-     * @param param 登录参数
-     * @return 用户信息
-     */
     @PostMapping("/token")
     public ResponseEntity<UserDTO> login(@RequestBody LoginParam param) {
         LoginResult res = userService.login(param.username, param.password);
@@ -47,24 +37,17 @@ public class UserController {
                 .body(res.user());
     }
 
-    /**
-     * 查询系统是否需要初始化管理员
-     */
     @GetMapping("/initialization")
     public Map<String, Boolean> initializationStatus() {
         return Map.of("required", userService.isInitializationRequired());
     }
 
-    /**
-     * 初始化首个管理员
-     */
     @PostMapping("/initialization")
     public UserDTO initialize(@RequestBody UserDTO param) {
         return userService.initialize(param);
     }
 
     /**
-     * 登出
      * TODO：此处登出仅销毁 cookie，还需要结合 token 作废实现
      */
     @PutMapping("/logout")
@@ -78,50 +61,30 @@ public class UserController {
                         .sameSite("Strict").build().toString()).build();
     }
 
-    /**
-     * 查询
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).QUERY.getCode())")
     @GetMapping
     public PageResult<UserDTO> getAll(QueryParam queryParam) {
         return userService.getAll(queryParam);
     }
 
-    /**
-     * 创建
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).CREATE.getCode())")
     @PostMapping
     public UserDTO create(@RequestBody UserDTO user) {
         return userService.create(user);
     }
 
-    /**
-     * 修改
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).UPDATE.getCode())")
     @PutMapping
     public UserDTO update(@RequestBody UserDTO user) {
         return userService.update(user);
     }
 
-    /**
-     * 禁用
-     *
-     * @param username 用户名
-     */
     @DeleteMapping("/{username}")
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).DISABLE.getCode())")
     public void disable(@PathVariable String username) {
         userService.disable(username);
     }
 
-    /**
-     * 登录参数
-     *
-     * @param username 用户名
-     * @param password 密码
-     */
     public record LoginParam(String username, String password) {
     }
 }

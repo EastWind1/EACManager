@@ -9,9 +9,6 @@ import pers.eastwind.billmanager.common.exception.BizException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 基础查询参数
- */
 @Data
 public class QueryParam {
     /**
@@ -24,15 +21,10 @@ public class QueryParam {
      */
     private Integer pageIndex;
 
-    /**
-     * 排序参数
-     */
     private List<SortParam> sorts;
 
     /**
-     * 获取分页参数
-     *
-     * @return 分页参数
+     * 两个分页参数都为空时不分页，只给其中一个会报错
      */
     public Pageable getPageable() {
         Sort sort;
@@ -58,19 +50,10 @@ public class QueryParam {
         }
     }
 
-    /**
-     * 排序参数
-     */
     @Data
     public static class SortParam {
-        /**
-         * 排序字段
-         */
         private String field;
 
-        /**
-         * 排序方向
-         */
         private String direction;
 
         public void setDirection(String direction) {

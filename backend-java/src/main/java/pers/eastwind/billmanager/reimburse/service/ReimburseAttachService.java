@@ -9,22 +9,12 @@ import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.reimburse.model.ReimburseAttach;
 import pers.eastwind.billmanager.reimburse.repository.ReimburseAttachRepository;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * 报销单附件关联业务
- *
- */
 @Slf4j
 @Service
 public class ReimburseAttachService {
-    /**
-     * 报销单附件命名空间
-     */
     public static final String ATTACH_NAMESPACE = "REIMBURSEMENT";
 
     private final ReimburseAttachRepository reimburseAttachRepository;
@@ -38,12 +28,6 @@ public class ReimburseAttachService {
         this.attachService = attachService;
     }
 
-    /**
-     * 获取报销单附件
-     *
-     * @param billId 报销单 ID
-     * @return 附件
-     */
     public List<Attach> findAttachments(Integer billId) {
         if (billId == null) {
             throw new BizException("单据 ID 不能为空");
@@ -51,12 +35,6 @@ public class ReimburseAttachService {
         return reimburseAttachRepository.findAttachmentsByBillId(billId);
     }
 
-    /**
-     * 将报销单附件更新为目标集合
-     *
-     * @param billId     报销单 ID
-     * @param attachDTOs 要更新为的附件集合
-     */
     public void updateAttachments(Integer billId, List<AttachDTO> attachDTOs) {
         Set<Integer> currentIds = findAttachments(billId)
                 .stream()
@@ -74,15 +52,20 @@ public class ReimburseAttachService {
         Set<Integer> removedIds = new HashSet<>(currentIds);
         removedIds.removeAll(targetIds);
 
+        if (addedIds.isEmpty() && removedIds.isEmpty()) {
+            return;
+        }
         // 先提交新增附件，再断开关联、删除附件与文件
         if (!addedIds.isEmpty()) {
             attachService.persist(addedIds);
+            List<ReimburseAttach> relations = new ArrayList<>(addedIds.size());
             addedIds.forEach(attachId -> {
                 ReimburseAttach relation = new ReimburseAttach();
                 relation.setReimburseId(billId);
                 relation.setAttachId(attachId);
-                reimburseAttachRepository.save(relation);
+                relations.add(relation);
             });
+            reimburseAttachRepository.saveAll(relations);
         }
         if (!removedIds.isEmpty()) {
             reimburseAttachRepository.deleteByBillIdAndAttachIds(billId, removedIds);

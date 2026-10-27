@@ -75,7 +75,8 @@ func (s *UserServiceTest) TestGetAll() {
 	for i := range 3 {
 		newUser := &user.DTO{
 			Username: "user" + strconv.Itoa(i),
-			Password: new("password"),
+			// 密码至少 10 位，否则会被 validPassword 拒绝
+			Password: new("password123"),
 			Name:     "用户" + strconv.Itoa(i),
 			Roles:    []security.RoleDTO{{Code: "ADMIN"}},
 		}

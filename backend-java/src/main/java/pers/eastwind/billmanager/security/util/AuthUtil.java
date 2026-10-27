@@ -8,13 +8,7 @@ import pers.eastwind.billmanager.security.model.AuthorityUser;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * 鉴权工具
- */
 public class AuthUtil {
-    /**
-     * 获取当前用户
-     */
     public static AuthorityUser getCurUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof UserDetails) {
@@ -24,7 +18,7 @@ public class AuthUtil {
     }
 
     /**
-     * 是否拥有角色
+     * 是否拥有角色；传入不带 ROLE_ 前缀的编码会自动补齐
      */
     public static boolean hasRole(String role) {
         if (!role.startsWith("ROLE_")) {
@@ -33,9 +27,6 @@ public class AuthUtil {
         return hasAuthority(role);
     }
 
-    /**
-     * 是否拥有权限
-     */
     public static boolean hasAuthority(String permission) {
         var curUser = getCurUser();
         if (curUser == null) {

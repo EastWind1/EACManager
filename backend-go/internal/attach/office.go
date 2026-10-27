@@ -6,7 +6,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// ParseExcel 解析 Excel
 func ParseExcel(path string) ([][]string, error) {
 	file, err := excelize.OpenFile(path)
 	if err != nil {
@@ -32,7 +31,6 @@ func ParseExcel(path string) ([][]string, error) {
 	return res, nil
 }
 
-// GenerateExcelFromList 创建 Excel
 func GenerateExcelFromList(rows [][]string, targetPath string) error {
 	if len(rows) == 0 {
 		return nil

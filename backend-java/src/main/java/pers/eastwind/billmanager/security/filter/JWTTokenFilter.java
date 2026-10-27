@@ -21,8 +21,7 @@ import pers.eastwind.billmanager.user.service.UserService;
 import java.io.IOException;
 
 /**
- * JWT 过滤器
- * 替代 Spring Security 默认的 Session 认证
+ * JWT 过滤器：替代 Spring Security 默认的 Session 认证
  */
 @Slf4j
 @Component
@@ -37,7 +36,6 @@ public class JWTTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
-        // 获取 token
         String token = null;
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {

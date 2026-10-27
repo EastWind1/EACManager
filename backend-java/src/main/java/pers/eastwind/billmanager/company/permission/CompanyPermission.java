@@ -2,9 +2,6 @@ package pers.eastwind.billmanager.company.permission;
 
 import pers.eastwind.billmanager.security.model.Permission;
 
-/**
- * 公司模块权限
- */
 public enum CompanyPermission implements Permission {
     QUERY("company:query", "查看公司", 1),
     CREATE("company:create", "新增公司", 2),

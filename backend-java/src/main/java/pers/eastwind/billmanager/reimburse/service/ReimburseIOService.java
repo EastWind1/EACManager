@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * 报销单导入导出
- */
 @Service
 public class ReimburseIOService {
     private final AttachService attachService;
@@ -42,12 +39,6 @@ public class ReimburseIOService {
         this.reimburseRepository = reimburseRepository;
     }
 
-    /**
-     * 导出单据
-     *
-     * @param ids 单据列表
-     * @return 压缩文件路径
-     */
     public Path export(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
@@ -60,7 +51,6 @@ public class ReimburseIOService {
         Path tempPath = attachService.createTempDir("export");
         List<FileOp> ops = new ArrayList<>();
 
-        // 遍历生成 excel行，并拷贝附件
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("单据编号", "摘要", "总额", "报销日期", "备注"));
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -76,9 +66,7 @@ public class ReimburseIOService {
                             .collect(Collectors.joining())
             ));
             totalAmount = totalAmount.add(reimbursement.getTotalAmount());
-            // 创建当前单据附件文件夹
             Path curDir = tempPath.resolve(reimbursement.getNumber());
-            // 拷贝当前单据所有附件
             List<Attach> attachments = reimburseAttachService.findAttachments(reimbursement.getId());
             for (Attach attachment : attachments) {
                 Path origin = attachService.getAbsolutePathByRela(attachment.getRelativePath());
@@ -92,13 +80,11 @@ public class ReimburseIOService {
                 ops.add(new FileOp(FileOpType.COPY, origin, target));
             }
         }
-        // 表合计
         rows.add(List.of("", "合计", totalAmount.toString(), "", ""));
 
         String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         Path excel = tempPath.resolve("导出结果" + timeStr + ".xlsx");
         OfficeFileUtil.generateExcelFromList(rows, excel);
-        // 执行文件拷贝
         FileTxUtil.exec(ops);
 
         Path zip = attachService.getTempPath().resolve(tempPath + ".zip");
@@ -106,12 +92,6 @@ public class ReimburseIOService {
         return zip;
     }
 
-    /**
-     * 根据文件生成报销单
-     *
-     * @param resource 文件资源
-     * @return 报销单 DTO
-     */
     public ReimburseDTO generateByFile(Resource resource) {
         AttachDTO attachment = attachService.upload(ReimburseAttachService.ATTACH_NAMESPACE, List.of(resource)).getFirst();
         ReimburseDTO dto = attachMapper.map(attachment);

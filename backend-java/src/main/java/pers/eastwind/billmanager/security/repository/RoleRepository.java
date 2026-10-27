@@ -6,13 +6,11 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pers.eastwind.billmanager.security.model.Role;
+import pers.eastwind.billmanager.security.model.RolePermissionRow;
 
 import java.util.Collection;
 import java.util.List;
 
-/**
- * 角色仓库
- */
 public interface RoleRepository extends JpaRepository<Role, Integer> {
     boolean existsByCode(String code);
 
@@ -26,6 +24,8 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
 
     List<Role> findByIdIn(Collection<Integer> ids);
 
+    List<Role> findByCodeIn(Collection<String> codes);
+
     @Query("""
             select r from UserRole ur, Role r
             where ur.roleId = r.id
@@ -34,4 +34,16 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
             order by r.sortOrder, r.id
             """)
     List<Role> findEnabledByUserId(Integer userId);
+
+    /**
+     * 一次查出多个角色的权限对照行，供批量组装用户权限使用
+     */
+    @Query("""
+            select new pers.eastwind.billmanager.security.model.RolePermissionRow(rp.roleId, p)
+            from RolePermission rp, PermissionEntity p
+            where rp.permissionId = p.id
+              and rp.roleId in :roleIds
+            order by p.sortOrder, p.code
+            """)
+    List<RolePermissionRow> findPermissionsByRoleIds(@Param("roleIds") Collection<Integer> roleIds);
 }

@@ -10,9 +10,6 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
-// 文件事务操作
-
-// validSrc 检查源文件存在且为文件
 func validSrc(origin string) error {
 	if origin == "" {
 		return errs.NewFileOpError("源路径不能为空", "")
@@ -26,9 +23,7 @@ func validSrc(origin string) error {
 	return nil
 }
 
-// validTarget 检查目标文件
-//
-// exist 表示期望的存在状态
+// validTarget 检查目标路径；exist 表示期望它存在还是不存在。
 func validTarget(target string, exist bool) error {
 	if target == "" {
 		return errs.NewFileOpError("目标路径不能为空", "")
@@ -112,13 +107,11 @@ func execSingleOp(op *FileOp) (*FileOp, error) {
 	return res, nil
 }
 
-// Exec 执行文件操作
 func Exec(ops []FileOp) error {
 	if len(ops) == 0 {
 		return nil
 	}
 	var executedOps []FileOp
-	// 执行操作
 	var err error
 	for _, op := range ops {
 		var execOp *FileOp
@@ -137,7 +130,6 @@ func Exec(ops []FileOp) error {
 	return nil
 }
 
-// rollback 回滚文件操作
 func rollback(executedOps []FileOp) {
 	if executedOps == nil {
 		return

@@ -25,7 +25,6 @@ func getLevel(str string) log.Level {
 	return log.Level(0)
 }
 
-// InitLogger 配置日志
 func InitLogger(cfg *config.LogConfig) {
 	level := getLevel(cfg.Level)
 	log.SetLevel(level)

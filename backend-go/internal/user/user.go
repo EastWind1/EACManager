@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// Setup 初始化
 func Setup(ctx *context.AppContext, router fiber.Router, securitySrv *security.Service,
 	permissionSyncSrv *security.PermissionSyncService) {
 	permissionSyncSrv.Register(userPermissions()...)

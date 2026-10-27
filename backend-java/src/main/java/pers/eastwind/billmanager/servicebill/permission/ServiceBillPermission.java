@@ -2,9 +2,6 @@ package pers.eastwind.billmanager.servicebill.permission;
 
 import pers.eastwind.billmanager.security.model.Permission;
 
-/**
- * 服务单模块权限
- */
 public enum ServiceBillPermission implements Permission {
     QUERY("serviceBill:query", "查询服务单", 9),
     DETAIL("serviceBill:detail", "查看服务单", 10),

@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// Setup 注册角色与权限管理路由，并声明本模块的权限类型
 func Setup(ctx *appContext.AppContext, router fiber.Router, srv *Service,
 	permissionSyncSrv *PermissionSyncService) {
 	permissionSyncSrv.Register(modulePermissions()...)

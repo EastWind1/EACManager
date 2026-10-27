@@ -7,9 +7,6 @@ import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
 import pers.eastwind.billmanager.company.service.CompanyService;
 
-/**
- * 公司控制器
- */
 @RestController
 @RequestMapping("/api/company")
 public class CompanyController {

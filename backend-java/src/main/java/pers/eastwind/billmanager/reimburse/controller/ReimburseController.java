@@ -17,9 +17,6 @@ import pers.eastwind.billmanager.reimburse.service.ReimburseService;
 
 import java.util.List;
 
-/**
- * 报销单控制器
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/reimburse")
@@ -32,11 +29,6 @@ public class ReimburseController {
         this.reimburseIOService = reimburseIOService;
     }
 
-    /**
-     * 根据条件查找报销单
-     *
-     * @return 报销单列表
-     */
     @PostMapping("/query")
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).QUERY.getCode())")
     public PageResult<ReimburseDTO> queryByParam(@RequestBody ReimburseQueryParam queryParam) {
@@ -46,96 +38,60 @@ public class ReimburseController {
 
     }
 
-    /**
-     * 根据 ID 获取报销单
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).DETAIL.getCode())")
     @GetMapping("/{id}")
     public ReimburseDTO getById(@PathVariable Integer id) {
         return reimburseService.findById(id);
     }
 
-    /**
-     * 创建报销单
-     *
-     * @param reimburseDTO 报销单
-     * @return 保存后的报销单
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).CREATE.getCode())")
     @PostMapping
     public ReimburseDTO create(@RequestBody ReimburseDTO reimburseDTO) {
         return reimburseService.create(reimburseDTO);
     }
 
-    /**
-     * 保存报销单
-     *
-     * @param reimburseDTO 报销单
-     * @return 保存后的报销单
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).UPDATE.getCode())")
     @PutMapping
     public ReimburseDTO save(@RequestBody ReimburseDTO reimburseDTO) {
         return reimburseService.update(reimburseDTO);
     }
 
-    /**
-     * 删除报销单
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).DELETE.getCode())")
     @DeleteMapping
     public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
         return reimburseService.delete(ids);
     }
 
-    /**
-     * 处理报销单
-     */
     @PutMapping("/process")
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).PROCESS.getCode())")
     public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
         return reimburseService.process(ids);
     }
 
-    /**
-     * 处理完成报销单
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).FINISH.getCode())")
     @PutMapping("/finish")
     public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
         return reimburseService.finish(ids);
     }
 
-    /**
-     * 取消处理状态
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).CANCEL_PROCESS.getCode())")
     @PutMapping("/cancel-process")
     public ActionsResult<Integer, Void> cancelProcess(@RequestBody List<Integer> ids) {
         return reimburseService.cancelProcess(ids);
     }
 
-    /**
-     * 取消处理完成状态
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).CANCEL_FINISH.getCode())")
     @PutMapping("/cancel-finish")
     public ActionsResult<Integer, Void> cancelFinish(@RequestBody List<Integer> ids) {
         return reimburseService.cancelFinish(ids);
     }
 
-    /**
-     * 通过文件导入报销单
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).IMPORT.getCode())")
     @PostMapping("/import")
     public ReimburseDTO importByFile(MultipartFile file) {
         return reimburseIOService.generateByFile(file.getResource());
     }
 
-    /**
-     * 导出
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).EXPORT.getCode())")
     @PostMapping(value = "/export", produces = "application/octet-stream")
     public ResponseEntity<Resource> export(@RequestBody List<Integer> ids) {

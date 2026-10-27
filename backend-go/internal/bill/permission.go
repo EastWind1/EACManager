@@ -2,7 +2,6 @@ package bill
 
 import "backend-go/internal/security"
 
-// 服务单模块权限编码
 const (
 	QueryAuthCode           = "serviceBill:query"
 	DetailAuthCode          = "serviceBill:detail"
@@ -20,7 +19,6 @@ const (
 	StatisticAuthCode       = "serviceBill:statistic"
 )
 
-// billPermissions 服务单模块声明的权限
 func billPermissions() []security.PermissionDTO {
 	return []security.PermissionDTO{
 		security.NewPermissionDTO(0, QueryAuthCode, "serviceBill", "服务单", "查询服务单", 1),

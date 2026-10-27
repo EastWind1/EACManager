@@ -2,7 +2,6 @@ package user
 
 import "backend-go/internal/security"
 
-// 用户模块权限编码
 const (
 	QueryAuthCode   = "user:query"
 	CreateAuthCode  = "user:create"
@@ -10,7 +9,6 @@ const (
 	DisableAuthCode = "user:disable"
 )
 
-// userPermissions 用户模块声明的权限
 func userPermissions() []security.PermissionDTO {
 	return []security.PermissionDTO{
 		security.NewPermissionDTO(0, QueryAuthCode, "user", "用户管理", "查看用户", 1),

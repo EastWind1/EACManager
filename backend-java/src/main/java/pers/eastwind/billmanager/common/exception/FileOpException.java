@@ -4,9 +4,6 @@ import lombok.Getter;
 
 import java.nio.file.Path;
 
-/**
- * 文件操作异常
- */
 @Getter
 public class FileOpException extends RuntimeException {
     private Path path;

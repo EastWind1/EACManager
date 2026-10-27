@@ -5,9 +5,7 @@ import (
 	"backend-go/pkg/errs"
 )
 
-// Mapper 报销单映射
-//
-// 仅支持标准税务发票（文本），规则由本模块自己持有
+// Mapper 仅支持标准税务发票（文本），规则由本模块自己持有。
 type Mapper struct {
 	content *attach.ContentService
 	rule    *MapRule
@@ -20,7 +18,6 @@ func NewMapper(content *attach.ContentService) *Mapper {
 	}
 }
 
-// Map 附件映射为报销单
 func (m *Mapper) Map(attachment *attach.DTO) (*DTO, error) {
 	if attachment == nil {
 		return nil, errs.NewBizError("附件为空")

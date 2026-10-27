@@ -35,6 +35,9 @@ public class PermissionSyncService implements ApplicationRunner {
         this.permissionRepository = permissionRepository;
     }
 
+    /**
+     * 只 upsert 模块声明的权限；数据库中存在但已无模块声明的权限保留不删
+     */
     @Override
     @Transactional
     public void run(@NonNull ApplicationArguments args) {

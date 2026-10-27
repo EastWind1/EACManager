@@ -53,20 +53,18 @@ func (s *State) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Reimburse 摘要
-//
-// 类名简化为 Reimburse，表名仍为 reimbursement，故显式指定。
+// Reimburse 类名已简化，表名仍为 reimbursement，故显式指定。
 type Reimburse struct {
 	security.Audit
 	ID     uint   `gorm:"primaryKey"`
 	Number string `gorm:"uniqueIndex"`
 	State  State
-	// 摘要
+
 	Summary     string
 	TotalAmount float64
-	// 报销时间
+
 	ReimburseDate *time.Time `gorm:"type:timestamptz;index"`
-	// 备注
+
 	Remark  string
 	Details []Detail `gorm:"foreignKey:ReimbursementID"`
 	Version optimisticlock.Version
@@ -76,7 +74,6 @@ func (r *Reimburse) TableName() string {
 	return "reimbursement"
 }
 
-// Detail 摘要明细
 type Detail struct {
 	ID              uint `gorm:"primaryKey"`
 	ReimbursementID int  `gorm:"index"`
@@ -106,7 +103,6 @@ type DetailDTO struct {
 	Amount float64 `json:"amount"`
 }
 
-// ToDTO 转换为详细 DTO
 func (r *Reimburse) ToDTO(attaches []attach.Attach) *DTO {
 	details := make([]DetailDTO, len(r.Details))
 	for i, d := range r.Details {
@@ -122,7 +118,6 @@ func (r *Reimburse) ToDTO(attaches []attach.Attach) *DTO {
 	return base
 }
 
-// ToBaseDTO 转换为基础 DTO
 func (r *Reimburse) ToBaseDTO() *DTO {
 	return &DTO{
 		ID:            r.ID,
@@ -135,7 +130,6 @@ func (r *Reimburse) ToBaseDTO() *DTO {
 	}
 }
 
-// ToBaseDTOs 转换为基础 DTO，用于列表展示
 func ToBaseDTOs(entities []Reimburse) []DTO {
 	details := make([]DTO, len(entities))
 	for i, d := range entities {

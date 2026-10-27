@@ -37,7 +37,7 @@ func AppCtx() *appContext.AppContext {
 	return appCtx
 }
 
-// BeginTx 开启测试事务并返回携带它的 context，用例结束时自动回滚
+// BeginTx 开启测试事务并返回携带它的 context（仓储从 context 取事务），用例结束时自动回滚
 func BeginTx(t *testing.T) context.Context {
 	t.Helper()
 	db := AppCtx().Db
@@ -53,7 +53,7 @@ func BeginTx(t *testing.T) context.Context {
 	return context.WithValue(db.Statement.Context, database.TxKey{}, tx)
 }
 
-// Tx 返回 ctx 携带的测试事务
+// Tx 返回 ctx 携带的测试事务，供用例执行原始 SQL
 func Tx(t *testing.T, ctx context.Context) *gorm.DB {
 	t.Helper()
 	tx, ok := ctx.Value(database.TxKey{}).(*gorm.DB)

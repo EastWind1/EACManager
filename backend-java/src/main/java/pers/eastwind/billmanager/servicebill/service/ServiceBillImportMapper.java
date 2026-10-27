@@ -11,8 +11,7 @@ import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
 import java.util.List;
 
 /**
- * 服务单附件映射
- * <p>规则集合由本模块自己维护：菱电判定更具体，排在威垦之前
+ * 服务单附件映射：解析规则由本模块自己维护。
  */
 @Service
 public class ServiceBillImportMapper {
@@ -27,12 +26,6 @@ public class ServiceBillImportMapper {
         );
     }
 
-    /**
-     * 附件映射为服务单
-     *
-     * @param attachment 附件
-     * @return 服务单
-     */
     public ServiceBillDTO map(AttachDTO attachment) {
         if (attachment == null) {
             throw new BizException("附件为空");

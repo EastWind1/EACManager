@@ -5,57 +5,52 @@ import (
 	"strings"
 )
 
-// SortParam 排序参数
 type SortParam struct {
 	Field     string `json:"field"`
 	Direction string `json:"direction"`
 }
 
-// QueryParam 查询参数
 type QueryParam struct {
+	// PageIndex 从 0 开始，与 Java 侧 PageRequest 及前端 options.page-1 一致
 	PageIndex *int        `json:"pageIndex"`
 	PageSize  *int        `json:"pageSize"`
 	Sorts     []SortParam `json:"sorts"`
 }
 
-// GetOffset 获取偏移量
 func (p *QueryParam) GetOffset() int {
 	if p.PageIndex == nil || p.PageSize == nil {
 		return 0
 	}
-	return (*p.PageIndex - 1) * *p.PageSize
+	return *p.PageIndex * *p.PageSize
 }
 
-// Valid 校验并设置部分默认值
+// Valid 校验参数并把排序方向归一化为 asc/desc
+//
+// 不判断排序字段是否真实存在：列名由 clause.OrderByColumn 交给 GORM 加引号，非法列由数据库报错。
 func (p *QueryParam) Valid() error {
-	if p.HasPage() {
-		if *p.PageSize < 1 || *p.PageIndex < 0 {
-			return errs.NewBizError("分页参数不合法，索引必读非负，页大小必须大于0")
-		}
+	if p.HasPage() && (*p.PageSize < 1 || *p.PageIndex < 0) {
+		return errs.NewBizError("分页参数不合法，索引必须非负，页大小必须大于0")
 	}
-	if p.HasPage() {
-		for _, sort := range p.Sorts {
-			if sort.Field == "" {
-				return errs.NewBizError("排序字段不能为空")
-			}
-			if sort.Direction == "" {
-				sort.Direction = "asc"
-			}
-			sort.Direction = strings.ToLower(sort.Direction)
-			if sort.Direction != "asc" && sort.Direction != "desc" {
-				return errs.NewBizError("排序方向只能是asc或desc")
-			}
+	for i := range p.Sorts {
+		if p.Sorts[i].Field == "" {
+			return errs.NewBizError("排序字段不能为空")
 		}
+		direction := strings.ToLower(strings.TrimSpace(p.Sorts[i].Direction))
+		if direction == "" {
+			direction = "asc"
+		}
+		if direction != "asc" && direction != "desc" {
+			return errs.NewBizError("排序方向只能是asc或desc")
+		}
+		p.Sorts[i].Direction = direction
 	}
 	return nil
 }
 
-// HasPage 是否有分页参数
 func (p *QueryParam) HasPage() bool {
 	return p.PageIndex != nil && p.PageSize != nil
 }
 
-// GetPageIndex 获取分页索引
 func (p *QueryParam) GetPageIndex() int {
 	if p.PageIndex == nil {
 		return 0
@@ -63,7 +58,7 @@ func (p *QueryParam) GetPageIndex() int {
 	return *p.PageIndex
 }
 
-// GetPageSize 获取分页大小
+// GetPageSize 未指定分页时返回 -1，供调用方区分「不分页」
 func (p *QueryParam) GetPageSize() int {
 	if p.PageSize == nil {
 		return -1
@@ -71,12 +66,10 @@ func (p *QueryParam) GetPageSize() int {
 	return *p.PageSize
 }
 
-// HasSort 是否有排序参数
 func (p *QueryParam) HasSort() bool {
 	return len(p.Sorts) > 0
 }
 
-// PageResult 分页结果
 type PageResult[T any] struct {
 	Items      []T `json:"items"`
 	TotalCount int `json:"totalCount"`
@@ -85,8 +78,11 @@ type PageResult[T any] struct {
 	TotalPages int `json:"totalPages"`
 }
 
-// NewPageResult 创建分页结果
 func NewPageResult[T any](items []T, totalCount, pageIndex, pageSize int) *PageResult[T] {
+	// 未指定分页时 GetPageSize 返回 -1，对外统一按「不分页」表示，避免负的 totalPages
+	if pageSize <= 0 {
+		return &PageResult[T]{Items: items, TotalCount: totalCount}
+	}
 	totalPages := totalCount / pageSize
 	if totalCount%pageSize != 0 {
 		totalPages++
@@ -100,7 +96,6 @@ func NewPageResult[T any](items []T, totalCount, pageIndex, pageSize int) *PageR
 	}
 }
 
-// NewDTOPageResult 从数据库分页结果创建 DTO 分页结果
 func NewDTOPageResult[E any, DTO any](result *PageResult[E], fn func([]E) []DTO) *PageResult[DTO] {
 	return &PageResult[DTO]{
 		Items:      fn(result.Items),

@@ -7,9 +7,6 @@ import pers.eastwind.billmanager.security.model.PermissionEntity;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * 权限类型仓库
- */
 public interface PermissionRepository extends JpaRepository<PermissionEntity, Integer> {
     List<PermissionEntity> findAllByOrderBySortOrderAsc();
 

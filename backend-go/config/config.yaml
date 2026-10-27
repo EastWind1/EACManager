@@ -10,6 +10,10 @@ db:
   username: postgres
   password: admin
   sslmode: disable
+  # 连接池：默认 20/20，连接最长存活 60 分钟
+  maxOpenConns: 20
+  maxIdleConns: 20
+  connMaxLifetime: 60
 cache:
   expire: 86400
 jwt:

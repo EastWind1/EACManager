@@ -72,7 +72,6 @@ func (r *WKMapRule) SetCompany(target *DTO, name string) {
 	target.ProductCompany = new(companies[0])
 }
 
-// CanMapTexts 文本块命中关键词
 func (r *WKMapRule) CanMapTexts(texts []string) bool {
 	if texts == nil {
 		return false
@@ -85,7 +84,6 @@ func (r *WKMapRule) CanMapTexts(texts []string) bool {
 	return false
 }
 
-// CanMapGrid 表格命中关键词
 func (r *WKMapRule) CanMapGrid(rows [][]string) bool {
 	if rows == nil {
 		return false
@@ -112,7 +110,6 @@ func (r *WKMapRule) MapFromTexts(texts []string) (*DTO, bool, error) {
 	return &dto, true, nil
 }
 
-// matchNumberPattern 检查字符串是否匹配数字模式
 func matchNumberPattern(s string) bool {
 	matched, _ := regexp.MatchString(`^\d+\.?\d*$`, s)
 	return matched
@@ -127,7 +124,6 @@ func (r *WKMapRule) MapFromGrid(rows [][]string) (*DTO, bool, error) {
 		Details: []DetailDTO{},
 	}
 
-	// 设置公司
 	r.SetCompany(serviceBill, r.keyword)
 
 	// 明细开始索引行

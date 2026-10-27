@@ -6,9 +6,6 @@ import lombok.Data;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 
-/**
- * 角色 DTO
- */
 @Data
 @AllArgsConstructor
 public class RoleDTO implements GrantedAuthority {

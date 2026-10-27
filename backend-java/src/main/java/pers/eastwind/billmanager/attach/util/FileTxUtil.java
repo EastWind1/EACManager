@@ -13,17 +13,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 文件事务工具类
- */
 @Slf4j
 public class FileTxUtil {
-    /**
-     * 校验目标路径
-     *
-     * @param path   目标文件
-     * @param exists 是否存在
-     */
     private static void validTarget(Path path, boolean exists) {
         if (path == null) {
             throw new FileOpException("目标不能为空");
@@ -39,11 +30,6 @@ public class FileTxUtil {
         }
     }
 
-    /**
-     * 校验源路径
-     *
-     * @param path 目标路径
-     */
     private static void validOrigin(Path path) {
         if (path == null) {
             throw new FileOpException("源不能为空");
@@ -56,11 +42,6 @@ public class FileTxUtil {
         }
     }
 
-    /**
-     * 执行文件操作
-     *
-     * @param ops 文件操作
-     */
     public static void exec(List<FileOp> ops) {
         List<FileOp> executedOps = new ArrayList<>();
         try {
@@ -105,11 +86,6 @@ public class FileTxUtil {
         log.debug("文件事务提交: {} 个操作", executedOps.size());
     }
 
-    /**
-     * 回滚文件操作
-     *
-     * @param executedOps 文件操作
-     */
     private static void rollback(List<FileOp> executedOps) {
         List<Throwable> rollbackErrors = new ArrayList<>();
         // 倒序回滚

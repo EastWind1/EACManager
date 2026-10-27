@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
-// ErrorHandler 错误处理
 func ErrorHandler() fiber.ErrorHandler {
 	return func(c fiber.Ctx, err error) error {
 		if stackErr, ok := errors.AsType[errs.StackError](err); ok {

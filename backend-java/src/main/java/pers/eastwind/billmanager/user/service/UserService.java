@@ -13,6 +13,7 @@ import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.security.config.JWTProperties;
+import pers.eastwind.billmanager.security.model.AuthConfig;
 import pers.eastwind.billmanager.security.model.AuthorityUser;
 import pers.eastwind.billmanager.security.model.Role;
 import pers.eastwind.billmanager.security.model.RoleDTO;
@@ -26,20 +27,17 @@ import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.model.UserMapper;
 import pers.eastwind.billmanager.user.repository.UserRepository;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * 用户服务
- */
 @Slf4j
 @Service
 public class UserService implements UserDetailsService {
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("[a-zA-Z0-9*\\-_^~]+]]");
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("[a-zA-Z0-9*\\-_^~]+");
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -56,9 +54,6 @@ public class UserService implements UserDetailsService {
         this.roleRepository = roleRepository;
     }
 
-    /**
-     * 获取启用用户
-     */
     public PageResult<UserDTO> getAll(QueryParam queryParam) {
         AuthorityUser curUser = AuthUtil.getCurUser();
         if (curUser == null || queryParam == null) {
@@ -67,7 +62,13 @@ public class UserService implements UserDetailsService {
 
         if (AuthUtil.hasRole("ROLE_ADMIN")) {
             Page<User> users = userRepository.findByDisabled(false, queryParam.getPageable());
-            return PageResult.fromPage(users, this::toDTO);
+            // 一次性组装整页用户的角色与权限，避免每用户两次查询
+            Map<Integer, AuthConfig> authorities = securityService.getUserAuthorities(
+                    users.getContent().stream().map(User::getId).toList());
+            return PageResult.fromPage(users, user -> {
+                AuthConfig config = authorities.getOrDefault(user.getId(), new AuthConfig(List.of(), List.of()));
+                return userMapper.toDTO(user, config.roles(), config.permissions());
+            });
         }
 
         // 非管理员只能获取自己
@@ -78,9 +79,6 @@ public class UserService implements UserDetailsService {
         return new PageResult<>(List.of(toDTO(user)), 1L, 1, 1, 0);
     }
 
-    /**
-     * 校验密码强度
-     */
     private void validPassword(String password) {
         if (password == null || password.length() < 10) {
             throw new BizException("密码过短");
@@ -111,9 +109,6 @@ public class UserService implements UserDetailsService {
         }
     }
 
-    /**
-     * 创建用户
-     */
     @Transactional
     public UserDTO create(UserDTO user) {
         if (user.getUsername().isEmpty()) {
@@ -144,9 +139,6 @@ public class UserService implements UserDetailsService {
         return toDTO(saved);
     }
 
-    /**
-     * 更新用户
-     */
     @Transactional
     public UserDTO update(UserDTO user) {
         if (user.getId() == null) {
@@ -193,9 +185,6 @@ public class UserService implements UserDetailsService {
         return toDTO(userRepository.save(oldUser));
     }
 
-    /**
-     * 禁用用户
-     */
     @Transactional
     public void disable(String username) {
         User user = userRepository.findByUsernameAndDisabled(username, false);
@@ -222,15 +211,12 @@ public class UserService implements UserDetailsService {
         return userMapper.toDTO(user, config.roles(), config.permissions());
     }
 
-    /**
-     * 是否需要初始化管理员
-     */
     public boolean isInitializationRequired() {
         return !securityService.hasAdminUser();
     }
 
     /**
-     * 创建首个管理员；仅当系统没有任何管理员用户时允许执行
+     * 创建首个管理员；仅当系统没有任何管理员用户时允许执行，先锁 ADMIN 角色行以串行化并发初始化
      */
     @Transactional
     public UserDTO initialize(UserDTO dto) {
@@ -250,7 +236,9 @@ public class UserService implements UserDetailsService {
 
         User user = new User();
         user.setUsername(dto.getUsername());
-        user.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
+        // 初始化页提交的是明文密码（登录页提交的是前端 sha256(password:username) 摘要），
+        // 这里按同一约定先做摘要再 bcrypt，保证初始化后能直接登录
+        user.setPassword(BCrypt.hashpw(sha256Hex(dto.getPassword() + ":" + dto.getUsername()), BCrypt.gensalt()));
         user.setName(dto.getName().trim());
         user.setPhone(dto.getPhone());
         user.setEmail(dto.getEmail());
@@ -262,9 +250,6 @@ public class UserService implements UserDetailsService {
     }
 
 
-    /**
-     * 登录，生成 token
-     */
     public LoginResult login(String username, String password) {
         User user = userRepository.findByUsername(username);
         if (user == null) {
@@ -283,6 +268,18 @@ public class UserService implements UserDetailsService {
         String token = JWTUtil.generateToken(properties.getKey(), properties.getExpire(), username);
         log.info("用户登录: {}", username);
         return new LoginResult(token, toDTO(user));
+    }
+
+    /**
+     * 与前端 {@code Crypto.SHA256(password, username)}、Go 后端 {@code sha256Hex} 保持一致
+     */
+    private static String sha256Hex(String value) {
+        try {
+            return HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 不可用", e);
+        }
     }
 
     private UserDTO toDTO(User user) {

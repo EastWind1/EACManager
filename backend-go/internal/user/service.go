@@ -14,7 +14,6 @@ import (
 
 	"github.com/gofiber/fiber/v3/log"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm/clause"
 )
 
 var (
@@ -24,14 +23,12 @@ var (
 	emailPattern    = regexp.MustCompile(`^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$`)
 )
 
-// Service 用户服务
 type Service struct {
 	userRepo    *Repository
 	jwtSvc      *JWTService
 	securitySvc *security.Service
 }
 
-// NewService 创建用户服务实例
 func NewService(userRepo *Repository, jwtSvc *JWTService, securitySvc *security.Service) *Service {
 	return &Service{
 		userRepo:    userRepo,
@@ -40,7 +37,6 @@ func NewService(userRepo *Repository, jwtSvc *JWTService, securitySvc *security.
 	}
 }
 
-// IsInitializationRequired 是否需要初始化管理员
 func (s *Service) IsInitializationRequired(ctx context.Context) (bool, error) {
 	hasAdmin, err := s.securitySvc.HasAdminUser(ctx)
 	if err != nil {
@@ -49,7 +45,6 @@ func (s *Service) IsInitializationRequired(ctx context.Context) (bool, error) {
 	return !hasAdmin, nil
 }
 
-// validPassword 校验密码
 func (s *Service) validPassword(password *string) error {
 	if password == nil || len(*password) < 10 {
 		return errs.NewBizError("密码不能小于 10 位")
@@ -82,6 +77,15 @@ func (s *Service) validPassword(password *string) error {
 	return nil
 }
 
+// roleDTOs 把角色实体转成 DTO，空集合返回空切片而不是 nil（响应里 roles 始终是数组）
+func roleDTOs(roles []security.Role) []security.RoleDTO {
+	res := make([]security.RoleDTO, 0, len(roles))
+	for _, role := range roles {
+		res = append(res, *role.ToDTO())
+	}
+	return res
+}
+
 func (s *Service) encryptPassword(password string) (string, error) {
 	passwordByte := []byte(password)
 	hashedPassword, e := bcrypt.GenerateFromPassword(passwordByte, bcrypt.DefaultCost)
@@ -98,14 +102,18 @@ func (s *Service) Initialize(ctx context.Context, dto *InitDTO) (*DTO, error) {
 	}
 
 	var res *DTO
-	err := s.userRepo.Transaction(ctx, func(tx context.Context) error {
-		var role security.Role
-		if err := s.userRepo.GetDB(tx).Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("code = ?", security.AdminRoleCode).Take(&role).Error; err != nil {
+	err := s.userRepo.Transaction(ctx, func(txCtx context.Context) error {
+
+		// 行锁取管理员角色：并发的两次初始化在这里串行化（加锁细节留在 security 仓储里）
+		role, err := s.securitySvc.RoleByCodeForUpdate(txCtx, security.AdminRoleCode)
+		if err != nil {
+			return err
+		}
+		if role == nil {
 			return errs.NewBizError("管理员角色不存在，无法初始化")
 		}
 
-		hasAdmin, err := s.securitySvc.HasAdminUser(tx)
+		hasAdmin, err := s.securitySvc.HasAdminUser(txCtx)
 		if err != nil {
 			return err
 		}
@@ -114,14 +122,6 @@ func (s *Service) Initialize(ctx context.Context, dto *InitDTO) (*DTO, error) {
 		}
 
 		username := strings.TrimSpace(dto.Username)
-		exists, err := s.userRepo.ExistsByUsername(tx, username)
-		if err != nil {
-			return err
-		}
-		if exists {
-			return errs.NewBizError("用户名已存在")
-		}
-
 		hashed, err := bcrypt.GenerateFromPassword([]byte(sha256Hex(dto.Password+":"+username)), bcrypt.DefaultCost)
 		if err != nil {
 			return errs.Wrap(err)
@@ -134,19 +134,18 @@ func (s *Service) Initialize(ctx context.Context, dto *InitDTO) (*DTO, error) {
 			Email:    strings.TrimSpace(dto.Email),
 			Disabled: false,
 		}
-		if err := s.userRepo.Create(tx, &user); err != nil {
+		// 用户名唯一索引兜底（Create 会转成「用户名已存在」），行锁已保证并发初始化只有一次
+		if err := s.userRepo.Create(txCtx, &user); err != nil {
 			return err
 		}
-		if err := s.securitySvc.SetUserRoles(tx, user.ID, []string{security.AdminRoleCode}); err != nil {
+		granted, err := s.securitySvc.SetUserRoles(txCtx, user.ID, []string{security.AdminRoleCode})
+		if err != nil {
 			return err
 		}
 
 		resultDTO := user.ToDTO()
-		resultDTO.Roles, err = s.securitySvc.UserRoles(tx, user.ID)
-		if err != nil {
-			return err
-		}
-		resultDTO.Permissions, err = s.securitySvc.UserPermissions(tx, user.ID)
+		resultDTO.Roles = granted
+		resultDTO.Permissions, err = s.securitySvc.UserPermissions(txCtx, user.ID)
 		if err != nil {
 			return err
 		}
@@ -191,7 +190,6 @@ func sha256Hex(value string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// Login 用户登录
 func (s *Service) Login(ctx context.Context, username, password string) (*LoginResult, error) {
 	user, err := s.userRepo.FindByUsername(ctx, username)
 	if err != nil {
@@ -221,7 +219,6 @@ func (s *Service) Login(ctx context.Context, username, password string) (*LoginR
 	return &LoginResult{Token: token, User: *dto}, nil
 }
 
-// GetAll 获取用户列表
 func (s *Service) GetAll(ctx context.Context, queryParam *result.QueryParam) (*result.PageResult[DTO], error) {
 	curUser, err := auth.GetCurrentUser(ctx)
 	if err != nil {
@@ -236,16 +233,19 @@ func (s *Service) GetAll(ctx context.Context, queryParam *result.QueryParam) (*r
 		if err != nil {
 			return nil, err
 		}
+		// 整页用户的角色一次取回，避免每用户两次查询
 		userIDs := make([]uint, 0, len(page.Items))
 		for _, u := range page.Items {
 			userIDs = append(userIDs, u.ID)
 		}
+		rolesByUser, err := s.userRepo.FindRolesByUserIDs(ctx, userIDs)
+		if err != nil {
+			return nil, err
+		}
 		dtos := make([]DTO, 0, len(page.Items))
 		for _, u := range page.Items {
 			dto := u.ToDTO()
-			if dto.Roles == nil {
-				dto.Roles = []security.RoleDTO{}
-			}
+			dto.Roles = roleDTOs(rolesByUser[u.ID])
 			dtos = append(dtos, *dto)
 		}
 		return &result.PageResult[DTO]{
@@ -274,7 +274,6 @@ func (s *Service) GetAll(ctx context.Context, queryParam *result.QueryParam) (*r
 	return result.NewPageResult(dtos, len(dtos), 0, 1), nil
 }
 
-// Create 创建用户
 func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	if err := s.validPassword(dto.Password); err != nil {
 		return nil, err
@@ -292,9 +291,10 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	}
 
 	var res *DTO
-	err = s.userRepo.Transaction(ctx, func(tx context.Context) error {
+	err = s.userRepo.Transaction(ctx, func(txCtx context.Context) error {
+
 		if slices.Contains(roleCodes, security.AdminRoleCode) {
-			isAdmin, err := s.securitySvc.HasRole(tx, curUser.GetID(), security.AdminRoleCode)
+			isAdmin, err := s.securitySvc.HasRole(txCtx, curUser.GetID(), security.AdminRoleCode)
 			if err != nil {
 				return err
 			}
@@ -303,31 +303,23 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 			}
 		}
 
-		exists, err := s.userRepo.ExistsByUsername(tx, dto.Username)
-		if err != nil {
-			return err
-		}
-		if exists {
-			return errs.NewBizError("用户名已存在")
-		}
-
 		newUser := dto.ToEntity()
 		ep, err := s.encryptPassword(newUser.Password)
 		if err != nil {
 			return err
 		}
 		newUser.Password = ep
-		if err = s.userRepo.Create(tx, newUser); err != nil {
+		// 用户名唯一索引即判重，不再先查后插（并发下先查后插本身也挡不住重复）
+		if err = s.userRepo.Create(txCtx, newUser); err != nil {
 			return err
 		}
-		if err = s.securitySvc.SetUserRoles(tx, newUser.ID, roleCodes); err != nil {
-			return err
-		}
-		resultDTO := newUser.ToDTO()
-		resultDTO.Roles, err = s.securitySvc.UserRoles(tx, newUser.ID)
+		granted, err := s.securitySvc.SetUserRoles(txCtx, newUser.ID, roleCodes)
 		if err != nil {
 			return err
 		}
+		// 角色就是刚写入的那一批，直接回填，省掉再查一次库
+		resultDTO := newUser.ToDTO()
+		resultDTO.Roles = granted
 		res = resultDTO
 		return nil
 	})
@@ -337,7 +329,6 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	return res, nil
 }
 
-// Update 更新用户
 func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("id 不能为空")
@@ -354,8 +345,9 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 		return nil, errs.NewAuthError("无权限修改其他用户信息")
 	}
 	var res *DTO
-	err = s.userRepo.Transaction(ctx, func(tx context.Context) error {
-		user, err := s.userRepo.FindByID(tx, dto.ID)
+	err = s.userRepo.Transaction(ctx, func(txCtx context.Context) error {
+
+		user, err := s.userRepo.FindByID(txCtx, dto.ID)
 		if err != nil {
 			return err
 		}
@@ -365,7 +357,7 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 		if user.Username != dto.Username {
 			return errs.NewBizError("用户名不能修改")
 		}
-		currentRoles, err := s.securitySvc.RoleCodes(tx, user.ID)
+		currentRoles, err := s.securitySvc.RoleCodes(txCtx, user.ID)
 		if err != nil {
 			return err
 		}
@@ -373,11 +365,14 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 		if dto.Roles == nil {
 			requestedRoles = currentRoles
 		}
+		var password *string
+		var granted []security.RoleDTO
 		if !isAdmin && !sameStrings(requestedRoles, currentRoles) {
 			return errs.NewBizError("无权更改角色")
 		}
 		if isAdmin && dto.Roles != nil {
-			if err = s.securitySvc.SetUserRoles(tx, user.ID, requestedRoles); err != nil {
+			// 整体替换角色；返回值即为写入后的角色，省掉后面再查一次
+			if granted, err = s.securitySvc.SetUserRoles(txCtx, user.ID, requestedRoles); err != nil {
 				return err
 			}
 		}
@@ -394,17 +389,24 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 				return errs.Wrap(err)
 			}
 			user.Password = string(hashedPassword)
+			password = &user.Password
 		}
 		user.Name = dto.Name
 		user.Phone = dto.Phone
 		user.Email = dto.Email
-		if err = s.userRepo.Updates(tx, user); err != nil {
+		// 只更新资料与（可选的）密码列，不回写整行
+		if err = s.userRepo.UpdateProfile(txCtx, user, password); err != nil {
 			return err
 		}
 		resultDTO := user.ToDTO()
-		resultDTO.Roles, err = s.securitySvc.UserRoles(tx, user.ID)
-		if err != nil {
-			return err
+		// 角色刚被整体替换过就直接用写入结果，否则再取一次
+		if granted != nil {
+			resultDTO.Roles = granted
+		} else {
+			resultDTO.Roles, err = s.securitySvc.UserRoles(txCtx, user.ID)
+			if err != nil {
+				return err
+			}
 		}
 		res = resultDTO
 		return nil
@@ -415,19 +417,17 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	return res, nil
 }
 
-// Disable 禁用用户
 func (s *Service) Disable(ctx context.Context, username string) error {
-	return s.userRepo.Transaction(ctx, func(tx context.Context) error {
-		user, err := s.userRepo.FindByUsername(tx, username)
-		if err != nil {
-			return err
-		}
-		user.Disabled = true
-		return s.userRepo.Updates(tx, user)
-	})
+	disabled, err := s.userRepo.Disable(ctx, username)
+	if err != nil {
+		return err
+	}
+	if !disabled {
+		return errs.NewBizError("用户不存在")
+	}
+	return nil
 }
 
-// FindByUsername 加载用户信息
 func (s *Service) FindByUsername(ctx context.Context, username string) (*User, error) {
 	return s.userRepo.FindByUsername(ctx, username)
 }

@@ -11,9 +11,6 @@ import pers.eastwind.billmanager.reimburse.service.ReimburseStatisticService;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 报销单统计控制器
- */
 @RestController
 @RequestMapping("/api/reimburse")
 @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).STATISTIC.getCode())")
@@ -25,17 +22,11 @@ public class ReimburseStatisticController {
         this.reimburseStatisticService = reimburseStatisticService;
     }
 
-    /**
-     * 获取不同状态的报销单数量
-     */
     @GetMapping("/countByState")
     public Map<ReimburseState, Long> countReimburseByState() {
         return reimburseStatisticService.countReimburseByState();
     }
 
-    /**
-     * 按月份统计报销金额总和
-     */
     @GetMapping("/totalAmountGroupByMonth")
     public List<MonthSumAmount> sumAmountByMonth() {
         return reimburseStatisticService.sumAmountByMonth();

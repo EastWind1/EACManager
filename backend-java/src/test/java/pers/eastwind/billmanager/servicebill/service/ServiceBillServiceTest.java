@@ -1,5 +1,7 @@
 package pers.eastwind.billmanager.servicebill.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,6 +29,9 @@ class ServiceBillServiceTest extends BaseServiceTest {
 
     @Autowired
     private ServiceBillService serviceBillService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /**
      * 创建测试用的服务单DTO
@@ -501,5 +507,84 @@ class ServiceBillServiceTest extends BaseServiceTest {
         assertEquals(1, result.getResults().size());
         assertFalse(result.getResults().getFirst().getSuccess());
         assertTrue(result.getResults().getFirst().getMessage().contains("非完成状态的单据不能取消完成"));
+    }
+
+    @Test
+    @DisplayName("更新服务单时明细就地更新，被移除的明细真正删除")
+    void shouldUpdateDetailsInPlaceAndRemoveOrphans() {
+        ServiceBillDTO newBill = createTestServiceBill();
+        ServiceBillDetailDTO secondDetail = new ServiceBillDetailDTO();
+        secondDetail.setDevice("测试设备二");
+        secondDetail.setUnitPrice(new BigDecimal("500.00"));
+        secondDetail.setQuantity(BigDecimal.ONE);
+        secondDetail.setSubtotal(new BigDecimal("500.00"));
+        newBill.setDetails(new ArrayList<>(List.of(newBill.getDetails().getFirst(), secondDetail)));
+        newBill.setTotalAmount(new BigDecimal("2500.00"));
+
+        ServiceBillDTO createdBill = serviceBillService.create(newBill);
+        entityManager.flush();
+        entityManager.clear();
+        List<Integer> createdDetailIds = detailIds(createdBill.getId());
+        assertEquals(2, createdDetailIds.size(), "创建后应有 2 条明细且外键已写入");
+
+        ServiceBillDTO loadedBill = serviceBillService.findById(createdBill.getId());
+        assertEquals(2, loadedBill.getDetails().size());
+
+        // 保留一条并改字段、移除另一条：保留行应就地 UPDATE，移除行应真正 DELETE
+        ServiceBillDetailDTO kept = loadedBill.getDetails().getFirst();
+        ServiceBillDetailDTO removed = loadedBill.getDetails().getLast();
+        kept.setDevice("已修改设备");
+        loadedBill.getDetails().removeLast();
+        loadedBill.setTotalAmount(kept.getSubtotal());
+
+        serviceBillService.update(loadedBill);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertEquals(List.of(kept.getId()), detailIds(createdBill.getId()), "保留的明细行应就地更新，ID 不变");
+        assertEquals("已修改设备", detailDevice(kept.getId()), "明细字段修改应落库");
+        assertEquals(0, countDetail(removed.getId()), "被移除的明细应被删除");
+        assertEquals(0, countNullForeignKey(createdDetailIds), "被移除的明细不应留下外键为空的行");
+    }
+
+    /**
+     * 单据下的明细 ID，按 ID 排序
+     */
+    @SuppressWarnings("unchecked")
+    private List<Integer> detailIds(Integer billId) {
+        return entityManager
+                .createNativeQuery("select id from service_bill_detail where service_bill_id = :billId order by id")
+                .setParameter("billId", billId)
+                .getResultList();
+    }
+
+    /**
+     * 明细的设备名称
+     */
+    private String detailDevice(Integer detailId) {
+        return (String) entityManager
+                .createNativeQuery("select device from service_bill_detail where id = :detailId")
+                .setParameter("detailId", detailId)
+                .getSingleResult();
+    }
+
+    /**
+     * 明细行是否存在
+     */
+    private long countDetail(Integer detailId) {
+        return ((Number) entityManager
+                .createNativeQuery("select count(*) from service_bill_detail where id = :detailId")
+                .setParameter("detailId", detailId)
+                .getSingleResult()).longValue();
+    }
+
+    /**
+     * 这些明细里外键为空的行数（旧映射会留下这种孤儿行）
+     */
+    private long countNullForeignKey(Collection<Integer> detailIds) {
+        return ((Number) entityManager
+                .createNativeQuery("select count(*) from service_bill_detail where service_bill_id is null and id in (:ids)")
+                .setParameter("ids", detailIds)
+                .getSingleResult()).longValue();
     }
 }

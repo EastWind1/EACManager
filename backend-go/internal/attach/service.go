@@ -16,7 +16,7 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
-// 附件以「namespace/唯一id」为 key 存储，一经写入不再移动。
+// Service 附件以「namespace/唯一id」为 key 存储，一经写入不再移动。
 // 上传即落库并标记为瞬时态，被单据提交时置为持久态，游离附件按状态回收。
 type Service struct {
 	attachRepo *Repository
@@ -139,7 +139,6 @@ func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*m
 	return attachments, nil
 }
 
-// saveOne 落盘并写入单条附件记录
 func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *multipart.FileHeader) (*Attach, error) {
 	fileName := fileHeader.Filename
 	if fileName == "" {
@@ -172,7 +171,7 @@ func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *mul
 	return attachment, nil
 }
 
-// Persist 提交附件
+// Persist 把瞬时态附件置为持久态；任一 id 不合法则整体报错。
 func (s *Service) Persist(ctx context.Context, ids []uint) error {
 	if len(ids) == 0 {
 		return nil
@@ -193,7 +192,8 @@ func (s *Service) Delete(ctx context.Context, ids []uint) error {
 	if len(unique) == 0 {
 		return nil
 	}
-	attachments, err := s.attachRepo.FindAll(ctx, "id in ?", unique)
+	// 删除前先取路径：行删掉之后就拿不到文件位置了
+	attachments, err := s.attachRepo.FindAll(ctx, "id IN ?", unique)
 	if err != nil {
 		return err
 	}
@@ -203,12 +203,43 @@ func (s *Service) Delete(ctx context.Context, ids []uint) error {
 	if err = s.attachRepo.DeleteByIDs(ctx, unique); err != nil {
 		return err
 	}
+	return s.deleteFiles(attachments)
+}
 
-	var ops []FileOp
+// CleanTransientFiles 回收过期的游离附件
+//
+// 单条条件 DELETE 直接清库（不再先查全部行再逐个删），文件路径另取一次；
+// 受影响行数为 0 说明没有可回收的记录，直接返回。
+func (s *Service) CleanTransientFiles(ctx context.Context) error {
+	cutoff := time.Now().Add(-transientRetention)
+	expired, err := s.attachRepo.FindByStatusBefore(ctx, StatusTransient, cutoff)
+	if err != nil {
+		return err
+	}
+	if len(expired) == 0 {
+		return nil
+	}
+	ids := make([]uint, 0, len(expired))
+	for _, attachment := range expired {
+		ids = append(ids, attachment.ID)
+	}
+	if err = s.attachRepo.DeleteByIDs(ctx, ids); err != nil {
+		return err
+	}
+	if err = s.deleteFiles(expired); err != nil {
+		log.Errorf("回收游离附件文件失败: %v", err)
+	}
+	log.Infof("回收游离附件 %v 个", len(ids))
+	return nil
+}
+
+// deleteFiles 删除附件对应的物理文件（文件缺失时跳过）
+func (s *Service) deleteFiles(attachments []Attach) error {
+	ops := make([]FileOp, 0, len(attachments))
 	for _, attachment := range attachments {
 		targetPath, err := s.GetAbsolutePathByRela(attachment.RelativePath)
 		if err != nil {
-			return err
+			continue
 		}
 		if !Exists(targetPath) {
 			continue
@@ -216,39 +247,6 @@ func (s *Service) Delete(ctx context.Context, ids []uint) error {
 		ops = append(ops, FileOp{Type: FileOpDelete, Target: targetPath})
 	}
 	return Exec(ops)
-}
-
-// CleanTransientFiles 回收过期的游离附件
-func (s *Service) CleanTransientFiles(ctx context.Context) error {
-	expired, err := s.attachRepo.FindByStatusBefore(ctx, StatusTransient, time.Now().Add(-transientRetention))
-	if err != nil {
-		return err
-	}
-	if len(expired) == 0 {
-		return nil
-	}
-
-	ids := make([]uint, 0, len(expired))
-	var ops []FileOp
-	for _, attachment := range expired {
-		ids = append(ids, attachment.ID)
-		targetPath, err := s.GetAbsolutePathByRela(attachment.RelativePath)
-		if err != nil {
-			continue
-		}
-		if !Exists(targetPath) {
-			continue
-		}
-		ops = append(ops, FileOp{Type: FileOpDelete, Target: targetPath})
-	}
-	if err = s.attachRepo.DeleteByIDs(ctx, ids); err != nil {
-		return err
-	}
-	if err = Exec(ops); err != nil {
-		log.Errorf("回收游离附件文件失败: %v", err)
-	}
-	log.Infof("回收游离附件 %v 个", len(ids))
-	return nil
 }
 
 func (s *Service) GetResource(ctx context.Context, dto *DTO) (filename string, path string, err error) {

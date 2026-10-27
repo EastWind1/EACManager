@@ -2,9 +2,6 @@ package pers.eastwind.billmanager.user.permission;
 
 import pers.eastwind.billmanager.security.model.Permission;
 
-/**
- * 用户模块权限
- */
 public enum UserPermission implements Permission {
     QUERY("user:query", "查看用户", 1),
     CREATE("user:create", "新增用户", 2),

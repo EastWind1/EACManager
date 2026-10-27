@@ -2,9 +2,6 @@ package pers.eastwind.billmanager.attach.permission;
 
 import pers.eastwind.billmanager.security.model.Permission;
 
-/**
- * 附件模块权限
- */
 public enum AttachPermission implements Permission {
     DOWNLOAD("attach:download", "下载附件", 1),
     UPLOAD("attach:upload", "上传附件", 2);

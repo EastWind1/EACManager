@@ -39,9 +39,6 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         return returnType.getMethod() != null && returnType.getMethod().getReturnType() != Resource.class;
     }
 
-    /**
-     * 响应体包装
-     */
     @Override
     public Object beforeBodyWrite(Object body, @NonNull MethodParameter returnType, @NonNull MediaType selectedContentType, @NonNull Class selectedConverterType, @NonNull ServerHttpRequest request, @NonNull ServerHttpResponse response) {
         // 避免二次处理, 不处理文件下载
@@ -60,9 +57,6 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         return Result.ok(body);
     }
 
-    /**
-     * 乐观锁异常处理
-     */
     @ExceptionHandler(OptimisticLockException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleOptimisticLockException(OptimisticLockException e) {
@@ -70,12 +64,6 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         return Result.error("数据已被更改，请稍后刷新重试");
     }
 
-    /**
-     * 业务异常处理
-     *
-     * @param e 错误
-     * @return 错误结果
-     */
     @ExceptionHandler(BizException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleBizException(BizException e) {
@@ -83,12 +71,6 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
         return Result.error(e.getMessage());
     }
 
-    /**
-     * 文件操作异常处理
-     *
-     * @param e 错误
-     * @return 错误结果
-     */
     @ExceptionHandler(FileOpException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Object> handleBizException(FileOpException e) {

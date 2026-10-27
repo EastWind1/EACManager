@@ -10,18 +10,15 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
-// PermissionSyncService 启动时同步各模块声明的权限
 type PermissionSyncService struct {
 	repo        *Repository
 	definitions []PermissionDTO
 }
 
-// NewPermissionSyncService 创建权限同步服务
 func NewPermissionSyncService(ctx *appContext.AppContext) *PermissionSyncService {
 	return &PermissionSyncService{repo: NewRepository(ctx.Db)}
 }
 
-// Register 注册模块声明的权限
 func (s *PermissionSyncService) Register(definitions ...PermissionDTO) {
 	s.definitions = append(s.definitions, definitions...)
 }
@@ -52,7 +49,6 @@ func (s *PermissionSyncService) Sync(ctx context.Context) error {
 			byCode[existing[i].Code] = &existing[i]
 		}
 
-		db := s.repo.GetDB(txCtx)
 		inserted, updated := 0, 0
 		for _, definition := range s.definitions {
 			permission, ok := byCode[definition.Code]
@@ -64,19 +60,18 @@ func (s *PermissionSyncService) Sync(ctx context.Context) error {
 					Name:       definition.Name,
 					SortOrder:  definition.SortOrder,
 				}
-				if err := db.Create(&entity).Error; err != nil {
-					return errs.Wrap(err)
+				if err := s.repo.CreatePermission(txCtx, &entity); err != nil {
+					return err
 				}
 				inserted++
 				continue
 			}
-			if err := db.Model(permission).Updates(map[string]any{
-				"module":      definition.Module,
-				"module_name": definition.ModuleName,
-				"name":        definition.Name,
-				"sort_order":  definition.SortOrder,
-			}).Error; err != nil {
-				return errs.Wrap(err)
+			permission.Module = definition.Module
+			permission.ModuleName = definition.ModuleName
+			permission.Name = definition.Name
+			permission.SortOrder = definition.SortOrder
+			if err := s.repo.UpdatePermission(txCtx, permission); err != nil {
+				return err
 			}
 			updated++
 		}
@@ -85,12 +80,11 @@ func (s *PermissionSyncService) Sync(ctx context.Context) error {
 	})
 }
 
-// Initializer 安全模块初始化
+// Initializer 确保 ADMIN/USER 角色存在，并补齐 ADMIN 的权限配置查看与修改权限。
 type Initializer struct {
 	repo *Repository
 }
 
-// NewSecurityInitializer 创建安全初始化服务
 func NewSecurityInitializer(ctx *appContext.AppContext) *Initializer {
 	return &Initializer{repo: NewRepository(ctx.Db)}
 }
@@ -107,7 +101,7 @@ func (s *Initializer) Initialize(ctx context.Context) error {
 			return err
 		}
 
-		existing, err := s.repo.FindPermissionsByRoleID(txCtx, admin.ID)
+		existing, err := s.repo.FindPermissionCodesByRoleID(txCtx, admin.ID)
 		if err != nil {
 			return err
 		}

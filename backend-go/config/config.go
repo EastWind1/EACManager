@@ -1,6 +1,7 @@
 package config
 
 import (
+	"embed"
 	"fmt"
 	"strings"
 
@@ -8,7 +9,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config 配置
+//go:embed config.yaml
+var embedFS embed.FS
+
 type Config struct {
 	Server *ServerConfig
 	Log    *LogConfig
@@ -19,18 +22,15 @@ type Config struct {
 	Attach *AttachConfig `mapstructure:"attachment"`
 }
 
-// LogConfig 日志配置
 type LogConfig struct {
 	Level string
 }
 
-// ServerConfig 服务器配置
 type ServerConfig struct {
 	Port int
 	Mode string
 }
 
-// DatabaseConfig 数据库配置
 type DatabaseConfig struct {
 	Host     string
 	Port     int
@@ -38,54 +38,51 @@ type DatabaseConfig struct {
 	Username string
 	Password string
 	SSLMode  string `mapstructure:"sslmode"`
+	// 连接池上限，缺省时由 database 包补默认值
+	MaxOpenConns int `mapstructure:"maxOpenConns"`
+	MaxIdleConns int `mapstructure:"maxIdleConns"`
+	// 单位分钟
+	ConnMaxLifetime int `mapstructure:"connMaxLifetime"`
 }
 
-// CacheConfig 缓存配置
 type CacheConfig struct {
-	// Expire 过期时间，单位秒
+	// 单位秒
 	Expire int
 }
 
 type OCRConfig struct {
-	// URL 远程 OCR 服务地址
+	// 完整端点（含路径），不是主机名
 	URL string `mapstructure:"url"`
 }
 
-// GetDBStr 获取数据库连接字符串
 func (d DatabaseConfig) GetDBStr() string {
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		d.Host, d.Port, d.Username, d.Password, d.Name, d.SSLMode)
 }
 
-// JWTConfig JWT配置
 type JWTConfig struct {
 	Secret string
 	Expire int
 }
 
-// AttachConfig 附件配置
 type AttachConfig struct {
 	Path        string
 	MaxFileSize int64 `mapstructure:"maxFileSize"`
 }
 
-// NewConfig 加载配置
+// NewConfig 读取 config.yaml 与环境变量；文件缺失或解析失败时直接终止进程
 func NewConfig() *Config {
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("../config")
-	viper.AddConfigPath("..")
-	// 测试在 internal/<pkg> 目录下运行
-	viper.AddConfigPath("../../config")
-
-	// 读取 yaml
+	f, _ := embedFS.Open("config.yaml")
+	defer f.Close()
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("加载配置文件失败: %v", err)
+	if err := viper.ReadConfig(f); err != nil {
+		log.Fatalf("加载内嵌配置文件失败：%v", err)
 	}
-	// 读取环境变量
+	viper.AddConfigPath(".")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Infof("未找到本地配置文件: %v", err)
+	}
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	log.Infof("加载配置文件 %s", viper.ConfigFileUsed())

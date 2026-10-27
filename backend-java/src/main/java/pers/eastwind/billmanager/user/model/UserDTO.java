@@ -12,9 +12,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * 用户 DTO
- */
 @Data
 public class UserDTO implements AuthorityUser {
     private Integer id;

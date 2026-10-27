@@ -8,13 +8,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWTService JWT服务
 type JWTService struct {
 	secret []byte
 	expire int
 }
 
-// NewJWTService 创建JWT服务实例
 func NewJWTService(cfg *config.JWTConfig) *JWTService {
 	return &JWTService{
 		secret: []byte(cfg.Secret),
@@ -22,7 +20,6 @@ func NewJWTService(cfg *config.JWTConfig) *JWTService {
 	}
 }
 
-// GenerateToken 生成JWT令牌
 func (s *JWTService) GenerateToken(subject string) (string, error) {
 	now := time.Now()
 	claims := jwt.RegisteredClaims{
@@ -39,7 +36,6 @@ func (s *JWTService) GenerateToken(subject string) (string, error) {
 	return res, nil
 }
 
-// VerifyToken 验证JWT令牌
 func (s *JWTService) VerifyToken(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return s.secret, nil

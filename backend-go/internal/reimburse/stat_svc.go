@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-// StatisticService 报销单统计服务
 type StatisticService struct {
 	cache         cache.Cache
 	reimburseRepo *Repository
@@ -20,7 +19,6 @@ func NewStatisticService(cache cache.Cache, reimburseRepo *Repository) *Statisti
 	}
 }
 
-// CountReimburseByState 统计不同状态的报销单数量
 func (s *StatisticService) CountReimburseByState(ctx context.Context) (*result.CountByStateResult, error) {
 	states := []State{
 		Created,
@@ -35,7 +33,6 @@ func (s *StatisticService) CountReimburseByState(ctx context.Context) (*result.C
 	return res, nil
 }
 
-// SumAmountByMonth 按月份统计报销金额总和
 func (s *StatisticService) SumAmountByMonth(ctx context.Context) ([]result.MonthSumAmount, error) {
 	if value, ok := s.cache.Get("reimburse", "SumAmountByMonth"); ok {
 		return value.([]result.MonthSumAmount), nil

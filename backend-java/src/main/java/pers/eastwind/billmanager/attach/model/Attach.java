@@ -5,9 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import pers.eastwind.billmanager.security.model.AuditEntity;
 
-/**
- * 附件
- */
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Data
@@ -17,22 +14,10 @@ public class Attach extends AuditEntity {
     @Column(insertable = false, updatable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    /**
-     * 文件名
-     */
     private String name;
-    /**
-     * 文件类型
-     */
     @Enumerated
     private AttachType type = AttachType.OTHER;
-    /**
-     * 文件相对路径
-     */
     private String relativePath;
-    /**
-     * 附件状态
-     */
     @Enumerated
     private AttachStatus status = AttachStatus.TEMP;
 }

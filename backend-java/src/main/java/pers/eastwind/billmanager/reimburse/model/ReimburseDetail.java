@@ -2,12 +2,11 @@ package pers.eastwind.billmanager.reimburse.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 
-/**
- * 报销单明细
- */
 @Entity
 @Data
 public class ReimburseDetail {
@@ -16,13 +15,16 @@ public class ReimburseDetail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    /**
-     * 项目名称
-     */
     private String name;
 
-    /**
-     * 金额
-     */
     private BigDecimal amount;
+
+    /**
+     * 关联维护方（父实体 details 为 mappedBy）；equals/hashCode/toString 排除以避免与父实体递归。
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reimbursement_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private Reimburse reimburse;
 }

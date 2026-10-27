@@ -2,7 +2,6 @@ package security
 
 const AdminRoleCode = "ADMIN"
 
-// RoleDTO 角色 DTO
 type RoleDTO struct {
 	ID        uint   `json:"id,omitempty"`
 	Code      string `json:"code"`
@@ -21,7 +20,6 @@ func (r *RoleDTO) ToEntity() *Role {
 	}
 }
 
-// Role 角色
 type Role struct {
 	ID        uint   `gorm:"primaryKey"`
 	Code      string `gorm:"not null;size:64;uniqueIndex"`
@@ -43,7 +41,6 @@ func (r *Role) ToDTO() *RoleDTO {
 	}
 }
 
-// UserRole 用户角色
 type UserRole struct {
 	ID     uint `gorm:"primaryKey"`
 	UserID uint `gorm:"not null;index"`
@@ -53,7 +50,6 @@ type UserRole struct {
 
 func (*UserRole) TableName() string { return "sys_user_role" }
 
-// Permission 权限类型
 type Permission struct {
 	ID         uint   `gorm:"primaryKey"`
 	Code       string `gorm:"not null;size:64;uniqueIndex"`
@@ -64,7 +60,6 @@ type Permission struct {
 	Audit
 }
 
-// PermissionDTO 权限 DTO
 type PermissionDTO struct {
 	ID         uint   `json:"id"`
 	Code       string `json:"code"`
@@ -110,7 +105,6 @@ func (p *PermissionDTO) ToEntity() *Permission {
 	}
 }
 
-// RolePermission 角色权限
 type RolePermission struct {
 	ID           uint `gorm:"primaryKey"`
 	RoleID       uint `gorm:"not null;index"`

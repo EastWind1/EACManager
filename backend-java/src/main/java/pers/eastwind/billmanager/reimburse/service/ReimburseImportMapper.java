@@ -7,8 +7,7 @@ import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.reimburse.model.ReimburseDTO;
 
 /**
- * 报销单附件映射
- * <p>仅支持标准税务发票（文本），规则由本模块自己持有
+ * 报销单附件映射：仅支持标准税务发票（文本），规则由本模块自己持有。
  */
 @Service
 public class ReimburseImportMapper {
@@ -19,12 +18,6 @@ public class ReimburseImportMapper {
         this.contentService = contentService;
     }
 
-    /**
-     * 附件映射为报销单
-     *
-     * @param attachment 附件
-     * @return 报销单
-     */
     public ReimburseDTO map(AttachDTO attachment) {
         if (attachment == null) {
             throw new BizException("附件为空");

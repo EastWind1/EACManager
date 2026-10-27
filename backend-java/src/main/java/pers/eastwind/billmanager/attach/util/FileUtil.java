@@ -20,17 +20,8 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-/**
- * 文件工具类
- */
 @Slf4j
 public class FileUtil {
-    /**
-     * 获取文件类型
-     *
-     * @param path 文件路径
-     * @return 文件类型
-     */
     private static AttachType getFileType(Path path) throws IOException {
         String mimeType = Files.probeContentType(path);
         if (mimeType == null) {
@@ -51,8 +42,7 @@ public class FileUtil {
     }
 
     /**
-     * 提取 PDF 为图片
-     * 暂时只支持转换第一页
+     * 只转换 PDF 的第一页。
      */
     public static void convertPDFToImage(Path source, Path target) {
         try (PDDocument document = Loader.loadPDF(source.toFile())) {
@@ -67,9 +57,6 @@ public class FileUtil {
         }
     }
 
-    /**
-     * 提取 PDF 文本
-     */
     public static String[] extractPDFText(Path source) {
         try (PDDocument document = Loader.loadPDF(source.toFile())) {
             if (document.getNumberOfPages() <= 0) {
@@ -88,11 +75,7 @@ public class FileUtil {
     }
 
     /**
-     * 将上传文件写入指定路径，并返回判定出的文件类型
-     *
-     * @param resource 文件资源
-     * @param target   目标文件路径
-     * @return 文件类型
+     * 写入上传文件并返回按内容判定的类型。
      */
     public static AttachType save(Resource resource, Path target) {
         if (resource == null || !resource.exists()) {
@@ -107,11 +90,6 @@ public class FileUtil {
         }
     }
 
-    /**
-     * 静默删除文件
-     *
-     * @param path 路径
-     */
     public static void deleteQuietly(Path path) {
         try {
             Files.deleteIfExists(path);
@@ -120,13 +98,6 @@ public class FileUtil {
         }
     }
 
-    /**
-     * 压缩文件或文件夹
-     *
-     * @param source 源路径
-     * @param target 目标文件，为空则自动生成
-     * @return 压缩后的文件路径
-     */
     public static Path zip(Path source, Path target) {
         if (source == null || !Files.exists(source)) {
             throw new FileOpException("源文件不存在");

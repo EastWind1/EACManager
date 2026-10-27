@@ -2,7 +2,6 @@ package user
 
 import "backend-go/internal/security"
 
-// User 用户实体
 type User struct {
 	ID       uint   `gorm:"primaryKey"`
 	Username string `gorm:"uniqueIndex"`
@@ -22,7 +21,6 @@ func (u *User) GetID() uint {
 	return u.ID
 }
 
-// InitDTO 首次管理员初始化参数
 type InitDTO struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -31,12 +29,10 @@ type InitDTO struct {
 	Email    string `json:"email"`
 }
 
-// InitStatus 初始化状态
 type InitStatus struct {
 	Required bool `json:"required"`
 }
 
-// DTO 用户 DTO
 type DTO struct {
 	ID          uint                     `json:"id"`
 	Username    string                   `json:"username"`
@@ -49,7 +45,6 @@ type DTO struct {
 	Permissions []security.PermissionDTO `json:"permissions,omitempty"`
 }
 
-// ToDTO 创建用户 DTO
 func (u *User) ToDTO() *DTO {
 	return &DTO{
 		ID:       u.ID,
@@ -62,7 +57,6 @@ func (u *User) ToDTO() *DTO {
 	}
 }
 
-// ToEntity 创建用户实体
 func (u *DTO) ToEntity() *User {
 	return &User{
 		ID:       u.ID,
@@ -75,7 +69,6 @@ func (u *DTO) ToEntity() *User {
 	}
 }
 
-// ToDTOs 创建用户 DTO 列表
 func ToDTOs(users []User) []DTO {
 	if users == nil {
 		return nil

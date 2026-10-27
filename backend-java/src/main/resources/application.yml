@@ -8,6 +8,16 @@ spring:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        # 批量写入：同表语句合并成 JDBC batch
+        jdbc:
+          batch_size: 30
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
   servlet:
     multipart:
       max-file-size: 5MB

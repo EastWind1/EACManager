@@ -8,7 +8,6 @@ import pers.eastwind.billmanager.security.model.RoleDTO;
 import java.util.Collection;
 
 /**
- * 用户 Mapper
  * 密码、角色和权限属于安全模块数据，不通过普通 DTO 映射。
  */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)

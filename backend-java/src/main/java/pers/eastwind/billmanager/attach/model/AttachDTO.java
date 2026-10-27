@@ -2,18 +2,9 @@ package pers.eastwind.billmanager.attach.model;
 
 import lombok.Data;
 
-/**
- * 附件 DTO
- */
 @Data
 public class AttachDTO {
     private Integer id;
-    /**
-     * 文件名
-     */
     private String name;
-    /**
-     * 文件类型
-     */
     private AttachType type = AttachType.OTHER;
 }

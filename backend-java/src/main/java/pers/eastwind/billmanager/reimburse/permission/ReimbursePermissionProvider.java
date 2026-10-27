@@ -7,9 +7,6 @@ import pers.eastwind.billmanager.security.model.PermissionProvider;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * 权限提供者
- */
 @Component
 public class ReimbursePermissionProvider implements PermissionProvider {
     @Override

@@ -8,17 +8,14 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// Controller 角色与权限控制器
 type Controller struct {
 	srv *Service
 }
 
-// NewController 创建控制器
 func NewController(srv *Service) *Controller {
 	return &Controller{srv: srv}
 }
 
-// Permissions 获取全部可配置权限
 func (c *Controller) Permissions(ctx fiber.Ctx) error {
 	res, err := c.srv.Permissions(ctx)
 	if err != nil {
@@ -28,7 +25,6 @@ func (c *Controller) Permissions(ctx fiber.Ctx) error {
 	return nil
 }
 
-// Roles 查询全部角色
 func (c *Controller) Roles(ctx fiber.Ctx) error {
 	res, err := c.srv.Roles(ctx)
 	if err != nil {
@@ -38,7 +34,6 @@ func (c *Controller) Roles(ctx fiber.Ctx) error {
 	return nil
 }
 
-// CreateRole 创建角色
 func (c *Controller) CreateRole(ctx fiber.Ctx) error {
 	var dto RoleDTO
 	if err := ctx.Bind().Body(&dto); err != nil {
@@ -52,7 +47,6 @@ func (c *Controller) CreateRole(ctx fiber.Ctx) error {
 	return nil
 }
 
-// UpdateRole 修改角色
 func (c *Controller) UpdateRole(ctx fiber.Ctx) error {
 	var dto RoleDTO
 	if err := ctx.Bind().Body(&dto); err != nil {
@@ -66,7 +60,6 @@ func (c *Controller) UpdateRole(ctx fiber.Ctx) error {
 	return nil
 }
 
-// DeleteRole 删除角色
 func (c *Controller) DeleteRole(ctx fiber.Ctx) error {
 	id, err := roleID(ctx)
 	if err != nil {
@@ -78,7 +71,6 @@ func (c *Controller) DeleteRole(ctx fiber.Ctx) error {
 	return nil
 }
 
-// RolePermissions 查询角色权限
 func (c *Controller) RolePermissions(ctx fiber.Ctx) error {
 	id, err := roleID(ctx)
 	if err != nil {
@@ -92,7 +84,6 @@ func (c *Controller) RolePermissions(ctx fiber.Ctx) error {
 	return nil
 }
 
-// UpdateRolePermissions 更新角色权限
 func (c *Controller) UpdateRolePermissions(ctx fiber.Ctx) error {
 	id, err := roleID(ctx)
 	if err != nil {

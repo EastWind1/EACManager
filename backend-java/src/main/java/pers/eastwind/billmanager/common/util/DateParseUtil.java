@@ -9,19 +9,13 @@ import java.time.temporal.TemporalAccessor;
 import java.util.List;
 
 /**
- * 文本日期解析
+ * 文本日期解析：依次尝试 ISO、中文日期等格式，解析失败返回 null
  */
 public class DateParseUtil {
 
     private DateParseUtil() {
     }
 
-    /**
-     * 解析日期字符串
-     *
-     * @param text 字符串
-     * @return 时间戳, null 表示解析失败
-     */
     public static Instant parseDateString(String text) {
         List<DateTimeFormatter> formatters = List.of(
                 DateTimeFormatter.ISO_INSTANT,

@@ -11,9 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 报销单
- *
- * <p>类名简化为 Reimburse，表名仍为 reimbursement，故显式指定。</p>
+ * 类名简化为 Reimburse，表名仍为 reimbursement，故显式指定。
  */
 @Entity
 @Data
@@ -26,40 +24,18 @@ public class Reimburse extends AuditEntity {
     @Column(insertable = false, updatable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    /**
-     * 编号
-     */
     private String number;
-    /**
-     * 状态
-     */
     private ReimburseState state;
-    /**
-     * 摘要
-     */
     private String summary;
-    /**
-     * 总金额
-     */
     private BigDecimal totalAmount;
-    /**
-     * 报销日期
-     */
     private Instant reimburseDate;
-    /**
-     * 备注
-     */
     private String remark;
 
     /**
-     * 明细
+     * 明细由子端维护关联（mappedBy），插入时带外键；orphanRemoval 保证移除的明细真正删除。
      */
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "reimbursement_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @OneToMany(mappedBy = "reimburse", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReimburseDetail> details = new ArrayList<>();
-    /**
-     * 版本字段
-     */
     @Version
-    private Integer version = 0;
+    private Integer version;
 }

@@ -6,9 +6,6 @@ import pers.eastwind.billmanager.common.model.BaseMapper;
 
 import java.util.List;
 
-/**
- * 服务单 Mapper
- */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface ServiceBillMapper extends BaseMapper<ServiceBill, ServiceBillDTO> {
 

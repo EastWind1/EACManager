@@ -15,13 +15,11 @@ import (
 	"github.com/ledongthuc/pdf"
 )
 
-// Exists 检查文件是否存在
 func Exists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
 }
 
-// IsDir 判断是否为目录
 func IsDir(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
@@ -30,7 +28,6 @@ func IsDir(path string) bool {
 	return fileInfo.IsDir()
 }
 
-// CreateParentDirs 创建父目录
 func CreateParentDirs(path string) error {
 	dir := filepath.Dir(path)
 	if dir == "" {
@@ -42,7 +39,6 @@ func CreateParentDirs(path string) error {
 	return nil
 }
 
-// CreateFile 创建空文件
 func CreateFile(path string) error {
 	file, err := os.Create(path)
 	if err != nil {
@@ -54,7 +50,6 @@ func CreateFile(path string) error {
 	return nil
 }
 
-// CopyFile 复制文件
 func CopyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -75,7 +70,6 @@ func CopyFile(src, dst string) error {
 	return nil
 }
 
-// MoveFile 移动文件
 func MoveFile(src, dst string) error {
 	if err := CopyFile(src, dst); err != nil {
 		return err
@@ -108,7 +102,6 @@ func GetFileType(path string) (Type, error) {
 	}
 }
 
-// ExtractPDFText 从 PDF 提取文本
 func ExtractPDFText(pdfPath string) ([]string, error) {
 	f, r, err := pdf.Open(pdfPath)
 	if err != nil {
@@ -213,14 +206,12 @@ func Save(fileHeader *multipart.FileHeader, targetPath string) (Type, error) {
 	return fileType, nil
 }
 
-// DeleteQuietly 静默删除文件
 func DeleteQuietly(path string) {
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		log.Errorf("删除附件文件失败 %v: %v", path, err)
 	}
 }
 
-// Zip 压缩目录或文件至指定路径
 func Zip(src string, target string) (string, error) {
 	if !Exists(src) {
 		return "", errs.NewFileOpError("源不存在", src)

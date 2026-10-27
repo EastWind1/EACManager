@@ -2,9 +2,6 @@ package pers.eastwind.billmanager.reimburse.permission;
 
 import pers.eastwind.billmanager.security.model.Permission;
 
-/**
- * 报销单模块权限
- */
 public enum ReimbursePermission implements Permission {
     QUERY("reimburse:query", "查询报销单", 1),
     DETAIL("reimburse:detail", "查看报销单", 2),

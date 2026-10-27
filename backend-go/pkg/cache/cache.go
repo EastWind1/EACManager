@@ -1,4 +1,3 @@
-// Package cache 缓存
 package cache
 
 import (
@@ -7,43 +6,26 @@ import (
 	"time"
 )
 
-// Cache 缓存接口
 type Cache interface {
-	// GetAll 获取命名空间下的所有缓存项
-	//
-	// name 命名空间
 	GetAll(name string) (*map[string]any, bool)
-	// Get 获取缓存项
-	//
-	// name 命名空间，key 键
 	Get(name string, key string) (any, bool)
-	// Put 设置缓存项
-	//
-	// name 命名空间，key 键
 	Put(name string, key string, value any)
-	// PutWithExpire 设置缓存项, 包含过期时间
 	PutWithExpire(name string, key string, value any, expire ...time.Duration)
-	// Delete 删除缓存项
 	Delete(name string, key string)
-	// DeleteName 删除命名空间
 	DeleteName(name string)
-	// Clear 清空缓存
 	Clear()
 }
 
-// InMemoryCache 内存缓存
 type InMemoryCache struct {
 	cacheMap sync.Map
 	expire   time.Duration
 }
 
-// cacheValue 缓存项
 type cacheValue struct {
 	value      any
 	expireTime *time.Time
 }
 
-// NewInMemoryCache 初始化内存缓存
 func NewInMemoryCache(cfg *config.CacheConfig) Cache {
 	cache := &InMemoryCache{
 		cacheMap: sync.Map{},
@@ -161,7 +143,6 @@ func (c *InMemoryCache) Clear() {
 	c.cacheMap.Clear()
 }
 
-// clearExpired 清理过期缓存
 func (c *InMemoryCache) clearExpired() {
 	c.cacheMap.Range(func(nsKey, nsValue any) bool {
 		innerMap, ok := nsValue.(*sync.Map)

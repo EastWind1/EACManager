@@ -9,25 +9,17 @@ import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillAttach;
 import pers.eastwind.billmanager.servicebill.repository.ServiceBillAttachRepository;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 服务单附件关联业务
- *
- * <p>服务单与附件的关联由本模块自行维护；附件的落库、提交与删除交给附件模块，
- * 差异对比只是「目标集合」与「本单据当前关联」的集合运算。</p>
+ * 附件落库、提交与删除交给附件模块；本模块只维护关联，差异对比是目标集合与当前关联的集合运算。
  */
 @Slf4j
 @Service
 public class ServiceBillAttachService {
     /**
-     * 服务单附件的命名空间
-     *
-     * <p>只用于隔离附件存储，附件模块不解释其含义；文件上传接口由前端传入同一个值。</p>
+     * 仅用于隔离附件存储，附件模块不解释其含义；前端上传时须传同一个值。
      */
     public static final String ATTACH_NAMESPACE = "SERVICE_BILL";
 
@@ -42,12 +34,6 @@ public class ServiceBillAttachService {
         this.attachService = attachService;
     }
 
-    /**
-     * 获取服务单附件
-     *
-     * @param billId 服务单 ID
-     * @return 附件
-     */
     public List<Attach> findAttachments(Integer billId) {
         if (billId == null) {
             throw new BizException("单据 ID 不能为空");
@@ -55,12 +41,6 @@ public class ServiceBillAttachService {
         return serviceBillAttachRepository.findAttachmentsByBillId(billId);
     }
 
-    /**
-     * 将服务单附件更新为目标集合
-     *
-     * @param billId         服务单 ID
-     * @param attachDTOs 要更新为的附件集合
-     */
     public void updateAttachments(Integer billId, List<AttachDTO> attachDTOs) {
         Set<Integer> currentIds = findAttachments(billId)
                 .stream()
@@ -78,15 +58,20 @@ public class ServiceBillAttachService {
         Set<Integer> removedIds = new LinkedHashSet<>(currentIds);
         removedIds.removeAll(targetIds);
 
+        if (addedIds.isEmpty() && removedIds.isEmpty()) {
+            return;
+        }
         // 先提交新增附件，再断开关联、删除附件与文件
         if (!addedIds.isEmpty()) {
             attachService.persist(addedIds);
+            List<ServiceBillAttach> relations = new ArrayList<>(addedIds.size());
             addedIds.forEach(attachId -> {
                 ServiceBillAttach relation = new ServiceBillAttach();
                 relation.setServiceBillId(billId);
                 relation.setAttachId(attachId);
-                serviceBillAttachRepository.save(relation);
+                relations.add(relation);
             });
+            serviceBillAttachRepository.saveAll(relations);
         }
         if (!removedIds.isEmpty()) {
             serviceBillAttachRepository.deleteByBillIdAndAttachIds(billId, removedIds);

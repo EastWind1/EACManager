@@ -27,25 +27,14 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * 附件服务
- *
- * <p>附件以「namespace/唯一id」为 key 存储，一经写入不再移动，因此不存在
- * 「改数据库 + 搬文件」这种无法原子的操作。</p>
- *
- * <p>上传即落库并标记为暂存，被单据提交时置为已提交，暂存垃圾按状态回收。
- * 单据与附件的关联由各业务模块自行维护。</p>
+ * 附件以「namespace/唯一id」为 key 存储，写入后不再移动，故不存在难以原子的“改库 + 搬文件”操作。
+ * 上传即落库为暂存，单据提交时置为已提交，暂存垃圾按状态回收；关联表由各业务模块自行维护。
  */
 @Slf4j
 @Service
 public class AttachService implements InitializingBean {
     private static final String TEMP_PREFIX = "eac-";
-    /**
-     * 游离附件保留时长
-     */
     private static final Duration TEMP_RETENTION = Duration.ofDays(7);
-    /**
-     * 命名空间正则
-     */
     private static final Pattern NAMESPACE_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]+$");
 
     private final AttachConfigProperties properties;
@@ -53,14 +42,8 @@ public class AttachService implements InitializingBean {
     private final AttachMapper attachMapper;
     @PersistenceContext
     private EntityManager entityManager;
-    /**
-     * 根目录
-     */
     @Getter
     private Path rootPath;
-    /**
-     * 临时目录
-     */
     @Getter
     private Path tempPath;
 
@@ -70,9 +53,6 @@ public class AttachService implements InitializingBean {
         this.attachMapper = attachMapper;
     }
 
-    /**
-     * 初始化附件目录
-     */
     @Override
     public void afterPropertiesSet() {
         rootPath = properties.getPath().normalize().toAbsolutePath();
@@ -85,12 +65,6 @@ public class AttachService implements InitializingBean {
         }
     }
 
-    /**
-     * 创建临时文件
-     *
-     * @param prefix 前缀
-     * @param suffix 后缀, 为空时默认为 .tmp
-     */
     public Path createTempFile(String prefix, String suffix) {
         try {
             Path res = Files.createTempFile(tempPath, prefix, suffix);
@@ -101,11 +75,6 @@ public class AttachService implements InitializingBean {
         }
     }
 
-    /**
-     * 创建临时文件夹
-     *
-     * @param prefix 前缀
-     */
     public Path createTempDir(String prefix) {
         try {
             Path res = Files.createTempDirectory(tempPath, prefix);
@@ -116,12 +85,6 @@ public class AttachService implements InitializingBean {
         }
     }
 
-    /**
-     * 根据相对路径获取文件绝对路径
-     *
-     * @param relativePath 相对路径
-     * @return 绝对路径
-     */
     public Path getAbsolutePathByRela(String relativePath) {
         if (relativePath == null || relativePath.isEmpty()) {
             throw new BizException("路径为空");
@@ -133,12 +96,6 @@ public class AttachService implements InitializingBean {
         return path;
     }
 
-    /**
-     * 根据 ID 获取文件绝对路径
-     *
-     * @param id 文件 ID
-     * @return 绝对路径
-     */
     public Path getAbsolutePathById(Integer id) {
         if (id == null) {
             throw new BizException("附件 ID 不能为空");
@@ -150,9 +107,6 @@ public class AttachService implements InitializingBean {
         return getAbsolutePathByRela(attachment.getRelativePath());
     }
 
-    /**
-     * 获取 Resource
-     */
     public Resource getResource(AttachDTO attachDTO) {
         Path path = getAbsolutePathById(attachDTO.getId());
         if (!Files.exists(path)) {
@@ -161,13 +115,6 @@ public class AttachService implements InitializingBean {
         return new FileSystemResource(path);
     }
 
-    /**
-     * 上传附件
-     *
-     * @param namespace 命名空间
-     * @param resources 文件资源
-     * @return 附件 DTO
-     */
     @Transactional
     public List<AttachDTO> upload(String namespace, List<Resource> resources) {
         if (namespace == null || !NAMESPACE_PATTERN.matcher(namespace).matches()) {
@@ -183,9 +130,6 @@ public class AttachService implements InitializingBean {
         return res;
     }
 
-    /**
-     * 写入磁盘
-     */
     private Attach saveOne(String namespace, Resource resource) {
         String fileName = resource.getFilename();
         if (fileName == null || fileName.isEmpty()) {
@@ -210,11 +154,6 @@ public class AttachService implements InitializingBean {
     }
 
 
-    /**
-     * 提交附件
-     *
-     * @param ids 附件 ID
-     */
     @Transactional
     public void persist(Collection<Integer> ids) {
         if (ids.isEmpty()) {
@@ -233,11 +172,6 @@ public class AttachService implements InitializingBean {
         }
     }
 
-    /**
-     * 删除附件及其物理文件
-     *
-     * @param ids 附件 ID
-     */
     @Transactional
     public void delete(Collection<Integer> ids) {
         Set<Integer> uniqueIds = new HashSet<>(ids);
@@ -263,7 +197,7 @@ public class AttachService implements InitializingBean {
     }
 
     /**
-     * 清除过期游离态文件
+     * 清理超过 7 天的游离附件及其磁盘文件，每日 02:00 执行。
      */
     @Transactional
     @Scheduled(cron = "0 0 2 * * *")
@@ -272,7 +206,9 @@ public class AttachService implements InitializingBean {
         if (expired.isEmpty()) {
             return;
         }
-        attachRepository.deleteAll(expired);
+        // 一条 delete ... where id in (...) 回收，避免逐行删除；随后清理一级缓存里的旧状态
+        attachRepository.deleteAllInBatch(expired);
+        entityManager.clear();
 
         List<FileOp> ops = new ArrayList<>();
         for (Attach attachment : expired) {

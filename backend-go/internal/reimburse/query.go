@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// QueryParam 报销单查询参数
 type QueryParam struct {
 	Number             string     `json:"number"`
 	Summary            string     `json:"summary"`

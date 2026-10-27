@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// ResultWrap 响应体包装中间件
 func ResultWrap() fiber.Handler {
 	return func(c fiber.Ctx) (err error) {
 		err = c.Next()

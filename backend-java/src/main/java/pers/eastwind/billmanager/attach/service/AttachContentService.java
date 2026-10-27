@@ -13,8 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 附件内容读取：图片/PDF 取文本块，Excel 取表格
- *
+ * 附件内容读取：图片/PDF 取文本块，Excel 取表格。
  */
 @Slf4j
 @Service
@@ -28,11 +27,7 @@ public class AttachContentService {
     }
 
     /**
-     * 读取文本块
-     * <p>图片走 OCR；PDF 先取文本层，未识别到文本时转图片再 OCR
-     *
-     * @param attachment 附件
-     * @return 文本块
+     * 图片走 OCR；PDF 先取文本层，未识别到文本时转图片再 OCR。
      */
     public List<String> text(AttachDTO attachment) {
         Path path = attachService.getAbsolutePathById(attachment.getId());
@@ -51,12 +46,6 @@ public class AttachContentService {
         };
     }
 
-    /**
-     * 读取表格：仅 Excel
-     *
-     * @param attachment 附件
-     * @return 表格内容
-     */
     public List<List<String>> grid(AttachDTO attachment) {
         Path path = attachService.getAbsolutePathById(attachment.getId());
         if (attachment.getType() == AttachType.EXCEL) {

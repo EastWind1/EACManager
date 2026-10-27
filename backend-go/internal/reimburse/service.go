@@ -54,7 +54,7 @@ func (s *Service) FindByID(ctx context.Context, id uint) (*DTO, error) {
 	}
 	attachments, err := s.relSrv.FindAttachments(ctx, bill.ID)
 	if err != nil {
-		return nil, errs.NewBizError("获取附件失败")
+		return nil, err
 	}
 	return bill.ToDTO(attachments), nil
 }
@@ -68,26 +68,21 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 		entity.Number = s.GenerateNumber()
 	}
 	entity.State = Created
-	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
-		exists, _ := s.reimburseRepo.ExistsByNumber(ctx, dto.Number)
-		if exists {
-			return errs.NewBizError("单据编号已存在")
-		}
-		if err := s.reimburseRepo.Create(tx, entity); err != nil {
-			return err
-		}
 
-		if err := s.relSrv.UpdateAttachments(tx, entity.ID, dto.Attachments); err != nil {
+	var attaches []attach.Attach
+	err := s.reimburseRepo.Transaction(ctx, func(txCtx context.Context) error {
+		// 单号唯一性交给唯一索引，冲突统一在 Insert 里转成业务错误
+		if err := s.reimburseRepo.Insert(txCtx, entity); err != nil {
 			return err
 		}
-		return nil
+		if err := s.relSrv.UpdateAttachments(txCtx, entity.ID, dto.Attachments); err != nil {
+			return err
+		}
+		// 附件在同一事务里读取，省掉提交后的一次往返
+		var err error
+		attaches, err = s.relSrv.FindAttachments(txCtx, entity.ID)
+		return err
 	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	attaches, err := s.relSrv.FindAttachments(ctx, entity.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -101,33 +96,32 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 
 	entity := dto.ToEntity()
 
-	err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
-		bill, err := s.reimburseRepo.FindByID(tx, dto.ID)
+	var attaches []attach.Attach
+	err := s.reimburseRepo.Transaction(ctx, func(txCtx context.Context) error {
+		bill, err := s.reimburseRepo.FindByID(txCtx, dto.ID)
 		if err != nil {
 			return err
 		}
 		if bill == nil {
 			return errs.NewBizError("单据不存在")
 		}
-		err = s.relSrv.UpdateAttachments(tx, entity.ID, dto.Attachments)
-		if err != nil {
+		entity.State = bill.State
+		if err = s.relSrv.UpdateAttachments(txCtx, entity.ID, dto.Attachments); err != nil {
 			return err
 		}
-		entity.State = bill.State
-		return s.reimburseRepo.Updates(tx, entity)
+		if err = s.reimburseRepo.Updates(txCtx, entity); err != nil {
+			return err
+		}
+		attaches, err = s.relSrv.FindAttachments(txCtx, entity.ID)
+		return err
 	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	attaches, err := s.relSrv.FindAttachments(ctx, entity.ID)
 	if err != nil {
 		return nil, err
 	}
 	return entity.ToDTO(attaches), nil
 }
 
+// GenerateByFile 上传并解析文件生成单据 DTO，不落库。
 func (s *Service) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*DTO, error) {
 	attaches, err := s.attachSrv.Upload(ctx, AttachNamespace, []*multipart.FileHeader{file})
 	if err != nil {
@@ -155,13 +149,14 @@ func (s *Service) FindByParam(ctx context.Context, param *QueryParam) (*result.P
 	return result.NewDTOPageResult(res, ToBaseDTOs), nil
 }
 
+// Delete 只允许删除创建状态的单据，逐项返回结果。
 func (s *Service) Delete(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
 	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
-			bill, err := s.reimburseRepo.FindFullById(tx, id)
+		err := s.reimburseRepo.Transaction(ctx, func(txCtx context.Context) error {
+			bill, err := s.reimburseRepo.FindByID(txCtx, id)
 			if err != nil {
 				return err
 			}
@@ -171,109 +166,88 @@ func (s *Service) Delete(ctx context.Context, ids []uint) (*result.ActionsResult
 			if bill.State != Created {
 				return errs.NewBizError("非创建状态不能删除")
 			}
-			if err = s.relSrv.UpdateAttachments(tx, bill.ID, nil); err != nil {
+			if err = s.relSrv.UpdateAttachments(txCtx, bill.ID, nil); err != nil {
 				return err
 			}
-			return s.reimburseRepo.Delete(tx, bill)
+			deleted, err := s.reimburseRepo.Delete(txCtx, bill.ID)
+			if err != nil {
+				return err
+			}
+			if !deleted {
+				return errs.NewBizError("数据已被更改，稍后重试")
+			}
+			return nil
+		})
+		return nil, err
+	}), nil
+}
+
+// transition 状态流转的公共骨架：读当前状态 → 校验 → 只更新 state 列
+func (s *Service) transition(
+	ctx context.Context,
+	ids []uint,
+	apply func(bill *Reimburse) error,
+) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	return result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.reimburseRepo.Transaction(ctx, func(txCtx context.Context) error {
+			bill, err := s.reimburseRepo.FindByID(txCtx, id)
+			if err != nil {
+				return err
+			}
+			if bill == nil {
+				return errs.NewBizError("单据不存在")
+			}
+			if err = apply(bill); err != nil {
+				return err
+			}
+			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
+			return s.reimburseRepo.UpdateState(txCtx, bill)
 		})
 		return nil, err
 	}), nil
 }
 
 func (s *Service) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
-	if len(ids) == 0 {
-		return nil, errs.NewBizError("ID 为空")
-	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
-			bill, err := s.reimburseRepo.FindByID(tx, id)
-			if err != nil {
-				return err
-			}
-			if bill == nil {
-				return errs.NewBizError("单据不存在")
-			}
-			if bill.State != Created {
-				return errs.NewBizError("非创建状态不能提交")
-			}
-			bill.State = Processing
-			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
-			return s.reimburseRepo.Updates(tx, bill)
-		})
-		return nil, err
-	}), nil
+	return s.transition(ctx, ids, func(bill *Reimburse) error {
+		if bill.State != Created {
+			return errs.NewBizError("非创建状态不能提交")
+		}
+		bill.State = Processing
+		return nil
+	})
 }
 
 func (s *Service) Finish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
-	if len(ids) == 0 {
-		return nil, errs.NewBizError("ID 为空")
-	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
-			bill, err := s.reimburseRepo.FindByID(tx, id)
-			if err != nil {
-				return err
-			}
-			if bill == nil {
-				return errs.NewBizError("单据不存在")
-			}
-			if bill.State != Processing {
-				return errs.NewBizError("非处理状态不能完成")
-			}
-			bill.State = Finished
-			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
-			return s.reimburseRepo.Updates(tx, bill)
-		})
-		return nil, err
-	}), nil
+	return s.transition(ctx, ids, func(bill *Reimburse) error {
+		if bill.State != Processing {
+			return errs.NewBizError("非处理状态不能完成")
+		}
+		bill.State = Finished
+		return nil
+	})
 }
 
 func (s *Service) CancelProcess(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
-	if len(ids) == 0 {
-		return nil, errs.NewBizError("ID 为空")
-	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
-			bill, err := s.reimburseRepo.FindByID(tx, id)
-			if err != nil {
-				return err
-			}
-			if bill == nil {
-				return errs.NewBizError("单据不存在")
-			}
-			if bill.State != Processing {
-				return errs.NewBizError("非处理中状态不能取消")
-			}
-			bill.State = Created
-			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
-			return s.reimburseRepo.Updates(tx, bill)
-		})
-		return nil, err
-	}), nil
+	return s.transition(ctx, ids, func(bill *Reimburse) error {
+		if bill.State != Processing {
+			return errs.NewBizError("非处理中状态不能取消")
+		}
+		bill.State = Created
+		return nil
+	})
 }
 
 func (s *Service) CancelFinish(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
-	if len(ids) == 0 {
-		return nil, errs.NewBizError("ID 为空")
-	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
-		err := s.reimburseRepo.Transaction(ctx, func(tx context.Context) error {
-			bill, err := s.reimburseRepo.FindByID(tx, id)
-			if err != nil {
-				return err
-			}
-			if bill == nil {
-				return errs.NewBizError("单据不存在")
-			}
-			if bill.State != Finished {
-				return errs.NewBizError("非完成状态不能取消")
-			}
-			bill.State = Processing
-			log.Infof("报销单 %v 状态变更为 %v", bill.Number, bill.State)
-			return s.reimburseRepo.Updates(tx, bill)
-		})
-		return nil, err
-	}), nil
+	return s.transition(ctx, ids, func(bill *Reimburse) error {
+		if bill.State != Finished {
+			return errs.NewBizError("非完成状态不能取消")
+		}
+		bill.State = Processing
+		return nil
+	})
 }
 
 func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
@@ -281,38 +255,43 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		return "", errs.NewBizError("ID 不能为空")
 	}
 
-	reimbursements, err := s.reimburseRepo.FindAll(ctx, ids)
+	// 主表 + 明细一次取回，不再逐单据 Preload
+	reimbursements, err := s.reimburseRepo.FindAllWithDetails(ctx, ids)
+	if err != nil {
+		return "", err
+	}
 	if len(reimbursements) == 0 {
 		return "", errs.NewBizError("单据不存在")
 	}
 
-	// 创建临时目录
+	// 一次取回全部单据的附件
+	rels, err := s.relSrv.FindByBillIDs(ctx, ids)
+	if err != nil {
+		return "", err
+	}
+
 	tempDir, err := s.attachSrv.CreateTempDir("export")
 	if err != nil {
 		return "", err
 	}
 
-	var ops []attach.FileOp
-	var rows [][]string
+	ops := make([]attach.FileOp, 0, len(rels))
+	rows := make([][]string, 0, len(reimbursements)+2)
 
-	// 表头
 	rows = append(rows, []string{"单据编号", "摘要", "总额", "报销日期", "备注"})
 	var totalAmount float64
 
-	// 遍历生成 excel行，并拷贝附件
 	for _, reimbursement := range reimbursements {
 		dateStr := ""
 		if reimbursement.ReimburseDate != nil {
 			dateStr = reimbursement.ReimburseDate.Format("2006-01-02")
 		}
 
-		// 构建详情字符串
 		var detailStr strings.Builder
 		for _, detail := range reimbursement.Details {
 			detailStr.WriteString(fmt.Sprintf("%s : %.2f ; ", detail.Name, detail.Amount))
 		}
 
-		// 添加行数据
 		rows = append(rows, []string{
 			reimbursement.Number,
 			reimbursement.Summary,
@@ -322,44 +301,24 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		})
 
 		totalAmount += reimbursement.TotalAmount
+	}
 
-		// 获取当前单据的所有附件
-		attachments, err := s.relSrv.FindAttachments(ctx, reimbursement.ID)
-		if err != nil {
-			return "", err
-		}
-
-		// 创建当前单据附件文件夹
-		curDir := filepath.Join(tempDir, reimbursement.Number)
-		for _, attachment := range attachments {
-			// 获取原始附件路径
+	for _, reimbursement := range reimbursements {
+		for _, attachment := range rels[reimbursement.ID] {
 			originPath, err := s.attachSrv.GetAbsolutePathByRela(attachment.RelativePath)
 			if err != nil {
 				return "", err
 			}
-
-			// 设置目标路径
-			targetPath := filepath.Join(curDir, attachment.Name)
-
-			// 处理可能的重名
-			repeatCount := 1
-			for attach.Exists(targetPath) {
-				targetPath = fmt.Sprintf("%s/%d-%s", curDir, repeatCount, attachment.Name)
-				repeatCount++
-			}
-			// 添加文件操作到列表
 			ops = append(ops, attach.FileOp{
 				Type:   attach.FileOpCopy,
 				Origin: originPath,
-				Target: targetPath,
+				Target: uniqueTargetPath(filepath.Join(tempDir, reimbursement.Number), attachment.Name),
 			})
 		}
 	}
 
-	// 表合计
 	rows = append(rows, []string{"", "合计", fmt.Sprintf("%.2f", totalAmount), "", ""})
 
-	// 生成Excel文件
 	excelPath := filepath.Join(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
 	if err = attach.GenerateExcelFromList(rows, excelPath); err != nil {
 		return "", err
@@ -373,4 +332,15 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		return "", err
 	}
 	return zipPath, nil
+}
+
+// uniqueTargetPath 处理导出目录下的同名附件：name、1-name、2-name ……
+func uniqueTargetPath(dir, name string) string {
+	targetPath := filepath.Join(dir, name)
+	repeatCount := 1
+	for attach.Exists(targetPath) {
+		targetPath = fmt.Sprintf("%s/%d-%s", dir, repeatCount, name)
+		repeatCount++
+	}
+	return targetPath
 }

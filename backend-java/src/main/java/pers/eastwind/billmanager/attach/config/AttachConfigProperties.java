@@ -7,9 +7,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.nio.file.Path;
 
-/**
- * 附件模块配置
- */
 @Configuration
 @Data
 @EnableScheduling

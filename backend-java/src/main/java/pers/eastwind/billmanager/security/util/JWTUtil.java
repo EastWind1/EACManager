@@ -10,19 +10,9 @@ import pers.eastwind.billmanager.common.exception.BizException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
-/**
- * JWT 工具类
- */
 public class JWTUtil {
 
 
-    /**
-     * 生成 TOKEN
-     *
-     * @param secret  密钥
-     * @param subject 摘要
-     * @return TOKEN
-     */
     public static String generateToken(String secret, long expireSecond, String subject) {
         Instant now = Instant.now();
         Algorithm algorithm = Algorithm.HMAC256(secret);
@@ -36,9 +26,6 @@ public class JWTUtil {
         }
     }
 
-    /**
-     * 验证 TOKEN
-     */
     public static DecodedJWT verifyToken(String secret, String token) {
         Algorithm algorithm = Algorithm.HMAC256(secret);
         try {

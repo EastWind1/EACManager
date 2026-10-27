@@ -11,6 +11,7 @@ import pers.eastwind.billmanager.security.repository.RoleRepository;
 import pers.eastwind.billmanager.security.repository.UserRoleRepository;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -44,23 +45,14 @@ public class SecurityService {
     // 角色管理
     // -----------------------------------------------------------------------
 
-    /**
-     * 查询全部角色
-     */
     public List<RoleDTO> getRoles() {
         return roleMapper.toBaseDTOs(roleRepository.findAllByOrderBySortOrderAscIdAsc());
     }
 
-    /**
-     * 查询用户拥有的角色
-     */
     public List<RoleDTO> getRolesByUserId(Integer id) {
         return roleMapper.toBaseDTOs(roleRepository.findEnabledByUserId(id));
     }
 
-    /**
-     * 创建角色
-     */
     @Transactional
     public RoleDTO createRole(RoleDTO dto) {
         if (dto.getCode() == null || !dto.getCode().matches("^[A-Z][A-Z0-9_]*$")) {
@@ -84,9 +76,7 @@ public class SecurityService {
     }
 
     /**
-     * 修改角色
-     * <p>
-     * 编码不可修改
+     * 修改角色；编码不可修改
      */
     @Transactional
     public RoleDTO updateRole(RoleDTO dto) {
@@ -116,6 +106,7 @@ public class SecurityService {
         if (ADMIN_ROLE_CODE.equals(role.getCode())) {
             throw new BizException("管理员角色不能删除");
         }
+        // 两张关联表都是 JPQL 批量删除，不会先逐条查出来
         userRoleRepository.deleteByRoleId(id);
         rolePermissionRepository.deleteByRoleId(id);
         roleRepository.delete(role);
@@ -125,9 +116,6 @@ public class SecurityService {
     // 权限目录
     // -----------------------------------------------------------------------
 
-    /**
-     * 获取全部可配置权限
-     */
     public Map<String, List<PermissionDTO>> getPermissions() {
         List<PermissionEntity> permissions = permissionRepository.findAllByOrderBySortOrderAsc();
         Map<String, List<PermissionDTO>> res = new HashMap<>();
@@ -138,12 +126,15 @@ public class SecurityService {
     }
 
     /**
-     * 是否已经存在管理员用户
+     * 是否存在拥有启用状态 ADMIN 角色的用户
      */
     public boolean hasAdminUser() {
         return userRoleRepository.countByRoleCode(ADMIN_ROLE_CODE) > 0;
     }
 
+    /**
+     * 单个用户的角色与权限；列表场景请用批量版本，避免 N+1
+     */
     public AuthConfig getUserAuthorities(Integer userId) {
         if (userId == null) {
             return new AuthConfig(List.of(), List.of());
@@ -166,18 +157,76 @@ public class SecurityService {
     }
 
     /**
-     * 设置用户角色
+     * 批量组装用户权限
+     *
+     * <p>用户列表页逐用户调用 {@link #getUserAuthorities(Integer)} 会退化成 N+1（每个用户两次查询）；
+     * 这里固定 3 次查询：用户角色关联、启用角色、角色权限对，与用户数无关。</p>
+     *
+     * @param userIds 用户 ID
+     * @return 用户 ID → 角色与权限
+     */
+    public Map<Integer, AuthConfig> getUserAuthorities(Collection<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        List<UserRole> relations = userRoleRepository.findByUserIdIn(userIds);
+        Set<Integer> roleIds = relations.stream()
+                .map(UserRole::getRoleId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<Integer, Role> rolesById = roleIds.isEmpty()
+                ? Map.of()
+                : roleRepository.findByIdIn(roleIds).stream()
+                .filter(role -> !role.isDisabled())
+                .collect(Collectors.toMap(Role::getId, Function.identity()));
+
+        Map<Integer, List<PermissionEntity>> permissionsByRole = new HashMap<>();
+        if (!roleIds.isEmpty()) {
+            for (RolePermissionRow row : roleRepository.findPermissionsByRoleIds(roleIds)) {
+                permissionsByRole.computeIfAbsent(row.roleId(), _ -> new ArrayList<>()).add(row.permission());
+            }
+        }
+
+        Map<Integer, List<Integer>> roleIdsByUser = new HashMap<>();
+        for (UserRole relation : relations) {
+            if (rolesById.containsKey(relation.getRoleId())) {
+                roleIdsByUser.computeIfAbsent(relation.getUserId(), _ -> new ArrayList<>()).add(relation.getRoleId());
+            }
+        }
+
+        Map<Integer, AuthConfig> result = new HashMap<>();
+        for (Integer userId : userIds) {
+            List<Role> roles = roleIdsByUser.getOrDefault(userId, List.of()).stream()
+                    .map(rolesById::get)
+                    .sorted(Comparator.comparing(Role::getSortOrder).thenComparing(Role::getId))
+                    .toList();
+            List<RoleDTO> roleDTOs = new ArrayList<>(roles.size());
+            List<PermissionEntity> permissions = new ArrayList<>();
+            Set<Integer> permissionIds = new LinkedHashSet<>();
+            for (Role role : roles) {
+                roleDTOs.add(roleMapper.toBaseDTO(role));
+                for (PermissionEntity permission : permissionsByRole.getOrDefault(role.getId(), List.of())) {
+                    if (permissionIds.add(permission.getId())) {
+                        permissions.add(permission);
+                    }
+                }
+            }
+            permissions.sort(Comparator.comparing(PermissionEntity::getSortOrder)
+                    .thenComparing(PermissionEntity::getCode));
+            result.put(userId, new AuthConfig(roleDTOs, permissionMapper.toBaseDTOs(permissions)));
+        }
+        return result;
+    }
+
+    /**
+     * 整体替换用户角色：先清空现有关系再写入，未知角色编码直接报错
      */
     @Transactional
     public void setUserRoles(Integer userId, Set<String> roleCodes) {
         userRoleRepository.deleteByUserId(userId);
-        userRoleRepository.flush();
         if (roleCodes == null || roleCodes.isEmpty()) {
             return;
         }
-        List<Role> roles = roleRepository.findAll().stream()
-                .filter(role -> roleCodes.contains(role.getCode()))
-                .toList();
+        List<Role> roles = roleRepository.findByCodeIn(roleCodes);
         if (roles.size() != roleCodes.size()) {
             throw new BizException("存在未知角色");
         }
@@ -194,16 +243,13 @@ public class SecurityService {
     // 权限配置
     // -----------------------------------------------------------------------
 
-    /**
-     * 查询角色权限
-     */
     public List<PermissionDTO> getRolePermissions(Integer roleId) {
         roleRepository.findById(roleId).orElseThrow(() -> new BizException("角色不存在"));
         return permissionMapper.toBaseDTOs(permissionRepository.findByRoleIds(List.of(roleId)));
     }
 
     /**
-     * 更新角色权限
+     * 整体替换角色权限；ADMIN 必须保留 permission:query / permission:update，否则拒绝
      */
     @Transactional
     public List<PermissionDTO> updateRolePermissions(Integer roleId, Set<Integer> permissionIds) {
@@ -223,7 +269,6 @@ public class SecurityService {
         }
 
         rolePermissionRepository.deleteByRoleId(roleId);
-        rolePermissionRepository.flush();
 
         List<RolePermission> entities = requested.stream().map(id -> {
             RolePermission entity = new RolePermission();
@@ -231,11 +276,14 @@ public class SecurityService {
             entity.setPermissionId(id);
             return entity;
         }).toList();
-        rolePermissionRepository.saveAll(entities);
-        rolePermissionRepository.flush();
+        if (!entities.isEmpty()) {
+            rolePermissionRepository.saveAll(entities);
+        }
 
+        // 一次查询即可同时完成「管理员保留权限校验」与返回值组装
+        List<PermissionEntity> granted = permissionRepository.findByRoleIds(List.of(roleId));
         if (ADMIN_ROLE_CODE.equals(targetRole.getCode())) {
-            Set<String> codes = permissionRepository.findByRoleIds(List.of(roleId)).stream()
+            Set<String> codes = granted.stream()
                     .map(PermissionEntity::getCode)
                     .collect(Collectors.toSet());
             if (!codes.contains(SecurityPermission.QUERY.getCode())
@@ -244,6 +292,6 @@ public class SecurityService {
             }
         }
 
-        return getRolePermissions(roleId);
+        return permissionMapper.toBaseDTOs(granted);
     }
 }

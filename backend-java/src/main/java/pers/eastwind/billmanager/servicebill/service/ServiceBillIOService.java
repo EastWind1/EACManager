@@ -24,9 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * 服务单导入导出
- */
 @Service
 public class ServiceBillIOService {
     private final ServiceBillRepository serviceBillRepository;
@@ -41,12 +38,6 @@ public class ServiceBillIOService {
         this.attachMapper = attachMapper;
     }
 
-    /**
-     * 根据文件生成单据
-     *
-     * @param resource 文件资源
-     * @return 单据
-     */
     public ServiceBillDTO generateByFile(Resource resource) {
         AttachDTO attachment = attachService.upload(ServiceBillAttachService.ATTACH_NAMESPACE, List.of(resource)).getFirst();
         ServiceBillDTO bill = attachMapper.map(attachment);
@@ -54,12 +45,6 @@ public class ServiceBillIOService {
         return bill;
     }
 
-    /**
-     * 导出单据
-     *
-     * @param ids 单据列表
-     * @return 压缩文件路径
-     */
     public Path export(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
@@ -68,17 +53,13 @@ public class ServiceBillIOService {
         if (serviceBills.isEmpty()) {
             throw new BizException("id不存在");
         }
-        // 创建临时目录
         Path tempPath = attachService.createTempDir("export");
-        // 文件操作
         List<FileOp> ops = new ArrayList<>();
-        // Excel 表头
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("单据编号", "状态", "项目名称", "项目地址", "总额", "安装完成日期", "备注"));
         BigDecimal totalAmount = BigDecimal.ZERO;
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         for (ServiceBill serviceBill : serviceBills) {
-            // 当前 Excel 行
             rows.add(List.of(
                     serviceBill.getNumber(),
                     serviceBill.getState().getLabel(),
@@ -95,7 +76,6 @@ public class ServiceBillIOService {
 
             Path curDir = tempPath.resolve(serviceBill.getNumber());
 
-            // 拷贝当前单据所有附件
             List<Attach> attachments = serviceBillAttachService.findAttachments(serviceBill.getId());
             for (Attach attachment : attachments) {
                 Path origin = attachService.getAbsolutePathByRela(attachment.getRelativePath());
@@ -109,14 +89,11 @@ public class ServiceBillIOService {
                 ops.add(new FileOp(FileOpType.COPY, origin, target));
             }
         }
-        // 表合计
         rows.add(List.of("", "", "", "合计", totalAmount.toString(), ""));
 
         Path excel = tempPath.resolve("导出结果.xlsx");
         OfficeFileUtil.generateExcelFromList(rows, excel);
-        // 执行文件拷贝
         FileTxUtil.exec(ops);
-        // 生成压缩包
         Path zip = attachService.getTempPath().resolve(tempPath + ".zip");
         FileUtil.zip(tempPath, zip);
         return zip;

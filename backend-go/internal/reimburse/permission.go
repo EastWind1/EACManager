@@ -2,7 +2,6 @@ package reimburse
 
 import "backend-go/internal/security"
 
-// 报销单模块权限编码
 const (
 	QueryAuthCode         = "reimburse:query"
 	DetailAuthCode        = "reimburse:detail"
@@ -18,7 +17,6 @@ const (
 	StatisticAuthCode     = "reimburse:statistic"
 )
 
-// reimbursePermissions 报销单模块声明的权限
 func reimbursePermissions() []security.PermissionDTO {
 	return []security.PermissionDTO{
 		security.NewPermissionDTO(0, QueryAuthCode, "reimburse", "报销单", "查询报销单", 1),

@@ -6,9 +6,6 @@ import lombok.Data;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 
-/**
- * 权限 DTO
- */
 @Data
 @AllArgsConstructor
 public class PermissionDTO implements GrantedAuthority {
@@ -18,6 +15,7 @@ public class PermissionDTO implements GrantedAuthority {
     private String moduleName;
     private String name;
     private Integer sortOrder;
+
     @Override
     @JsonIgnore
     public @Nullable String getAuthority() {

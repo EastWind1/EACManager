@@ -5,9 +5,6 @@ import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
 import pers.eastwind.billmanager.common.model.BaseMapper;
 
-/**
- * 权限 Mapper
- */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface PermissionMapper extends BaseMapper<PermissionEntity, PermissionDTO> {
 }

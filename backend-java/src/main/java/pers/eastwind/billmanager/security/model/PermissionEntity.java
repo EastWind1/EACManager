@@ -5,9 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 动作权限类型
- * <p>
- * 不手动预置，由各模块启动时同步至数据库。
+ * 动作权限类型；不手动预置，由各模块启动时同步至数据库
  */
 @Entity
 @Table(name = "sys_permission", uniqueConstraints = @UniqueConstraint(name = "uk_permission_code", columnNames = "code"))

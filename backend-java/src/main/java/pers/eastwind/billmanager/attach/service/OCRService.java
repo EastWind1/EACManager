@@ -12,22 +12,12 @@ import java.nio.file.Path;
 import java.util.List;
 
 
-/**
- * OCR 服务
- */
 @Service
 @Slf4j
 public class OCRService {
     private volatile InferenceEngine engine;
 
-    /**
-     * 转换图像为字符串集合
-     *
-     * @param path 图像相对路径
-     * @return 文本列表
-     */
     public List<String> parseImage(Path path) {
-        // 懒加载 OCR 引擎
         if (engine == null) {
             synchronized (this) {
                 if (engine == null) {

@@ -9,10 +9,8 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// LoginPath 登录地址
 const LoginPath = "/token"
 
-// AuthMiddleware 认证中间件
 func AuthMiddleware(jwtSrv *JWTService, userSrv *Service) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		// 放行登录和初始化接口

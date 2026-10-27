@@ -14,9 +14,7 @@ import java.util.function.BiConsumer;
 
 
 /**
- * 服务单映射规则
- * <p>威垦与菱电共用同一份表单模版，仅识别关键词与公司名不同，因此由构造参数区分，
- * 不再为每家厂商各写一个规则类
+ * 服务单映射规则：威垦与菱电共用同一份表单模版，仅识别关键词与公司名不同，由构造参数区分。
  */
 public class ServiceBillImportRule {
     private final CompanyService companyService;
@@ -61,9 +59,6 @@ public class ServiceBillImportRule {
         }
     }
 
-    /**
-     * 文本是否命中本规则
-     */
     public boolean canMapTexts(List<String> texts) {
         for (String text : texts) {
             if (text.contains(keyword)) {
@@ -73,9 +68,6 @@ public class ServiceBillImportRule {
         return false;
     }
 
-    /**
-     * 表格是否命中本规则
-     */
     public boolean canMapGrid(List<List<String>> rows) {
         for (List<String> row : rows) {
             for (String text : row) {
@@ -88,7 +80,7 @@ public class ServiceBillImportRule {
     }
 
     /**
-     * 从文本块映射，返回 null 表示未命中
+     * 从文本块映射，返回 null 表示未命中本规则。
      */
     public ServiceBillDTO mapFromTexts(List<String> texts) {
         if (!canMapTexts(texts)) {
@@ -104,7 +96,7 @@ public class ServiceBillImportRule {
     }
 
     /**
-     * 从表格映射，返回 null 表示未命中
+     * 从表格映射，返回 null 表示未命中本规则。
      */
     public ServiceBillDTO mapFromGrid(List<List<String>> rows) {
         if (!canMapGrid(rows)) {
@@ -113,27 +105,22 @@ public class ServiceBillImportRule {
         ServiceBillDTO serviceBill = new ServiceBillDTO();
         setCompany(serviceBill, keyword);
         serviceBill.setDetails(new ArrayList<>());
-        // 明细开始索引行
         int detailStartIndex = -1;
         for (int i = 0; i < rows.size(); i++) {
             List<String> row = rows.get(i);
-            // 明细开始
             if (row.getFirst().contains("序号")) {
                 detailStartIndex = i + 1;
                 continue; // 跳过表头
             }
-            // 明细结束
             if (row.getFirst().contains("出货信息")) {
                 detailStartIndex = -1;
             }
-            // 主表
             if (detailStartIndex == -1) {
                 for (String text : row) {
                     setByText(serviceBill, text);
                 }
             } else {
-                // 普通列表项, 首个个单元格为数字
-                // 由于源文件是预制列表行，然后把不需要的行设为白色，要单独处理数据无效行
+                // 源文件用预制列表行、把不需要的行设为白色，需单独识别无效行
                 if (row.get(0).matches("^\\d+\\.?\\d+$")) {
                     ServiceBillDetailDTO detail = new ServiceBillDetailDTO();
                     detail.setDevice(row.get(1) + " " + row.get(2) + " " + row.get(4));

@@ -14,10 +14,6 @@ import pers.eastwind.billmanager.common.model.Result;
 import pers.eastwind.billmanager.security.filter.JWTTokenFilter;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Security配置类
- *
- */
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -64,9 +60,7 @@ public class SecurityConfig {
                         response.getWriter().write(jsonMapper.writeValueAsString(res));
                     });
                 })
-                // 禁用 Session
                 .sessionManagement(configurer -> configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 添加JWT验证过滤器
                 .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

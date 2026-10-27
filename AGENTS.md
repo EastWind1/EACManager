@@ -1,353 +1,202 @@
 # AGENTS.md
 
-Agent guidance for this repository. Details live in the code — this file is the map.
+电梯空调服务单管理系统：工单/报销单、OCR 导入、附件管理。Java 与 Go 两个后端共享 PostgreSQL 与 Vue 3 前端。
+细节以代码为准，这里只记架构边界与容易踩错的约定。
 
-## Project Overview
+## 架构
 
-Elevator AC After-Sale Manager (电梯空调服务单管理系统) — B/S system for installation/maintenance
-work orders, expense reports, OCR import and attachment management. Java **and** Go backends,
-shared PostgreSQL schema and Vue 3 frontend.
-
-## Architecture
-
-| | Java backend | Go backend |
+| | Java | Go |
 |---|---|---|
-| Stack | Spring Boot 4.1 + Java 25 + JPA/Hibernate 7 | Fiber v3 + GORM |
-| Port | 8080 | 8080 |
-| Deploy | `deploy/compose-java.yml` | `deploy/compose.yml` |
+| 栈 | Spring Boot 4.1 / Java 25 / JPA + Hibernate 7 | Fiber v3 + GORM |
+| 端口 | 8080 | 8080 |
+| 部署 | `deploy/compose-java.yml` | `deploy/compose.yml` |
 
-Both expose the same API under `/api`, wrapped as `{code, message, data}`, and share the same
-per-module layering. Java follows `controller → service → repository → model` with MapStruct
-mappers; Go flattens each domain into one package with `handler.go` / `service.go` / `store.go` /
-`model.go`.
+两者暴露同一套 `/api`，响应统一 `{code, message, data}`，模块划分一致：Java 是
+`controller → service → repository → model`（MapStruct 映射），Go 每个域一个包，内含
+`handler.go` / `service.go` / `store.go` / `model.go`。
 
-**Auth (identical contract):** `POST /api/user/token` and the first-admin initialization endpoints
-are public; login sets an
-`X-Auth-Token` httpOnly cookie (`path=/api`, `SameSite=Strict`, `Secure`) and returns the user with
-its `roles` and deduplicated action permissions. Go additionally accepts
-`Authorization: Bearer <token>`. Authorization is **action-level**, not role-level: each endpoint
-requires a permission code such as `serviceBill:create` or `reimburse:cancel-finish`. Java enforces
-them with `@PreAuthorize("hasAuthority(T(…Permission).CODE.getCode())")`: `UserService.loadUserByUsername` asks
-`SecurityService` to assemble roles + permissions into the transient `AuthorityUser.authorities`
-set, which is exactly what `getAuthorities()` returns. It is intentionally not cached, so DB
-role/permission edits take effect on the next request. Go uses `security.Middleware` backed by
-`internal/security`.
+部署：`deploy/build.sh` 打包三者（Maven 解包 jar、交叉编译 Go、复制 Vite dist），compose 跑
+postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 
-**Modules:** `user` (login/user profile), `security` (roles, permissions, role↔user assignment,
-audit config), `company`, `servicebill`/`bill` (work orders + statistics), `reimburse` (expense
-reports + statistics), `attach` (upload/OCR/export). Users and roles are decoupled through
-`sys_user_role`; `user` never stores a role column. Statistics live inside
-each business module — no standalone `statistic` backend module; only the dashboard frontend is
-`frontend/src/statistic/`.
+## 认证与授权
 
-**Frontend:** Vue 3 + Vuetify 4 (`zhHans`, dark-mode aware) + Pinia + Vue Router, built with Vite.
-Routes: `/login`, `/user/init` (public first-admin setup), `/dashboard`, `/user`, `/company`,
-`/services`, `/service/:id?`, `/reimburses`, `/reimburse/:id?`, `/permission`, plus a catch-all 404. `common/api/HttpClient.ts` wraps `axios` (request dedup
-via `AbortController`, loading bar, 401→login redirect, 403/500 toasts, unwraps `data`; binary
-endpoints pass `responseType: 'blob'`; `onDownloadProgress` / `onUploadProgress` report progress).
-`v-permission` (action codes) hides elements by setting `display: none` (it does not unmount them);
-route `meta.permissions` is checked in a global guard. `v-role` no longer exists.
+- 公开接口只有 `POST /api/user/token` 与首管理员初始化（`GET/POST /api/user/initialization`）。
+- 登录写 `X-Auth-Token` httpOnly cookie（`path=/api`、`SameSite=Strict`、`Secure`）；Go 另接受
+  `Authorization: Bearer`。
+- 授权是**动作级**：每个接口要求 `{module}:{action}` 权限码（如 `serviceBill:cancel-finish`）。
+  Java 用 `@PreAuthorize` + `UserService.loadUserByUsername` 组装的 `authorities`（**故意不缓存**，
+  改角色权限后下一次请求即生效）；Go 用 `security.Middleware`。
+- 无 ADMIN 用户时前端跳 `/user/init`；未登录的 API 请求返回 428。初始化用行锁防并发双建。
+- `ADMIN` 必须始终保留 `permission:query` / `permission:update`（保存时校验），否则权限页会自锁。
 
-## Database (PostgreSQL)
+## 数据库
 
-13 tables, integer PKs from `SEQUENCE`s (increment 50), audit columns on all: `created_by_id`,
-`created_date`, `last_modified_by_id`, `last_modified_date`.
+13 张表，整型主键取自 `SEQUENCE`（步长 50），全表带审计列
+`created_by_id / created_date / last_modified_by_id / last_modified_date`。
 
-| Table | Key fields |
+| 表 | 关键字段 |
 |---|---|
-| `sys_user` | `username` (unique), `name`, `password` (bcrypt), `phone`, `email`, `disabled` — no role column |
-| `sys_role` | `code` (unique, e.g. `ADMIN`), `name`, `sort_order`, `disabled` |
-| `sys_user_role` | `user_id`, `role_id`, unique `(user_id, role_id)` |
-| `sys_permission` | `code` (unique), `module`, `module_name`, `name`, `sort_order` — module permission definitions synced here at startup |
-| `sys_role_permission` | `role_id`, `permission_id`, unique `(role_id, permission_id)` |
-| `company` | `name`, `contact_name`, `contact_phone`, `address`, `email`, `disabled` |
-| `service_bill` | `number`, `type` (INSTALL=0/FIX=1), `state`, `total_amount`, `project_name`, `project_address`, `project_contact(_phone)`, `elevator_info`, `on_site_contact`, `on_site_phone`, `order_date`, `processed_date`, `finished_date`, `remark`, `product_company_id`, `version` |
-| `service_bill_detail` | `device`, `quantity`, `unit_price`, `subtotal`, `remark`, FK `service_bill_id` |
-| `reimbursement` | `number`, `state`, `total_amount`, `reimburse_date`, `summary`, `remark`, `version` |
-| `reimburse_detail` | `name`, `amount`, FK `reimbursement_id` |
-| `attachment` | `name`, `relative_path` (存储 key), `type` (IMAGE=0/PDF=1/WORD=2/EXCEL=3/OTHER=4), `status` (TEMP=0/TRANSIENT=1/PERSISTENT=2) |
-| `service_bill_attach_relation` | `service_bill_id`, `attach_id` — owned by the service-bill module |
-| `reimburse_attach_relation` | `reimburse_id`, `attach_id` — owned by the reimburse module |
+| `sys_user` | `username`(unique)、`name`、`password`(bcrypt)、`disabled` — **无角色列** |
+| `sys_role` / `sys_user_role` | 角色 `code`(unique)、`sort_order`；用户↔角色唯一约束 |
+| `sys_permission` / `sys_role_permission` | 权限 `code`(unique)、`module`、`module_name`、`sort_order` |
+| `company` | `name`、联系人、`address`、`disabled` |
+| `service_bill` | `number`、`type`(INSTALL/FIX)、`state`、`total_amount`、项目与现场联系人、`product_company_id`、`version` |
+| `service_bill_detail` | `device`、`quantity`、`unit_price`、`subtotal`、FK `service_bill_id` |
+| `reimbursement` / `reimburse_detail` | 报销单单头与明细（FK `reimbursement_id`） |
+| `attachment` | `relative_path`(存储 key)、`type`、`status`(TEMP/TRANSIENT/PERSISTENT) |
+| `service_bill_attach_relation` / `reimburse_attach_relation` | 各业务模块**各自拥有**的关联表 |
 
-Roles live in `sys_role` (startup ensures `ADMIN`/`USER`; `FINANCE`/`GUEST` can be added through the
-role API); a user owns any number of roles
-through `sys_user_role`. Permission **types** are declared by each module (Java
-`*PermissionProvider` enums; Go each business package declares `<Action>AuthCode` string constants
-and an inline `[]security.PermissionDTO` list via `xxxPermissions()`, called from its `Setup`;
-`security.Middleware` takes the code string directly) and synced into `sys_permission` at startup — upsert only, DB-only extras are kept and logged, not deleted. After the
-permission sync, both backends ensure the `ADMIN` and `USER` roles exist and grant `ADMIN`
-`permission:query` / `permission:update`. If no user has the `ADMIN` role, the login page checks
-`GET /api/user/initialization` and redirects to `/user/init`; unauthenticated API calls still return
-HTTP 428. The public initialization endpoint creates exactly one admin, using a row lock to prevent
-concurrent double initialization. Role grants
-are rows in `sys_role_permission`. The security API reads the DB catalog and validates grants
-against it. Codes are `{module}:{action}` (`user`, `company`, `serviceBill`, `reimburse`, `attach`,
-`security`). Admin (`ADMIN`) must always keep `permission:query` and `permission:update` (enforced on
-save) so the permission page cannot lock itself out. `version` is the Go optimistic-lock column.
-Indexes exist on `service_bill(number, created_date)`,
-`reimbursement(number, reimburse_date)`, `sys_user(username)`,
-`service_bill_attach_relation(service_bill_id)`, `reimburse_attach_relation(reimburse_id)`,
-`attachment(status)`, `sys_role_permission(role_id, permission_id)`,
-`sys_user_role(user_id, role_id)`, `sys_permission(module)`.
+权限目录在启动时由各模块声明的清单 upsert 进 `sys_permission`（只增改，不删库中额外项）。
 
-**Attachments are S3-shaped, not filesystem-shaped.** The storage key is
-`{namespace}/{uuid}{original-file-name}` — generated once at upload and **never moved**, so there is
-no cross-system "update the row and move the file" operation to make atomic. `POST /upload` writes
-the file *and* inserts the `attachment` row as `TRANSIENT` in one step; committing a bill flips the
-row to `PERSISTENT` with a single conditional `UPDATE ... WHERE status = TRANSIENT` (affected-rows
-checked), which also makes an attachment committable exactly once — i.e. it structurally belongs to
-one bill. `TEMP` is reserved for attachments managed from the temp directory and is not written by
-the current upload path. Expired `TRANSIENT` rows are reclaimed by a scheduled status scan (7 days,
-`cleanTransientFiles()`), not by an in-process map, so a restart no longer leaks orphans.
+`deploy/database/`: `init_schema.sql` 建库；`migrate_attachment.sql`（拆分关联表 + `attachment.status`）
+与 `migrations/migrate_security.sql`（角色/权限重构）为存量库的一次性迁移。
 
-Bill↔attachment links are **not** shared: each business module owns its own relation table and
-repository. The `attach` module exposes only `upload` / `persist` / `delete` plus download, knows no
-document concept (the namespace is an opaque string supplied by the caller), and never touches a
-relation table. There is no `bill_type` discriminator column.
-Each business module diffs its own link rows against the submitted set as a plain set operation —
-no temp-id sign convention, no path building, no file operations.
+### 附件模型
 
-`deploy/database/migrate_attachment.sql` is the one-off migration for all of the above: it splits
-the old shared `bill_attach_relation` into the two per-module tables **and** adds
-`attachment.status` (existing rows become `PERSISTENT`). It moves no files — legacy
-`SERVICE_BILL/<number>/…` paths stay valid — and aborts loudly if it finds a partially migrated
-database.
+附件是 S3 形态而非文件系统形态：key 为 `{namespace}/{uuid}{原始文件名}`，上传时生成，**永不移动**。
+上传即写文件并插入 `TRANSIENT` 行；单据保存时用一条
+`UPDATE ... WHERE status = TRANSIENT`（校验受影响行数）翻成 `PERSISTENT`，因此一个附件在结构上
+只能归属一张单据。未被绑定的 `TRANSIENT` 行由每日任务按 7 天回收，不靠进程内 map。
+`attach` 模块只提供 upload/persist/delete/download，只把 namespace 当不透明前缀，不碰任何关联表。
+`relative_path` 是内部布局，**不得出现在 DTO / 响应里**。
 
-`attachment.relative_path` is internal storage layout — never expose it in DTOs or API responses.
-`service_bill_detail` / `reimburse_detail` own no audit columns and are cascade-deleted with their
-parent. Fresh databases are created by `deploy/database/init_schema.sql`; the first admin is created
-through the initialization endpoint, and startup ensures the `ADMIN` and `USER` roles exist.
-Existing databases run `deploy/database/migrations/migrate_security.sql` once (migrations live in a
-subdirectory so the Postgres init scripts do not execute them on fresh databases).
-
-### Service bill state machine
+## 状态机与单号
 
 ```
-CREATED(0) ─process→ PROCESSING(1) ─processed→ PROCESSED(2) ─finish→ FINISHED(3)
-     ←cancel-process─      ←cancel-processed─      ←cancel-finish─
+服务单 CREATED(0) → PROCESSING(1) → PROCESSED(2) → FINISHED(3)
+报销单 CREATED(0) → PROCESSING(1) → FINISHED(2)
 ```
 
-Each forward transition requires the exact prior state; each `cancel-*` steps back exactly one
-state and clears the matching date field (`processed_date` / `finished_date`). Only `CREATED` bills
-are deletable. Numbers: `S` + `genIntID()` (26-bit millisecond stamp shifted left 5 bits OR'd with a
-1..31 per-millisecond sequence — `common/util/Snowflake` in Java, `pkg/util.GenIntID` in Go);
-duplicate numbers are rejected when supplied manually.
+每次前进要求精确的前置状态；每个 `cancel-*` 只回退一格并清空对应日期列
+（`processed_date` / `finished_date`）。只有 `CREATED` 可删除。单号 `S`/`R` + 雪花式 int id
+（毫秒时间戳左移 5 位或上 1..31 序列），手填单号重复时拒绝。
 
-### Reimbursement state machine
+## API
 
-```
-CREATED(0) ─process→ PROCESSING(1) ─finish→ FINISHED(2)
-     ←cancel-process─       ←cancel-finish─
-```
-
-Same one-step revert rule; only `CREATED` is deletable. Numbers: `R` + `genIntID()`.
-
-## API Surface
-
-Roles: A=ADMIN, U=USER, F=FINANCE. "auth" means any authenticated role.
-
-| Module | Endpoints |
+| 模块 | 接口 |
 |---|---|
-| `/api/user` | `POST /token` (public) · `GET /initialization` (public) · `POST /initialization` (public, only while no admin exists) · `PUT /logout` · `GET /` `user:query` · `POST /` `user:create` · `PUT /` `user:update` · `DELETE /:username` (disable) `user:disable` — user DTO carries `roles` + `permissions` |
-| `/api/company` | `GET /` `company:query` · `POST /` `company:create` · `PUT /` `company:update` · `DELETE /:id` (disable) `company:disable` |
-| `/api/security` | `GET /permissions` `permission:query` · `GET /roles` `user:query` or `permission:query` · `POST/PUT /roles` `permission:update` · `DELETE /roles/:id` `permission:update` · `GET/PUT /roles/:id/permissions` `permission:query` / `permission:update` — `GET /permissions` returns a `{module: PermissionDTO[]}` map; role permissions return ids |
-| `/api/serviceBill` | `POST /query` · `GET /:id` · `POST /` · `PUT /` · `DELETE /` (batch, CREATED only) · `POST /import` (OCR) · `PUT /process` `processed` `finish` `cancel-process` `cancel-processed` `cancel-finish` · `POST /export` · `GET /countByState` · `GET /totalAmountGroupByMonth` |
-| `/api/reimburse` | `POST /query` · `GET /:id` · `POST /` · `PUT /` · `DELETE /` · `POST /import` (invoice OCR → prefilled DTO) · `PUT /process` `finish` `cancel-process` `cancel-finish` · `POST /export` · `GET /countByState` · `GET /totalAmountGroupByMonth` |
-| `/api/attachment` | `POST /upload` (namespace + files → attachment DTOs, rows created as `TRANSIENT`) · `GET /` (download, attachment DTO as query params) |
+| `/api/user` | `POST /token`、`GET/POST /initialization`(public)、`PUT /logout`、`GET/POST/PUT /`、`DELETE /:username` |
+| `/api/company` | `GET /`、`POST /`、`PUT /`、`DELETE /:id` |
+| `/api/security` | `GET /permissions`、`GET/POST/PUT/DELETE /roles`、`GET/PUT /role/:id/permissions` |
+| `/api/serviceBill` | `POST /query`、`GET /:id`、`POST /`、`PUT /`、`DELETE /`(批量)、`POST /import`、`PUT /process|processed|finish|cancel-process|cancel-processed|cancel-finish`、`POST /export`、`GET /countByState`、`GET /totalAmountGroupByMonth` |
+| `/api/reimburse` | 同上（无 `cancel-processed`） |
+| `/api/attachment` | `POST /upload`、`GET /`(下载) |
 
-Every business endpoint requires the action permission named after its module and action (for
-example `serviceBill:query`, `serviceBill:detail`, `serviceBill:cancel-process`,
-`reimburse:export`, `attach:upload`). Statistics use `serviceBill:statistic` /
-`reimburse:statistic`. Both backends now register the same permission middleware/method checks;
-the old "Go tightens some routes" gap in company `PUT /` is closed. Startup only grants the
-`ADMIN` role `permission:query` / `permission:update`; other role grants are configured through the
-permission page. The `USER` role is created automatically but starts with no permissions.
+导出是 Excel 流；服务单导出把附件一起打成 zip。统计 `countByState` 按状态计数，
+`totalAmountGroupByMonth` 按单据日期聚合（Go 侧有缓存）。
 
-Attachments have no standalone delete/OCR endpoint. The frontend uploads with
-`POST /api/attachment/upload?namespace=…` (the namespace must match the backend constant
-`ServiceBillAttachService.ATTACH_NAMESPACE` / `ReimburseAttachService.ATTACH_NAMESPACE`,
-i.e. `SERVICE_BILL` or `REIMBURSEMENT`); the row is created as `TRANSIENT` right away. When the bill is
-saved, the business module diffs the submitted ids against its own link rows and calls
-`persist(added)` / `delete(removed)` on the attach module — no paths, no file operations, no temp-id
-convention. Uploads that are never bound stay `TRANSIENT` and are reclaimed by the scheduled status scan
-(`cleanTransientFiles()` in Java, a daily goroutine in Go); `FileTxUtil` / `file_tx.go` now only ever
-soft-delete files. Exports are Excel streams; the service-bill export bundles attachments as a zip.
+## 配置
 
-Statistics: `countByState` returns per-state counts; `totalAmountGroupByMonth` sums by
-`processed_date` (bills) / `reimburse_date` (reimbursements) and is cached in Go.
+**Java**（`application.yml`，需要 `DB_*` 与 `JWT_KEY`≥32 字符）：虚拟线程、`open-in-view: false`、
+`hibernate.jdbc.batch_size: 30`、multipart 5MB、附件目录 `${user.dir}/attachment`。
 
-## Configuration
+**Go**（`config/config.yaml`，Viper 依次找 `./config`、`.`、`../config`、`..`、`../../config`）：
+`server.port`、`log.level`、`db.*`（含连接池上限）、`cache.expire`、`jwt.*`、`attachment.*`、`ocr.url`。
+注意：`viper.AutomaticEnv()` 未配 `BindEnv`，所以 compose 里设的 `DB_*` / `OCR_URL` **不生效**，改 YAML。
 
-**Java** (`backend-java/src/main/resources/application.yml`) — requires env `DB_HOST`, `DB_PORT`,
-`DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_KEY` (≥32 ASCII chars). Virtual threads on, multipart
-and `config.jwt.expire=604800` (7d), attachment dir `${user.dir}/attachment`. Local dev credentials
-live in `application-dev.yml` (profile `dev`, which tests activate).
+**OCR**：Java 本地跑 RapidOCR；Go 无原生中文 OCR，调 `ocr.url`（完整端点，默认
+`http://localhost:9003/ocr`）的独立 FastAPI 服务 `ocr-server/`。
 
-**Go** (`backend-go/config/config.yaml`, loaded by Viper from `./config`, `.`, `../config`, `..`,
-`../../config`) — `server.port`, `log.level`, `db.*`, `cache.expire=86400`,
-`jwt.secret`/`jwt.expire=604800`, `attachment.path=attachment`, `attachment.maxFileSize=5242880`,
-`ocr.url`. Note: `viper.AutomaticEnv()` is called without `BindEnv`, so `db.*` / `ocr.url` are **not**
-actually overridable by the `DB_*` / `OCR_URL` env vars that `deploy/compose.yml` sets — edit the
-YAML.
-
-**Upload limit is 5 MB** on both backends (`spring.servlet.multipart.max-file-size` and Fiber
-`BodyLimit` / `attachment.maxFileSize`).
-
-**OCR:** Java runs RapidOCR locally (ONNX, Windows + Linux native deps, Chinese). Go has no native
-Chinese OCR and calls a remote HTTP API instead — `ocr.url` is the **full endpoint**, default
-`http://localhost:9003/ocr`, and Go posts a single `file` multipart field and reads
-`{code, msg, data}` with `data` as `[]string` (one entry per text line). That server is
-`ocr-server/` — a FastAPI app (Python ≥3.14, managed with `uv`, `rapidocr` + `pdfplumber`) whose
-`ocr_server/__init__.py` entry point takes `-p/--port` (default 9003). For PDFs it extracts text
-with pdfplumber and only falls back to OCR on the embedded image when no text layer exists. It is
-commented out in `compose.yml` by default; `deploy/build.sh` copies it to `deploy/ocr-server`.
-
-## Build & Test
+## 构建与测试
 
 ```bash
-# Java backend
-cd backend-java && mvn clean package -DskipTests   # or: mvn test / mvn verify
-
-# Go backend
-cd backend-go && go build -ldflags="-s -w" -o target/backend-go cmd/main.go && go test ./...
-
-# Frontend (dev server proxies /api → localhost:8080)
-cd frontend && pnpm install && pnpm dev            # pnpm build / type-check / lint / format
-
-# Full deployment bundle + containers
-cd deploy && ./build.sh                            # or build.bat on Windows
-docker compose -f compose-java.yml up -d           # Java; compose.yml for Go
+cd backend-java && mvn clean package -DskipTests   # 或 mvn test / verify
+cd backend-go   && go build ./... && go test ./...
+cd frontend     && pnpm install && pnpm dev        # pnpm build / type-check / lint
 ```
 
-`deploy/build.sh` packages all three: Maven explodes the Java jar with
-`-Djarmode=tools extract` into `deploy/backend-java` (dependencies kept separate, not a fat jar),
-cross-compiles the Go binary into `deploy/backend-go`, and copies the Vite `dist` into
-`deploy/frontend/html`. Compose then runs postgres + backend + Caddy (static files, `/api` reverse
-proxy, automatic Let's Encrypt HTTPS via `DOMAIN` / `CA_EMAIL`).
+两端都是**集成测试，必须有可达的 PostgreSQL**，没有 mock 数据库层。Java 用 `@SpringBootTest` +
+`@Transactional` 回滚（`common/BaseServiceTest`）；Go 每个包一个 `_test.go`，无 `TestMain`：
+`test_util.AppCtx()` 懒初始化共享环境，每个用例 `test_util.BeginTx(t)` 返回携带事务的 context，用例结束自动回滚。
+Go 测试读同一份 `config.yaml`，只把附件目录改到系统临时目录。
 
-**Tests:** Java — JUnit 5 on `@SpringBootTest` + `@Transactional` (per-test rollback), base class
-`common/BaseServiceTest`, Mockito for collaborators, profile `dev`. Go — **one `_test.go` per
-package**, named after it (`internal/bill/bill_test.go`, likewise `reimburse`, `company`, `user`,
-`attach`), each holding every suite for that module in package `bill_test` etc. There is **no shared
-base struct and no `TestMain`**: `internal/test_util` is package-level support, not a superclass —
-`test_util.AppCtx()` lazily initialises the shared environment once per test binary (one connection
-pool / logger / config) on first use, each suite's `SetupSuite` wires its own services into suite
-fields, and each `SetupTest` opens its own transaction with `s.ctx = test_util.BeginTx(s.T())` (plus
-per-test fixtures), which registers the rollback via `t.Cleanup` so a forgotten teardown cannot leak
-data. `test_util.Tx(t, ctx)` exposes the transaction for raw SQL. Go tests load the **same**
-`backend-go/config/config.yaml` as the app (`NewConfig` also searches `../../config` so it resolves
-from `internal/<pkg>`); only the attachment root is redirected to the OS temp dir so test runs do not
-scatter `attachment/` folders into module directories.
-Run with `mvn test` and `go test ./...`. Both are **integration** tests that need a reachable
-PostgreSQL (`backend-go/config/config.yaml` for Go, the `dev` profile for Java) — there is no
-mocked-DB tier, so the suite fails at setup without a database.
+## 约定
 
-## Conventions
+- 批量写接口收 id 列表，返回 `ActionsResult`（逐项成败，不做整体回滚），每项独立事务。
+- 分页统一 `PageResult` + `QueryParam`。**`pageIndex` 是 0 基**（对齐 Spring `PageRequest` 与前端
+  `options.page - 1`）。
+- 错误统一 `BizException` / `errs.NewBizError`，由 `ControllerAdvice` / `ErrorHandler` 包装。
+- **仓储只返回实体和投影类 DTO**（聚合/统计行这类查询直接映射出的结构）。实体 → 接口 DTO 的转换
+  放在 service / model 里：`store.go` 里不出现 `ToDTO()`，也不返回 `XxxDTO`。
+- 注释只写「为什么」与约束；不复述标识符、不复述框架 API、不写过程性步骤标签。
 
-- Batch mutations take a list of ids and return `ActionsResult` (per-item success/failure counts,
-  no all-or-nothing rollback); each item runs in its own transaction.
-- Pagination is `PageResult<T>` (`page`, `size`, `total`, `data`) driven by `QueryParam`.
-- Errors are `BizException` (Java) / `errs.NewBizError` (Go), mapped to the `{code, message, data}`
-  wrapper by `ControllerAdvice` / `middleware.ErrorHandler`.
+## 易踩的坑
 
-## Code Map
+**JPA（Java）**
+
+- 明细是双向关联：父 `@OneToMany(mappedBy="serviceBill", cascade=ALL, orphanRemoval=true)`，
+  子 `@ManyToOne(LAZY)` 持有外键。因此服务在映射后必须 `bindDetails(...)`，否则外键为空。
+  更新按 id 对账：保留行原地 UPDATE，移除行真 DELETE。
+- `@Version` 字段**不要给默认值**，否则 Spring Data 认为是已持久化对象，`save()` 走 merge 而非 persist。
+- 关联加载用 `@EntityGraph` 显式声明（列表取 `productCompany`、导出取 `details`），不要 EAGER。
+- 聚合读用 JPQL 构造器投影到 record，不要 `Object[]` 解包。
+- 批量删除用 `@Modifying @Query("delete from …")`；派生 `deleteBy…` 会先查再逐条删。
+- 主键保持 `GenerationType.IDENTITY`：Go 侧共用同一批 sequence，改成 `SEQUENCE` 会与其分配冲突。
+
+**GORM（Go）**
+
+- 数据访问一律走泛型 API `gorm.G[T]`（含单列更新、联表、行锁）：读用值类型（直接得 `[]T`）；
+  整行写用 `gorm.G[*T]` 并传指针；单列更新用 `Select("column").Updates(ctx, &T{...})`；
+  联表用「子查询 + 外键 IN」；行锁用 `gorm.G[T](db, clause.Locking{Strength: "UPDATE"})`。
+  不再使用 `Model/Table/Joins/Pluck/Scan/Clauses` 这类经典链式写法。
+- 整行写必须传 `*T`：内嵌 `security.Audit` 的钩子要求可寻址值，值类型会报
+  `invalid value, should be pointer to struct`。
+- **`gorm.G[T](db)` 会丢弃 `db` 上已拼好的条件**（它用 `Session{NewDB:true}` 造空语句）。
+  动态条件一律从 `r.Chain(ctx)` 累加；传给 `gorm.G` 的 `*gorm.DB` 必须无子句。
+- **语句 context 取终止操作传入的那个**：`gorm.G[T](db).Find(ctx)` 会用 `ctx` 覆盖语句 context
+  （审计钩子里的当前用户、取消与超时都来自它），链上 `WithContext` 挂的会被覆盖。所以仓储统一用
+  `r.Ctx(ctx)` 取会话（优先取 context 里的事务）、并把同一个 `ctx` 传给终止调用。
+- `Select` 限定更新列时，未列出的列不会进 `SET`：钩子照常执行、内存里的审计字段也有值，但会被
+  **静默丢弃**。所以 `Audit.BeforeUpdate` 会在列清单非空时把 `last_modified_by_id` /
+  `last_modified_date` 补进去，调用方只写业务列即可；列清单为空（不限制列）时钩子不追加，否则会变成
+  只更新这两列。注意 `Select` 是按列名逐个匹配 schema 的，传逗号串会被当成一个未知列。
+- 关联表批量写入用 `database.RelationBatchSize`（30），与 Java 的 `hibernate.jdbc.batch_size` 对齐。
+- 分页只在 `BaseRepository.Page(ctx, chain, pageParam)` 做一次，且**只做分页**：计数、排序、偏移、
+  组装结果。条件与预加载由调用方在**同一条链**上拼好传入——`Count` 不会触发 Preload（Preload 是
+  独立的 `IN (...)` 查询），所以不需要区分「计数链」和「取数链」。排序用 `clause.OrderByColumn`
+  表达，列名交给 GORM 按标识符加引号（不再自己拼 SQL、也不做字段白名单；非法列由数据库报错）；
+  客户端传驼峰，这里只按命名约定转下划线。**分页但无排序时以 `id DESC` 兜底**；不分页时不注入排序。
+- **事务放在 context 里**（`database.TxKey`）：`Transaction(ctx, fn func(ctx) error)` 把事务实例塞进
+  回调的 ctx，之后的仓储调用凭同一个 ctx 自动加入事务。这样业务层只传 context，不接触 `*gorm.DB`，
+  也就不会为了传递事务句柄而把 GORM 类型散到 service 里。测试同理：`test_util.BeginTx(t)` 直接返回
+  携带事务的 ctx。
+- `PrepareStmt` + `SkipDefaultTransaction` 已开，连接池有上限。**不要**开
+  `postgres.Config.WithoutReturning`：批量插入会丢 `RETURNING`，所有 create 失败。
+- 有唯一索引处（`username`、`role.code`、单号）不做「先查后插」，用 `database.IsDuplicateKey` 归一化错误。
+- 服务层不 import GORM：行锁、条件更新、子查询都收在对应 `store.go` 的具名方法里，service 只拿
+  context 调它们。
+
+## 代码地图
 
 ```
 backend-java/src/main/java/pers/eastwind/billmanager/
-  EACAfterSaleMgrApplication.java   — entry point
-  common/     — Result, PageResult, QueryParam, ActionsResult, BizException,
-                ControllerAdvice, GlobalErrorController, Snowflake, config/CacheConfig
-  security/   — Role/PermissionEntity/RolePermission/UserRole/AuthorityUser/AuditEntity entities,
-                SecurityService (roles CRUD, user-role assignment, authority assembly),
-                PermissionSyncService (module PermissionDTO → PermissionEntity), SecurityController,
-                SecurityConfig/JWTTokenFilter/JWTUtil/UserProperties, config/AuditConfig,
-                util/AuthUtil, provider/SecurityPermissionProvider
-  user/       — User entity (extends AuditEntity, no role column), UserDTO implements AuthorityUser,
-                UserController/Service/Mapper, UserRepository
-  company/    — CompanyController/Service/Repository/Mapper
-  servicebill/— ServiceBillController, ServiceBillService (state machine),
-                ServiceBillIOService + ServiceBillImportMapper/-Rule (LD/WK rules, import/export),
-                ServiceBillAttachService + model/ServiceBillAttach
-                (+ ServiceBillAttachRepository) for the bill↔attachment links,
-                ServiceBillStatisticController/Service (+ StatisticRepository)
-  reimburse/  — ReimburseController/Service, ReimburseIOService + ReimburseImportMapper/-Rule
-                (invoice rule, import), ReimburseAttachService +
-                model/ReimburseAttach (+ ReimburseAttachRepository) for the bill↔attachment
-                links, ReimburseStatisticController/Service (+ StatisticRepository)
-  attach/     — AttachController/Service (upload/persist/delete + download; keys are
-                `{namespace}/{uuid}{name}` and never move; owns no relation table and no business
-                concept), AttachContentService (image/PDF texts, Excel grid),
-                OCRService, util/{FileUtil, OfficeFileUtil, FileTxUtil}, config/AttachConfigProperties
-  {user,company,servicebill,reimburse,attach}/permission/*PermissionProvider.java
-                — per-module permission enums + provider beans collected by PermissionSyncService
+  common/    Result / PageResult / QueryParam / ActionsResult / BizException / ControllerAdvice / Snowflake
+  security/  角色·权限实体与服务、PermissionSyncService、JWT 过滤器、权限枚举 provider
+  user/ company/ servicebill/ reimburse/ attach/   各自 controller·service·repository·model·mapper
+  {module}/permission/*PermissionProvider.java      模块声明的权限清单（启动时同步）
 
 backend-go/
-  cmd/main.go                       — entry point
-  server/server.go                  — Fiber bootstrap, middleware, module wiring under /api
-  internal/{user,company,bill,reimburse,attach,security}/ — one flat package per domain
-      security/ — Role/UserRole/Permission/RolePermission + Audit, Permission is the
-                  `sys_permission` entity, PermissionDTO is explicit, code constants and inline
-                  DTO providers live in each business package (security keeps only
-                  QueryAuthCode/UpdateAuthCode), middleware accepts code strings.
-                  service.go is business-only (SecurityService equivalent); sync.go holds
-                  PermissionSyncService (upsert permission catalog) and SecurityInitializer
-                  (ensure ADMIN/USER + grant ADMIN permission:query/update), matching Java's two runners
-      {user,company,bill,reimburse,attach}/permission.go — `<Action>AuthCode` constants and inline
-                  PermissionDTO list; registered from each Setup and synced once by server.Run
-      {name}.go   Setup() + routes        handler.go  HTTP handlers
-      sync.go     PermissionSyncService + SecurityInitializer (startup only)
-      service.go  business logic          store.go    GORM queries
-      model.go    types/DTOs              query.go    query params (where present)
+  cmd/main.go, server/server.go  入口与路由装配
+  internal/{user,company,bill,reimburse,attach,security}/
+      handler.go  service.go  store.go  model.go  permission.go
       stats: stat_handler.go / stat_svc.go / stat_store.go
-      attach extras: files.go, ocr.go, office.go, file_tx.go, content.go   (no relation table, no
-          business concept — `Upload` / `Persist` / `Delete` only; the caller owns the namespace
-          and the link rows)
-      bill extras: ld_rule.go, wk_rule.go, mapper.go, attach_relation.go
-      reimburse extras: invoice_rule.go, mapper.go, attach_relation.go
-  internal/test_util/ — package-level test support (NOT a base class, no TestMain): AppCtx lazily
-                       initialises the shared env, BeginTx (rollback via t.Cleanup), Tx, upload
-                       helpers
-  pkg/        — auth (current user only), cache, context, database, errs, logger, middleware, result, util
-  config/     — config.go + config.yaml (also what the tests load)
-
-Naming — Java is `{Entity}{Role}` with the word roots `ServiceBill` / `Reimburse` / `Attach`
-(never `Reimbursement`/`Attachment`, never `Biz`/`Rel` abbreviations), e.g. `ServiceBillService`,
-`ReimburseAttachRepository`, `AttachDTO`. Go uses the package as the namespace, so types drop the
-entity prefix (`bill.Service`, `bill.DTO`, `bill.Mapper`, `reimburse.Service`); entities keep their
-table words (`bill.ServiceBill`, `reimburse.Reimburse`, `attach.Attach`) and pin the DB table with
-`TableName()` where the Go name differs from it.
+      security: sync.go（权限同步 + 初始化）、middleware.go（请求级权限缓存）
+      bill/reimburse 额外: *_rule.go（OCR 文本/表格映射）、mapper.go、attach_relation.go
+      attach 额外: files.go / ocr.go / office.go / file_tx.go / content.go
+  internal/test_util/   集成测试环境（共享 AppCtx、事务回滚、上传辅助）
+  pkg/    auth / cache / context / database / errs / logger / middleware / result / util
+  config/ config.go + config.yaml
 
 frontend/src/
-  main.ts                 — app bootstrap, Vuetify theme/locale, registers v-permission
-  App.vue, router.ts, assets/style.css
-  common/                 — api/HttpClient.ts, model/, store/{UIStore, RouterStore},
-                            component/, view/{HomeView, NotFoundView},
-                            directive/permission.ts (hides by action permission), util/Crypto.ts
-  {user,company,service-bill,reimburse,attachment,statistic,permission}/
-      api/ HttpClient calls · model/ TS interfaces · view/ pages · component/ sub-components
-      composable/ (service-bill, reimburse, attachment) · store/ (user)
-  {user,company,service-bill,reimburse,attachment}/model/Permission.ts
-                          — each module owns its action-code constants; catalog/names still come
-                            from the backend DB
-  permission/model/PermissionCode.ts — permission:query/update action codes
-  common/ directive/store accept plain permission-code strings (no shared union type)
-  permission/             — role×action permission configuration page (`/permission`), built with
-                            Vuetify `v-data-table` + `v-dialog` + module checkbox cards
+  common/  api/HttpClient.ts（去重、loading、401 跳转、解包 data、blob、进度）、
+           directive/permission.ts（按动作码 display:none）、store、model、util/Crypto.ts
+  {user,company,service-bill,reimburse,attachment,statistic,permission}/  api · model · view · component
+  permission/                                                                角色×动作权限配置页
 
-deploy/
-  compose-java.yml / compose.yml    — postgres + backend + Caddy (Java / Go)
-  database/init_schema.sql          — full schema; startup creates ADMIN/USER roles, first admin via API
-  database/migrate_attachment.sql   — one-off migration: split bill_attach_relation into the two
-                                    per-module relation tables + add attachment.status
-  database/migrations/migrate_security.sql — upgrade authority/role(varchar) to sys_role +
-                                    sys_user_role + role_id links; run manually on existing DBs
-  frontend/{html,conf,cert}         — Vite output, Caddyfile, certificates
-  ocr-server/                       — optional RapidOCR service (copied from ocr-server/)
-  build.sh / build.bat, backup.sh
-
-ocr-server/                         — standalone FastAPI OCR service for the Go backend
-  src/ocr_server/__init__.py        — FastAPI app, POST /ocr, CLI (-ip/-p/-workers)
-  src/ocr_server/ocr.py             — RapidOCR wrapper (model paths via env)
-  src/ocr_server/pdf.py             — pdfplumber text extraction + image fallback
-  Dockerfile, pyproject.toml, uv.lock
+deploy/     compose*.yml、database/（init_schema、迁移）、frontend/（html、Caddyfile、cert）、build.sh
+ocr-server/ Go 后端用的独立 FastAPI OCR 服务（uv 管理，PDF 先取文本层再降级 OCR）
 ```
+
+命名：Java 用 `{Entity}{Role}`，词根 `ServiceBill` / `Reimburse` / `Attach`（不用
+`Reimbursement`/`Attachment`，不用 `Biz`/`Rel` 缩写）。Go 用包名作命名空间，类型去掉实体前缀
+（`bill.Service`、`bill.DTO`），实体保留表名语义并用 `TableName()` 固定。

@@ -28,9 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * 服务单业务
- */
 @Slf4j
 @Service
 public class ServiceBillService {
@@ -55,17 +52,11 @@ public class ServiceBillService {
         this.companyRepository = companyRepository;
     }
 
-    /**
-     * 根据id查询
-     *
-     * @param id ID
-     * @return ServiceBillDTO
-     */
     public ServiceBillDTO findById(Integer id) {
         if (id == null) {
             throw new BizException("ID不能为空");
         }
-        ServiceBill bill = serviceBillRepository.findById(id).orElse(null);
+        ServiceBill bill = serviceBillRepository.findDetailById(id).orElse(null);
         if (bill == null) {
             throw new BizException("单据不存在");
         }
@@ -73,9 +64,6 @@ public class ServiceBillService {
         return serviceBillMapper.toDTO(bill, attachments);
     }
 
-    /**
-     * 校验金额
-     */
     private void validateAmount(ServiceBill serviceBill) {
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (ServiceBillDetail detail : serviceBill.getDetails()) {
@@ -96,11 +84,14 @@ public class ServiceBillService {
     }
 
     /**
-     * 创建单据
-     *
-     * @param serviceBillDTO 单据
-     * @return 保存后的单据
+     * 明细是关联维护方（父方 details 为 mappedBy），缺这一步外键会为空。
      */
+    private void bindDetails(ServiceBill serviceBill) {
+        for (ServiceBillDetail detail : serviceBill.getDetails()) {
+            detail.setServiceBill(serviceBill);
+        }
+    }
+
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
@@ -123,6 +114,7 @@ public class ServiceBillService {
             }
         }
         ServiceBill bill = serviceBillMapper.toEntity(serviceBillDTO);
+        bindDetails(bill);
         validateAmount(bill);
         bill.setState(ServiceBillState.CREATED);
         bill = serviceBillRepository.save(bill);
@@ -133,12 +125,6 @@ public class ServiceBillService {
         return serviceBillMapper.toDTO(bill, serviceBillAttachService.findAttachments(bill.getId()));
     }
 
-    /**
-     * 更新单据
-     *
-     * @param serviceBillDTO 单据
-     * @return 更新后的单据
-     */
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
@@ -161,6 +147,7 @@ public class ServiceBillService {
         }
         var originState = bill.getState();
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
+        bindDetails(bill);
         bill.setState(originState);
         // 公司关联单独处理, 直接使用 MapStruct 会因为代理对象 ID 变化触发关联变更（即使未设置 Cascade）
         if (
@@ -189,12 +176,6 @@ public class ServiceBillService {
         return serviceBillMapper.toDTO(bill, serviceBillAttachService.findAttachments(bill.getId()));
     }
 
-    /**
-     * 根据条件查询
-     *
-     * @param param 查询参数
-     * @return 分页结果
-     */
     @Cacheable(
             value = "serviceBill_query",
             key = "'findByParam_' + #param.hashCode()"
@@ -264,7 +245,6 @@ public class ServiceBillService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        // 默认取前 20 行，创建时间降序排序
         int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
         int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
         List<Sort.Order> orders =
@@ -293,12 +273,6 @@ public class ServiceBillService {
         return pageResult.map(serviceBillMapper::toBaseDTO);
     }
 
-    /**
-     * 批量删除单据
-     *
-     * @param ids 单据 ID 列表
-     * @return 批量操作结果
-     */
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
@@ -331,10 +305,7 @@ public class ServiceBillService {
     }
 
     /**
-     * 批量更改为处理中
-     *
-     * @param ids 单据 ID 列表
-     * @return 批量操作结果
+     * 仅 CREATED 可处理，状态推进到 PROCESSING。
      */
     @Caching(
             evict = {
@@ -369,10 +340,7 @@ public class ServiceBillService {
     }
 
     /**
-     * 批量更改为处理完成
-     *
-     * @param ids           单据 ID
-     * @param processedDate 完成日期，默认为当前时间
+     * 仅 PROCESSING 可完成，状态推进到 PROCESSED 并写入完工时间。
      */
     @Caching(
             evict = {
@@ -417,10 +385,7 @@ public class ServiceBillService {
     }
 
     /**
-     * 批量更改为完成
-     *
-     * @param ids          单据 ID
-     * @param finishedDate 完成时间
+     * 仅 PROCESSED 可完成，状态推进到 FINISHED 并写入完成时间。
      */
     @Caching(
             evict = {
@@ -461,10 +426,7 @@ public class ServiceBillService {
     }
 
     /**
-     * 取消处理
-     *
-     * @param ids 单据 ID 列表
-     * @return 批量操作结果
+     * 仅 PROCESSING 可撤销，回退到 CREATED 并清空完工时间。
      */
     @Caching(
             evict = {
@@ -500,10 +462,7 @@ public class ServiceBillService {
     }
 
     /**
-     * 取消处理完成
-     *
-     * @param ids 单据 ID 列表
-     * @return 批量操作结果
+     * 仅 PROCESSED 可撤销，回退到 PROCESSING 并清空完工时间。
      */
     @Caching(
             evict = {
@@ -539,10 +498,7 @@ public class ServiceBillService {
     }
 
     /**
-     * 取消完成
-     *
-     * @param ids 单据 ID 列表
-     * @return 批量操作结果
+     * 仅 FINISHED 可撤销，回退到 PROCESSED 并清空完成时间。
      */
     @Caching(
             evict = {

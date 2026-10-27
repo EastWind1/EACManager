@@ -4,7 +4,6 @@ import (
 	"errors"
 )
 
-// UnauthError 未认证异常
 type UnauthError struct {
 	msg   string
 	err   error
@@ -48,7 +47,6 @@ func NewUnauthError(message string, e ...error) *UnauthError {
 	return err
 }
 
-// AuthError 权限异常
 type AuthError struct {
 	msg   string
 	err   error

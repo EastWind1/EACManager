@@ -1,17 +1,22 @@
 package pers.eastwind.billmanager.security.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import pers.eastwind.billmanager.security.model.RolePermission;
 
+import java.util.Collection;
 import java.util.List;
 
-/**
- * 角色权限仓库
- */
-
 public interface RolePermissionRepository extends JpaRepository<RolePermission, Integer> {
-    void deleteByRoleId(Integer id);
+
+    /**
+     * 批量删除角色的全部权限关联；JPQL 批量删除，派生 deleteByRoleId 会先逐条查出来再逐条删（N+1）
+     */
+    @Modifying
+    @Query("delete from RolePermission rp where rp.roleId = :roleId")
+    int deleteByRoleId(@Param("roleId") Integer id);
 
     @Query("""
             select exists(select 1 from RolePermission rp, Role r, PermissionEntity p
@@ -20,5 +25,5 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
             """)
     boolean existsByRoleCodeAndPermissionCode(String roleCode, String permissionCode);
 
-    List<RolePermission> findByRoleId(Integer roleId);
+    List<RolePermission> findByRoleIdIn(Collection<Integer> roleIds);
 }

@@ -10,15 +10,9 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * 报销单映射规则 — 仅支持标准税务发票
- * <p>
- * 解析规则:
- * <ol>
- *   <li>找到"项目名称"表头行，表头之后、"合  计"之前为明细行</li>
- *   <li>每行按空白分割：第 1 项为名称，倒数第 3 项(金额) + 倒数第 1 项(税额) = 明细金额</li>
- *   <li>"价税合计"行中提取"小写）"之后的金额作为主表总金额</li>
- *   <li>"备注"之后的文本作为备注</li>
- * </ol>
+ * 报销单映射规则，仅支持标准税务发票。
+ * 明细取“项目名称”表头之后至“合  计”之前，每行按空白拆词，第 1 项为名称，倒数第 3 项（金额）
+ * 加最后一项（税额）为明细金额；“价税合计”中“小写）”之后的金额为总金额，“备 注”之后为备注。
  */
 public class ReimburseImportRule {
     private static final Pattern SPACE = Pattern.compile("\\s+");
@@ -33,7 +27,7 @@ public class ReimburseImportRule {
     }
 
     /**
-     * 从文本块映射，返回 null 表示未命中
+     * 从文本块映射，返回 null 表示未命中本规则。
      */
     public ReimburseDTO mapFromTexts(List<String> texts) {
         if (!canMapTexts(texts)) {
@@ -46,7 +40,6 @@ public class ReimburseImportRule {
 
         int index = 0;
 
-        // 解析表头
         int headerIdx = -1;
         for (int i = 0; i < texts.size(); i++) {
             String cur = texts.get(i);
@@ -61,7 +54,6 @@ public class ReimburseImportRule {
             }
         }
 
-        // 解析明细行（表头之后、合计之前）
         if (headerIdx >= 0) {
             for (int i = headerIdx + 1; i < texts.size(); i++) {
                 String line = texts.get(i).trim();
@@ -88,7 +80,6 @@ public class ReimburseImportRule {
             }
         }
 
-        // 解析总额
         for (; index < texts.size(); index++) {
             String text = texts.get(index);
             if (text.contains("价税合计")) {
@@ -106,7 +97,6 @@ public class ReimburseImportRule {
         }
 
 
-        // 提取备注
         int remarkStart = -1;
         for (int i = index; i < texts.size(); i++) {
             String line = texts.get(i).trim();

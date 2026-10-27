@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 /**
- * 服务单附件关联
- *
- * <p>只保存附件 ID，不建立实体关联，避免附件被删除时牵连本模块的持久化状态。</p>
+ * 仅保存附件 ID，不建立实体关联，避免附件删除时牵连本模块的持久化状态。
  */
 @Entity
 @Data
@@ -17,12 +15,6 @@ public class ServiceBillAttach {
     @Column(insertable = false, updatable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    /**
-     * 服务单 ID
-     */
     private Integer serviceBillId;
-    /**
-     * 附件 ID
-     */
     private Integer attachId;
 }

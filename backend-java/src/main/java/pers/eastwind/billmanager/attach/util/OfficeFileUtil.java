@@ -11,15 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Word、Excel 文件处理
- */
 public class OfficeFileUtil {
-    /**
-     * 读取 Excel 文件, 范围二维数据
-     *
-     * @param path 文件相对路径
-     */
     public static List<List<String>> parseExcel(Path path) {
         List<List<String>> res = new ArrayList<>();
         try (Workbook workbook = WorkbookFactory.create(path.toFile())) {
@@ -60,11 +52,7 @@ public class OfficeFileUtil {
     }
 
     /**
-     * 生成 Excel 文件
-     * 只支持简单的二维数据
-     *
-     * @param rows       数据
-     * @param targetFile 目标文件, 若存在则替换
+     * 只支持简单的二维数据。
      */
     public static void generateExcelFromList(List<List<String>> rows, Path targetFile) {
         if (rows == null || rows.isEmpty()) {
@@ -81,7 +69,6 @@ public class OfficeFileUtil {
         try (Workbook workbook = WorkbookFactory.create(true)) {
             Sheet sheet = workbook.createSheet("导出结果");
 
-            //表头样式，背景色，加粗字体
             CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -90,7 +77,6 @@ public class OfficeFileUtil {
             font.setBold(true); // 字体加粗
             headerStyle.setFont(font);
 
-            //冻结首行
             sheet.createFreezePane(0, 1);
 
             for (int i = 0; i < rows.size(); i++) {

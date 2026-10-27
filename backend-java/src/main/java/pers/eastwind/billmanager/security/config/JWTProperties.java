@@ -4,19 +4,13 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * 用户模块配置
- */
 @Configuration
 @ConfigurationProperties("config.jwt")
 @Data
 public class JWTProperties {
-    /**
-     * JWT 密钥
-     */
     private String key;
     /**
-     * JWT 过期时间
+     * 过期时间，单位秒
      */
     private long expire;
 }

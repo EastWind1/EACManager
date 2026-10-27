@@ -2,7 +2,6 @@ package company
 
 import "backend-go/internal/security"
 
-// 公司模块权限编码
 const (
 	QueryAuthCode   = "company:query"
 	CreateAuthCode  = "company:create"
@@ -10,7 +9,6 @@ const (
 	DisableAuthCode = "company:disable"
 )
 
-// companyPermissions 公司模块声明的权限
 func companyPermissions() []security.PermissionDTO {
 	return []security.PermissionDTO{
 		security.NewPermissionDTO(0, QueryAuthCode, "company", "公司管理", "查看公司", 1),

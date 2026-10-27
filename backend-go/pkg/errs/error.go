@@ -7,7 +7,6 @@ import (
 	"runtime"
 )
 
-// GetStack 捕获堆栈
 func GetStack() []byte {
 	// 跳过 NewError + GetStack + runtime.Callers 自身帧
 	const skip = 3
@@ -39,7 +38,6 @@ type StackError interface {
 	Stack() []byte
 }
 
-// BizError 业务异常
 type BizError struct {
 	msg   string
 	err   error
@@ -93,7 +91,6 @@ func Wrap(err error) error {
 	return NewBizError("", err)
 }
 
-// FileOpError 文件操作异常
 type FileOpError struct {
 	msg   string
 	err   error

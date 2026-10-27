@@ -8,13 +8,11 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// Controller 用户控制器
 type Controller struct {
 	cfg         *config.JWTConfig
 	userService *Service
 }
 
-// NewController 创建用户控制器实例
 func NewController(cfg *config.JWTConfig, userService *Service) *Controller {
 	return &Controller{
 		userService: userService,
@@ -22,7 +20,6 @@ func NewController(cfg *config.JWTConfig, userService *Service) *Controller {
 	}
 }
 
-// InitializationStatus 查询是否需要初始化管理员
 func (c *Controller) InitializationStatus(ctx fiber.Ctx) error {
 	required, err := c.userService.IsInitializationRequired(ctx)
 	if err != nil {
@@ -32,7 +29,6 @@ func (c *Controller) InitializationStatus(ctx fiber.Ctx) error {
 	return nil
 }
 
-// Initialize 初始化首个管理员
 func (c *Controller) Initialize(ctx fiber.Ctx) error {
 	var dto InitDTO
 	if err := ctx.Bind().Body(&dto); err != nil {
@@ -46,7 +42,6 @@ func (c *Controller) Initialize(ctx fiber.Ctx) error {
 	return nil
 }
 
-// Login 用户登录
 func (c *Controller) Login(ctx fiber.Ctx) error {
 	var param LoginParam
 	err := ctx.Bind().Body(&param)
@@ -71,14 +66,12 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 	return nil
 }
 
-// Logout 登出
 func (c *Controller) Logout(ctx fiber.Ctx) error {
 	ctx.ClearCookie("X-Auth-Token")
 	result.SetResult(ctx, nil)
 	return nil
 }
 
-// GetAll 获取用户列表
 func (c *Controller) GetAll(ctx fiber.Ctx) error {
 	var param result.QueryParam
 	err := ctx.Bind().Query(&param)
@@ -93,7 +86,6 @@ func (c *Controller) GetAll(ctx fiber.Ctx) error {
 	return nil
 }
 
-// Create 创建用户
 func (c *Controller) Create(ctx fiber.Ctx) error {
 	var dto DTO
 	if err := ctx.Bind().Body(&dto); err != nil {
@@ -109,7 +101,6 @@ func (c *Controller) Create(ctx fiber.Ctx) error {
 	return nil
 }
 
-// Update 更新用户
 func (c *Controller) Update(ctx fiber.Ctx) error {
 	var dto DTO
 	if err := ctx.Bind().Body(&dto); err != nil {
@@ -124,7 +115,6 @@ func (c *Controller) Update(ctx fiber.Ctx) error {
 	return nil
 }
 
-// Disable 禁用用户
 func (c *Controller) Disable(ctx fiber.Ctx) error {
 	username := ctx.Params("username")
 	if username == "" {

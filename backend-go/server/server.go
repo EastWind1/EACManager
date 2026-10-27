@@ -22,35 +22,24 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 )
 
-// Run 启动服务
 func Run() {
-	// 初始化上下文
 	ctx := new(context.AppContext)
-	// 加载配置
 	cfg := config.NewConfig()
 	ctx.Cfg = cfg
-	// 初始化服务
 	server := fiber.New(fiber.Config{
 		ErrorHandler: middleware.ErrorHandler(),
 		BodyLimit:    int(cfg.Attach.MaxFileSize),
 	})
 	ctx.Server = server
-	// 初始化日志
 	logger.InitLogger(cfg.Log)
 	server.Use(cors.New())
-	// 初始化异常处理
 	server.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))
-	// 初始化响应体包装
 	server.Use(middleware.ResultWrap())
-	// 初始化缓存
 	ctx.Cache = cache.NewInMemoryCache(cfg.Cache)
-	// 初始化数据库
 	ctx.Db = database.NewDB(cfg.Db, cfg.Log)
-	// 初始化路由
 	router := server.Group("/api")
-	// 初始化模块
 	{
 		// 先注册认证中间件，再注册依赖动作权限的模块
 		permissionSrv := security.NewService(ctx)

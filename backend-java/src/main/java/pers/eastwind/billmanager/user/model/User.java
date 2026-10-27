@@ -5,9 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import pers.eastwind.billmanager.security.model.AuditEntity;
 
-/**
- * 用户实体
- */
 @Entity
 @Table(name = "sys_user",
         indexes = @Index(columnList = "username"))

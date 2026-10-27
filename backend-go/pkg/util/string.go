@@ -5,7 +5,6 @@ import (
 	"unicode"
 )
 
-// CamelToSnake 驼峰转下划线
 func CamelToSnake(camelStr string) string {
 	if camelStr == "" {
 		return ""

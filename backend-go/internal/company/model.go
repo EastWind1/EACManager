@@ -4,13 +4,12 @@ import (
 	"backend-go/internal/security"
 )
 
-// Company 公司
 type Company struct {
 	ID   uint `gorm:"primaryKey"`
 	Name string
-	// ContactName 联系人名称
+
 	ContactName string
-	// ContactPhone 联系人电话
+
 	ContactPhone string
 	Email        string
 	Address      string
@@ -18,7 +17,6 @@ type Company struct {
 	security.Audit
 }
 
-// DTO 公司 DTO
 type DTO struct {
 	ID           uint   `json:"id"`
 	Name         string `json:"name"`
@@ -29,7 +27,6 @@ type DTO struct {
 	Disabled     bool   `json:"disabled"`
 }
 
-// ToDTO 公司 DTO
 func (c *Company) ToDTO() *DTO {
 	return &DTO{
 		ID:           c.ID,
@@ -42,7 +39,6 @@ func (c *Company) ToDTO() *DTO {
 	}
 }
 
-// ToEntity 创建公司实体
 func (c *DTO) ToEntity() *Company {
 	return &Company{
 		ID:           c.ID,
@@ -55,7 +51,6 @@ func (c *DTO) ToEntity() *Company {
 	}
 }
 
-// ToDTOs 创建公司 DTO 列表
 func ToDTOs(companies []Company) []DTO {
 	if companies == nil {
 		return nil

@@ -2,12 +2,11 @@ package pers.eastwind.billmanager.servicebill.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 
-/**
- * 服务项目明细
- */
 @Entity
 @Data
 public class ServiceBillDetail {
@@ -15,24 +14,17 @@ public class ServiceBillDetail {
     @Column(insertable = false, updatable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    /**
-     * 设备类型
-     */
     private String device;
-    /**
-     * 数量
-     */
     private BigDecimal quantity;
-    /**
-     * 单价
-     */
     private BigDecimal unitPrice;
-    /**
-     * 小计
-     */
     private BigDecimal subtotal;
-    /**
-     * 备注
-     */
     private String remark;
+    /**
+     * 关联维护方（父实体 details 为 mappedBy），插入时外键随行写入；equals/hashCode/toString 排除以避免递归。
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_bill_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private ServiceBill serviceBill;
 }

@@ -6,9 +6,7 @@ import (
 	"backend-go/pkg/errs"
 )
 
-// MapRule 服务单映射规则
-//
-// 仅在本模块内部使用，不对外注册，规则集合由 Mapper 自己持有
+// MapRule 仅在本模块内部使用，不对外注册，规则集合由 Mapper 自己持有。
 type MapRule interface {
 	CanMapTexts(texts []string) bool
 	CanMapGrid(rows [][]string) bool
@@ -16,9 +14,7 @@ type MapRule interface {
 	MapFromGrid(rows [][]string) (*DTO, bool, error)
 }
 
-// Mapper 服务单映射
-//
-// 规则集合由本模块自己维护：菱电判定更具体，排在威垦之前
+// Mapper 的规则顺序有意义：菱电判定更具体，排在威垦之前。
 type Mapper struct {
 	content *attach.ContentService
 	rules   []MapRule
@@ -34,7 +30,6 @@ func NewServiceBillMapper(content *attach.ContentService, companySrc *company.Se
 	}
 }
 
-// Map 附件映射为服务单
 func (m *Mapper) Map(attachment *attach.DTO) (*DTO, error) {
 	if attachment == nil {
 		return nil, errs.NewBizError("附件为空")

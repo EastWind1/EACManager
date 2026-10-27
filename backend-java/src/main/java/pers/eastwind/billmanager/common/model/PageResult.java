@@ -7,14 +7,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * 分页结果
- *
- * @param items      数据
- * @param totalCount 总数
- * @param totalPages 总页数
- * @param pageSize   页面大小
- * @param pageIndex  页面索引, 从 0 开始
- * @param <T>        数据类型
+ * 分页结果，pageIndex 从 0 开始
  */
 public record PageResult<T>(
         List<T> items,
@@ -23,23 +16,10 @@ public record PageResult<T>(
         Integer pageSize,
         Integer pageIndex
 ) {
-    /**
-     * 空分页结果
-     *
-     * @param <T> 数据类型
-     * @return 空分页结果
-     */
     public static <T> PageResult<T> empty() {
         return new PageResult<>(List.of(), 0L, 0, 0, 0);
     }
 
-    /**
-     * 从 Page 转换为 PageResult
-     *
-     * @param page Page
-     * @param <T>  数据类型
-     * @return PageResult
-     */
     public static <T> PageResult<T> fromPage(Page<T> page) {
         return new PageResult<>(
                 page.getContent(),
@@ -50,15 +30,6 @@ public record PageResult<T>(
         );
     }
 
-    /**
-     * 从 Page 转换为 PageResult
-     *
-     * @param page   Page
-     * @param mapper 转换函数
-     * @param <T>    数据类型
-     * @param <DTO>  DTO 类型
-     * @return PageResult
-     */
     public static <T, DTO> PageResult<DTO> fromPage(Page<T> page, Function<T, DTO> mapper) {
         List<DTO> items = new ArrayList<>();
         for (T t : page.getContent()) {

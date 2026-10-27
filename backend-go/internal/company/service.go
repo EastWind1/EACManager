@@ -49,38 +49,21 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 }
 
 func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
-	var company *Company
-	err := s.companyRepo.Transaction(ctx, func(tx context.Context) error {
-		com, err := s.companyRepo.FindByID(tx, dto.ID)
-		if err != nil {
-			return err
-		}
-		if com == nil {
-			return errs.NewBizError("公司不存在")
-		}
-		company = dto.ToEntity()
-		if err = s.companyRepo.Updates(tx, company); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
+	if dto.ID == 0 {
+		return nil, errs.NewBizError("公司 ID 不能为空")
+	}
+	company := dto.ToEntity()
+	// 单条 UPDATE ... WHERE id = ?：受影响行数为 0 时 Update 返回「数据已被更改」，
+	// 不必先 select 一次再写
+	if err := s.companyRepo.Update(ctx, company); err != nil {
 		return nil, err
 	}
 	return company.ToDTO(), nil
 }
 
 func (s *Service) Disable(ctx context.Context, id uint) error {
-	err := s.companyRepo.Transaction(ctx, func(tx context.Context) error {
-		company, err := s.companyRepo.FindByID(tx, id)
-		if err != nil {
-			return err
-		}
-		if company == nil {
-			return errs.NewBizError("公司不存在")
-		}
-		company.Disabled = true
-		return s.companyRepo.Updates(tx, company)
-	})
-	return err
+	if id == 0 {
+		return errs.NewBizError("公司 ID 不能为空")
+	}
+	return s.companyRepo.SetDisabled(ctx, id)
 }

@@ -1,27 +1,12 @@
 package pers.eastwind.billmanager.security.model;
 
-/**
- * 权限
- */
 public interface Permission {
-    /**
-     * 编码
-     */
     String getCode();
 
-    /**
-     * 名称
-     */
     String getName();
 
-    /**
-     * 模块编号
-     */
     String getModule();
 
-    /**
-     * 模块名称
-     */
     String getModuleName();
 
     /**

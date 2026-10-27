@@ -104,30 +104,25 @@ type ServiceBill struct {
 	ProjectAddress      string
 	ProjectContact      string
 	ProjectContactPhone string
-	// 现场联系人
-	OnSiteContact string
-	OnSitePhone   string
-	// 电梯信息
-	ElevatorInfo string
-	TotalAmount  float64
-	// 下单日期
-	OrderDate *time.Time
-	// 处理完成日期
-	ProcessedDate *time.Time
-	// 回款完成日期
-	FinishedDate *time.Time
-	Remark       string
-	Details      []Detail `gorm:"foreignKey:ServiceBillID"`
-	Version      optimisticlock.Version
+	OnSiteContact       string
+	OnSitePhone         string
+	ElevatorInfo        string
+	TotalAmount         float64
+	OrderDate           *time.Time
+	ProcessedDate       *time.Time
+	FinishedDate        *time.Time
+	Remark              string
+	Details             []Detail `gorm:"foreignKey:ServiceBillID"`
+	Version             optimisticlock.Version
 }
 
 type Detail struct {
 	ID            uint `gorm:"primaryKey"`
 	ServiceBillID int  `gorm:"index"`
-	// 设备信息
+
 	Device   string
 	Quantity float64
-	// 单价
+
 	UnitPrice float64
 	Subtotal  float64
 	Remark    string

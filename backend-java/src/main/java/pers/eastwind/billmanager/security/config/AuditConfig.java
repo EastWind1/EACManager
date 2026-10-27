@@ -9,12 +9,12 @@ import pers.eastwind.billmanager.security.util.AuthUtil;
 
 import java.util.Optional;
 
-/**
- * 审计配置
- */
 @Configuration
 @EnableJpaAuditing
 public class AuditConfig {
+    /**
+     * 审计字段的操作人取自当前登录用户，无登录上下文（如启动任务）时为空
+     */
     @Bean
     public AuditorAware<Integer> auditorProvider() {
         return () -> Optional.ofNullable(AuthUtil.getCurUser()).map(AuthorityUser::getId);

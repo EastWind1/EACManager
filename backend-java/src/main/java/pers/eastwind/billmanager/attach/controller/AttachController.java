@@ -12,9 +12,6 @@ import pers.eastwind.billmanager.common.exception.BizException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 附件控制器
- */
 @RequestMapping("/api/attachment")
 @RestController
 public class AttachController {
@@ -24,11 +21,6 @@ public class AttachController {
         this.attachService = attachService;
     }
 
-    /**
-     * 下载文件
-     *
-     * @param attachment 文件 DTO
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.attach.permission.AttachPermission).DOWNLOAD.getCode())")
     @GetMapping(value = "/")
     public ResponseEntity<Resource> download(AttachDTO attachment) {
@@ -42,13 +34,6 @@ public class AttachController {
         return new ResponseEntity<>(resource, headers, HttpStatus.OK);
     }
 
-    /**
-     * 上传附件
-     *
-     * @param namespace 业务模块的命名空间
-     * @param files     文件
-     * @return 附件信息
-     */
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.attach.permission.AttachPermission).UPLOAD.getCode())")
     @PostMapping("/upload")
     public List<AttachDTO> upload(@RequestParam String namespace, @RequestParam List<MultipartFile> files) {
