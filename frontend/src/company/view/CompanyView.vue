@@ -1,6 +1,19 @@
 <!-- 公司管理 -->
 <template>
   <v-container>
+    <v-card>
+      <template #subtitle>
+        <div class="d-flex" v-permission="Permission.COMPANY_CREATE">
+          <v-spacer></v-spacer>
+          <v-btn color="primary" @click="add">
+            <template #prepend>
+              <v-icon :icon="mdiPlus"></v-icon>
+            </template>
+            新增
+          </v-btn>
+        </div>
+      </template>
+    </v-card>
     <v-data-table-server
       :headers="headers"
       :items="data.items"
@@ -31,22 +44,15 @@
           @click="disable(item)"
         ></v-btn>
       </template>
-      <!-- 最后一行添加加号按钮 -->
-      <template #[`body.append`]>
-        <tr v-permission="Permission.COMPANY_CREATE">
-          <td :colspan="headers.length" class="align-center">
-            <v-btn block variant="plain" @click="add">
-              <v-icon :icon="mdiPlus"></v-icon>
-            </v-btn>
-          </td>
-        </tr>
-      </template>
     </v-data-table-server>
 
     <!-- 编辑用户弹窗 -->
     <v-dialog v-model="dialogData.show" max-width="500">
       <v-card v-if="dialogData.company">
-        <template #title>{{ dialogData.title }}</template>
+        <template #title>
+          <v-icon :icon="dialogData.company.id ? mdiPencil : mdiPlus" class="me-2"></v-icon>
+          {{ dialogData.title }}
+        </template>
         <template #text>
           <v-form v-model="dialogData.valid">
             <v-text-field

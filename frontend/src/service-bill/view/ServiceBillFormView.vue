@@ -41,6 +41,9 @@
                   color="primary"
                   @click="isEditState = true"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiPencil"></v-icon>
+                  </template>
                   编辑
                 </v-btn>
                 <v-btn
@@ -49,6 +52,9 @@
                   :disabled="loading"
                   @click="reloadAfterAction(process)"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiWrench"></v-icon>
+                  </template>
                   开始处理
                 </v-btn>
                 <v-btn
@@ -57,6 +63,9 @@
                   :disabled="loading"
                   @click="reloadAfterAction(processed)"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiWrenchCheck"></v-icon>
+                  </template>
                   处理完成
                 </v-btn>
                 <v-btn
@@ -65,6 +74,9 @@
                   :disabled="loading"
                   @click="reloadAfterAction(finish)"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiCashCheck"></v-icon>
+                  </template>
                   回款完成
                 </v-btn>
                 <v-btn
@@ -74,6 +86,9 @@
                   color="error"
                   @click="backAfterAction(remove)"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiTrashCan"></v-icon>
+                  </template>
                   删除
                 </v-btn>
                 <v-btn
@@ -83,6 +98,9 @@
                   color="warning"
                   @click="reloadAfterAction(cancelProcess)"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiCancel"></v-icon>
+                  </template>
                   取消处理
                 </v-btn>
                 <v-btn
@@ -92,6 +110,9 @@
                   color="warning"
                   @click="reloadAfterAction(cancelProcessed)"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiCancel"></v-icon>
+                  </template>
                   取消处理完成
                 </v-btn>
                 <v-btn
@@ -101,6 +122,9 @@
                   color="warning"
                   @click="reloadAfterAction(cancelFinish)"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiCancel"></v-icon>
+                  </template>
                   取消完成
                 </v-btn>
                 <v-btn
@@ -112,9 +136,17 @@
                   color="primary"
                   type="submit"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiContentSave"></v-icon>
+                  </template>
                   保存
                 </v-btn>
-                <v-btn v-if="isEditState" color="warning" @click="cancel"> 取消</v-btn>
+                <v-btn v-if="isEditState" color="warning" @click="cancel">
+                  <template #prepend>
+                    <v-icon :icon="mdiClose"></v-icon>
+                  </template>
+                  取消
+                </v-btn>
               </v-row>
             </v-col>
           </v-row>
@@ -329,13 +361,21 @@ import {useUIStore} from '@/common/store/UIStore'
 import {useRouterStore} from '@/common/store/RouterStore'
 import {useServiceBillActions} from '../composable/ServiceBillActions'
 import {
+  mdiCancel,
+  mdiCashCheck,
+  mdiClose,
+  mdiContentSave,
   mdiFileDocument,
   mdiInformation,
   mdiListBox,
   mdiMapMarker,
   mdiNavigation,
   mdiPaperclip,
+  mdiPencil,
   mdiPhone,
+  mdiTrashCan,
+  mdiWrench,
+  mdiWrenchCheck,
 } from '@mdi/js'
 import {useDate, useDisplay, useHotkey} from 'vuetify/framework'
 import type {Company} from '@/company/model/Company'

@@ -60,14 +60,22 @@
                 :disabled="loading"
                 color="primary"
                 @click="create"
-              >新增
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiPlus"></v-icon>
+                </template>
+                新增
               </v-btn>
               <v-btn
                 v-permission="Permission.REIMBURSE_IMPORT"
                 :disabled="loading"
                 variant="tonal"
                 @click="importFile"
-              >导入
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiImport"></v-icon>
+                </template>
+                导入
               </v-btn>
 
               <v-btn
@@ -75,14 +83,22 @@
                 :disabled="loading"
                 color="primary"
                 @click="reloadAfterAction(process)"
-              >提交
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiSend"></v-icon>
+                </template>
+                提交
               </v-btn>
               <v-btn
                 v-permission="Permission.REIMBURSE_FINISH"
                 :disabled="loading"
                 color="primary"
                 @click="reloadAfterAction(finish)"
-              >完成
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiCheckCircle"></v-icon>
+                </template>
+                完成
               </v-btn>
               <div
                 v-permission="[
@@ -92,7 +108,12 @@
               >
                 <v-menu location="bottom">
                   <template #activator="{ props }">
-                    <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
+                    <v-btn :disabled="loading" v-bind="props" color="warning">
+                      <template #prepend>
+                        <v-icon :icon="mdiCancel"></v-icon>
+                      </template>
+                      取消操作
+                    </v-btn>
                   </template>
                   <v-list density="compact">
                     <v-list-item
@@ -115,14 +136,22 @@
                 :disabled="loading"
                 color="error"
                 @click="reloadAfterAction(remove)"
-              >删除
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiTrashCan"></v-icon>
+                </template>
+                删除
               </v-btn>
               <v-btn
                 v-permission="Permission.REIMBURSE_EXPORT"
                 :disabled="loading"
                 variant="tonal"
                 @click="exportToZip"
-              >导出
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiExport"></v-icon>
+                </template>
+                导出
               </v-btn
               >
             </v-row>
@@ -182,7 +211,17 @@ import {useUIStore} from '@/common/store/UIStore'
 import {useReimburseActions} from '../composable/ReimburseActions'
 import {storeToRefs} from 'pinia'
 import {Permission} from '../model/Permission'
-import {mdiFilter, mdiMagnify} from '@mdi/js'
+import {
+  mdiCancel,
+  mdiCheckCircle,
+  mdiExport,
+  mdiFilter,
+  mdiImport,
+  mdiMagnify,
+  mdiPlus,
+  mdiSend,
+  mdiTrashCan,
+} from '@mdi/js'
 import {useDate, useHotkey} from 'vuetify/framework'
 import {useRouterStore} from '@/common/store/RouterStore'
 import {useFileSelector} from '@/attachment/composable/FileSelector'

@@ -2,6 +2,7 @@
   <v-dialog :model-value="!!request" persistent width="auto">
     <v-card v-if="request">
       <template #title>
+        <v-icon :icon="mdiHelpCircleOutline" class="me-2"></v-icon>
         {{ request.title }}
       </template>
       <template #text>
@@ -18,6 +19,7 @@
 
 <script lang="ts" setup>
 import { computed, onUnmounted, ref } from 'vue'
+import { mdiHelpCircleOutline } from '@mdi/js'
 
 type ConfirmInfo = {
   title: string

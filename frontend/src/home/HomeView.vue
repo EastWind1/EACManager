@@ -7,9 +7,14 @@
         <!-- 左侧导航抽屉 -->
         <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
         <!-- 标题 -->
-        <img alt="" src="/favicon.ico" style="width: 50px; height: 25px" />
+        <img alt="" src="/favicon.ico" style="width: 50px; height: 25px"/>
         <h2 class="ma-auto">服务单管理</h2>
       </template>
+      <!-- 暗色模式切换 -->
+      <v-switch v-model="isDark" color="primary" hide-details @click="isDark = !isDark"
+                size="small"
+                :true-icon="mdiWeatherNight" :false-icon="mdiWeatherSunny">
+      </v-switch>
       <!-- 登录用户图标 -->
       <v-menu>
         <template #activator="{ props }">
@@ -18,15 +23,15 @@
 
         <v-list>
           <v-list-item>
-            {{ userStore.getUser()?.name }}
-          </v-list-item>
-          <v-list-item>
-            <!-- 暗色模式切换 -->
-            <v-switch v-model="isDark" color="primary" hide-details @click="isDark = !isDark">
-              <template #prepend> 暗色模式</template>
-            </v-switch>
+            <template v-slot:prepend>
+              <v-icon :icon="mdiAccount"></v-icon>
+            </template>
+            <v-list-item-title> {{ userStore.getUser()?.name }}</v-list-item-title>
           </v-list-item>
           <v-list-item @click="logout">
+            <template v-slot:prepend>
+              <v-icon :icon="mdiLogout"></v-icon>
+            </template>
             <v-list-item-title>退出登录</v-list-item-title>
           </v-list-item>
         </v-list>
@@ -38,31 +43,34 @@
     </v-navigation-drawer>
     <v-main class="bg-surface-light">
       <div class="main">
-        <RouterView />
+        <RouterView/>
       </div>
     </v-main>
   </v-responsive>
 </template>
 
 <script lang="ts" setup>
-import { RouterView, useRouter } from 'vue-router'
-import { computed, ref } from 'vue'
+import {RouterView, useRouter} from 'vue-router'
+import {computed, ref} from 'vue'
 import {
   mdiAccount,
   mdiCash,
   mdiDomain,
+  mdiLogout,
   mdiMenu,
   mdiMonitorDashboard,
   mdiShieldAccount,
+  mdiWeatherNight,
+  mdiWeatherSunny
 } from '@mdi/js'
-import { useUserStore } from '@/user/store/UserStore.ts'
-import { useTheme } from 'vuetify/framework'
+import {useUserStore} from '@/user/store/UserStore.ts'
+import {useTheme} from 'vuetify/framework'
 import UserApi from '@/user/api/UserApi.ts'
-import { Permission as UserPermission } from '@/user/model/Permission'
-import { Permission as CompanyPermission } from '@/company/model/Permission'
-import { Permission as ServiceBillPermission } from '@/service-bill/model/Permission'
-import { Permission as ReimbursePermission } from '@/reimburse/model/Permission'
-import { Permission as ConfigPermission } from '@/permission/model/PermissionCode'
+import {Permission as UserPermission} from '@/user/model/Permission'
+import {Permission as CompanyPermission} from '@/company/model/Permission'
+import {Permission as ServiceBillPermission} from '@/service-bill/model/Permission'
+import {Permission as ReimbursePermission} from '@/reimburse/model/Permission'
+import {Permission as ConfigPermission} from '@/permission/model/PermissionCode'
 
 // 当前路由
 const router = useRouter()
@@ -71,7 +79,7 @@ const theme = useTheme()
 // 当前用户
 const userStore = useUserStore()
 // 移除
-const { removeUser } = useUserStore()
+const {removeUser} = useUserStore()
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
@@ -141,7 +149,7 @@ const allMenuItems: {
 const menuItems = computed(() =>
   allMenuItems
     .filter((item) => !item.permission || userStore.hasPermission(item.permission))
-    .map((item) => ({ title: item.title, props: item.props })),
+    .map((item) => ({title: item.title, props: item.props})),
 )
 
 // 退出登录

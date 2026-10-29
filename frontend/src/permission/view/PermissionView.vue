@@ -6,21 +6,14 @@
         <div class="d-flex">
           <v-spacer></v-spacer>
           <v-btn :disabled="!canUpdate" color="primary" @click="addRole">
+            <template #prepend>
+              <v-icon :icon="mdiPlus"></v-icon>
+            </template>
             新增角色
           </v-btn>
         </div>
       </template>
       <template #text>
-        <v-text-field
-          v-model="search"
-          :prepend-inner-icon="mdiMagnify"
-          class="mb-4"
-          clearable
-          density="compact"
-          hide-details
-          label="搜索角色"
-          variant="outlined"
-        ></v-text-field>
         <v-data-table
           :headers="roleHeaders"
           :items="roles"
@@ -207,9 +200,8 @@ import {
   mdiDeleteOutline,
   mdiFolderAccountOutline,
   mdiKeyOutline,
-  mdiMagnify,
   mdiPencil,
-  mdiShieldAccount,
+  mdiPlus
 } from '@mdi/js'
 import SecurityApi from '../api/SecurityApi'
 import type {Permission as PermissionDTO, Role} from '../model/Permission'

@@ -71,7 +71,11 @@
                 :disabled="loading"
                 color="primary"
                 @click="create"
-              >新增
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiPlus"></v-icon>
+                </template>
+                新增
               </v-btn
               >
               <v-btn
@@ -79,7 +83,11 @@
                 :disabled="loading"
                 variant="tonal"
                 @click="importFile"
-              >导入
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiImport"></v-icon>
+                </template>
+                导入
               </v-btn
               >
               <v-btn
@@ -87,7 +95,11 @@
                 :disabled="loading"
                 variant="tonal"
                 @click="exportToZip"
-              >导出
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiExport"></v-icon>
+                </template>
+                导出
               </v-btn
               >
               <v-btn
@@ -95,14 +107,22 @@
                 :disabled="loading"
                 color="primary"
                 @click="reloadAfterAction(process)"
-              >开始处理
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiWrench"></v-icon>
+                </template>
+                开始处理
               </v-btn>
               <v-btn
                 v-permission="Permission.SERVICE_BILL_PROCESSED"
                 :disabled="loading"
                 color="primary"
                 @click="reloadAfterAction(processed)"
-              >处理完成
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiWrenchCheck"></v-icon>
+                </template>
+                处理完成
               </v-btn>
               <v-btn
                 v-permission="Permission.SERVICE_BILL_FINISH"
@@ -110,6 +130,9 @@
                 color="primary"
                 @click="reloadAfterAction(finish)"
               >
+                <template #prepend>
+                  <v-icon :icon="mdiCashCheck"></v-icon>
+                </template>
                 回款完成
               </v-btn>
               <div
@@ -121,7 +144,12 @@
               >
                 <v-menu location="bottom">
                   <template #activator="{ props }">
-                    <v-btn :disabled="loading" v-bind="props" color="warning">取消操作</v-btn>
+                    <v-btn :disabled="loading" v-bind="props" color="warning">
+                      <template #prepend>
+                        <v-icon :icon="mdiCancel"></v-icon>
+                      </template>
+                      取消操作
+                    </v-btn>
                   </template>
                   <v-list density="compact">
                     <v-list-item
@@ -150,54 +178,62 @@
                 :disabled="loading"
                 color="error"
                 @click="reloadAfterAction(remove)"
-              >删除
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiTrashCan"></v-icon>
+                </template>
+                删除
               </v-btn>
             </v-row>
           </v-col>
         </v-row>
       </template>
     </v-card>
-    <v-data-table-server
-      v-model="selectedIds"
-      :headers="headers"
-      :items="data.items"
-      :items-length="data.totalCount"
-      :items-per-page="data.pageSize ? data.pageSize : 25"
-      :items-per-page-options="[
+    <v-card>
+      <template #text>
+        <v-data-table-server
+          v-model="selectedIds"
+          :headers="headers"
+          :items="data.items"
+          :items-length="data.totalCount"
+          :items-per-page="data.pageSize ? data.pageSize : 25"
+          :items-per-page-options="[
       { value: 10, title: '10' },
       { value: 25, title: '25' },
       { value: 50, title: '50' },
       { value: 100, title: '100' },
     ]"
-      :search="search"
-      :sort-by="queryParam.sorts"
-      mobile-breakpoint="sm"
-      show-select
-      @update:options="loadItems"
-    >
-      <template #[`item.number`]="{ item }">
-        <RouterLink :to="`/service/${item.id}`">{{ item.number }}</RouterLink>
+          :search="search"
+          :sort-by="queryParam.sorts"
+          mobile-breakpoint="sm"
+          show-select
+          @update:options="loadItems"
+        >
+          <template #[`item.number`]="{ item }">
+            <RouterLink :to="`/service/${item.id}`">{{ item.number }}</RouterLink>
+          </template>
+          <template #[`item.state`]="{ item }">
+            <v-chip :color="ServiceBillState[item.state].color" class="text-white" size="small">
+              {{ ServiceBillState[item.state].title }}
+            </v-chip>
+          </template>
+          <template #[`item.type`]="{ item }">
+            <v-chip :color="ServiceBillType[item.type].color" class="text-white" size="small">
+              {{ ServiceBillType[item.type].title }}
+            </v-chip>
+          </template>
+          <template #[`item.totalAmount`]="{ item }">
+            <div class="text-right">{{ item.totalAmount.toFixed(2) }}</div>
+          </template>
+          <template #[`item.orderDate`]="{ item }">
+            {{ item.orderDate ? dateUtil.format(item.orderDate, 'keyboardDate') : '' }}
+          </template>
+          <template #[`item.processedDate`]="{ item }">
+            {{ item.processedDate ? dateUtil.format(item.processedDate, 'keyboardDate') : '' }}
+          </template>
+        </v-data-table-server>
       </template>
-      <template #[`item.state`]="{ item }">
-        <v-chip :color="ServiceBillState[item.state].color" class="text-white" size="small">
-          {{ ServiceBillState[item.state].title }}
-        </v-chip>
-      </template>
-      <template #[`item.type`]="{ item }">
-        <v-chip :color="ServiceBillType[item.type].color" class="text-white" size="small">
-          {{ ServiceBillType[item.type].title }}
-        </v-chip>
-      </template>
-      <template #[`item.totalAmount`]="{ item }">
-        <div class="text-right">{{ item.totalAmount.toFixed(2) }}</div>
-      </template>
-      <template #[`item.orderDate`]="{ item }">
-        {{ item.orderDate ? dateUtil.format(item.orderDate, 'keyboardDate') : '' }}
-      </template>
-      <template #[`item.processedDate`]="{ item }">
-        {{ item.processedDate ? dateUtil.format(item.processedDate, 'keyboardDate') : '' }}
-      </template>
-    </v-data-table-server>
+    </v-card>
   </v-container>
 </template>
 
@@ -218,7 +254,18 @@ import {useFileSelector} from '@/attachment/composable/FileSelector'
 import {useServiceBillActions} from '../composable/ServiceBillActions'
 import {storeToRefs} from 'pinia'
 import {useRouterStore} from '@/common/store/RouterStore'
-import {mdiFilter, mdiMagnify} from '@mdi/js'
+import {
+  mdiCancel,
+  mdiCashCheck,
+  mdiExport,
+  mdiFilter,
+  mdiImport,
+  mdiMagnify,
+  mdiPlus,
+  mdiTrashCan,
+  mdiWrench,
+  mdiWrenchCheck
+} from '@mdi/js'
 import {useDate, useHotkey} from 'vuetify/framework'
 import {Permission} from '../model/Permission'
 

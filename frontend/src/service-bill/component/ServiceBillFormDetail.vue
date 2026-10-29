@@ -27,7 +27,11 @@
   </v-data-table>
   <!-- 模态框，用于新增或编辑时更改数据 -->
   <v-dialog v-model="showDialog" width="50rem">
-    <v-card title="明细">
+    <v-card>
+      <template #title>
+        <v-icon :icon="mdiListBox" class="me-2"></v-icon>
+        明细
+      </template>
       <template #text>
         <v-container>
           <v-row>
@@ -67,7 +71,7 @@
 </template>
 
 <script lang="ts" setup>
-import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
+import { mdiDelete, mdiListBox, mdiPencil, mdiPlus } from '@mdi/js'
 import { type ServiceBill, type ServiceBillDetail } from '../model/ServiceBill'
 import { computed, ref, toRefs, watchEffect } from 'vue'
 

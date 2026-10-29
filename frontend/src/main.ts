@@ -48,6 +48,9 @@ const vuetify = createVuetify({
     VSelect: {
       variant: 'outlined',
     },
+    VSwitch: {
+      inset: 'material',
+    },
     VTextarea: {
       variant: 'outlined',
     },

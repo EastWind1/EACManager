@@ -26,10 +26,18 @@
               </div>
               <div v-else-if="isHovering" class="d-flex justify-center ga-2">
                 <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="preview(attach)"
-                  >预览</v-btn
+                  >
+                  <template #prepend>
+                    <v-icon :icon="mdiMagnify"></v-icon>
+                  </template>
+                  预览</v-btn
                 >
                 <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="download(attach)"
-                  >下载</v-btn
+                  >
+                  <template #prepend>
+                    <v-icon :icon="mdiDownload"></v-icon>
+                  </template>
+                  下载</v-btn
                 >
                 <v-btn
                   v-permission="Permission.ATTACH_UPLOAD"
@@ -37,14 +45,15 @@
                   color="error"
                   @click="deleteAttach(attach)"
                 >
+                  <template #prepend>
+                    <v-icon :icon="mdiTrashCan"></v-icon>
+                  </template>
                   删除
                 </v-btn>
               </div>
               <template v-else>
-                <div>
-                  <v-icon :icon="AttachType[attach.type].icon"></v-icon>
-                </div>
-                <div>{{ attach.name }}</div>
+                <v-icon :icon="AttachType[attach.type].icon"></v-icon>
+                <span class="ml-5">{{ attach.name }}</span>
               </template>
             </template>
           </v-card>
@@ -69,6 +78,7 @@
   <v-dialog v-model="previewDialog" height="90vh" min-width="60vw" width="auto">
     <v-card>
       <template #title>
+        <v-icon :icon="AttachType[previewInfo.attachment.type].icon" class="me-2"></v-icon>
         {{ previewInfo.attachment.name }}
       </template>
       <v-card-text class="overflow-auto d-flex justify-center">
@@ -99,7 +109,7 @@
 
 <script lang="ts" setup>
 import { type Attach, AttachType } from '../model/Attach'
-import { mdiPlus } from '@mdi/js'
+import {mdiDownload, mdiMagnify, mdiPlus, mdiTrashCan} from '@mdi/js'
 import { defineAsyncComponent, onUnmounted, ref } from 'vue'
 import AttachApi from '../api/AttachApi'
 import { useUIStore } from '@/common/store/UIStore'

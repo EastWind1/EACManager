@@ -40,21 +40,33 @@
                   :disabled="isEditState"
                   color="primary"
                   @click="isEditState = true"
-                >编辑
+                >
+                  <template #prepend>
+                    <v-icon :icon="mdiPencil"></v-icon>
+                  </template>
+                  编辑
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                   v-permission="Permission.REIMBURSE_PROCESS"
                   :disabled="loading"
                   @click="reloadAfterAction(process)"
-                >提交
+                >
+                  <template #prepend>
+                    <v-icon :icon="mdiSend"></v-icon>
+                  </template>
+                  提交
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
                   v-permission="Permission.REIMBURSE_FINISH"
                   :disabled="loading"
                   @click="reloadAfterAction(finish)"
-                >处理完成
+                >
+                  <template #prepend>
+                    <v-icon :icon="mdiCheckCircle"></v-icon>
+                  </template>
+                  处理完成
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
@@ -62,7 +74,11 @@
                   :disabled="loading"
                   color="warning"
                   @click="reloadAfterAction(cancelProcess)"
-                >取消处理
+                >
+                  <template #prepend>
+                    <v-icon :icon="mdiCancel"></v-icon>
+                  </template>
+                  取消处理
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.FINISHED.value"
@@ -70,7 +86,11 @@
                   :disabled="loading"
                   color="warning"
                   @click="reloadAfterAction(cancelFinish)"
-                >取消完成
+                >
+                  <template #prepend>
+                    <v-icon :icon="mdiCancel"></v-icon>
+                  </template>
+                  取消完成
                 </v-btn>
                 <v-btn
                   v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
@@ -78,7 +98,11 @@
                   :disabled="loading"
                   color="error"
                   @click="backAfterAction(remove)"
-                >删除
+                >
+                  <template #prepend>
+                    <v-icon :icon="mdiTrashCan"></v-icon>
+                  </template>
+                  删除
                 </v-btn>
                 <v-btn
                   v-if="isEditState"
@@ -88,10 +112,17 @@
                   :disabled="loading"
                   color="primary"
                   type="submit"
-                >保存
+                >
+                  <template #prepend>
+                    <v-icon :icon="mdiContentSave"></v-icon>
+                  </template>
+                  保存
                 </v-btn>
-                <v-btn v-if="isEditState" :disabled="loading" color="warning" @click="cancel"
-                >取消
+                <v-btn v-if="isEditState" :disabled="loading" color="warning" @click="cancel">
+                  <template #prepend>
+                    <v-icon :icon="mdiClose"></v-icon>
+                  </template>
+                  取消
                 </v-btn>
               </v-row>
             </v-col>
@@ -204,7 +235,18 @@ import {useReimburseActions} from '../composable/ReimburseActions'
 import {Permission} from '../model/Permission'
 import {useDate} from 'vuetify/framework'
 import {useRouterStore} from '@/common/store/RouterStore'
-import {mdiFileDocument, mdiListBox, mdiPaperclip} from '@mdi/js'
+import {
+  mdiCancel,
+  mdiCheckCircle,
+  mdiClose,
+  mdiContentSave,
+  mdiFileDocument,
+  mdiListBox,
+  mdiPaperclip,
+  mdiPencil,
+  mdiSend,
+  mdiTrashCan,
+} from '@mdi/js'
 
 const store = useUIStore()
 const {loading} = storeToRefs(store)

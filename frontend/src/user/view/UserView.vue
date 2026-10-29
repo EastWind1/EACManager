@@ -1,55 +1,62 @@
 <!-- 用户管理 -->
 <template>
   <v-container>
-    <v-data-table-server
-      :headers="headers"
-      :items="data.items"
-      :items-length="data.totalCount"
-      :items-per-page="data.pageSize ? data.pageSize : 25"
-      :items-per-page-options="[
+    <v-card>
+      <template #subtitle>
+        <div class="d-flex">
+          <v-spacer></v-spacer>
+          <v-btn color="primary" @click="add">
+            <template #prepend>
+              <v-icon :icon="mdiPlus"></v-icon>
+            </template>
+            新增用户
+          </v-btn>
+        </div>
+      </template>
+      <template #text>
+        <v-data-table-server
+          :headers="headers"
+          :items="data.items"
+          :items-length="data.totalCount"
+          :items-per-page="data.pageSize ? data.pageSize : 25"
+          :items-per-page-options="[
       { value: 10, title: '10' },
       { value: 25, title: '25' },
       { value: 50, title: '50' },
       { value: 100, title: '100' },
     ]"
-      show-select
-      @update:options="loadItems"
-    >
-      <template #[`item.roles`]="{ item }">
-        {{ roleNames(item.roles) }}
+          show-select
+          @update:options="loadItems"
+        >
+          <template #[`item.roles`]="{ item }">
+            {{ roleNames(item.roles) }}
+          </template>
+          <template #[`item.actions`]="{ item }">
+            <v-btn
+              v-permission="Permission.USER_UPDATE"
+              :icon="mdiPencil"
+              size="small"
+              variant="plain"
+              @click="edit(item)"
+            ></v-btn>
+            <v-btn
+              v-permission="Permission.USER_DISABLE"
+              :icon="mdiClose"
+              size="small"
+              variant="plain"
+              @click="disable(item)"
+            ></v-btn>
+          </template>
+        </v-data-table-server>
       </template>
-      <template #[`item.actions`]="{ item }">
-        <v-btn
-          v-permission="Permission.USER_UPDATE"
-          :icon="mdiPencil"
-          size="small"
-          variant="plain"
-          @click="edit(item)"
-        ></v-btn>
-        <v-btn
-          v-permission="Permission.USER_DISABLE"
-          :icon="mdiClose"
-          size="small"
-          variant="plain"
-          @click="disable(item)"
-        ></v-btn>
-      </template>
-      <!-- 最后一行添加加号按钮 -->
-      <template #[`body.append`]>
-        <tr v-permission="Permission.USER_CREATE">
-          <td :colspan="headers.length" class="align-center">
-            <v-btn block variant="plain" @click="add">
-              <v-icon :icon="mdiPlus"></v-icon>
-            </v-btn>
-          </td>
-        </tr>
-      </template>
-    </v-data-table-server>
-
+    </v-card>
     <!-- 编辑用户弹窗 -->
     <v-dialog v-model="dialogData.show" max-width="500">
       <v-card v-if="dialogData.user">
-        <template #title>{{ dialogData.title }}</template>
+        <template #title>
+          <v-icon :icon="dialogData.user.id ? mdiPencil : mdiPlus" class="me-2"></v-icon>
+          {{ dialogData.title }}
+        </template>
         <template #text>
           <v-form v-model="dialogData.valid">
             <v-label>基本信息</v-label>
@@ -120,7 +127,6 @@ const headers = [
   {title: '电话', key: 'phone', sortable: false},
   {title: '邮箱', key: 'email', sortable: false},
   {title: '角色', key: 'roles', sortable: false},
-  {title: '操作', key: 'actions', sortable: false},
 ]
 
 // 角色列表
