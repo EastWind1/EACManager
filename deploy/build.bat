@@ -43,7 +43,6 @@ for %%f in ("%BACKEND_JAVA_DIR%\target\*.jar") do (
 
 :: 拷贝 Go 交付物
 xcopy "%BACKEND_GO_DIR%\target" "%DEPLOY_DIR%\backend-go\" /E /I /H /Y >nul
-xcopy "%BACKEND_GO_DIR%\config" "%DEPLOY_DIR%\backend-go\config\" /E /I /H /Y >nul
 
 :: 拷贝 OCR 服务源码（compose 中 ocr-server 从 ./ocr-server 构建）
 mkdir "%DEPLOY_DIR%\ocr-server"

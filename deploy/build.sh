@@ -19,42 +19,39 @@ mvn clean package -DskipTests
 # 打包 Go 后端
 echo "[2/4] 打包 Go 后端..."
 cd "$BACKEND_GO_DIR"
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0
+
+export GOOS=linux GOARCH=amd64 CGO_ENABLED=0
 go build -ldflags="-s -w" -o target/backend-go cmd/main.go
 
 # 打包前端
-if [ -d "$FRONTEND_DIR" ]; then
-    echo "[4/4] 打包前端..."
-    cd "$FRONTEND_DIR"
-    pnpm build
-else
-    echo "警告：前端目录不存在，跳过前端打包"
-fi
+echo "[3/4] 打包前端..."
+cd "$FRONTEND_DIR"
+pnpm build
 
+# 组装交付物
+echo "[4/4] 组装部署目录..."
 # 清理旧文件
 rm -rf "$DEPLOY_DIR/backend-java" "$DEPLOY_DIR/backend-go" "$DEPLOY_HTML"
 
 # 拷贝 Java 交付物
 mkdir -p "$DEPLOY_DIR/backend-java"
-find "$BACKEND_JAVA_DIR/target" -name "*.jar" -type f -exec sh -c 'java -Djarmode=tools -j "{}" extract --destination "$DEPLOY_DIR/backend-java"' \;
+find "$BACKEND_JAVA_DIR/target" -maxdepth 1 -name "*.jar" -type f \
+    -exec java -Djarmode=tools -jar {} extract --destination "$DEPLOY_DIR/backend-java" \;
 
 # 拷贝 Go 交付物
 mkdir -p "$DEPLOY_DIR/backend-go"
 cp -r "$BACKEND_GO_DIR/target"/* "$DEPLOY_DIR/backend-go/"
-cp -r "$BACKEND_GO_DIR/config" "$DEPLOY_DIR/backend-go/config/"
 chmod +x "$DEPLOY_DIR/backend-go/backend-go"
 
-# 拷贝 OCR 服务源码（
+# 拷贝 OCR 服务源码
 rm -rf "$DEPLOY_DIR/ocr-server"
 mkdir -p "$DEPLOY_DIR/ocr-server"
-cp "$OCR_DIR/Dockerfile" "$OCR_DIR/pyproject.toml" "$OCR_DIR/uv.lock" "$OCR_DIR/README.md" "$DEPLOY_DIR/ocr-server/"
+cp "$OCR_DIR/Dockerfile" "$OCR_DIR/pyproject.toml" "$OCR_DIR/uv.lock" "$DEPLOY_DIR/ocr-server/"
 cp -r "$OCR_DIR/src" "$DEPLOY_DIR/ocr-server/src"
 
 # 拷贝前端交付物
-if [ -d "$FRONTEND_DIR/dist" ]; then
-    mkdir -p "$DEPLOY_HTML"
-    cp -r "$FRONTEND_DIR/dist"/* "$DEPLOY_HTML/"
-fi
+mkdir -p "$DEPLOY_HTML"
+cp -r "$FRONTEND_DIR/dist"/* "$DEPLOY_HTML/"
 
 echo "构建和拷贝完成！"
 chmod -R 755 "$DEPLOY_DIR"
