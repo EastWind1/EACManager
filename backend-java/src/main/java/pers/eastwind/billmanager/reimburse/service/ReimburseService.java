@@ -44,6 +44,23 @@ public class ReimburseService {
         return reimburseMapper.toDTO(bill, attachments);
     }
 
+    private void validNumber(String number) {
+        if (number == null || number.isBlank()) {
+            throw new BizException("单号为空");
+        }
+        for (int i = 0; i < number.length(); i++) {
+            if (number.charAt(i) == '/' || number.charAt(i) == '\\') {
+                throw new BizException("单号不能包含 / \\");
+            }
+        }
+        if ("..".equals(number)) {
+             throw new BizException("单号不能为 ..");
+        }
+        if (reimburseRepository.existsByNumber(number)) {
+                throw new BizException("单据编号已存在");
+        }
+    }
+
     @Transactional
     public ReimburseDTO create(ReimburseDTO reimburseDTO) {
         if (reimburseDTO.getId() != null) {
@@ -52,9 +69,7 @@ public class ReimburseService {
         if (reimburseDTO.getNumber() == null || reimburseDTO.getNumber().isEmpty()) {
             reimburseDTO.setNumber("R" + Snowflake.genIntID());
         } else {
-            if (reimburseRepository.existsByNumber(reimburseDTO.getNumber())) {
-                throw new BizException("单据编号已存在");
-            }
+            validNumber(reimburseDTO.getNumber());
         }
         reimburseDTO.setState(ReimburseState.CREATED);
         Reimburse bill = reimburseMapper.toEntity(reimburseDTO);
@@ -84,6 +99,9 @@ public class ReimburseService {
             throw new BizException("单据不存在");
         }
         var originState = bill.getState();
+        if (!bill.getNumber().equals(reimburseDTO.getNumber())) {
+            validNumber(reimburseDTO.getNumber());
+        }
         reimburseMapper.updateEntityFromDTO(reimburseDTO, bill);
         bindDetails(bill);
         bill.setState(originState);

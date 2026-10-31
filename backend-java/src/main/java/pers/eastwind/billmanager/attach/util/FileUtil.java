@@ -7,6 +7,7 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.core.io.Resource;
 import pers.eastwind.billmanager.attach.model.AttachType;
+import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.exception.FileOpException;
 
 import javax.imageio.ImageIO;
@@ -16,12 +17,33 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 @Slf4j
 public class FileUtil {
+    private static final Pattern BAN_CHAR = Pattern.compile("[<>:\"/\\|?*]");
+
+    /**
+     * 校验文件名
+     * <p>不能包含 <>:"/\|?* 以及单独..
+     */
+    public static void validName(String name) {
+        if (name == null || name.isEmpty()) {
+            throw new BizException("文件名为空");
+        }
+        if (BAN_CHAR.matcher(name).find()) {
+            throw new BizException("文件名不能包含 <>:\"/\\|?*");
+        }
+        if ("..".equals(name)) {
+            throw new BizException("文件名不能为 ..");
+        }
+    }
+
+
+    
     private static AttachType getFileType(Path path) throws IOException {
         String mimeType = Files.probeContentType(path);
         if (mimeType == null) {

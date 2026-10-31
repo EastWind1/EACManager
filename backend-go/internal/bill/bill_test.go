@@ -59,6 +59,12 @@ func (s *BillServiceTest) TestCreate() {
 	s.Equal(bill.Created, created.State)
 }
 
+func (s *BillServiceTest) TestInvalidNumberCreate() {
+	s.testBill.Number = "BILL/TEST"
+	_, err := s.srv.Create(s.ctx, s.testBill)
+	s.Error(err)
+}
+
 func (s *BillServiceTest) TestFindByID() {
 	created, err := s.srv.Create(s.ctx, s.testBill)
 	s.NoError(err)

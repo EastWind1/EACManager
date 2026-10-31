@@ -16,7 +16,7 @@ import java.util.List;
 @Transactional
 public class BaseServiceTest {
     @BeforeEach
-    void setUp() {
+    protected void setUp() {
         setAdmin();
     }
 

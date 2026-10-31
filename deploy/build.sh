@@ -14,7 +14,7 @@ DEPLOY_HTML="$DEPLOY_DIR/frontend/html"
 # 打包 Java 后端
 echo "[1/4] 打包 Java 后端..."
 cd "$BACKEND_JAVA_DIR"
-mvn clean package -DskipTests
+mvn clean package
 
 # 打包 Go 后端
 echo "[2/4] 打包 Go 后端..."

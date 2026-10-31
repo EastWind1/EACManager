@@ -56,6 +56,12 @@ func (s *ReimburseServiceTest) TestCreate() {
 	s.Equal(reimburse.Created, created.State)
 }
 
+func (s *ReimburseServiceTest) TestInvalidNumberCreate() {
+	s.testReim.Number = "REST/TT"
+	_, err := s.srv.Create(s.ctx, s.testReim)
+	s.Error(err)
+}
+
 func (s *ReimburseServiceTest) TestFindByID() {
 	created, err := s.srv.Create(s.ctx, s.testReim)
 	s.NoError(err)

@@ -32,7 +32,13 @@ func Run() {
 	})
 	ctx.Server = server
 	logger.InitLogger(cfg.Log)
-	server.Use(cors.New())
+	// 只在显式配置白名单时启用 CORS；生产前端与 API 同源，不需要跨域
+	if len(cfg.Server.AllowedOrigins) > 0 {
+		server.Use(cors.New(cors.Config{
+			AllowOrigins:     cfg.Server.AllowedOrigins,
+			AllowCredentials: true,
+		}))
+	}
 	server.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))

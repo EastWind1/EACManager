@@ -79,6 +79,20 @@ func (r *Repository) Disable(ctx context.Context, username string) (bool, error)
 	return affected > 0, nil
 }
 
+// CountEnabledUsersWithRole 统计拥有指定启用角色、且用户本身未被禁用的用户数。
+//
+// 禁用/降级前用它保证系统至少保留一个仍可登录的管理员。
+func (r *Repository) CountEnabledUsersWithRole(ctx context.Context, roleCode string) (int64, error) {
+	count, err := gorm.G[User](r.Ctx(ctx)).
+		Where("disabled = ?", false).
+		Where("id IN (SELECT ur.user_id FROM sys_user_role ur JOIN sys_role r ON r.id = ur.role_id WHERE r.code = ? AND r.disabled = false)", roleCode).
+		Count(ctx, "*")
+	if err != nil {
+		return 0, errs.Wrap(err)
+	}
+	return count, nil
+}
+
 // FindRolesByUserIDs 批量取用户角色，供用户列表一次装配
 //
 // 两条泛型查询（关联 + 角色）后在内存里分组，避免 join 投影。

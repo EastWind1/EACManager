@@ -173,6 +173,9 @@ func (r *Repository) Updates(ctx context.Context, entity *ServiceBill) error {
 		"elevator_info", "order_date", "processed_date", "finished_date", "remark").
 		Where("id = ?", entity.ID).Updates(ctx, entity)
 	if err != nil {
+		if database.IsDuplicateKey(err) {
+			return errs.NewBizError("单据编号已存在")
+		}
 		return errs.Wrap(err)
 	}
 	if affected == 0 {

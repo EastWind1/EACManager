@@ -14,10 +14,10 @@ spring:
       hibernate:
         # 批量写入：同表语句合并成 JDBC batch
         jdbc:
-          batch_size: 30
-        order_inserts: true
-        order_updates: true
-        batch_versioned_data: true
+          batchSize: 30
+        orderInserts: true
+        orderUpdates: true
+        batchVersionedData: true
   servlet:
     multipart:
       max-file-size: 5MB
@@ -31,5 +31,5 @@ config:
   jwt:
     # 过期时间，单位秒
     expire: 604800
-    # 密钥，必须要256位以上,即至少32个ASCII字符
-    key: ${JWT_KEY:-the-security-key-must-be-256-bits-means-32-ASCII-characters}
+    # 密钥必须由环境提供（至少 32 字节）
+    secret: ${JWT_SECRET:}

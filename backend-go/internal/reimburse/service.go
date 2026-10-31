@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -41,6 +40,20 @@ func (s *Service) GenerateNumber() string {
 	return "R" + strconv.Itoa(int(util.GenIntID()))
 }
 
+// validNumber 与 Java ReimburseService.validNumber 保持一致：拒绝路径分隔符和单独的 ..
+func validNumber(number string) error {
+	if strings.TrimSpace(number) == "" {
+		return errs.NewBizError("单号为空")
+	}
+	if strings.ContainsAny(number, `/\`) {
+		return errs.NewBizError(`单号不能包含 / \`)
+	}
+	if number == ".." {
+		return errs.NewBizError("单号不能为 ..")
+	}
+	return nil
+}
+
 func (s *Service) FindByID(ctx context.Context, id uint) (*DTO, error) {
 	if id == 0 {
 		return nil, errs.NewBizError("ID不能为空")
@@ -66,6 +79,8 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	entity := dto.ToEntity()
 	if entity.Number == "" {
 		entity.Number = s.GenerateNumber()
+	} else if err := validNumber(entity.Number); err != nil {
+		return nil, err
 	}
 	entity.State = Created
 
@@ -104,6 +119,11 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 		}
 		if bill == nil {
 			return errs.NewBizError("单据不存在")
+		}
+		if entity.Number != bill.Number {
+			if err := validNumber(entity.Number); err != nil {
+				return err
+			}
 		}
 		entity.State = bill.State
 		if err = s.relSrv.UpdateAttachments(txCtx, entity.ID, dto.Attachments); err != nil {
@@ -304,22 +324,33 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 	}
 
 	for _, reimbursement := range reimbursements {
+		curDir, err := attach.SafeJoin(tempDir, reimbursement.Number)
+		if err != nil {
+			return "", errs.NewBizError("单号不合法")
+		}
 		for _, attachment := range rels[reimbursement.ID] {
 			originPath, err := s.attachSrv.GetAbsolutePathByRela(attachment.RelativePath)
 			if err != nil {
 				return "", err
 			}
+			target, err := uniqueTargetPath(curDir, attachment.Name)
+			if err != nil {
+				return "", errs.NewBizError("附件名不合法")
+			}
 			ops = append(ops, attach.FileOp{
 				Type:   attach.FileOpCopy,
 				Origin: originPath,
-				Target: uniqueTargetPath(filepath.Join(tempDir, reimbursement.Number), attachment.Name),
+				Target: target,
 			})
 		}
 	}
 
 	rows = append(rows, []string{"", "合计", fmt.Sprintf("%.2f", totalAmount), "", ""})
 
-	excelPath := filepath.Join(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
+	excelPath, err := attach.SafeJoin(tempDir, fmt.Sprintf("导出结果%s.xlsx", time.Now().Format("20060102150405")))
+	if err != nil {
+		return "", err
+	}
 	if err = attach.GenerateExcelFromList(rows, excelPath); err != nil {
 		return "", err
 	}
@@ -335,12 +366,18 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 }
 
 // uniqueTargetPath 处理导出目录下的同名附件：name、1-name、2-name ……
-func uniqueTargetPath(dir, name string) string {
-	targetPath := filepath.Join(dir, name)
+func uniqueTargetPath(dir, name string) (string, error) {
+	targetPath, err := attach.SafeJoin(dir, name)
+	if err != nil {
+		return "", err
+	}
 	repeatCount := 1
 	for attach.Exists(targetPath) {
-		targetPath = fmt.Sprintf("%s/%d-%s", dir, repeatCount, name)
+		targetPath, err = attach.SafeJoin(dir, fmt.Sprintf("%d-%s", repeatCount, name))
+		if err != nil {
+			return "", err
+		}
 		repeatCount++
 	}
-	return targetPath
+	return targetPath, nil
 }

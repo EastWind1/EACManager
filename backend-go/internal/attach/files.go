@@ -15,6 +15,43 @@ import (
 	"github.com/ledongthuc/pdf"
 )
 
+const bannedFileNameChars = `<>:"/\|?*`
+
+// ValidName 校验原始文件名
+func ValidName(name string) error {
+	if name == "" {
+		return errs.NewBizError("文件名为空")
+	}
+	if strings.ContainsAny(name, bannedFileNameChars) {
+		return errs.NewBizError(`文件名不能包含 <>:"/\|?*`)
+	}
+	if name == ".." {
+		return errs.NewBizError("文件名不能为 ..")
+	}
+	return nil
+}
+
+// EnsureWithin 校验 target 是否位于 base 目录内（含 base 自身）。
+func EnsureWithin(base, target string) error {
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return errs.NewBizError("路径不合法")
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return errs.NewBizError("路径不合法")
+	}
+	return nil
+}
+
+// SafeJoin 与 filepath.Join 同参数，但会校验拼接结果仍在 base 目录内。
+func SafeJoin(base string, elem ...string) (string, error) {
+	target := filepath.Join(append([]string{base}, elem...)...)
+	if err := EnsureWithin(base, target); err != nil {
+		return "", err
+	}
+	return target, nil
+}
+
 func Exists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)

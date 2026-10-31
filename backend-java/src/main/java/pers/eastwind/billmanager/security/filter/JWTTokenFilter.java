@@ -48,10 +48,10 @@ public class JWTTokenFilter extends OncePerRequestFilter {
         if (token != null) {
             String userName = null;
             try {
-                var jwt = JWTUtil.verifyToken(properties.getKey(), token);
+                var jwt = JWTUtil.verifyToken(properties.getSecret(), token);
                 userName = jwt.getSubject();
             } catch (BizException e) {
-                log.error("JWT 解析失败: {}{}", token, e.getMessage());
+                log.warn("JWT 解析失败: {}", e.getMessage());
             }
             if (userName != null) {
                 AuthorityUser user = userService.loadUserByUsername(userName);

@@ -4,6 +4,7 @@ import (
 	"backend-go/config"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -58,7 +59,7 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 		Path:     "/api",
 		MaxAge:   c.cfg.Expire,
 		Secure:   true,
-		SameSite: "Lax",
+		SameSite: "Strict",
 		HTTPOnly: true,
 	}
 	ctx.Cookie(&cookie)
@@ -67,7 +68,17 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 }
 
 func (c *Controller) Logout(ctx fiber.Ctx) error {
-	ctx.ClearCookie("X-Auth-Token")
+	// 必须用与登录相同的 Path 覆盖，否则浏览器不会删除 /api 下的同名 Cookie
+	ctx.Cookie(&fiber.Cookie{
+		Name:     "X-Auth-Token",
+		Value:    "",
+		Path:     "/api",
+		Expires:  time.Now().Add(-time.Hour),
+		MaxAge:   -1,
+		Secure:   true,
+		SameSite: "Strict",
+		HTTPOnly: true,
+	})
 	result.SetResult(ctx, nil)
 	return nil
 }

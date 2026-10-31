@@ -41,6 +41,18 @@ func (s *ServiceTest) upload(name string) attach.DTO {
 	return attaches[0]
 }
 
+func (s *ServiceTest) TestValidName() {
+	valid := []string{"a.pdf", "合同 1.xlsx", "...", "a..b", "."}
+	for _, name := range valid {
+		s.NoError(attach.ValidName(name))
+	}
+
+	invalid := []string{"", "a/b", `a\b`, "..", "a:b", "a?b", "a*b", "a|b", "a<b", "a>b", `a"b`}
+	for _, name := range invalid {
+		s.Error(attach.ValidName(name))
+	}
+}
+
 // TestUploadPersistsTransient 上传即落库，key 位于命名空间下，状态为瞬时态
 func (s *ServiceTest) TestUploadPersistsTransient() {
 	uploaded := s.upload("附件.txt")

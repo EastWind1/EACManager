@@ -53,7 +53,10 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 
 ### 附件模型
 
-附件是 S3 形态而非文件系统形态：key 为 `{namespace}/{uuid}{原始文件名}`，上传时生成，**永不移动**。
+附件是 S3 形态而非文件系统形态：key 为 `{namespace}/{uuid}`uuid 由服务端生成，不含原始文件名），上传时生成，**永不移动**。
+原始文件名上传时经 `validName` 校验（拒绝 `<>:"/\|?*`、单独 `..`、空名），同时作为
+`attachment.name` 保存在数据库，下载与导出从数据库读取；导出目录使用单号、归档文件使用附件名，
+Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 上传即写文件并插入 `TRANSIENT` 行；单据保存时用一条
 `UPDATE ... WHERE status = TRANSIENT`（校验受影响行数）翻成 `PERSISTENT`，因此一个附件在结构上
 只能归属一张单据。未被绑定的 `TRANSIENT` 行由每日任务按 7 天回收，不靠进程内 map。
@@ -87,12 +90,14 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 
 ## 配置
 
-**Java**（`application.yml`，需要 `DB_*` 与 `JWT_KEY`≥32 字符）：虚拟线程、`open-in-view: false`、
+**Java**（`application.yml`，需要 `DB_*` 与 `JWT_SECRET`≥32 字符）：虚拟线程、`open-in-view: false`、
 `hibernate.jdbc.batch_size: 30`、multipart 5MB、附件目录 `${user.dir}/attachment`。
+`JWT_SECRET` 没有默认值，缺失或过短时启动失败。
 
 **Go**（`config/config.yaml`，Viper 依次找 `./config`、`.`、`../config`、`..`、`../../config`）：
-`server.port`、`log.level`、`db.*`（含连接池上限）、`cache.expire`、`jwt.*`、`attachment.*`、`ocr.url`。
-注意：`viper.AutomaticEnv()` 未配 `BindEnv`，所以 compose 里设的 `DB_*` / `OCR_URL` **不生效**，改 YAML。
+`server.port`、`server.allowedOrigins`（空表示不启用 CORS）、`log.level`、`db.*`（含连接池上限）、
+`cache.expire`、`jwt.*`、`attachment.*`、`ocr.url`。`jwt.secret` 不写默认值，必须通过
+`JWT_SECRET` 环境变量注入，缺失或不足 32 字节时启动失败。
 
 **OCR**：Java 本地跑 RapidOCR；Go 无原生中文 OCR，调 `ocr.url`（完整端点，默认
 `http://localhost:9003/ocr`）的独立 FastAPI 服务 `ocr-server/`。

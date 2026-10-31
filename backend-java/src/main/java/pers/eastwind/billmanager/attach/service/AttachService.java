@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -15,8 +16,11 @@ import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.repository.AttachRepository;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
+import pers.eastwind.billmanager.attach.util.SafePath;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.exception.FileOpException;
+import pers.eastwind.billmanager.security.model.AuthorityUser;
+import pers.eastwind.billmanager.security.util.AuthUtil;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -89,11 +93,7 @@ public class AttachService implements InitializingBean {
         if (relativePath == null || relativePath.isEmpty()) {
             throw new BizException("路径为空");
         }
-        Path path = rootPath.resolve(relativePath).normalize();
-        if (!path.startsWith(rootPath)) {
-            throw new BizException("非法路径");
-        }
-        return path;
+        return SafePath.of(rootPath).resolve(relativePath).toPath();
     }
 
     public Path getAbsolutePathById(Integer id) {
@@ -115,6 +115,25 @@ public class AttachService implements InitializingBean {
         return new FileSystemResource(path);
     }
 
+    /**
+     * 未绑定单据的瞬时附件只允许上传者本人（或管理员）读取：
+     * 否则任何拥有附件下载权限的人都能按自增 ID 遍历他人刚上传的文件。
+     */
+    private void assertCanAccess(Attach attachment) {
+        if (attachment.getStatus() != AttachStatus.TRANSIENT) {
+            return;
+        }
+        AuthorityUser curUser = AuthUtil.getCurUser();
+        if (curUser == null) {
+            throw new BizException("未登录");
+        }
+        if (attachment.getCreatedById() != null
+                && !attachment.getCreatedById().equals(curUser.getId())
+                && !AuthUtil.hasRole("ROLE_ADMIN")) {
+            throw new BizException("无权访问该附件");
+        }
+    }
+
     @Transactional
     public List<AttachDTO> upload(String namespace, List<Resource> resources) {
         if (namespace == null || !NAMESPACE_PATTERN.matcher(namespace).matches()) {
@@ -132,11 +151,10 @@ public class AttachService implements InitializingBean {
 
     private Attach saveOne(String namespace, Resource resource) {
         String fileName = resource.getFilename();
-        if (fileName == null || fileName.isEmpty()) {
-            throw new BizException("文件名不能为空");
-        }
+        FileUtil.validName(fileName);
 
-        String relativePath = namespace + "/" + UUID.randomUUID() + "-" + fileName;
+        // 存储 key 只用服务端生成的 hash；原始文件名只作为 attachment.name 留在内存/数据库
+        String relativePath = namespace + "/" + UUID.randomUUID().toString();
         Path targetPath = getAbsolutePathByRela(relativePath);
 
         Attach attachment = new Attach();
@@ -156,15 +174,27 @@ public class AttachService implements InitializingBean {
 
     @Transactional
     public void persist(Collection<Integer> ids) {
-        if (ids.isEmpty()) {
+        Set<Integer> uniqueIds = new HashSet<>(ids);
+        if (uniqueIds.isEmpty()) {
             return;
         }
-        int affected = attachRepository.persistByIds(ids);
-        if (affected != ids.size()) {
+        List<Attach> attachments = attachRepository.findAllById(uniqueIds);
+        if (attachments.size() != uniqueIds.size()) {
+            throw new BizException("附件不存在");
+        }
+        // 只能提交自己刚上传、且仍处于瞬时态的附件，避免把别人的临时附件绑到自己的单据
+        for (Attach attachment : attachments) {
+            if (attachment.getStatus() != AttachStatus.TRANSIENT) {
+                throw new BizException("附件不存在或已被提交");
+            }
+            assertCanAccess(attachment);
+        }
+        int affected = attachRepository.persistByIds(uniqueIds);
+        if (affected != uniqueIds.size()) {
             throw new BizException("附件不存在或已被提交");
         }
         // 更新使用的 JPQL，JPA 不会刷新一级缓存，若之后有同一事务查询，会取到旧数据
-        for (Integer id : new HashSet<>(ids)) {
+        for (Integer id : uniqueIds) {
             Attach attachment = entityManager.find(Attach.class, id);
             if (attachment != null && attachment.getStatus() != AttachStatus.PERSISTENT) {
                 entityManager.refresh(attachment);

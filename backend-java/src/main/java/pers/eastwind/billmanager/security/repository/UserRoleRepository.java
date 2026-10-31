@@ -33,4 +33,15 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Integer> {
             where ur.roleId = r.id and r.code = :roleCode and r.disabled = false
             """)
     long countByRoleCode(@Param("roleCode") String roleCode);
+
+    /**
+     * 统计拥有指定启用角色、且用户本身未被禁用的用户数。
+     */
+    @Query("""
+            select count(distinct u.id)
+            from User u, UserRole ur, Role r
+            where ur.userId = u.id and ur.roleId = r.id
+              and r.code = :roleCode and r.disabled = false and u.disabled = false
+            """)
+    long countEnabledUsersByRoleCode(@Param("roleCode") String roleCode);
 }

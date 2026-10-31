@@ -1,6 +1,8 @@
 server:
   port: 8080
   mode: release
+  # 跨域白名单；留空表示只允许同源（生产由 Caddy 同源提供前端）
+  allowedOrigins: []
 log:
   level: info
 db:
@@ -17,7 +19,8 @@ db:
 cache:
   expire: 86400
 jwt:
-  secret: -the-security-key-must-be-256-bits-means-32-ASCII-characters
+  # 部署时通过 JWT_SECRET 环境变量注入（至少 32 字节）
+  secret: ""
   expire: 604800
 attachment:
   path: attachment

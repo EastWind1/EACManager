@@ -38,6 +38,10 @@ func (s *JWTService) GenerateToken(subject string) (string, error) {
 
 func (s *JWTService) VerifyToken(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		// 固定签名算法，避免 alg 混淆；只接受本服务签发的 HS256
+		if token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
+			return nil, errs.NewUnauthError("Token 无效")
+		}
 		return s.secret, nil
 	})
 

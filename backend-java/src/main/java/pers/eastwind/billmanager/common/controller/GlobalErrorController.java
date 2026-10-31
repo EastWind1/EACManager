@@ -1,6 +1,7 @@
 package pers.eastwind.billmanager.common.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.webmvc.autoconfigure.error.AbstractErrorController;
 import org.springframework.boot.webmvc.error.ErrorAttributes;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import pers.eastwind.billmanager.common.model.Result;
 /**
  * 全局异常处理，处理非 Controller 抛出的异常
  */
+@Slf4j
 @Controller
 @RequestMapping("${server.error.path:${error.path:/error}}")
 public class GlobalErrorController extends AbstractErrorController {
@@ -24,22 +26,14 @@ public class GlobalErrorController extends AbstractErrorController {
     @RequestMapping
     public ResponseEntity<Result<Object>> error(HttpServletRequest request) {
         HttpStatus status = this.getStatus(request);
-        Throwable throwable = ((Throwable) request.getAttribute("jakarta.servlet.error.exception"));
-        String errorMessage = (String) request.getAttribute("jakarta.servlet.error.message");
-
-        // 拿到内层实际异常
-        if (throwable != null && throwable.getCause() != null) {
-            throwable = throwable.getCause();
-        }
-
-        String message = "服务器异常";
-        if (errorMessage != null && !errorMessage.isEmpty()) {
-            message = errorMessage;
-        } else if (throwable != null && throwable.getMessage() != null && !throwable.getMessage().isEmpty()) {
-            message = throwable.getMessage();
+        Throwable throwable = (Throwable) request.getAttribute("jakarta.servlet.error.exception");
+        if (throwable != null) {
+            log.error("请求处理失败: {} {}", request.getMethod(), request.getRequestURI(), throwable);
+        } else {
+            log.error("请求处理失败: {} {}", request.getMethod(), request.getRequestURI());
         }
         return ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Result.error(message));
+                .body(Result.error("服务器异常"));
     }
 }

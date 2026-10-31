@@ -133,6 +133,21 @@ public class SecurityService {
     }
 
     /**
+     * 拥有指定启用角色、且仍可登录的用户数；用于禁止禁用/降级最后一名管理员。
+     */
+    public long countEnabledUsersByRoleCode(String roleCode) {
+        return userRoleRepository.countEnabledUsersByRoleCode(roleCode);
+    }
+
+    public boolean userHasRole(Integer userId, String roleCode) {
+        if (userId == null) {
+            return false;
+        }
+        return roleRepository.findEnabledByUserId(userId).stream()
+                .anyMatch(role -> roleCode.equals(role.getCode()));
+    }
+
+    /**
      * 单个用户的角色与权限；列表场景请用批量版本，避免 N+1
      */
     public AuthConfig getUserAuthorities(Integer userId) {

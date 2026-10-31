@@ -25,7 +25,8 @@ class UserServiceTest extends BaseServiceTest {
     private UserDTO testUser;
 
     @BeforeEach
-    void setUp() {
+    protected void setUp() {
+        setAdmin();
         testUser = new UserDTO();
         testUser.setUsername("innerTestUser");
         testUser.setPassword("password123");

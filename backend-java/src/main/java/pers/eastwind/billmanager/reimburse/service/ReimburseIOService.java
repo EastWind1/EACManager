@@ -10,6 +10,7 @@ import pers.eastwind.billmanager.attach.service.AttachService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
+import pers.eastwind.billmanager.attach.util.SafePath;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.reimburse.model.Reimburse;
 import pers.eastwind.billmanager.reimburse.model.ReimburseDTO;
@@ -66,15 +67,16 @@ public class ReimburseIOService {
                             .collect(Collectors.joining())
             ));
             totalAmount = totalAmount.add(reimbursement.getTotalAmount());
-            Path curDir = tempPath.resolve(reimbursement.getNumber());
+            SafePath temp = SafePath.of(tempPath);
+            SafePath curDir = temp.resolve(reimbursement.getNumber());
             List<Attach> attachments = reimburseAttachService.findAttachments(reimbursement.getId());
             for (Attach attachment : attachments) {
                 Path origin = attachService.getAbsolutePathByRela(attachment.getRelativePath());
-                Path target = curDir.resolve(attachment.getName());
+                Path target = curDir.resolve(attachment.getName()).toPath();
                 // 处理可能的重名
                 int repeatCount = 1;
                 while (Files.exists(target)) {
-                    target = curDir.resolve(repeatCount + "-" + attachment.getName());
+                    target = curDir.resolve(repeatCount + "-" + attachment.getName()).toPath();
                     repeatCount++;
                 }
                 ops.add(new FileOp(FileOpType.COPY, origin, target));
@@ -83,11 +85,11 @@ public class ReimburseIOService {
         rows.add(List.of("", "合计", totalAmount.toString(), "", ""));
 
         String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        Path excel = tempPath.resolve("导出结果" + timeStr + ".xlsx");
+        Path excel = SafePath.of(tempPath).resolve("导出结果" + timeStr + ".xlsx").toPath();
         OfficeFileUtil.generateExcelFromList(rows, excel);
         FileTxUtil.exec(ops);
 
-        Path zip = attachService.getTempPath().resolve(tempPath + ".zip");
+        Path zip = SafePath.of(attachService.getTempPath()).resolve(tempPath + ".zip").toPath();
         FileUtil.zip(tempPath, zip);
         return zip;
     }

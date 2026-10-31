@@ -29,6 +29,8 @@ type LogConfig struct {
 type ServerConfig struct {
 	Port int
 	Mode string
+	// 跨域白名单，空列表表示不注册 CORS 中间件（只允许同源）
+	AllowedOrigins []string `mapstructure:"allowedOrigins"`
 }
 
 type DatabaseConfig struct {
@@ -39,10 +41,10 @@ type DatabaseConfig struct {
 	Password string
 	SSLMode  string `mapstructure:"sslmode"`
 	// 连接池上限，缺省时由 database 包补默认值
-	MaxOpenConns int `mapstructure:"maxOpenConns"`
-	MaxIdleConns int `mapstructure:"maxIdleConns"`
+	MaxOpenConns int
+	MaxIdleConns int
 	// 单位分钟
-	ConnMaxLifetime int `mapstructure:"connMaxLifetime"`
+	ConnMaxLifetime int
 }
 
 type CacheConfig struct {
@@ -86,12 +88,21 @@ func NewConfig() *Config {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	log.Infof("加载配置文件 %s", viper.ConfigFileUsed())
-	log.Infof("使用配置: %v", viper.AllSettings())
 
 	config := &Config{}
 	if err := viper.Unmarshal(config); err != nil {
 		log.Fatalf("反序列化配置文件失败: %v", err)
 	}
+	if config.Server == nil || config.Log == nil || config.Db == nil || config.Attach == nil {
+		log.Fatalf("配置不完整")
+	}
+	if config.JWT == nil || len(config.JWT.Secret) < 32 {
+		log.Fatalf("jwt.secret 未配置或不足 32 字节：请通过 JWT_SECRET 环境变量注入")
+	}
+	log.Infof("配置: server.port=%d server.mode=%s log.level=%s db.host=%s db.name=%s jwt.expire=%ds attachment.path=%s cors.origins=%d",
+		config.Server.Port, config.Server.Mode, config.Log.Level,
+		config.Db.Host, config.Db.Name, config.JWT.Expire, config.Attach.Path,
+		len(config.Server.AllowedOrigins))
 
 	return config
 }

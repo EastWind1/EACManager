@@ -84,6 +84,10 @@ public class UserService implements UserDetailsService {
             throw new BizException("密码过短");
         }
 
+        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new BizException("密码不能超过 72 字节");
+        }
+
         if (!PASSWORD_PATTERN.matcher(password).matches()) {
             throw new BizException("密码只能包含大写、小写字母、数字以及 *-_^~");
         }
@@ -111,7 +115,7 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public UserDTO create(UserDTO user) {
-        if (user.getUsername().isEmpty()) {
+        if (user.getUsername() == null || user.getUsername().isBlank()) {
             throw new BizException("用户名不能为空");
         }
         if (userRepository.existsUserByUsername(user.getUsername())) {
@@ -128,15 +132,32 @@ public class UserService implements UserDetailsService {
                 roleCodes.add(role.getCode());
             }
         }
-        if (roleCodes.contains("ADMIN") && !AuthUtil.hasRole("ROLE_ADMIN")) {
-            throw new BizException("无权创建管理员");
-        }
+        assertCanAssignRoles(roleCodes);
 
         User newUser = userMapper.toEntity(user);
         newUser.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()));
         User saved = userRepository.save(newUser);
         securityService.setUserRoles(saved.getId(), roleCodes);
         return toDTO(saved);
+    }
+
+    /**
+     * 非管理员只能授予自己已持有的角色
+     */
+    private void assertCanAssignRoles(Set<String> roleCodes) {
+        if (AuthUtil.hasRole("ROLE_ADMIN")) {
+            return;
+        }
+        AuthorityUser curUser = AuthUtil.getCurUser();
+        if (curUser == null) {
+            throw new AccessDeniedException("未登录");
+        }
+        Set<String> ownRoles = securityService.getRolesByUserId(curUser.getId()).stream()
+                .map(RoleDTO::getCode)
+                .collect(Collectors.toSet());
+        if (!ownRoles.containsAll(roleCodes)) {
+            throw new BizException("无权授予未持有的角色");
+        }
     }
 
     @Transactional
@@ -173,6 +194,11 @@ public class UserService implements UserDetailsService {
                 throw new BizException("无权更改角色");
             }
             if (isAdmin) {
+                if (currentRoles.contains(SecurityService.ADMIN_ROLE_CODE)
+                        && !roleCodes.contains(SecurityService.ADMIN_ROLE_CODE)
+                        && securityService.countEnabledUsersByRoleCode(SecurityService.ADMIN_ROLE_CODE) <= 1) {
+                    throw new BizException("必须保留至少一个启用的管理员");
+                }
                 securityService.setUserRoles(user.getId(), roleCodes);
             }
         }
@@ -190,6 +216,17 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findByUsernameAndDisabled(username, false);
         if (user == null) {
             throw new BizException("用户不存在");
+        }
+        AuthorityUser curUser = AuthUtil.getCurUser();
+        if (curUser == null) {
+            throw new AccessDeniedException("未登录");
+        }
+        if (curUser.getId().equals(user.getId())) {
+            throw new BizException("不能禁用自己");
+        }
+        if (securityService.userHasRole(user.getId(), SecurityService.ADMIN_ROLE_CODE)
+                && securityService.countEnabledUsersByRoleCode(SecurityService.ADMIN_ROLE_CODE) <= 1) {
+            throw new BizException("必须保留至少一个启用的管理员");
         }
         user.setDisabled(true);
         userRepository.save(user);
@@ -265,7 +302,7 @@ public class UserService implements UserDetailsService {
             log.warn("登录失败: {}", username);
             throw new BizException("用户名或密码错误");
         }
-        String token = JWTUtil.generateToken(properties.getKey(), properties.getExpire(), username);
+        String token = JWTUtil.generateToken(properties.getSecret(), properties.getExpire(), username);
         log.info("用户登录: {}", username);
         return new LoginResult(token, toDTO(user));
     }

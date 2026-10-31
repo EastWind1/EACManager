@@ -88,6 +88,10 @@ func UploadFileHeaders(name, content string) ([]*multipart.FileHeader, error) {
 
 func initAppCtx() {
 	appCtxOnce.Do(func() {
+		// 测试不依赖仓库内密钥；生产必须显式提供 JWT_SECRET
+		if os.Getenv("JWT_SECRET") == "" {
+			_ = os.Setenv("JWT_SECRET", "test-only-jwt-key-4f6c1d2a9b8e7c3d5a1f0e9d8c7b6a5f")
+		}
 		cfg := config.NewConfig()
 		logger.InitLogger(cfg.Log)
 

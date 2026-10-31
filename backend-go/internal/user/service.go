@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	passwordPattern = regexp.MustCompile(`[a-zA-Z0-9*\-_^~]+`)
+	passwordPattern = regexp.MustCompile(`^[a-zA-Z0-9*\-_^~]+$`)
 	usernamePattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{3,31}$`)
 	phonePattern    = regexp.MustCompile(`^1[3-9]\d{9}$`)
 	emailPattern    = regexp.MustCompile(`^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$`)
@@ -49,8 +49,8 @@ func (s *Service) validPassword(password *string) error {
 	if password == nil || len(*password) < 10 {
 		return errs.NewBizError("密码不能小于 10 位")
 	}
-	if len(*password) > 32 {
-		return errs.NewBizError("密码不能大于 32 位")
+	if len(*password) > 72 {
+		return errs.NewBizError("密码不能大于 72 位")
 	}
 	if !passwordPattern.MatchString(*password) {
 		return errs.NewBizError("密码只能包含大写、小写字母、数字以及 *-_^~")
@@ -97,7 +97,7 @@ func (s *Service) encryptPassword(password string) (string, error) {
 
 // Initialize 创建首个管理员；仅当系统不存在管理员用户时允许
 func (s *Service) Initialize(ctx context.Context, dto *InitDTO) (*DTO, error) {
-	if err := validateInit(dto); err != nil {
+	if err := s.validateInit(dto); err != nil {
 		return nil, err
 	}
 
@@ -159,16 +159,13 @@ func (s *Service) Initialize(ctx context.Context, dto *InitDTO) (*DTO, error) {
 	return res, nil
 }
 
-func validateInit(dto *InitDTO) error {
+func (s *Service) validateInit(dto *InitDTO) error {
 	if dto == nil || !usernamePattern.MatchString(strings.TrimSpace(dto.Username)) {
 		return errs.NewBizError("用户名必须为 4-32 位，以字母开头，仅包含字母、数字和下划线")
 	}
 	password := dto.Password
-	if len(password) < 8 || len(password) > 72 ||
-		strings.ContainsAny(password, " \t\r\n") ||
-		!strings.ContainsAny(password, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") ||
-		!strings.ContainsAny(password, "0123456789") {
-		return errs.NewBizError("密码必须为 8-72 位，且同时包含字母和数字，不能包含空白字符")
+	if err := s.validPassword(&password); err != nil {
+		return err
 	}
 	name := strings.TrimSpace(dto.Name)
 	if name == "" || len([]rune(name)) > 64 {
@@ -290,18 +287,23 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 		roleCodes = []string{"USER"}
 	}
 
+	// 非管理员只能授予自己已持有的角色，避免借 user:create 越权拿到更高权限的角色
+	isAdmin, err := s.securitySvc.HasRole(ctx, curUser.GetID(), security.AdminRoleCode)
+	if err != nil {
+		return nil, err
+	}
+	if !isAdmin {
+		callerRoles, err := s.securitySvc.RoleCodes(ctx, curUser.GetID())
+		if err != nil {
+			return nil, err
+		}
+		if !containsAll(callerRoles, roleCodes) {
+			return nil, errs.NewBizError("无权授予未持有的角色")
+		}
+	}
+
 	var res *DTO
 	err = s.userRepo.Transaction(ctx, func(txCtx context.Context) error {
-
-		if slices.Contains(roleCodes, security.AdminRoleCode) {
-			isAdmin, err := s.securitySvc.HasRole(txCtx, curUser.GetID(), security.AdminRoleCode)
-			if err != nil {
-				return err
-			}
-			if !isAdmin {
-				return errs.NewBizError("无权创建管理员")
-			}
-		}
 
 		newUser := dto.ToEntity()
 		ep, err := s.encryptPassword(newUser.Password)
@@ -371,20 +373,27 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 			return errs.NewBizError("无权更改角色")
 		}
 		if isAdmin && dto.Roles != nil {
+			// 不允许把最后一名启用的管理员降级，否则系统将无人可管理
+			if slices.Contains(currentRoles, security.AdminRoleCode) &&
+				!slices.Contains(requestedRoles, security.AdminRoleCode) {
+				count, err := s.userRepo.CountEnabledUsersWithRole(txCtx, security.AdminRoleCode)
+				if err != nil {
+					return err
+				}
+				if count <= 1 {
+					return errs.NewBizError("必须保留至少一个启用的管理员")
+				}
+			}
 			// 整体替换角色；返回值即为写入后的角色，省掉后面再查一次
 			if granted, err = s.securitySvc.SetUserRoles(txCtx, user.ID, requestedRoles); err != nil {
 				return err
 			}
 		}
 		if dto.Password != nil {
-			if *dto.Password == "" {
-				return errs.NewBizError("密码不能为空")
+			if err := s.validPassword(dto.Password); err != nil {
+				return err
 			}
-			passwordByte := []byte(*dto.Password)
-			if len(passwordByte) > 72 {
-				return errs.NewBizError("密码过长")
-			}
-			hashedPassword, err := bcrypt.GenerateFromPassword(passwordByte, bcrypt.DefaultCost)
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*dto.Password), bcrypt.DefaultCost)
 			if err != nil {
 				return errs.Wrap(err)
 			}
@@ -418,6 +427,35 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 }
 
 func (s *Service) Disable(ctx context.Context, username string) error {
+	users, err := s.userRepo.FindAll(ctx, "username = ?", username)
+	if err != nil {
+		return err
+	}
+	if len(users) == 0 {
+		return errs.NewBizError("用户不存在")
+	}
+	target := users[0]
+
+	curUser, err := auth.GetCurrentUser(ctx)
+	if err != nil {
+		return err
+	}
+	if target.ID == curUser.GetID() {
+		return errs.NewBizError("不能禁用自己")
+	}
+	isAdmin, err := s.securitySvc.HasRole(ctx, target.ID, security.AdminRoleCode)
+	if err != nil {
+		return err
+	}
+	if isAdmin {
+		count, err := s.userRepo.CountEnabledUsersWithRole(ctx, security.AdminRoleCode)
+		if err != nil {
+			return err
+		}
+		if count <= 1 {
+			return errs.NewBizError("必须保留至少一个启用的管理员")
+		}
+	}
 	disabled, err := s.userRepo.Disable(ctx, username)
 	if err != nil {
 		return err
@@ -449,6 +487,20 @@ func sameStrings(a, b []string) bool {
 		set[value] = struct{}{}
 	}
 	for _, value := range b {
+		if _, ok := set[value]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// containsAll 判断 owned 是否包含 requested 的全部元素
+func containsAll(owned, requested []string) bool {
+	set := make(map[string]struct{}, len(owned))
+	for _, value := range owned {
+		set[value] = struct{}{}
+	}
+	for _, value := range requested {
 		if _, ok := set[value]; !ok {
 			return false
 		}

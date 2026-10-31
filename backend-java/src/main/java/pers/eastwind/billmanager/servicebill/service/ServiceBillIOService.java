@@ -10,6 +10,7 @@ import pers.eastwind.billmanager.attach.service.AttachService;
 import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
+import pers.eastwind.billmanager.attach.util.SafePath;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.servicebill.model.ServiceBill;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
@@ -74,16 +75,17 @@ public class ServiceBillIOService {
             ));
             totalAmount = totalAmount.add(serviceBill.getTotalAmount());
 
-            Path curDir = tempPath.resolve(serviceBill.getNumber());
+            SafePath temp = SafePath.of(tempPath);
+            SafePath curDir = temp.resolve(serviceBill.getNumber());
 
             List<Attach> attachments = serviceBillAttachService.findAttachments(serviceBill.getId());
             for (Attach attachment : attachments) {
                 Path origin = attachService.getAbsolutePathByRela(attachment.getRelativePath());
-                Path target = curDir.resolve(attachment.getName());
+                Path target = curDir.resolve(attachment.getName()).toPath();
                 // 处理可能的重名
                 int repeatCount = 1;
                 while (Files.exists(target)) {
-                    target = curDir.resolve(repeatCount + "-" + attachment.getName());
+                    target = curDir.resolve(repeatCount + "-" + attachment.getName()).toPath();
                     repeatCount++;
                 }
                 ops.add(new FileOp(FileOpType.COPY, origin, target));
@@ -91,10 +93,10 @@ public class ServiceBillIOService {
         }
         rows.add(List.of("", "", "", "合计", totalAmount.toString(), ""));
 
-        Path excel = tempPath.resolve("导出结果.xlsx");
+        Path excel = SafePath.of(tempPath).resolve("导出结果.xlsx").toPath();
         OfficeFileUtil.generateExcelFromList(rows, excel);
         FileTxUtil.exec(ops);
-        Path zip = attachService.getTempPath().resolve(tempPath + ".zip");
+        Path zip = SafePath.of(attachService.getTempPath()).resolve(tempPath + ".zip").toPath();
         FileUtil.zip(tempPath, zip);
         return zip;
     }

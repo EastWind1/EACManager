@@ -22,7 +22,8 @@ class CompanyServiceTest extends BaseServiceTest {
     private CompanyDTO newCompany;
 
     @BeforeEach
-    void setUp() {
+    protected void setUp() {
+        setAdmin();
         newCompany = new CompanyDTO();
         newCompany.setName("测试公司");
         newCompany.setContactName("联系人");

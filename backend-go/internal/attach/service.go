@@ -2,14 +2,16 @@ package attach
 
 import (
 	"backend-go/config"
+	"backend-go/pkg/auth"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"time"
 	"uuid"
 
@@ -98,11 +100,7 @@ func (s *Service) GetAbsolutePathByRela(relativePath string) (string, error) {
 	if relativePath == "" {
 		return "", errs.NewBizError("相对路径为空")
 	}
-	absolutePath := filepath.Clean(filepath.Join(s.rootPath, relativePath))
-	if !strings.HasPrefix(absolutePath, s.rootPath) {
-		return "", errs.NewBizError("路径不合法")
-	}
-	return absolutePath, nil
+	return SafeJoin(s.rootPath, relativePath)
 }
 
 func (s *Service) GetRelativePath(absolutePath string) (string, error) {
@@ -110,7 +108,7 @@ func (s *Service) GetRelativePath(absolutePath string) (string, error) {
 		return "", errs.NewBizError("路径不能为空")
 	}
 	absolutePath = filepath.Clean(absolutePath)
-	if !strings.HasPrefix(absolutePath, s.rootPath) {
+	if err := EnsureWithin(s.rootPath, absolutePath); err != nil {
 		return "", errs.NewBizError("路径不合法")
 	}
 	relativePath, err := filepath.Rel(s.rootPath, absolutePath)
@@ -141,11 +139,13 @@ func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*m
 
 func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *multipart.FileHeader) (*Attach, error) {
 	fileName := fileHeader.Filename
-	if fileName == "" {
-		return nil, errs.NewBizError("文件名不能为空")
+	if err := ValidName(fileName); err != nil {
+		return nil, err
 	}
 
-	relativePath := namespace + "/" + uuid.New().String() + "-" + fileName
+	// 落盘文件名使用服务端生成的 hash；原始文件名只作为 Attach.Name 留在内存/数据库
+	sum := sha256.Sum256([]byte(uuid.New().String()))
+	relativePath := namespace + "/" + hex.EncodeToString(sum[:])
 	targetPath, err := s.GetAbsolutePathByRela(relativePath)
 	if err != nil {
 		return nil, err
@@ -173,14 +173,31 @@ func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *mul
 
 // Persist 把瞬时态附件置为持久态；任一 id 不合法则整体报错。
 func (s *Service) Persist(ctx context.Context, ids []uint) error {
-	if len(ids) == 0 {
+	unique := uniqueIDs(ids)
+	if len(unique) == 0 {
 		return nil
 	}
-	affected, err := s.attachRepo.PersistByIds(ctx, ids)
+	// 只能提交自己刚上传、且仍处于瞬时态的附件，避免把别人的临时附件绑到自己的单据
+	attachments, err := s.attachRepo.FindAll(ctx, "id IN ?", unique)
 	if err != nil {
 		return err
 	}
-	if affected != int64(len(ids)) {
+	if len(attachments) != len(unique) {
+		return errs.NewBizError("附件不存在")
+	}
+	for i := range attachments {
+		if attachments[i].Status != StatusTransient {
+			return errs.NewBizError("附件不存在或已被提交")
+		}
+		if err := assertCanAccess(ctx, &attachments[i]); err != nil {
+			return err
+		}
+	}
+	affected, err := s.attachRepo.PersistByIds(ctx, unique)
+	if err != nil {
+		return err
+	}
+	if affected != int64(len(unique)) {
 		return errs.NewBizError("附件不存在或已被提交")
 	}
 	return nil
@@ -254,12 +271,41 @@ func (s *Service) GetResource(ctx context.Context, dto *DTO) (filename string, p
 		return "", "", errs.NewBizError("附件信息不能为空")
 	}
 
-	path, err = s.GetAbsolutePathById(ctx, dto.ID)
+	attachment, err := s.attachRepo.FindByID(ctx, uint(dto.ID))
+	if err != nil {
+		return "", "", errs.Wrap(err)
+	}
+	if attachment == nil {
+		return "", "", errs.NewBizError("附件不存在")
+	}
+	if err = assertCanAccess(ctx, attachment); err != nil {
+		return "", "", err
+	}
+	path, err = s.GetAbsolutePathByRela(attachment.RelativePath)
 	if err != nil {
 		return "", "", err
 	}
-	filename = dto.Name
-	return
+	filename = attachment.Name
+	if filename == "" {
+		filename = dto.Name
+	}
+	return filename, path, nil
+}
+
+// assertCanAccess 未绑定单据的瞬时附件只允许上传者本人读取：
+// 否则任何拥有附件下载权限的人都能按自增 ID 遍历他人刚上传的文件。
+func assertCanAccess(ctx context.Context, attachment *Attach) error {
+	if attachment.Status != StatusTransient {
+		return nil
+	}
+	user, err := auth.GetCurrentUser(ctx)
+	if err != nil {
+		return errs.NewUnauthError("未登录")
+	}
+	if attachment.CreatedByID != 0 && attachment.CreatedByID != user.GetID() {
+		return errs.NewAuthError("无权访问该附件")
+	}
+	return nil
 }
 
 func uniqueIDs(ids []uint) []uint {

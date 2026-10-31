@@ -92,6 +92,23 @@ public class ServiceBillService {
         }
     }
 
+    private void validNumber(String number) {
+        if (number == null || number.isBlank()) {
+            throw new BizException("单号为空");
+        }
+        for (int i = 0; i < number.length(); i++) {
+            if (number.charAt(i) == '/' || number.charAt(i) == '\\') {
+                throw new BizException("单号不能包含 / \\");
+            }
+        }
+        if ("..".equals(number)) {
+             throw new BizException("单号不能为 ..");
+        }
+        if (serviceBillRepository.existsByNumber(number)) {
+                throw new BizException("单据编号已存在");
+        }
+    }
+
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
@@ -109,9 +126,7 @@ public class ServiceBillService {
         if (serviceBillDTO.getNumber() == null || serviceBillDTO.getNumber().isEmpty()) {
             serviceBillDTO.setNumber("S" + Snowflake.genIntID());
         } else {
-            if (serviceBillRepository.existsByNumber(serviceBillDTO.getNumber())) {
-                throw new BizException("单据编号已存在");
-            }
+            validNumber(serviceBillDTO.getNumber());
         }
         ServiceBill bill = serviceBillMapper.toEntity(serviceBillDTO);
         bindDetails(bill);
@@ -144,6 +159,9 @@ public class ServiceBillService {
                 .orElse(null);
         if (bill == null) {
             throw new BizException("单据不存在");
+        }
+        if (!bill.getNumber().equals(serviceBillDTO.getNumber())) {
+            validNumber(serviceBillDTO.getNumber());
         }
         var originState = bill.getState();
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);

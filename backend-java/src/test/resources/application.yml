@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: Elevator AC After-Sale Manager
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dump
+    username: postgres
+    password: admin
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batchSize: 30
+        orderInserts: true
+        orderUpdates: true
+        batchVersionedData: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+config:
+  attachment:
+    path: ${user.dir}${file.separator}attachment
+  jwt:
+    expire: 604800
+    secret: ${JWT_KEY:test-only-jwt-key-3f8a2c6e1b9d4f7a0c5e8b2d6f9a1c4e}

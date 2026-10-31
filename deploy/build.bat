@@ -16,11 +16,12 @@ set DEPLOY_HTML=%DEPLOY_DIR%\frontend\html
 :: 打包 Java 后端
 echo [1/4] 打包 Java 后端...
 cd /d "%BACKEND_JAVA_DIR%"
-call mvn clean package -DskipTests || exit /b 1
+call mvn clean package
 
 :: 打包 Go 后端
 echo [2/4] 打包 Go 后端...
 cd /d "%BACKEND_GO_DIR%"
+go test ./...
 set GOOS=linux& set GOARCH=amd64& set CGO_ENABLED=0
 go build -ldflags="-s -w" -o target/backend-go cmd/main.go || exit /b 1
 
