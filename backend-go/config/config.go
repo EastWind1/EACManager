@@ -29,8 +29,6 @@ type LogConfig struct {
 type ServerConfig struct {
 	Port int
 	Mode string
-	// 跨域白名单，空列表表示不注册 CORS 中间件（只允许同源）
-	AllowedOrigins []string `mapstructure:"allowedOrigins"`
 }
 
 type DatabaseConfig struct {
@@ -99,10 +97,9 @@ func NewConfig() *Config {
 	if config.JWT == nil || len(config.JWT.Secret) < 32 {
 		log.Fatalf("jwt.secret 未配置或不足 32 字节：请通过 JWT_SECRET 环境变量注入")
 	}
-	log.Infof("配置: server.port=%d server.mode=%s log.level=%s db.host=%s db.name=%s jwt.expire=%ds attachment.path=%s cors.origins=%d",
+	log.Infof("配置: server.port=%d server.mode=%s log.level=%s db.host=%s db.name=%s jwt.expire=%ds attachment.path=%s",
 		config.Server.Port, config.Server.Mode, config.Log.Level,
-		config.Db.Host, config.Db.Name, config.JWT.Expire, config.Attach.Path,
-		len(config.Server.AllowedOrigins))
+		config.Db.Host, config.Db.Name, config.JWT.Expire, config.Attach.Path)
 
 	return config
 }

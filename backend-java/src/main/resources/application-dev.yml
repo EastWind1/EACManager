@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dump
+    username: postgres
+    password: admin
+config:
+  jwt:
+    secret: ${JWT_KEY:test-only-jwt-key-3f8a2c6e1b9d4f7a0c5e8b2d6f9a1c4e}

@@ -2,6 +2,7 @@
 
 - B/S 架构
 - 用于管理安装维护工单
+- 支持基础 RBAC
 - 支持 OCR 导入
 - 支持附件管理
 
@@ -22,7 +23,18 @@
 - Fiber + Gorm + PostgreSQL
 - 由于 Go 没有原生中文 OCR 库，采用 RapidOCR API 镜像远程调用
 
-## 环境配置
+## 构建
+
+- Windows 使用 `deploy\build.bat`
+- Linux 使用 `deploy/build.sh`
+
+## 部署
+
+### 前置条件
+
+- 服务器安装 docker
+
+### 环境配置
 
 1. 在 `deploy` 目录下新建 `.env` 文件
 2. 至少设置以下环境变量
@@ -35,8 +47,6 @@ JWT_KEY # JWT 密钥, 用于生成 JWT, 至少256位
 DOMAIN # 域名，本地可使用 localhost
 CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 ```
-
-## 部署
 
 ### Java 版后端
 
@@ -71,6 +81,18 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
     - ocr-server
         - 默认不启用
         - 基于 rapidocr 官方 Dockerfile
+
+### 手动部署
+
+1. 将 `deploy` 拷贝至服务器
+2. 赋予 `deploy/backend-go/backend-go` 可执行权限
+3. 执行 `docker compose up -d`
+
+### 脚本部署
+
+1. 服务器配置为 SSH 登陆
+2. 至少配置 `DEPLOY_HOST` 为服务器地址，其他变量见脚本
+3. 执行 `deploy/deploy.sh` 脚本
 
 
 ## 运行

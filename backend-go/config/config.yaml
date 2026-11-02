@@ -1,8 +1,6 @@
 server:
   port: 8080
   mode: release
-  # 跨域白名单；留空表示只允许同源（生产由 Caddy 同源提供前端）
-  allowedOrigins: []
 log:
   level: info
 db:

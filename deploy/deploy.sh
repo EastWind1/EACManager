@@ -2,33 +2,40 @@
 
 #   DEPLOY_HOST      远程主机，必填
 #   DEPLOY_USER      SSH 用户，默认 root
-#   DEPLOY_PATH      远程部署目录，默认 ~/deploy
+#   DEPLOY_PATH      远程部署目录，默认 deploy
 #   DEPLOY_BACKEND   go 或 java，默认 go
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
 
-env_value() {
-    grep -m1 "^$1=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '\r' || true
+# get_cfg KEY [DEFAULT]
+# 优先级：环境变量 > .env > 默认值
+get_cfg() {
+    local key="$1"
+    local default="${2:-}"
+    local val
+
+    if [[ -n "${!key:-}" ]]; then
+        val="${!key}"
+    else
+        val=$(grep -m1 "^${key}=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '\r')
+        val="${val:-$default}"
+    fi
+
+    echo "$val"
 }
 
-if [ -f "$ENV_FILE" ]; then
-    DEPLOY_HOST="${DEPLOY_HOST:-$(env_value DEPLOY_HOST)}"
-    DEPLOY_USER="${DEPLOY_USER:-$(env_value DEPLOY_USER)}"
-    DEPLOY_PATH="${DEPLOY_PATH:-$(env_value DEPLOY_PATH)}"
-    DEPLOY_BACKEND="${DEPLOY_BACKEND:-$(env_value DEPLOY_BACKEND)}"
-fi
+DEPLOY_HOST=$(get_cfg DEPLOY_HOST localhost)
 
-if [ -z "${DEPLOY_HOST:-}" ]; then
+if [[ -z "$DEPLOY_HOST" ]]; then
     echo "未设置 DEPLOY_HOST" >&2
     exit 1
 fi
 
-DEPLOY_USER="${DEPLOY_USER:-root}"
-DEPLOY_PORT="${DEPLOY_PORT:-22}"
-DEPLOY_PATH="${DEPLOY_PATH:-"~/deploy"}"
-DEPLOY_BACKEND="${DEPLOY_BACKEND:-go}"
+DEPLOY_USER=$(get_cfg DEPLOY_USER root)
+DEPLOY_PATH=$(get_cfg DEPLOY_PATH deploy)
+DEPLOY_BACKEND=$(get_cfg DEPLOY_BACKEND go)
 
 case "$DEPLOY_BACKEND" in
     go) COMPOSE_FILE=compose.yml ;;

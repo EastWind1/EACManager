@@ -21,8 +21,7 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 ## 认证与授权
 
 - 公开接口只有 `POST /api/user/token` 与首管理员初始化（`GET/POST /api/user/initialization`）。
-- 登录写 `X-Auth-Token` httpOnly cookie（`path=/api`、`SameSite=Strict`、`Secure`）；Go 另接受
-  `Authorization: Bearer`。
+- 登录写 `X-Auth-Token` httpOnly cookie（`path=/api`、`SameSite=Strict`、`Secure`）
 - 授权是**动作级**：每个接口要求 `{module}:{action}` 权限码（如 `serviceBill:cancel-finish`）。
   Java 用 `@PreAuthorize` + `UserService.loadUserByUsername` 组装的 `authorities`（**故意不缓存**，
   改角色权限后下一次请求即生效）；Go 用 `security.Middleware`。
