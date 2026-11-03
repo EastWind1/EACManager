@@ -21,6 +21,7 @@ echo "[2/4] 打包 Go 后端..."
 cd "$BACKEND_GO_DIR"
 
 export GOOS=linux GOARCH=amd64 CGO_ENABLED=0
+go test ./...
 go build -ldflags="-s -w" -o target/backend-go cmd/main.go
 
 # 打包前端

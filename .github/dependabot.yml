@@ -7,11 +7,11 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/backend-go"
     schedule:
-      interval: "day"
-  - package-ecosystem: "pnpm"
+      interval: daily
+  - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "day"
+      interval: "daily"
   - package-ecosystem: "uv"
     directory: "/ocr0server"
     schedule:

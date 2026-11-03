@@ -41,7 +41,7 @@ public class SecurityInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         Role admin = ensureRole(SecurityService.ADMIN_ROLE_CODE, "管理员", 1);
         ensureRole("USER", "普通用户", 2);
-
+        boolean hasModify = false;
         if (!rolePermissionRepository.existsByRoleCodeAndPermissionCode(SecurityService.ADMIN_ROLE_CODE, SecurityPermission.QUERY.getCode())) {
             RolePermission relation = new RolePermission();
             PermissionEntity query = permissionRepository.findByCode(SecurityPermission.QUERY.getCode());
@@ -51,6 +51,7 @@ public class SecurityInitializer implements ApplicationRunner {
             relation.setRoleId(admin.getId());
             relation.setPermissionId(query.getId());
             rolePermissionRepository.save(relation);
+            hasModify = true;
         }
 
         if (!rolePermissionRepository.existsByRoleCodeAndPermissionCode(SecurityService.ADMIN_ROLE_CODE, SecurityPermission.UPDATE.getCode())) {
@@ -62,8 +63,11 @@ public class SecurityInitializer implements ApplicationRunner {
             relation.setRoleId(admin.getId());
             relation.setPermissionId(query.getId());
             rolePermissionRepository.save(relation);
+            hasModify = true;
         }
-        log.info("管理员角色权限不完整，已创建并授予权限配置权限");
+        if (hasModify) {
+            log.info("管理员角色权限不完整，已创建并授予权限配置权限");
+        }
     }
 
     private Role ensureRole(String code, String name, int sortOrder) {
@@ -76,6 +80,7 @@ public class SecurityInitializer implements ApplicationRunner {
         role.setName(name);
         role.setSortOrder(sortOrder);
         role.setDisabled(false);
+        log.info("管理员角色不存在，已创建");
         return roleRepository.save(role);
     }
 }
