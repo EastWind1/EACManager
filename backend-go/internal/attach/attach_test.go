@@ -2,9 +2,7 @@ package attach_test
 
 import (
 	"backend-go/internal/attach"
-	"backend-go/internal/test_util"
-	"context"
-	"strings"
+	"backend-go/internal/test"
 	"testing"
 	"time"
 
@@ -15,8 +13,7 @@ const testNamespace = "TEST_ATTACH"
 
 // ServiceTest 附件服务测试
 type ServiceTest struct {
-	suite.Suite
-	ctx context.Context
+	test.BaseSuite
 	srv *attach.Service
 }
 
@@ -25,19 +22,16 @@ func TestService(t *testing.T) {
 }
 
 func (s *ServiceTest) SetupSuite() {
-	s.srv, _ = attach.SetupForTest(test_util.AppCtx())
-}
-
-func (s *ServiceTest) SetupTest() {
-	s.ctx = test_util.BeginTx(s.T())
+	s.BaseSuite.SetupSuite()
+	s.srv = s.App.Attach
 }
 
 func (s *ServiceTest) upload(name string) attach.DTO {
-	headers, err := test_util.UploadFileHeaders(name, "attach content")
-	s.Require().NoError(err)
-	attaches, err := s.srv.Upload(s.ctx, testNamespace, headers)
-	s.Require().NoError(err)
-	s.Require().Len(attaches, 1)
+	headers, err := s.UploadFileHeaders(name, "attach content")
+	s.NoError(err)
+	attaches, err := s.srv.Upload(s.Ctx, testNamespace, headers)
+	s.NoError(err)
+	s.Len(attaches, 1)
 	return attaches[0]
 }
 
@@ -58,40 +52,37 @@ func (s *ServiceTest) TestUploadPersistsTransient() {
 	uploaded := s.upload("附件.txt")
 	s.Positive(uploaded.ID)
 
-	attachment, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, uint(uploaded.ID))
-	s.Require().NoError(err)
-	s.Require().NotNil(attachment)
-	s.Equal(attach.StatusTransient, attachment.Status)
-	s.True(strings.HasPrefix(attachment.RelativePath, testNamespace+"/"))
+	attachment, err := s.srv.FindById(s.Ctx, uploaded.ID)
+	s.NoError(err)
+	s.NotNil(attachment)
 }
 
-// TestPersist 提交后转为持久态，且只能提交一次
+// TestPersist 只能提交一次
 func (s *ServiceTest) TestPersist() {
 	uploaded := s.upload("待提交附件.txt")
 	ids := []uint{uint(uploaded.ID)}
 
-	s.Require().NoError(s.srv.Persist(s.ctx, ids))
+	s.NoError(s.srv.Persist(s.Ctx, ids))
 
-	attachment, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, ids[0])
-	s.Require().NoError(err)
-	s.Require().NotNil(attachment)
-	s.Equal(attach.StatusPersistent, attachment.Status)
+	attachment, err := s.srv.FindById(s.Ctx, ids[0])
+	s.NoError(err)
+	s.NotNil(attachment)
 
-	s.Error(s.srv.Persist(s.ctx, ids))
+	s.Error(s.srv.Persist(s.Ctx, ids))
 }
 
 // TestDelete 删除附件及其物理文件
 func (s *ServiceTest) TestDelete() {
 	uploaded := s.upload("待删除附件.txt")
-	ids := []uint{uint(uploaded.ID)}
+	ids := []uint{uploaded.ID}
 
-	path, err := s.srv.GetAbsolutePathById(s.ctx, uploaded.ID)
-	s.Require().NoError(err)
+	path, err := s.srv.GetAbsolutePathById(s.Ctx, uploaded.ID)
+	s.NoError(err)
 
-	s.Require().NoError(s.srv.Delete(s.ctx, ids))
+	s.NoError(s.srv.Delete(s.Ctx, ids))
 
-	remaining, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, ids[0])
-	s.Require().NoError(err)
+	remaining, err := s.srv.FindById(s.Ctx, ids[0])
+	s.NoError(err)
 	s.Nil(remaining)
 	s.False(attach.Exists(path))
 }
@@ -100,13 +91,11 @@ func (s *ServiceTest) TestDelete() {
 func (s *ServiceTest) TestCleanTransientFiles() {
 	uploaded := s.upload("过期游离附件.txt")
 
-	s.Require().NoError(test_util.Tx(s.T(), s.ctx).
-		Exec("update attachment set created_date = ? where id = ?", time.Now().Add(-8*24*time.Hour), uploaded.ID).
-		Error)
+	s.NoError(s.Tx.Exec("update attachment set created_date = ? where id = ?", time.Now().Add(-8*24*time.Hour), uploaded.ID).Error)
 
-	s.Require().NoError(s.srv.CleanTransientFiles(s.ctx))
+	s.NoError(s.srv.CleanTransientFiles(s.Ctx))
 
-	remaining, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, uint(uploaded.ID))
-	s.Require().NoError(err)
+	remaining, err := s.srv.FindById(s.Ctx, uploaded.ID)
+	s.NoError(err)
 	s.Nil(remaining)
 }

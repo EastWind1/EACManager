@@ -90,14 +90,14 @@ func (a *Attach) TableName() string {
 }
 
 type DTO struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	Type Type   `json:"type"`
+	ID   uint `json:"id"`
+	Name string
+	Type Type
 }
 
 func (a *Attach) ToDTO() *DTO {
 	return &DTO{
-		ID:   int(a.ID),
+		ID:   a.ID,
 		Name: a.Name,
 		Type: a.Type,
 	}
@@ -105,7 +105,7 @@ func (a *Attach) ToDTO() *DTO {
 
 func (a *DTO) TOEntity() *Attach {
 	return &Attach{
-		ID:   uint(a.ID),
+		ID:   a.ID,
 		Name: a.Name,
 		Type: a.Type,
 	}
@@ -133,7 +133,7 @@ const (
 	StatusPersistent
 )
 
-type FileOpType int
+type FileOpType uint
 
 const (
 	FileOpCreate FileOpType = iota

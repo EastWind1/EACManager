@@ -18,7 +18,7 @@ type Repository struct {
 	*database.BaseRepository[ServiceBill]
 }
 
-func NewRepository(db *gorm.DB) *Repository {
+func newRepository(db *gorm.DB) *Repository {
 	return &Repository{
 		BaseRepository: database.NewBaseRepository[ServiceBill](db),
 	}
@@ -114,7 +114,7 @@ func (r *Repository) findDetailsByBillIDs(ctx context.Context, billIDs []uint) (
 	}
 	res := make(map[uint][]Detail, len(billIDs))
 	for _, detail := range details {
-		billID := uint(detail.ServiceBillID)
+		billID := detail.ServiceBillID
 		res[billID] = append(res[billID], detail)
 	}
 	return res, nil
@@ -209,7 +209,7 @@ func (r *Repository) syncDetails(ctx context.Context, entity *ServiceBill) error
 	toUpdate := make([]Detail, 0, len(entity.Details))
 	toInsert := make([]Detail, 0, len(entity.Details))
 	for _, detail := range entity.Details {
-		detail.ServiceBillID = int(entity.ID)
+		detail.ServiceBillID = entity.ID
 		if detail.ID == 0 {
 			toInsert = append(toInsert, detail)
 			continue

@@ -9,58 +9,75 @@ import (
 	"backend-go/internal/security"
 	"backend-go/internal/user"
 	"backend-go/pkg/cache"
-	"backend-go/pkg/context"
 	"backend-go/pkg/database"
 	"backend-go/pkg/logger"
 	"backend-go/pkg/middleware"
-	stdContext "context"
 	"fmt"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/recover"
+	"gorm.io/gorm"
 )
 
+// App 组装完成的应用程序；基础设施与各模块 service 都由它持有
+type App struct {
+	Cfg    *config.Config
+	Cache  cache.Cache
+	Db     *gorm.DB
+	Server *fiber.App
+
+	User          *user.Service
+	Company       *company.Service
+	Attach        *attach.Service
+	Content       *attach.ContentService
+	Bill          *bill.Service
+	BillStat      *bill.StatisticService
+	Reimburse     *reimburse.Service
+	ReimburseStat *reimburse.StatisticService
+	Security      *security.Service
+}
+
 func Run() {
-	ctx := new(context.AppContext)
-	cfg := config.NewConfig()
-	ctx.Cfg = cfg
-	server := fiber.New(fiber.Config{
-		ErrorHandler: middleware.ErrorHandler(),
-		BodyLimit:    int(cfg.Attach.MaxFileSize),
-	})
-	ctx.Server = server
+	app, err := NewApp(config.NewConfig())
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := app.Server.Listen(fmt.Sprintf(":%d", app.Cfg.Server.Port)); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func NewApp(cfg *config.Config) (*App, error) {
+	app := &App{
+		Cfg:   cfg,
+		Cache: cache.NewInMemoryCache(cfg.Cache),
+		Db:    database.NewDB(cfg.Db, cfg.Log),
+		Server: fiber.New(fiber.Config{
+			ErrorHandler: middleware.ErrorHandler(),
+			BodyLimit:    int(cfg.Attach.MaxFileSize),
+		}),
+	}
 	logger.InitLogger(cfg.Log)
-	server.Use(recover.New(recover.Config{
+	app.Server.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))
-	server.Use(middleware.ResultWrap())
-	ctx.Cache = cache.NewInMemoryCache(cfg.Cache)
-	ctx.Db = database.NewDB(cfg.Db, cfg.Log)
-	router := server.Group("/api")
+	app.Server.Use(middleware.ResultWrap())
+
+	router := app.Server.Group("/api")
 	{
-		// 先注册认证中间件，再注册依赖动作权限的模块
-		permissionSrv := security.NewService(ctx)
-		permissionSyncSrv := security.NewPermissionSyncService(ctx)
-		securityInitializer := security.NewSecurityInitializer(ctx)
+		securitySrv, permissionSyncSrv := security.Setup(app.Db, router)
 
-		user.Setup(ctx, router, permissionSrv, permissionSyncSrv)
-		security.Setup(ctx, router, permissionSrv, permissionSyncSrv)
-		companySrv := company.Setup(ctx, router, permissionSrv, permissionSyncSrv)
-		attachSrv, contentSrv := attach.Setup(ctx, router, permissionSrv, permissionSyncSrv)
-		reimburse.Setup(ctx, router, attachSrv, contentSrv, permissionSrv, permissionSyncSrv)
-		bill.Setup(ctx, router, companySrv, attachSrv, contentSrv, permissionSrv, permissionSyncSrv)
+		app.Security = securitySrv
+		app.User = user.Setup(cfg, app.Db, router, securitySrv, permissionSyncSrv)
+		app.Company = company.Setup(app.Db, router, securitySrv, permissionSyncSrv)
+		app.Attach, app.Content = attach.Setup(cfg, app.Db, router, securitySrv, permissionSyncSrv)
+		app.Reimburse, app.ReimburseStat = reimburse.Setup(app.Cache, app.Db, router, app.Attach, app.Content, securitySrv, permissionSyncSrv)
+		app.Bill, app.BillStat = bill.Setup(app.Cache, app.Db, router, app.Company, app.Attach, app.Content, securitySrv, permissionSyncSrv)
 
-		// 各模块初始化时已注册权限，先同步权限目录，再初始化管理员角色
-		if err := permissionSyncSrv.Sync(stdContext.Background()); err != nil {
-			log.Fatal(err)
+		if err := permissionSyncSrv.Sync(); err != nil {
+			return nil, err
 		}
-		if err := securityInitializer.Initialize(stdContext.Background()); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if err := server.Listen(fmt.Sprintf(":%d", cfg.Server.Port)); err != nil {
-		log.Fatal(err)
+		return app, nil
 	}
 }

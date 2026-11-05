@@ -11,7 +11,7 @@ type Controller struct {
 	attachService *Service
 }
 
-func NewController(attachService *Service) *Controller {
+func newController(attachService *Service) *Controller {
 	return &Controller{
 		attachService: attachService,
 	}

@@ -10,7 +10,7 @@ type Service struct {
 	companyRepo *Repository
 }
 
-func NewCompanyService(companyRepo *Repository) *Service {
+func newCompanyService(companyRepo *Repository) *Service {
 	return &Service{
 		companyRepo: companyRepo,
 	}

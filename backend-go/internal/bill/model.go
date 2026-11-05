@@ -59,7 +59,7 @@ func (s *State) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type Type int
+type Type uint
 
 const (
 	Install Type = iota
@@ -118,7 +118,7 @@ type ServiceBill struct {
 
 type Detail struct {
 	ID            uint `gorm:"primaryKey"`
-	ServiceBillID int  `gorm:"index"`
+	ServiceBillID uint `gorm:"index"`
 
 	Device   string
 	Quantity float64

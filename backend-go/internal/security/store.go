@@ -19,7 +19,7 @@ type Repository struct {
 
 const relationBatchSize = database.RelationBatchSize
 
-func NewRepository(db *gorm.DB) *Repository {
+func newRepository(db *gorm.DB) *Repository {
 	return &Repository{BaseRepository: database.NewBaseRepository[RolePermission](db)}
 }
 

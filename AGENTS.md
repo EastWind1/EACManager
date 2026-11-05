@@ -111,7 +111,8 @@ cd frontend     && pnpm install && pnpm dev        # pnpm build / type-check / l
 
 两端都是**集成测试，必须有可达的 PostgreSQL**，没有 mock 数据库层。Java 用 `@SpringBootTest` +
 `@Transactional` 回滚（`common/BaseServiceTest`）；Go 每个包一个 `_test.go`，无 `TestMain`：
-`test_util.AppCtx()` 懒初始化共享环境，每个用例 `test_util.BeginTx(t)` 返回携带事务的 context，用例结束自动回滚。
+`test_util.App()` 懒初始化共享应用实例，走与 `server.Run` 相同的组装、权限同步和角色初始化路径，
+每个用例 `test_util.BeginTx(t)` 返回携带事务的 context，用例结束自动回滚。
 Go 测试读同一份 `config.yaml`，只把附件目录改到系统临时目录。
 
 ## 约定
@@ -187,8 +188,8 @@ backend-go/
       security: sync.go（权限同步 + 初始化）、middleware.go（请求级权限缓存）
       bill/reimburse 额外: *_rule.go（OCR 文本/表格映射）、mapper.go、attach_relation.go
       attach 额外: files.go / ocr.go / office.go / file_tx.go / content.go
-  internal/test_util/   集成测试环境（共享 AppCtx、事务回滚、上传辅助）
-  pkg/    auth / cache / context / database / errs / logger / middleware / result / util
+  internal/test_util/   集成测试环境（共享应用实例、事务回滚、上传辅助）
+  pkg/    auth / cache / database / errs / logger / middleware / result / util
   config/ config.go + config.yaml
 
 frontend/src/

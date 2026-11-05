@@ -20,7 +20,7 @@ type Mapper struct {
 	rules   []MapRule
 }
 
-func NewServiceBillMapper(content *attach.ContentService, companySrc *company.Service) *Mapper {
+func newServiceBillMapper(content *attach.ContentService, companySrc *company.Service) *Mapper {
 	return &Mapper{
 		content: content,
 		rules: []MapRule{

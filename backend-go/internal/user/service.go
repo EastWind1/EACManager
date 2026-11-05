@@ -2,7 +2,6 @@ package user
 
 import (
 	"backend-go/internal/security"
-	"backend-go/pkg/auth"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"context"
@@ -29,7 +28,7 @@ type Service struct {
 	securitySvc *security.Service
 }
 
-func NewService(userRepo *Repository, jwtSvc *JWTService, securitySvc *security.Service) *Service {
+func newService(userRepo *Repository, jwtSvc *JWTService, securitySvc *security.Service) *Service {
 	return &Service{
 		userRepo:    userRepo,
 		jwtSvc:      jwtSvc,
@@ -217,7 +216,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (*LoginR
 }
 
 func (s *Service) GetAll(ctx context.Context, queryParam *result.QueryParam) (*result.PageResult[DTO], error) {
-	curUser, err := auth.GetCurrentUser(ctx)
+	curUser, err := security.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +277,7 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	if dto.Username == "" {
 		return nil, errs.NewBizError("用户名不能为空")
 	}
-	curUser, err := auth.GetCurrentUser(ctx)
+	curUser, err := security.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +334,7 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("id 不能为空")
 	}
-	curUser, err := auth.GetCurrentUser(ctx)
+	curUser, err := security.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -376,11 +375,11 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 			// 不允许把最后一名启用的管理员降级，否则系统将无人可管理
 			if slices.Contains(currentRoles, security.AdminRoleCode) &&
 				!slices.Contains(requestedRoles, security.AdminRoleCode) {
-				count, err := s.userRepo.CountEnabledUsersWithRole(txCtx, security.AdminRoleCode)
+				admins, err := s.userRepo.FindEnabledUsersWithRole(txCtx, security.AdminRoleCode)
 				if err != nil {
 					return err
 				}
-				if count <= 1 {
+				if len(admins) <= 1 {
 					return errs.NewBizError("必须保留至少一个启用的管理员")
 				}
 			}
@@ -436,7 +435,7 @@ func (s *Service) Disable(ctx context.Context, username string) error {
 	}
 	target := users[0]
 
-	curUser, err := auth.GetCurrentUser(ctx)
+	curUser, err := security.GetCurrentUser(ctx)
 	if err != nil {
 		return err
 	}
@@ -448,11 +447,11 @@ func (s *Service) Disable(ctx context.Context, username string) error {
 		return err
 	}
 	if isAdmin {
-		count, err := s.userRepo.CountEnabledUsersWithRole(ctx, security.AdminRoleCode)
+		admins, err := s.userRepo.FindEnabledUsersWithRole(ctx, security.AdminRoleCode)
 		if err != nil {
 			return err
 		}
-		if count <= 1 {
+		if len(admins) <= 1 {
 			return errs.NewBizError("必须保留至少一个启用的管理员")
 		}
 	}
@@ -466,8 +465,24 @@ func (s *Service) Disable(ctx context.Context, username string) error {
 	return nil
 }
 
-func (s *Service) FindByUsername(ctx context.Context, username string) (*User, error) {
-	return s.userRepo.FindByUsername(ctx, username)
+func (s *Service) FindByUsername(ctx context.Context, username string) (*DTO, error) {
+	user, err := s.userRepo.FindByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	return user.ToDTO(), nil
+}
+
+func (s *Service) FindEnabledUsersWithRole(ctx context.Context, roleCode string) ([]DTO, error) {
+	users, err := s.userRepo.FindEnabledUsersWithRole(ctx, roleCode)
+	if err != nil {
+		return nil, err
+	}
+	dtos := make([]DTO, len(users))
+	for i, user := range users {
+		dtos[i] = *user.ToDTO()
+	}
+	return dtos, nil
 }
 
 func roleCodes(roles []security.RoleDTO) []string {

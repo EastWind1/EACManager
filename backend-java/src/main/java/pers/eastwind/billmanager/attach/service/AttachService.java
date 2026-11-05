@@ -97,14 +97,26 @@ public class AttachService implements InitializingBean {
     }
 
     public Path getAbsolutePathById(Integer id) {
+        return getAbsolutePathByRela(requireAttach(id).getRelativePath());
+    }
+
+    public AttachStatus getStatus(Integer id) {
+        return requireAttach(id).getStatus();
+    }
+
+    public String getRelativePath(Integer id) {
+        return requireAttach(id).getRelativePath();
+    }
+
+    public boolean exists(Integer id) {
+        return id != null && attachRepository.existsById(id);
+    }
+
+    private Attach requireAttach(Integer id) {
         if (id == null) {
             throw new BizException("附件 ID 不能为空");
         }
-        Attach attachment = attachRepository.findById(id).orElse(null);
-        if (attachment == null) {
-            throw new BizException("附件不存在");
-        }
-        return getAbsolutePathByRela(attachment.getRelativePath());
+        return attachRepository.findById(id).orElseThrow(() -> new BizException("附件不存在"));
     }
 
     public Resource getResource(AttachDTO attachDTO) {
@@ -232,7 +244,15 @@ public class AttachService implements InitializingBean {
     @Transactional
     @Scheduled(cron = "0 0 2 * * *")
     public void cleanTransientFiles() {
-        List<Attach> expired = attachRepository.findByStatusAndCreatedDateBefore(AttachStatus.TRANSIENT, Instant.now().minus(TEMP_RETENTION));
+        cleanTransientFiles(Instant.now().minus(TEMP_RETENTION));
+    }
+
+    /**
+     * 按截止时间清理游离附件；测试用未来时间戳触发回收，避免改库伪造创建时间。
+     */
+    @Transactional
+    public void cleanTransientFiles(Instant cutoff) {
+        List<Attach> expired = attachRepository.findByStatusAndCreatedDateBefore(AttachStatus.TRANSIENT, cutoff);
         if (expired.isEmpty()) {
             return;
         }

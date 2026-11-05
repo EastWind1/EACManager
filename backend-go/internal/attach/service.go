@@ -2,8 +2,7 @@ package attach
 
 import (
 	"backend-go/config"
-	"backend-go/pkg/auth"
-	"backend-go/pkg/cache"
+	"backend-go/internal/security"
 	"backend-go/pkg/errs"
 	"context"
 	"crypto/sha256"
@@ -34,9 +33,8 @@ const transientRetention = 7 * 24 * time.Hour
 
 var namespacePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
-func NewService(
+func newService(
 	cfg *config.AttachConfig,
-	cache cache.Cache,
 	attachRepo *Repository,
 ) *Service {
 	appPath, err := os.Getwd()
@@ -82,11 +80,11 @@ func (s *Service) CreateTempDir(prefix string) (string, error) {
 	return dir, nil
 }
 
-func (s *Service) GetAbsolutePathById(ctx context.Context, id int) (string, error) {
+func (s *Service) GetAbsolutePathById(ctx context.Context, id uint) (string, error) {
 	if id <= 0 {
 		return "", errs.NewBizError("附件 ID 不合法")
 	}
-	attachment, err := s.attachRepo.FindByID(ctx, uint(id))
+	attachment, err := s.attachRepo.FindByID(ctx, id)
 	if err != nil {
 		return "", errs.Wrap(err)
 	}
@@ -116,6 +114,22 @@ func (s *Service) GetRelativePath(absolutePath string) (string, error) {
 		return "", errs.Wrap(err)
 	}
 	return relativePath, nil
+}
+
+func (s *Service) FindById(ctx context.Context, id uint) (*DTO, error) {
+	attachment, err := s.attachRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if attachment == nil {
+		return nil, err
+	}
+
+	if err := assertCanAccess(ctx, attachment); err != nil {
+		return nil, err
+	}
+	return attachment.ToDTO(), nil
 }
 
 func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*multipart.FileHeader) ([]DTO, error) {
@@ -271,7 +285,7 @@ func (s *Service) GetResource(ctx context.Context, dto *DTO) (filename string, p
 		return "", "", errs.NewBizError("附件信息不能为空")
 	}
 
-	attachment, err := s.attachRepo.FindByID(ctx, uint(dto.ID))
+	attachment, err := s.attachRepo.FindByID(ctx, dto.ID)
 	if err != nil {
 		return "", "", errs.Wrap(err)
 	}
@@ -298,7 +312,7 @@ func assertCanAccess(ctx context.Context, attachment *Attach) error {
 	if attachment.Status != StatusTransient {
 		return nil
 	}
-	user, err := auth.GetCurrentUser(ctx)
+	user, err := security.GetCurrentUser(ctx)
 	if err != nil {
 		return errs.NewUnauthError("未登录")
 	}

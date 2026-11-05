@@ -11,7 +11,7 @@ type Controller struct {
 	companyService *Service
 }
 
-func NewController(companyService *Service) *Controller {
+func newController(companyService *Service) *Controller {
 	return &Controller{
 		companyService: companyService,
 	}

@@ -29,7 +29,7 @@ type AttachRelRepo struct {
 	*database.BaseRepository[AttachRelation]
 }
 
-func NewAttachRelRepo(db *gorm.DB) *AttachRelRepo {
+func newAttachRelRepo(db *gorm.DB) *AttachRelRepo {
 	return &AttachRelRepo{
 		BaseRepository: database.NewBaseRepository[AttachRelation](db),
 	}
@@ -90,9 +90,9 @@ type RelService struct {
 	attachSrv *attach.Service
 }
 
-func NewAttachRelService(db *gorm.DB, attachSrv *attach.Service) *RelService {
+func newAttachRelService(db *gorm.DB, attachSrv *attach.Service) *RelService {
 	return &RelService{
-		relRepo:   NewAttachRelRepo(db),
+		relRepo:   newAttachRelRepo(db),
 		attachSrv: attachSrv,
 	}
 }
@@ -139,7 +139,7 @@ func (s *RelService) UpdateAttachments(ctx context.Context, billID uint, dtoes [
 	addedIDs := make([]uint, 0, len(dtoes))
 	targetIDs := make(map[uint]struct{}, len(dtoes))
 	for _, dto := range dtoes {
-		id := uint(dto.ID)
+		id := dto.ID
 		if id == 0 {
 			continue
 		}

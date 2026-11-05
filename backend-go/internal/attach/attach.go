@@ -1,22 +1,23 @@
 package attach
 
 import (
+	"backend-go/config"
 	"backend-go/internal/security"
-	appContext "backend-go/pkg/context"
 	"context"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
+	"gorm.io/gorm"
 )
 
-func Setup(ctx *appContext.AppContext, router fiber.Router, permissionSrv *security.Service,
+func Setup(cfg *config.Config, db *gorm.DB, router fiber.Router, permissionSrv *security.Service,
 	permissionSyncSrv *security.PermissionSyncService) (*Service, *ContentService) {
 	permissionSyncSrv.Register(attachPermissions()...)
-	attachmentRepo := NewRepository(ctx.Db)
-	attachmentService := NewService(ctx.Cfg.Attach, ctx.Cache, attachmentRepo)
-	ocrService := NewOCRService(ctx.Cfg.OCR)
-	attachmentController := NewController(attachmentService)
+	attachmentRepo := newRepository(db)
+	attachmentService := newService(cfg.Attach, attachmentRepo)
+	ocrService := newOCRService(cfg.OCR)
+	attachmentController := newController(attachmentService)
 	attachGroup := router.Group("/attachment")
 	{
 		attachGroup.Get("/", security.Middleware(permissionSrv, DownloadAuthCode), attachmentController.Download)
@@ -33,12 +34,5 @@ func Setup(ctx *appContext.AppContext, router fiber.Router, permissionSrv *secur
 		}
 	}()
 
-	return attachmentService, NewContentService(ocrService, attachmentService)
-}
-
-func SetupForTest(ctx *appContext.AppContext) (*Service, *ContentService) {
-	attachmentRepo := NewRepository(ctx.Db)
-	attachmentService := NewService(ctx.Cfg.Attach, ctx.Cache, attachmentRepo)
-	ocrService := NewOCRService(ctx.Cfg.OCR)
-	return attachmentService, NewContentService(ocrService, attachmentService)
+	return attachmentService, newContentService(ocrService, attachmentService)
 }

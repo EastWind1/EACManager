@@ -12,7 +12,7 @@ type Controller struct {
 	reimburseService *Service
 }
 
-func NewReimburseController(reimburseService *Service) *Controller {
+func newReimburseController(reimburseService *Service) *Controller {
 	return &Controller{
 		reimburseService: reimburseService,
 	}

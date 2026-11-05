@@ -13,7 +13,7 @@ type JWTService struct {
 	expire int
 }
 
-func NewJWTService(cfg *config.JWTConfig) *JWTService {
+func newJWTService(cfg *config.JWTConfig) *JWTService {
 	return &JWTService{
 		secret: []byte(cfg.Secret),
 		expire: cfg.Expire,

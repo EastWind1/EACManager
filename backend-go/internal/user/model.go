@@ -17,10 +17,6 @@ func (u *User) TableName() string {
 	return "sys_user"
 }
 
-func (u *User) GetID() uint {
-	return u.ID
-}
-
 type InitDTO struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -45,6 +41,10 @@ type DTO struct {
 	Permissions []security.PermissionDTO `json:"permissions,omitempty"`
 }
 
+func (dto *DTO) GetID() uint {
+	return dto.ID
+}
+
 func (u *User) ToDTO() *DTO {
 	return &DTO{
 		ID:       u.ID,
@@ -57,15 +57,15 @@ func (u *User) ToDTO() *DTO {
 	}
 }
 
-func (u *DTO) ToEntity() *User {
+func (dto *DTO) ToEntity() *User {
 	return &User{
-		ID:       u.ID,
-		Username: u.Username,
-		Password: *u.Password,
-		Name:     u.Name,
-		Phone:    u.Phone,
-		Email:    u.Email,
-		Disabled: u.Disabled,
+		ID:       dto.ID,
+		Username: dto.Username,
+		Password: *dto.Password,
+		Name:     dto.Name,
+		Phone:    dto.Phone,
+		Email:    dto.Email,
+		Disabled: dto.Disabled,
 	}
 }
 

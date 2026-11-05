@@ -22,7 +22,7 @@ type Service struct {
 	mapper        *Mapper
 }
 
-func NewService(
+func newService(
 	reimburseRepo *Repository,
 	attachSrv *attach.Service,
 	relSrv *AttachRelService,

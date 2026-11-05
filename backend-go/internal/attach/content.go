@@ -13,7 +13,7 @@ type ContentService struct {
 	attachService *Service
 }
 
-func NewContentService(ocrService *OCRService, attachService *Service) *ContentService {
+func newContentService(ocrService *OCRService, attachService *Service) *ContentService {
 	return &ContentService{
 		ocrService:    ocrService,
 		attachService: attachService,

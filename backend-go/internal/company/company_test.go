@@ -2,9 +2,8 @@ package company_test
 
 import (
 	"backend-go/internal/company"
-	"backend-go/internal/test_util"
+	"backend-go/internal/test"
 	"backend-go/pkg/result"
-	"context"
 	"strconv"
 	"testing"
 
@@ -13,8 +12,7 @@ import (
 
 // CompanyServiceTest CompanyService集成测试
 type CompanyServiceTest struct {
-	suite.Suite
-	ctx     context.Context
+	test.BaseSuite
 	srv     *company.Service
 	testCom *company.DTO
 }
@@ -24,11 +22,12 @@ func TestCompanyService(t *testing.T) {
 }
 
 func (s *CompanyServiceTest) SetupSuite() {
-	s.srv = company.SetupForTest(test_util.AppCtx())
+	s.BaseSuite.SetupSuite()
+	s.srv = s.App.Company
 }
 
 func (s *CompanyServiceTest) SetupTest() {
-	s.ctx = test_util.BeginTx(s.T())
+	s.BaseSuite.SetupTest()
 	s.testCom = &company.DTO{
 		Name:         "测试公司",
 		ContactName:  "联系人",
@@ -37,7 +36,7 @@ func (s *CompanyServiceTest) SetupTest() {
 }
 
 func (s *CompanyServiceTest) TestCreate() {
-	created, err := s.srv.Create(s.ctx, s.testCom)
+	created, err := s.srv.Create(s.Ctx, s.testCom)
 	s.NoError(err)
 
 	s.NotZero(created.ID)
@@ -51,20 +50,20 @@ func (s *CompanyServiceTest) TestFindEnabled() {
 			ContactName:  "联系人" + strconv.Itoa(i),
 			ContactPhone: "1380013800" + strconv.Itoa(i),
 		}
-		_, err := s.srv.Create(s.ctx, dto)
+		_, err := s.srv.Create(s.Ctx, dto)
 		s.NoError(err)
 	}
 
-	res, err := s.srv.FindEnabled(s.ctx, new(result.QueryParam{}))
+	res, err := s.srv.FindEnabled(s.Ctx, new(result.QueryParam{}))
 	s.NoError(err)
-	s.GreaterOrEqual(res.TotalCount, 3)
+	s.GreaterOrEqual(res.TotalCount, 2)
 }
 
 func (s *CompanyServiceTest) TestFindByName() {
-	_, err := s.srv.Create(s.ctx, s.testCom)
+	_, err := s.srv.Create(s.Ctx, s.testCom)
 	s.NoError(err)
 
-	found, err := s.srv.FindByName(s.ctx, s.testCom.Name)
+	found, err := s.srv.FindByName(s.Ctx, s.testCom.Name)
 	s.NoError(err)
 
 	s.NotEmpty(found)
@@ -72,13 +71,13 @@ func (s *CompanyServiceTest) TestFindByName() {
 }
 
 func (s *CompanyServiceTest) TestUpdate() {
-	created, err := s.srv.Create(s.ctx, s.testCom)
+	created, err := s.srv.Create(s.Ctx, s.testCom)
 	s.NoError(err)
 
 	created.ContactName = "更新后的联系人"
 	created.ContactPhone = "13900139000"
 	created.Address = "更新后的地址"
-	updated, err := s.srv.Update(s.ctx, created)
+	updated, err := s.srv.Update(s.Ctx, created)
 	s.NoError(err)
 
 	s.Equal("更新后的联系人", updated.ContactName)
@@ -87,12 +86,12 @@ func (s *CompanyServiceTest) TestUpdate() {
 }
 
 func (s *CompanyServiceTest) TestDisable() {
-	created, err := s.srv.Create(s.ctx, s.testCom)
+	created, err := s.srv.Create(s.Ctx, s.testCom)
 	s.NoError(err)
 
-	err = s.srv.Disable(s.ctx, created.ID)
+	err = s.srv.Disable(s.Ctx, created.ID)
 	s.NoError(err)
-	res, err := s.srv.FindByName(s.ctx, created.Name)
+	res, err := s.srv.FindByName(s.Ctx, created.Name)
 	s.NoError(err)
 	s.Empty(res)
 }

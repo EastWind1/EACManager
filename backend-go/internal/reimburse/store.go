@@ -18,7 +18,7 @@ type Repository struct {
 	*database.BaseRepository[Reimburse]
 }
 
-func NewReimburseRepository(db *gorm.DB) *Repository {
+func newReimburseRepository(db *gorm.DB) *Repository {
 	return &Repository{
 		BaseRepository: database.NewBaseRepository[Reimburse](db),
 	}

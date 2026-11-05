@@ -20,7 +20,7 @@ type OCRResult struct {
 	Data []string `json:"data"`
 }
 
-func NewOCRService(cfg *config.OCRConfig) *OCRService {
+func newOCRService(cfg *config.OCRConfig) *OCRService {
 	return &OCRService{
 		cfg: cfg,
 	}

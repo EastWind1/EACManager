@@ -12,7 +12,7 @@ type Controller struct {
 	srv *Service
 }
 
-func NewController(srv *Service) *Controller {
+func newController(srv *Service) *Controller {
 	return &Controller{srv: srv}
 }
 

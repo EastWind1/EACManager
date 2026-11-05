@@ -1,19 +1,20 @@
 package user
 
 import (
+	"backend-go/config"
 	"backend-go/internal/security"
-	"backend-go/pkg/context"
 
 	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
 )
 
-func Setup(ctx *context.AppContext, router fiber.Router, securitySrv *security.Service,
-	permissionSyncSrv *security.PermissionSyncService) {
+func Setup(cfg *config.Config, db *gorm.DB, router fiber.Router, securitySrv *security.Service,
+	permissionSyncSrv *security.PermissionSyncService) *Service {
 	permissionSyncSrv.Register(userPermissions()...)
-	repo := NewUserRepository(ctx.Db)
-	jwtSrv := NewJWTService(ctx.Cfg.JWT)
-	userSrv := NewService(repo, jwtSrv, securitySrv)
-	userController := NewController(ctx.Cfg.JWT, userSrv)
+	repo := newUserRepository(db)
+	jwtSrv := newJWTService(cfg.JWT)
+	userSrv := newService(repo, jwtSrv, securitySrv)
+	userController := newController(cfg.JWT, userSrv)
 
 	router.Use(AuthMiddleware(jwtSrv, userSrv))
 
@@ -28,11 +29,5 @@ func Setup(ctx *context.AppContext, router fiber.Router, securitySrv *security.S
 		api.Put("/", security.Middleware(securitySrv, UpdateAuthCode), userController.Update)
 		api.Delete("/:username", security.Middleware(securitySrv, DisableAuthCode), userController.Disable)
 	}
-}
-
-func SetupForTest(ctx *context.AppContext) *Service {
-	repo := NewUserRepository(ctx.Db)
-	jwtSrv := NewJWTService(ctx.Cfg.JWT)
-	securitySrv := security.NewService(ctx)
-	return NewService(repo, jwtSrv, securitySrv)
+	return userSrv
 }

@@ -253,6 +253,15 @@ public class UserService implements UserDetailsService {
     }
 
     /**
+     * 按角色查询启用用户，供初始化判断与测试复用；返回带角色、权限的完整 DTO
+     */
+    public List<UserDTO> findEnabledUsersByRole(String roleCode) {
+        return userRepository.findEnabledByRoleCode(roleCode).stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    /**
      * 创建首个管理员；仅当系统没有任何管理员用户时允许执行，先锁 ADMIN 角色行以串行化并发初始化
      */
     @Transactional
@@ -283,7 +292,7 @@ public class UserService implements UserDetailsService {
         User saved = userRepository.save(user);
         securityService.setUserRoles(saved.getId(), Set.of(SecurityService.ADMIN_ROLE_CODE));
         log.info("系统初始化管理员: {}", dto.getUsername());
-        return userMapper.toDTO(saved);
+        return toDTO(saved);
     }
 
 

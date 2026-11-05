@@ -14,7 +14,7 @@ type Controller struct {
 	userService *Service
 }
 
-func NewController(cfg *config.JWTConfig, userService *Service) *Controller {
+func newController(cfg *config.JWTConfig, userService *Service) *Controller {
 	return &Controller{
 		userService: userService,
 		cfg:         cfg,

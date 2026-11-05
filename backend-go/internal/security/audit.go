@@ -1,7 +1,6 @@
 package security
 
 import (
-	"backend-go/pkg/auth"
 	"time"
 
 	"gorm.io/gorm"
@@ -15,7 +14,7 @@ type Audit struct {
 }
 
 func (a *Audit) BeforeCreate(db *gorm.DB) (err error) {
-	user, err := auth.GetCurrentUser(db.Statement.Context)
+	user, err := GetCurrentUser(db.Statement.Context)
 	if err != nil {
 		return
 	}
@@ -32,7 +31,7 @@ func (a *Audit) BeforeUpdate(db *gorm.DB) (err error) {
 	if len(db.Statement.Selects) > 0 {
 		db.Statement.Selects = append(db.Statement.Selects, "last_modified_by_id", "last_modified_date")
 	}
-	user, err := auth.GetCurrentUser(db.Statement.Context)
+	user, err := GetCurrentUser(db.Statement.Context)
 	if err != nil {
 		return
 	}

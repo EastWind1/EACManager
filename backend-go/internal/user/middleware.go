@@ -1,7 +1,7 @@
 package user
 
 import (
-	"backend-go/pkg/auth"
+	"backend-go/internal/security"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"strings"
@@ -50,7 +50,7 @@ func AuthMiddleware(jwtSrv *JWTService, userSrv *Service) fiber.Handler {
 			return errs.NewUnauthError("Token 不合法")
 		}
 
-		auth.SetCurrentUser(c, user)
+		security.SetUserToFiberCtx(c, user)
 		return c.Next()
 	}
 }

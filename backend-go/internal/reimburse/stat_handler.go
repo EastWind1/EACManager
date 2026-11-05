@@ -10,7 +10,7 @@ type StatisticController struct {
 	statisticSrv *StatisticService
 }
 
-func NewStatisticController(statisticSrv *StatisticService) *StatisticController {
+func newStatisticController(statisticSrv *StatisticService) *StatisticController {
 	return &StatisticController{
 		statisticSrv: statisticSrv,
 	}

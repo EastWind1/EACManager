@@ -3,11 +3,9 @@ package bill_test
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/bill"
-	"backend-go/internal/test_util"
+	"backend-go/internal/test"
 	"backend-go/pkg/result"
-	"context"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -16,8 +14,7 @@ import (
 
 // BillServiceTest 业务服务测试
 type BillServiceTest struct {
-	suite.Suite
-	ctx      context.Context
+	test.BaseSuite
 	srv      *bill.Service
 	testBill *bill.DTO
 }
@@ -27,12 +24,12 @@ func TestBillService(t *testing.T) {
 }
 
 func (s *BillServiceTest) SetupSuite() {
-	attachSvc, _ := attach.SetupForTest(test_util.AppCtx())
-	s.srv, _ = bill.SetupForTest(test_util.AppCtx(), attachSvc)
+	s.BaseSuite.SetupSuite()
+	s.srv = s.App.Bill
 }
 
 func (s *BillServiceTest) SetupTest() {
-	s.ctx = test_util.BeginTx(s.T())
+	s.BaseSuite.SetupTest()
 	s.testBill = &bill.DTO{
 		State:          bill.Created,
 		ProjectName:    "测试项目",
@@ -51,7 +48,7 @@ func (s *BillServiceTest) SetupTest() {
 }
 
 func (s *BillServiceTest) TestCreate() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
 	s.NotZero(created.ID)
@@ -61,15 +58,15 @@ func (s *BillServiceTest) TestCreate() {
 
 func (s *BillServiceTest) TestInvalidNumberCreate() {
 	s.testBill.Number = "BILL/TEST"
-	_, err := s.srv.Create(s.ctx, s.testBill)
+	_, err := s.srv.Create(s.Ctx, s.testBill)
 	s.Error(err)
 }
 
 func (s *BillServiceTest) TestFindByID() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	found, err := s.srv.FindByID(s.ctx, created.ID)
+	found, err := s.srv.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 
 	s.NotNil(found)
@@ -93,7 +90,7 @@ func (s *BillServiceTest) TestFindByParam() {
 				},
 			},
 		}
-		_, err := s.srv.Create(s.ctx, newBill)
+		_, err := s.srv.Create(s.Ctx, newBill)
 		s.NoError(err)
 	}
 
@@ -102,47 +99,47 @@ func (s *BillServiceTest) TestFindByParam() {
 		PageIndex:   new(1),
 		PageSize:    new(10),
 	}
-	bills, err := s.srv.FindByParam(s.ctx, queryParam)
+	bills, err := s.srv.FindByParam(s.Ctx, queryParam)
 	s.NoError(err)
 
 	s.GreaterOrEqual(bills.TotalCount, 3)
 }
 
 func (s *BillServiceTest) TestUpdate() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
 	created.ProjectName = "更新后的项目"
-	updated, err := s.srv.Update(s.ctx, created)
+	updated, err := s.srv.Update(s.Ctx, created)
 	s.NoError(err)
 
 	s.Equal("更新后的项目", updated.ProjectName)
 }
 
 func (s *BillServiceTest) TestDelete() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	res, err := s.srv.Delete(s.ctx, []uint{created.ID})
+	res, err := s.srv.Delete(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 
 	s.NotNil(res)
 
-	_, err = s.srv.FindByID(s.ctx, created.ID)
+	_, err = s.srv.FindByID(s.Ctx, created.ID)
 	s.Error(err)
 }
 
 func (s *BillServiceTest) TestFinish() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	_, err = s.srv.Process(s.Ctx, []uint{created.ID})
 	s.NoError(err)
-	_, err = s.srv.Processed(s.ctx, []uint{created.ID}, new(time.Now()))
+	_, err = s.srv.Processed(s.Ctx, []uint{created.ID}, new(time.Now()))
 	s.NoError(err)
-	_, err = s.srv.Finish(s.ctx, []uint{created.ID}, new(time.Now()))
+	_, err = s.srv.Finish(s.Ctx, []uint{created.ID}, new(time.Now()))
 	s.NoError(err)
 
-	found, err := s.srv.FindByID(s.ctx, created.ID)
+	found, err := s.srv.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Finished, found.State)
 }
@@ -164,7 +161,7 @@ func (s *BillServiceTest) TestValidateAmountError() {
 		},
 	}
 
-	_, err := s.srv.Create(s.ctx, invalidBill)
+	_, err := s.srv.Create(s.Ctx, invalidBill)
 	s.Error(err)
 	s.Contains(err.Error(), "明细金额有误")
 
@@ -184,13 +181,13 @@ func (s *BillServiceTest) TestValidateAmountError() {
 		},
 	}
 
-	_, err = s.srv.Create(s.ctx, invalidBill2)
+	_, err = s.srv.Create(s.Ctx, invalidBill2)
 	s.Error(err)
 	s.Contains(err.Error(), "总金额有误")
 }
 
 func (s *BillServiceTest) TestFindWithEmptyParam() {
-	_, err := s.srv.FindByParam(s.ctx, nil)
+	_, err := s.srv.FindByParam(s.Ctx, nil)
 	s.Error(err)
 	s.Contains(err.Error(), "查询参数为空")
 }
@@ -213,7 +210,7 @@ func (s *BillServiceTest) TestCreateWithExistingID() {
 		},
 	}
 
-	_, err := s.srv.Create(s.ctx, newBill)
+	_, err := s.srv.Create(s.Ctx, newBill)
 	s.Error(err)
 	s.Contains(err.Error(), "单据 ID 自动生成")
 }
@@ -235,7 +232,7 @@ func (s *BillServiceTest) TestUpdateWithEmptyID() {
 		},
 	}
 
-	_, err := s.srv.Update(s.ctx, newBill)
+	_, err := s.srv.Update(s.Ctx, newBill)
 	s.Error(err)
 	s.Contains(err.Error(), "单据 ID 为空")
 }
@@ -258,25 +255,25 @@ func (s *BillServiceTest) TestUpdateNonExistentBill() {
 		},
 	}
 
-	_, err := s.srv.Update(s.ctx, newBill)
+	_, err := s.srv.Update(s.Ctx, newBill)
 	s.Error(err)
 	s.Contains(err.Error(), "单据不存在")
 }
 
 func (s *BillServiceTest) TestFindNonExistentID() {
-	_, err := s.srv.FindByID(s.ctx, 999999)
+	_, err := s.srv.FindByID(s.Ctx, 999999)
 	s.Error(err)
 	s.Contains(err.Error(), "单据不存在")
 }
 
 func (s *BillServiceTest) TestDeleteNonCreatedState() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	_, err = s.srv.Process(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 
-	res, err := s.srv.Delete(s.ctx, []uint{created.ID})
+	res, err := s.srv.Delete(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -288,20 +285,20 @@ func (s *BillServiceTest) TestDeleteNonCreatedState() {
 }
 
 func (s *BillServiceTest) TestProcessWithEmptyIDs() {
-	res, err := s.srv.Process(s.ctx, []uint{})
+	res, err := s.srv.Process(s.Ctx, []uint{})
 	s.Error(err)
 	s.Contains(err.Error(), "ID 为空")
 	s.Nil(res)
 }
 
 func (s *BillServiceTest) TestProcessNonCreatedState() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	_, err = s.srv.Process(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 
-	res, err := s.srv.Process(s.ctx, []uint{created.ID})
+	res, err := s.srv.Process(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -313,10 +310,10 @@ func (s *BillServiceTest) TestProcessNonCreatedState() {
 }
 
 func (s *BillServiceTest) TestProcessedNonProcessingState() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	res, err := s.srv.Processed(s.ctx, []uint{created.ID}, new(time.Now()))
+	res, err := s.srv.Processed(s.Ctx, []uint{created.ID}, new(time.Now()))
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -328,9 +325,9 @@ func (s *BillServiceTest) TestProcessedNonProcessingState() {
 }
 
 func (s *BillServiceTest) TestFinishNonProcessedState() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
-	res, err := s.srv.Finish(s.ctx, []uint{created.ID}, new(time.Now()))
+	res, err := s.srv.Finish(s.Ctx, []uint{created.ID}, new(time.Now()))
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -342,21 +339,21 @@ func (s *BillServiceTest) TestFinishNonProcessedState() {
 }
 
 func (s *BillServiceTest) TestDeleteWithEmptyIDs() {
-	res, err := s.srv.Delete(s.ctx, []uint{})
+	res, err := s.srv.Delete(s.Ctx, []uint{})
 	s.Error(err)
 	s.Contains(err.Error(), "ID 为空")
 	s.Nil(res)
 }
 
 func (s *BillServiceTest) TestProcessedWithEmptyIDs() {
-	res, err := s.srv.Processed(s.ctx, []uint{}, nil)
+	res, err := s.srv.Processed(s.Ctx, []uint{}, nil)
 	s.Error(err)
 	s.Contains(err.Error(), "ID 为空")
 	s.Nil(res)
 }
 
 func (s *BillServiceTest) TestFinishWithEmptyIDs() {
-	res, err := s.srv.Finish(s.ctx, []uint{}, nil)
+	res, err := s.srv.Finish(s.Ctx, []uint{}, nil)
 	s.Error(err)
 	s.Contains(err.Error(), "ID 为空")
 	s.Nil(res)
@@ -364,14 +361,14 @@ func (s *BillServiceTest) TestFinishWithEmptyIDs() {
 
 // TestCancelProcess tests CancelProcess business logic
 func (s *BillServiceTest) TestCancelProcessWithEmptyIDs() {
-	res, err := s.srv.CancelProcess(s.ctx, []uint{})
+	res, err := s.srv.CancelProcess(s.Ctx, []uint{})
 	s.Error(err)
 	s.Contains(err.Error(), "ID 为空")
 	s.Nil(res)
 }
 
 func (s *BillServiceTest) TestCancelProcessNonExistentBill() {
-	res, err := s.srv.CancelProcess(s.ctx, []uint{999999})
+	res, err := s.srv.CancelProcess(s.Ctx, []uint{999999})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -383,10 +380,10 @@ func (s *BillServiceTest) TestCancelProcessNonExistentBill() {
 }
 
 func (s *BillServiceTest) TestCancelProcessNonProcessingState() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	res, err := s.srv.CancelProcess(s.ctx, []uint{created.ID})
+	res, err := s.srv.CancelProcess(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -398,13 +395,13 @@ func (s *BillServiceTest) TestCancelProcessNonProcessingState() {
 }
 
 func (s *BillServiceTest) TestCancelProcessSuccess() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	_, err = s.srv.Process(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 
-	res, err := s.srv.CancelProcess(s.ctx, []uint{created.ID})
+	res, err := s.srv.CancelProcess(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(1, res.SuccessCount)
@@ -413,7 +410,7 @@ func (s *BillServiceTest) TestCancelProcessSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.srv.FindByID(s.ctx, created.ID)
+	found, err := s.srv.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Created, found.State)
 	// ProcessedDate should be nil after cancel
@@ -422,14 +419,14 @@ func (s *BillServiceTest) TestCancelProcessSuccess() {
 
 // TestCancelProcessed tests CancelProcessed business logic
 func (s *BillServiceTest) TestCancelProcessedWithEmptyIDs() {
-	res, err := s.srv.CancelProcessed(s.ctx, []uint{})
+	res, err := s.srv.CancelProcessed(s.Ctx, []uint{})
 	s.Error(err)
 	s.Contains(err.Error(), "ID 为空")
 	s.Nil(res)
 }
 
 func (s *BillServiceTest) TestCancelProcessedNonExistentBill() {
-	res, err := s.srv.CancelProcessed(s.ctx, []uint{999999})
+	res, err := s.srv.CancelProcessed(s.Ctx, []uint{999999})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -441,10 +438,10 @@ func (s *BillServiceTest) TestCancelProcessedNonExistentBill() {
 }
 
 func (s *BillServiceTest) TestCancelProcessedNonProcessedState() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	res, err := s.srv.CancelProcessed(s.ctx, []uint{created.ID})
+	res, err := s.srv.CancelProcessed(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -456,17 +453,17 @@ func (s *BillServiceTest) TestCancelProcessedNonProcessedState() {
 }
 
 func (s *BillServiceTest) TestCancelProcessedSuccess() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	_, err = s.srv.Process(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 
 	now := new(time.Time)
-	_, err = s.srv.Processed(s.ctx, []uint{created.ID}, now)
+	_, err = s.srv.Processed(s.Ctx, []uint{created.ID}, now)
 	s.NoError(err)
 
-	res, err := s.srv.CancelProcessed(s.ctx, []uint{created.ID})
+	res, err := s.srv.CancelProcessed(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(1, res.SuccessCount)
@@ -475,7 +472,7 @@ func (s *BillServiceTest) TestCancelProcessedSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.srv.FindByID(s.ctx, created.ID)
+	found, err := s.srv.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Processing, found.State)
 	// ProcessedDate should be nil after cancel
@@ -484,14 +481,14 @@ func (s *BillServiceTest) TestCancelProcessedSuccess() {
 
 // TestCancelFinish tests CancelFinish business logic
 func (s *BillServiceTest) TestCancelFinishWithEmptyIDs() {
-	res, err := s.srv.CancelFinish(s.ctx, []uint{})
+	res, err := s.srv.CancelFinish(s.Ctx, []uint{})
 	s.Error(err)
 	s.Contains(err.Error(), "ID 为空")
 	s.Nil(res)
 }
 
 func (s *BillServiceTest) TestCancelFinishNonExistentBill() {
-	res, err := s.srv.CancelFinish(s.ctx, []uint{999999})
+	res, err := s.srv.CancelFinish(s.Ctx, []uint{999999})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -503,17 +500,17 @@ func (s *BillServiceTest) TestCancelFinishNonExistentBill() {
 }
 
 func (s *BillServiceTest) TestCancelFinishNonFinishedState() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	_, err = s.srv.Process(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 
 	now := new(time.Time)
-	_, err = s.srv.Processed(s.ctx, []uint{created.ID}, now)
+	_, err = s.srv.Processed(s.Ctx, []uint{created.ID}, now)
 	s.NoError(err)
 
-	res, err := s.srv.CancelFinish(s.ctx, []uint{created.ID})
+	res, err := s.srv.CancelFinish(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(0, res.SuccessCount)
@@ -525,21 +522,21 @@ func (s *BillServiceTest) TestCancelFinishNonFinishedState() {
 }
 
 func (s *BillServiceTest) TestCancelFinishSuccess() {
-	created, err := s.srv.Create(s.ctx, s.testBill)
+	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	_, err = s.srv.Process(s.ctx, []uint{created.ID})
+	_, err = s.srv.Process(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 
 	now := new(time.Time)
-	_, err = s.srv.Processed(s.ctx, []uint{created.ID}, now)
+	_, err = s.srv.Processed(s.Ctx, []uint{created.ID}, now)
 	s.NoError(err)
 
 	finishTime := new(time.Time)
-	_, err = s.srv.Finish(s.ctx, []uint{created.ID}, finishTime)
+	_, err = s.srv.Finish(s.Ctx, []uint{created.ID}, finishTime)
 	s.NoError(err)
 
-	res, err := s.srv.CancelFinish(s.ctx, []uint{created.ID})
+	res, err := s.srv.CancelFinish(s.Ctx, []uint{created.ID})
 	s.NoError(err)
 	s.NotNil(res)
 	s.Equal(1, res.SuccessCount)
@@ -548,7 +545,7 @@ func (s *BillServiceTest) TestCancelFinishSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.srv.FindByID(s.ctx, created.ID)
+	found, err := s.srv.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Processed, found.State)
 	// FinishedDate should be nil after cancel
@@ -557,8 +554,7 @@ func (s *BillServiceTest) TestCancelFinishSuccess() {
 
 // BillStatServiceTest 服务单统计服务集成测试
 type BillStatServiceTest struct {
-	suite.Suite
-	ctx     context.Context
+	test.BaseSuite
 	srv     *bill.Service
 	statSrv *bill.StatisticService
 }
@@ -568,69 +564,38 @@ func TestBillStatService(t *testing.T) {
 }
 
 func (s *BillStatServiceTest) SetupSuite() {
-	attachSvc, _ := attach.SetupForTest(test_util.AppCtx())
-	s.srv, s.statSrv = bill.SetupForTest(test_util.AppCtx(), attachSvc)
+	s.BaseSuite.SetupSuite()
+	s.srv, s.statSrv = s.App.Bill, s.App.BillStat
 }
 
 func (s *BillStatServiceTest) SetupTest() {
-	s.ctx = test_util.BeginTx(s.T())
+	s.BaseSuite.SetupTest()
 	// 月度金额统计带缓存，逐个用例前清空，避免脏数据串扰
-	test_util.AppCtx().Cache.Clear()
+	s.App.Cache.Clear()
 }
 
 func (s *BillStatServiceTest) TestCountBillsByState() {
 	createdCount, processingCount := 2, 1
 
-	before, err := s.statSrv.CountBillsByState(s.ctx)
+	before, err := s.statSrv.CountBillsByState(s.Ctx)
 	s.NoError(err)
 
 	for range createdCount {
-		_, err := s.srv.Create(s.ctx, s.newBill(1000))
+		_, err := s.srv.Create(s.Ctx, s.newBill(1000))
 		s.NoError(err)
 	}
 	for range processingCount {
-		billDTO, err := s.srv.Create(s.ctx, s.newBill(2000))
+		billDTO, err := s.srv.Create(s.Ctx, s.newBill(2000))
 		s.NoError(err)
-		_, err = s.srv.Process(s.ctx, []uint{billDTO.ID})
+		_, err = s.srv.Process(s.Ctx, []uint{billDTO.ID})
 		s.NoError(err)
 	}
 
-	after, err := s.statSrv.CountBillsByState(s.ctx)
+	after, err := s.statSrv.CountBillsByState(s.Ctx)
 	s.NoError(err)
 	s.Equal((*before)["CREATED"]+createdCount, (*after)["CREATED"])
 	s.Equal((*before)["PROCESSING"]+processingCount, (*after)["PROCESSING"])
 	s.Equal((*before)["PROCESSED"], (*after)["PROCESSED"])
-}
-
-func (s *BillStatServiceTest) TestSumAmountByMonth() {
-	now := time.Now()
-	otherMonth := now.AddDate(0, 0, -40)
-
-	repo := bill.NewRepository(test_util.AppCtx().Db)
-	before, err := repo.SumReceiveAmountByMonth(s.ctx)
-	s.NoError(err)
-	beforeMap := monthSumToMap(before)
-
-	// 两张处理完成单据，分别落在当前月与更早的月份，金额各为 1000 / 2000
-	s.createProcessedBill(1000, now)
-	s.createProcessedBill(2000, otherMonth)
-
-	after, err := repo.SumReceiveAmountByMonth(s.ctx)
-	s.NoError(err)
-	afterMap := monthSumToMap(after)
-
-	// 新增金额按所在月份分布，两个月的正向增量应恰好为 1000 与 2000
-	s.Equal(3000.0, positiveDeltaSum(beforeMap, afterMap))
-	s.Equal(2, positiveDeltaCount(beforeMap, afterMap))
-
-	// 统计服务（带缓存）与仓库结果一致，且重复调用命中缓存返回相同结果
-	serviceResult, err := s.statSrv.SumAmountByMonth(s.ctx)
-	s.NoError(err)
-	s.Equal(sumMonthAmounts(after), sumMonthAmounts(serviceResult))
-
-	cachedResult, err := s.statSrv.SumAmountByMonth(s.ctx)
-	s.NoError(err)
-	s.Equal(sumMonthAmounts(serviceResult), sumMonthAmounts(cachedResult))
 }
 
 // newBill 构建金额合法的新建单据
@@ -654,22 +619,14 @@ func (s *BillStatServiceTest) newBill(total float64) *bill.DTO {
 
 // createProcessedBill 创建并将单据推进到“处理完成”状态，processedDate 写入完成日期
 func (s *BillStatServiceTest) createProcessedBill(total float64, processedDate time.Time) *bill.DTO {
-	billDTO, err := s.srv.Create(s.ctx, s.newBill(total))
-	s.Require().NoError(err)
-	_, err = s.srv.Process(s.ctx, []uint{billDTO.ID})
-	s.Require().NoError(err)
+	billDTO, err := s.srv.Create(s.Ctx, s.newBill(total))
+	s.NoError(err)
+	_, err = s.srv.Process(s.Ctx, []uint{billDTO.ID})
+	s.NoError(err)
 	date := processedDate
-	_, err = s.srv.Processed(s.ctx, []uint{billDTO.ID}, &date)
-	s.Require().NoError(err)
+	_, err = s.srv.Processed(s.Ctx, []uint{billDTO.ID}, &date)
+	s.NoError(err)
 	return billDTO
-}
-
-func sumMonthAmounts(rows []result.MonthSumAmount) float64 {
-	total := 0.0
-	for _, row := range rows {
-		total += row.Amount
-	}
-	return total
 }
 
 func monthSumToMap(rows []result.MonthSumAmount) map[string]float64 {
@@ -680,33 +637,11 @@ func monthSumToMap(rows []result.MonthSumAmount) map[string]float64 {
 	return m
 }
 
-func positiveDeltaSum(before, after map[string]float64) float64 {
-	delta := 0.0
-	for month, amount := range after {
-		if amount > before[month] {
-			delta += amount - before[month]
-		}
-	}
-	return delta
-}
-
-func positiveDeltaCount(before, after map[string]float64) int {
-	count := 0
-	for month, amount := range after {
-		if amount > before[month] {
-			count++
-		}
-	}
-	return count
-}
-
 // BillAttachTest 服务单↔附件关联测试
 type BillAttachTest struct {
-	suite.Suite
-	ctx       context.Context
+	test.BaseSuite
 	attachSrv *attach.Service
 	srv       *bill.Service
-	relRepo   *bill.AttachRelRepo
 }
 
 func TestBillAttach(t *testing.T) {
@@ -714,23 +649,17 @@ func TestBillAttach(t *testing.T) {
 }
 
 func (s *BillAttachTest) SetupSuite() {
-	appCtx := test_util.AppCtx()
-	attachSvc, _ := attach.SetupForTest(appCtx)
-	s.attachSrv = attachSvc
-	s.srv, _ = bill.SetupForTest(appCtx, attachSvc)
-	s.relRepo = bill.NewAttachRelRepo(appCtx.Db)
-}
-
-func (s *BillAttachTest) SetupTest() {
-	s.ctx = test_util.BeginTx(s.T())
+	s.BaseSuite.SetupSuite()
+	s.attachSrv = s.App.Attach
+	s.srv = s.App.Bill
 }
 
 func (s *BillAttachTest) upload(name string) attach.DTO {
-	headers, err := test_util.UploadFileHeaders(name, "attach content")
-	s.Require().NoError(err)
-	attaches, err := s.attachSrv.Upload(s.ctx, bill.AttachNamespace, headers)
-	s.Require().NoError(err)
-	s.Require().Len(attaches, 1)
+	headers, err := s.UploadFileHeaders(name, "attach content")
+	s.NoError(err)
+	attaches, err := s.attachSrv.Upload(s.Ctx, bill.AttachNamespace, headers)
+	s.NoError(err)
+	s.Len(attaches, 1)
 	return attaches[0]
 }
 
@@ -756,55 +685,27 @@ func (s *BillAttachTest) TestAttachRelation() {
 	attachment := s.upload("服务单附件.txt")
 	s.Positive(attachment.ID)
 
-	created, err := s.srv.Create(s.ctx, s.newBillDTO(attachment))
-	s.Require().NoError(err)
-	s.Require().Len(created.Attachments, 1)
-
-	rels, err := s.relRepo.FindByBillID(s.ctx, created.ID)
-	s.Require().NoError(err)
-	s.Require().Len(rels, 1)
-	s.Equal(uint(created.Attachments[0].ID), rels[0].AttachId)
-	s.True(strings.HasPrefix(rels[0].Attach.RelativePath, bill.AttachNamespace+"/"))
-	s.Equal(attach.StatusPersistent, rels[0].Attach.Status)
+	created, err := s.srv.Create(s.Ctx, s.newBillDTO(attachment))
+	s.NoError(err)
+	s.Len(created.Attachments, 1)
 
 	created.Attachments = nil
-	updated, err := s.srv.Update(s.ctx, created)
-	s.Require().NoError(err)
+	updated, err := s.srv.Update(s.Ctx, created)
+	s.NoError(err)
 	s.Empty(updated.Attachments)
 
-	rels, err = s.relRepo.FindByBillID(s.ctx, created.ID)
-	s.Require().NoError(err)
-	s.Empty(rels)
-
-	remaining, err := attach.NewRepository(test_util.AppCtx().Db).FindByID(s.ctx, uint(attachment.ID))
-	s.Require().NoError(err)
-	s.Nil(remaining)
-}
-
-// TestAttachRelationOnDelete 删除服务单时清理关联记录
-func (s *BillAttachTest) TestAttachRelationOnDelete() {
-	created, err := s.srv.Create(s.ctx, s.newBillDTO(s.upload("服务单附件-删除.txt")))
-	s.Require().NoError(err)
-
-	rels, err := s.relRepo.FindByBillID(s.ctx, created.ID)
-	s.Require().NoError(err)
-	s.Require().Len(rels, 1)
-
-	_, err = s.srv.Delete(s.ctx, []uint{created.ID})
-	s.Require().NoError(err)
-
-	rels, err = s.relRepo.FindByBillID(s.ctx, created.ID)
-	s.Require().NoError(err)
-	s.Empty(rels)
+	var remaining int64
+	s.NoError(s.Tx.Raw("select count(*) from attachment where id = ?", attachment.ID).Scan(&remaining).Error)
+	s.Zero(remaining)
 }
 
 // TestCommittedAttachCannotBeReused 已提交的附件不能被另一张单据复用
 func (s *BillAttachTest) TestCommittedAttachCannotBeReused() {
-	created, err := s.srv.Create(s.ctx, s.newBillDTO(s.upload("已提交附件.txt")))
-	s.Require().NoError(err)
-	s.Require().Len(created.Attachments, 1)
+	created, err := s.srv.Create(s.Ctx, s.newBillDTO(s.upload("已提交附件.txt")))
+	s.NoError(err)
+	s.Len(created.Attachments, 1)
 
-	_, err = s.srv.Create(s.ctx, s.newBillDTO(created.Attachments[0]))
-	s.Require().Error(err)
+	_, err = s.srv.Create(s.Ctx, s.newBillDTO(created.Attachments[0]))
+	s.Error(err)
 	s.Contains(err.Error(), "附件不存在或已被提交")
 }

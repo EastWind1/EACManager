@@ -25,7 +25,7 @@ type Service struct {
 	mapper    *Mapper
 }
 
-func NewService(
+func newService(
 	cache cache.Cache,
 	billRepo *Repository,
 	attachSrv *attach.Service,

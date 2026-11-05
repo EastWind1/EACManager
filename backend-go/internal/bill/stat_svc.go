@@ -12,7 +12,7 @@ type StatisticService struct {
 	billRepo *Repository
 }
 
-func NewStatisticService(cache cache.Cache, billRepo *Repository) *StatisticService {
+func newStatisticService(cache cache.Cache, billRepo *Repository) *StatisticService {
 	return &StatisticService{
 		cache:    cache,
 		billRepo: billRepo,

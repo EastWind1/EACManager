@@ -48,13 +48,3 @@ func requestPermissions(c fiber.Ctx, srv *Service) (map[string]struct{}, error) 
 	c.Locals(permissionsKey{}, granted)
 	return granted, nil
 }
-
-// HasRequestPermission 复用中间件已取回的权限集合，供处理器内部判断
-func HasRequestPermission(c fiber.Ctx, srv *Service, permission string) (bool, error) {
-	granted, err := requestPermissions(c, srv)
-	if err != nil {
-		return false, err
-	}
-	_, ok := granted[permission]
-	return ok, nil
-}

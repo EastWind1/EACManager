@@ -4,20 +4,22 @@ import (
 	"backend-go/internal/attach"
 	"backend-go/internal/company"
 	"backend-go/internal/security"
-	"backend-go/pkg/context"
+	"backend-go/pkg/cache"
 
 	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
 )
 
-func Setup(ctx *context.AppContext, router fiber.Router, companySrv *company.Service, attachSrv *attach.Service,
+func Setup(cacheStore cache.Cache, db *gorm.DB, router fiber.Router, companySrv *company.Service, attachSrv *attach.Service,
 	contentSrv *attach.ContentService, permissionSrv *security.Service,
-	permissionSyncSrv *security.PermissionSyncService) {
+	permissionSyncSrv *security.PermissionSyncService) (*Service, *StatisticService) {
 	permissionSyncSrv.Register(billPermissions()...)
-	serviceBillRepo := NewRepository(ctx.Db)
-	relSrv := NewAttachRelService(ctx.Db, attachSrv)
-	srv := NewService(ctx.Cache, serviceBillRepo, attachSrv, relSrv, NewServiceBillMapper(contentSrv, companySrv))
-	serviceBillController := NewController(srv)
-	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, serviceBillRepo))
+	serviceBillRepo := newRepository(db)
+	relSrv := newAttachRelService(db, attachSrv)
+	srv := newService(cacheStore, serviceBillRepo, attachSrv, relSrv, newServiceBillMapper(contentSrv, companySrv))
+	statisticSrv := newStatisticService(cacheStore, serviceBillRepo)
+	serviceBillController := newController(srv)
+	statisticController := newStatisticController(statisticSrv)
 
 	serviceBillGroup := router.Group("/serviceBill")
 	{
@@ -38,12 +40,5 @@ func Setup(ctx *context.AppContext, router fiber.Router, companySrv *company.Ser
 		serviceBillGroup.Put("/cancel-finish", security.Middleware(permissionSrv, CancelFinishAuthCode), serviceBillController.CancelFinish)
 		serviceBillGroup.Post("/export", security.Middleware(permissionSrv, ExportAuthCode), serviceBillController.Export)
 	}
-}
-
-func SetupForTest(ctx *context.AppContext, attachSrv *attach.Service) (*Service, *StatisticService) {
-	serviceBillRepo := NewRepository(ctx.Db)
-	relSrv := NewAttachRelService(ctx.Db, attachSrv)
-	srv := NewService(ctx.Cache, serviceBillRepo, attachSrv, relSrv, nil)
-	statisticSrv := NewStatisticService(ctx.Cache, serviceBillRepo)
 	return srv, statisticSrv
 }

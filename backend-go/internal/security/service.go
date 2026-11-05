@@ -1,13 +1,13 @@
 package security
 
 import (
-	"backend-go/pkg/auth"
-	appContext "backend-go/pkg/context"
 	"backend-go/pkg/errs"
 	"context"
 	"regexp"
 	"slices"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 var roleCodePattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
@@ -16,8 +16,8 @@ type Service struct {
 	repo *Repository
 }
 
-func NewService(ctx *appContext.AppContext) *Service {
-	return &Service{repo: NewRepository(ctx.Db)}
+func newService(db *gorm.DB) *Service {
+	return &Service{repo: newRepository(db)}
 }
 
 // Permissions 按模块分组返回权限目录。
@@ -58,7 +58,7 @@ func (s *Service) HasPermission(ctx context.Context, code string) (bool, error) 
 }
 
 func (s *Service) currentUserPermissionCodes(ctx context.Context) ([]string, error) {
-	user, err := auth.GetCurrentUser(ctx)
+	user, err := GetCurrentUser(ctx)
 	if err != nil {
 		return nil, err
 	}

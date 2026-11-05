@@ -11,7 +11,7 @@ type Mapper struct {
 	rule    *MapRule
 }
 
-func NewMapper(content *attach.ContentService) *Mapper {
+func newMapper(content *attach.ContentService) *Mapper {
 	return &Mapper{
 		content: content,
 		rule:    NewMapRule(),

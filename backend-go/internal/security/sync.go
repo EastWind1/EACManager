@@ -1,13 +1,12 @@
 package security
 
 import (
-	"backend-go/pkg/auth"
-	appContext "backend-go/pkg/context"
 	"backend-go/pkg/errs"
 	"context"
 	"slices"
 
 	"github.com/gofiber/fiber/v3/log"
+	"gorm.io/gorm"
 )
 
 type PermissionSyncService struct {
@@ -15,16 +14,16 @@ type PermissionSyncService struct {
 	definitions []PermissionDTO
 }
 
-func NewPermissionSyncService(ctx *appContext.AppContext) *PermissionSyncService {
-	return &PermissionSyncService{repo: NewRepository(ctx.Db)}
+func newPermissionSyncService(db *gorm.DB) *PermissionSyncService {
+	return &PermissionSyncService{repo: newRepository(db)}
 }
 
 func (s *PermissionSyncService) Register(definitions ...PermissionDTO) {
 	s.definitions = append(s.definitions, definitions...)
 }
 
-// Sync 将各模块声明的权限同步到 sys_permission（upsert）
-func (s *PermissionSyncService) Sync(ctx context.Context) error {
+// 将各模块声明的权限同步到 sys_permission（upsert）
+func (s *PermissionSyncService) syncPermission() error {
 	if len(s.definitions) == 0 {
 		log.Warn("未发现任何模块权限定义")
 		return nil
@@ -38,8 +37,8 @@ func (s *PermissionSyncService) Sync(ctx context.Context) error {
 		declared[definition.Code] = definition
 	}
 
-	syncCtx := context.WithValue(ctx, auth.CurUserKey{}, syncSystemUser{})
-	return s.repo.Transaction(syncCtx, func(txCtx context.Context) error {
+	ctx := SetUserToCtx(context.Background(), SystemUser{})
+	return s.repo.Transaction(ctx, func(txCtx context.Context) error {
 		existing, err := s.repo.FindAllTypesOrdered(txCtx)
 		if err != nil {
 			return err
@@ -80,19 +79,10 @@ func (s *PermissionSyncService) Sync(ctx context.Context) error {
 	})
 }
 
-// Initializer 确保 ADMIN/USER 角色存在，并补齐 ADMIN 的权限配置查看与修改权限。
-type Initializer struct {
-	repo *Repository
-}
-
-func NewSecurityInitializer(ctx *appContext.AppContext) *Initializer {
-	return &Initializer{repo: NewRepository(ctx.Db)}
-}
-
-// Initialize 确保管理员、普通用户角色存在，并补齐管理员权限配置的查看和修改权限
-func (s *Initializer) Initialize(ctx context.Context) error {
-	syncCtx := context.WithValue(ctx, auth.CurUserKey{}, syncSystemUser{})
-	return s.repo.Transaction(syncCtx, func(txCtx context.Context) error {
+// InitAdmin 确保管理员、普通用户角色存在，并补齐管理员权限配置的查看和修改权限
+func (s *PermissionSyncService) initAdmin() error {
+	ctx := SetUserToCtx(context.Background(), SystemUser{})
+	return s.repo.Transaction(ctx, func(txCtx context.Context) error {
 		admin, err := s.ensureRole(txCtx, AdminRoleCode, "管理员", 1)
 		if err != nil {
 			return err
@@ -132,7 +122,17 @@ func (s *Initializer) Initialize(ctx context.Context) error {
 	})
 }
 
-func (s *Initializer) ensureRole(ctx context.Context, code, name string, sortOrder int) (*Role, error) {
+// Sync 同步各模块权限配置至服务器，必要时初始化管理员角色
+func (s *PermissionSyncService) Sync() (err error) {
+	err = s.syncPermission()
+	if err != nil {
+		return err
+	}
+	err = s.initAdmin()
+	return
+}
+
+func (s *PermissionSyncService) ensureRole(ctx context.Context, code, name string, sortOrder int) (*Role, error) {
 	role, err := s.repo.FindRoleByCode(ctx, code)
 	if err != nil {
 		return nil, err
@@ -147,8 +147,3 @@ func (s *Initializer) ensureRole(ctx context.Context, code, name string, sortOrd
 	log.Infof("角色不存在，已创建: %s", code)
 	return role, nil
 }
-
-// syncSystemUser 启动同步使用的系统身份
-type syncSystemUser struct{}
-
-func (syncSystemUser) GetID() uint { return 0 }

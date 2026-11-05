@@ -29,7 +29,7 @@ type AttachRelRepo struct {
 	*database.BaseRepository[AttachRelation]
 }
 
-func NewAttachRelRepo(db *gorm.DB) *AttachRelRepo {
+func newAttachRelRepo(db *gorm.DB) *AttachRelRepo {
 	return &AttachRelRepo{
 		BaseRepository: database.NewBaseRepository[AttachRelation](db),
 	}
@@ -89,9 +89,9 @@ type AttachRelService struct {
 	attachSrv *attach.Service
 }
 
-func NewAttachRelService(db *gorm.DB, attachSrv *attach.Service) *AttachRelService {
+func newAttachRelService(db *gorm.DB, attachSrv *attach.Service) *AttachRelService {
 	return &AttachRelService{
-		relRepo:   NewAttachRelRepo(db),
+		relRepo:   newAttachRelRepo(db),
 		attachSrv: attachSrv,
 	}
 }

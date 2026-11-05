@@ -16,7 +16,7 @@ type Repository struct {
 	*database.BaseRepository[User]
 }
 
-func NewUserRepository(db *gorm.DB) *Repository {
+func newUserRepository(db *gorm.DB) *Repository {
 	return &Repository{
 		database.NewBaseRepository[User](db),
 	}
@@ -79,18 +79,16 @@ func (r *Repository) Disable(ctx context.Context, username string) (bool, error)
 	return affected > 0, nil
 }
 
-// CountEnabledUsersWithRole 统计拥有指定启用角色、且用户本身未被禁用的用户数。
-//
-// 禁用/降级前用它保证系统至少保留一个仍可登录的管理员。
-func (r *Repository) CountEnabledUsersWithRole(ctx context.Context, roleCode string) (int64, error) {
-	count, err := gorm.G[User](r.Ctx(ctx)).
+// FindEnabledUsersWithRole 查询拥有指定启用角色、且用户本身未被禁用的用户数。
+func (r *Repository) FindEnabledUsersWithRole(ctx context.Context, roleCode string) ([]User, error) {
+	users, err := gorm.G[User](r.Ctx(ctx)).
 		Where("disabled = ?", false).
 		Where("id IN (SELECT ur.user_id FROM sys_user_role ur JOIN sys_role r ON r.id = ur.role_id WHERE r.code = ? AND r.disabled = false)", roleCode).
-		Count(ctx, "*")
+		Find(ctx)
 	if err != nil {
-		return 0, errs.Wrap(err)
+		return nil, errs.Wrap(err)
 	}
-	return count, nil
+	return users, nil
 }
 
 // FindRolesByUserIDs 批量取用户角色，供用户列表一次装配

@@ -3,19 +3,21 @@ package reimburse
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/security"
-	"backend-go/pkg/context"
+	"backend-go/pkg/cache"
 
 	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
 )
 
-func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Service, contentSrc *attach.ContentService,
-	permissionSrv *security.Service, permissionSyncSrv *security.PermissionSyncService) {
+func Setup(cacheStore cache.Cache, db *gorm.DB, router fiber.Router, attachSrc *attach.Service, contentSrc *attach.ContentService,
+	permissionSrv *security.Service, permissionSyncSrv *security.PermissionSyncService) (*Service, *StatisticService) {
 	permissionSyncSrv.Register(reimbursePermissions()...)
-	reimburseRepo := NewReimburseRepository(ctx.Db)
-	reimburseMapper := NewMapper(contentSrc)
-	reimburseService := NewService(reimburseRepo, attachSrc, NewAttachRelService(ctx.Db, attachSrc), reimburseMapper)
-	reimburseController := NewReimburseController(reimburseService)
-	statisticController := NewStatisticController(NewStatisticService(ctx.Cache, reimburseRepo))
+	reimburseRepo := newReimburseRepository(db)
+	reimburseMapper := newMapper(contentSrc)
+	reimburseService := newService(reimburseRepo, attachSrc, newAttachRelService(db, attachSrc), reimburseMapper)
+	statisticSrv := newStatisticService(cacheStore, reimburseRepo)
+	reimburseController := newReimburseController(reimburseService)
+	statisticController := newStatisticController(statisticSrv)
 	reimburseGroup := router.Group("/reimburse")
 	{
 		reimburseGroup.Get("/countByState", security.Middleware(permissionSrv, StatisticAuthCode), statisticController.CountReimburseByState)
@@ -32,10 +34,5 @@ func Setup(ctx *context.AppContext, router fiber.Router, attachSrc *attach.Servi
 		reimburseGroup.Post("/export", security.Middleware(permissionSrv, ExportAuthCode), reimburseController.Export)
 		reimburseGroup.Post("/import", security.Middleware(permissionSrv, ImportAuthCode), reimburseController.ImportByFile)
 	}
-}
-
-func SetupForTest(ctx *context.AppContext, attachSrv *attach.Service, contentSrv *attach.ContentService) *Service {
-	reimburseRepo := NewReimburseRepository(ctx.Db)
-	reimburseMapper := NewMapper(contentSrv)
-	return NewService(reimburseRepo, attachSrv, NewAttachRelService(ctx.Db, attachSrv), reimburseMapper)
+	return reimburseService, statisticSrv
 }
