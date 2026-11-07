@@ -21,7 +21,7 @@ func ErrorHandler() fiber.ErrorHandler {
 			var fileOpError *errs.FileOpError
 			switch {
 			case errors.As(stackErr, &bizError):
-				return c.Status(fiber.StatusInternalServerError).JSON(result.Error[any](bizError.Error()))
+				return c.Status(fiber.StatusBadRequest).JSON(result.Error[any](bizError.Error()))
 			case errors.As(stackErr, &authError):
 				return c.Status(fiber.StatusForbidden).JSON(result.Error[any](authError.Error()))
 			case errors.As(stackErr, &unauthError):

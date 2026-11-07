@@ -65,7 +65,7 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
     }
 
     @ExceptionHandler(BizException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Object> handleBizException(BizException e) {
         log.error(e.getMessage(), e);
         return Result.error(e.getMessage());

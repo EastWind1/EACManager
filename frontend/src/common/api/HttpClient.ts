@@ -136,6 +136,7 @@ export class HttpClient {
               msg = '权限不足'
               uiState.warning(msg)
               break
+            case 400:
             case 500:
               msg = (await extractMessage(res.data)) ?? msg
               uiState.warning(msg)
