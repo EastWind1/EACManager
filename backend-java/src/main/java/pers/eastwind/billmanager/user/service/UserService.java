@@ -253,7 +253,7 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * 按角色查询启用用户，供初始化判断与测试复用；返回带角色、权限的完整 DTO
+     * 按角色查询启用用户
      */
     public List<UserDTO> findEnabledUsersByRole(String roleCode) {
         return userRepository.findEnabledByRoleCode(roleCode).stream()
@@ -261,8 +261,26 @@ public class UserService implements UserDetailsService {
                 .toList();
     }
 
+    public List<User> findEnabledUsers() {
+        return userRepository.findByDisabledFalse();
+    }
+
+    public User findEnabledById(Integer id) {
+        if (id == null) {
+            return null;
+        }
+        return userRepository.findByIdAndDisabledFalse(id);
+    }
+
+    public List<User> findByIds(Collection<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findAllById(ids);
+    }
+
     /**
-     * 创建首个管理员；仅当系统没有任何管理员用户时允许执行，先锁 ADMIN 角色行以串行化并发初始化
+     * 创建首个管理员；仅当系统没有任何管理员用户时允许执行
      */
     @Transactional
     public UserDTO initialize(UserDTO dto) {
@@ -282,9 +300,7 @@ public class UserService implements UserDetailsService {
 
         User user = new User();
         user.setUsername(dto.getUsername());
-        // 初始化页提交的是明文密码（登录页提交的是前端 sha256(password:username) 摘要），
-        // 这里按同一约定先做摘要再 bcrypt，保证初始化后能直接登录
-        user.setPassword(BCrypt.hashpw(sha256Hex(dto.getPassword() + ":" + dto.getUsername()), BCrypt.gensalt()));
+        user.setPassword(BCrypt.hashpw(dto.getPassword(), BCrypt.gensalt()));
         user.setName(dto.getName().trim());
         user.setPhone(dto.getPhone());
         user.setEmail(dto.getEmail());
@@ -294,7 +310,6 @@ public class UserService implements UserDetailsService {
         log.info("系统初始化管理员: {}", dto.getUsername());
         return toDTO(saved);
     }
-
 
     public LoginResult login(String username, String password) {
         User user = userRepository.findByUsername(username);
@@ -314,18 +329,6 @@ public class UserService implements UserDetailsService {
         String token = JWTUtil.generateToken(properties.getSecret(), properties.getExpire(), username);
         log.info("用户登录: {}", username);
         return new LoginResult(token, toDTO(user));
-    }
-
-    /**
-     * 与前端 {@code Crypto.SHA256(password, username)}、Go 后端 {@code sha256Hex} 保持一致
-     */
-    private static String sha256Hex(String value) {
-        try {
-            return HexFormat.of().formatHex(
-                    MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 不可用", e);
-        }
     }
 
     private UserDTO toDTO(User user) {

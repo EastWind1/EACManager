@@ -12,6 +12,7 @@ public interface ServiceBillMapper extends BaseMapper<ServiceBill, ServiceBillDT
     @Override
     @Mapping(target = "details", ignore = true)
     @Mapping(target = "attachments", ignore = true)
+    @Mapping(target = "assignees", ignore = true)
     ServiceBillDTO toBaseDTO(ServiceBill serviceBill);
 
     @Override
@@ -19,5 +20,8 @@ public interface ServiceBillMapper extends BaseMapper<ServiceBill, ServiceBillDT
         // MapStruct 默认逻辑是直接在关联对象上赋值，而非新建，这会导致触发 JPA 的上下文检测，误认为是要更改关联对象 ID
     void updateEntityFromDTO(ServiceBillDTO dto, @MappingTarget ServiceBill entity);
 
-    ServiceBillDTO toDTO(ServiceBill serviceBill, List<Attach> attachments);
+    @Override
+    ServiceBill toEntity(ServiceBillDTO dto);
+
+    ServiceBillDTO toDTO(ServiceBill serviceBill, List<Attach> attachments, List<AssigneeDTO> assignees);
 }

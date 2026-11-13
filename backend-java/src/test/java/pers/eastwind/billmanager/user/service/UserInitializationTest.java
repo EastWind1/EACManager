@@ -35,9 +35,12 @@ class UserInitializationTest extends BaseServiceTest {
     void shouldCreateFirstAdminAndAllowLogin() throws Exception {
         clearAdminRoles();
         assertTrue(userService.isInitializationRequired());
+        String hashedPassword = HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256")
+                        .digest("Admin12345:initAdmin".getBytes(StandardCharsets.UTF_8)));
         var user1 = new UserDTO();
         user1.setUsername("initAdmin");
-        user1.setPassword("Admin12345");
+        user1.setPassword(hashedPassword);
         user1.setName("初始化管理员");
         UserDTO admin = userService.initialize(user1);
 
@@ -46,9 +49,6 @@ class UserInitializationTest extends BaseServiceTest {
         assertFalse(admin.getPermissions().isEmpty());
         assertFalse(userService.isInitializationRequired());
 
-        String hashedPassword = HexFormat.of().formatHex(
-                MessageDigest.getInstance("SHA-256")
-                        .digest("Admin12345:initAdmin".getBytes(StandardCharsets.UTF_8)));
         var login = userService.login("initAdmin", hashedPassword);
         assertEquals("initAdmin", login.user().getUsername());
         var user2 = new UserDTO();

@@ -2,6 +2,7 @@ package bill
 
 import (
 	"backend-go/internal/attach"
+	"backend-go/internal/user"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
@@ -23,6 +24,8 @@ type Service struct {
 	attachSrv *attach.Service
 	relSrv    *RelService
 	mapper    *Mapper
+	querySrv  *QueryService
+	userSrv   *user.Service
 }
 
 func newService(
@@ -31,6 +34,8 @@ func newService(
 	attachSrv *attach.Service,
 	relSrv *RelService,
 	mapper *Mapper,
+	querySrv *QueryService,
+	userSrv *user.Service,
 ) *Service {
 	return &Service{
 		cache:     cache,
@@ -38,7 +43,68 @@ func newService(
 		attachSrv: attachSrv,
 		relSrv:    relSrv,
 		mapper:    mapper,
+		querySrv:  querySrv,
+		userSrv:   userSrv,
 	}
+}
+
+func (s *Service) resolveUserIDs(ctx context.Context, ids []uint) ([]uint, error) {
+	res := uniqueUint(ids)
+	for _, id := range res {
+		if err := s.ensureEnabledUser(ctx, id); err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func assigneeIDsFromDTO(assignees []AssigneeDTO) []uint {
+	ids := make([]uint, 0, len(assignees))
+	for _, assignee := range assignees {
+		if assignee.ID != 0 {
+			ids = append(ids, assignee.ID)
+		}
+	}
+	return uniqueUint(ids)
+}
+
+func sameIDs(a, b []uint) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	set := make(map[uint]struct{}, len(a))
+	for _, id := range a {
+		set[id] = struct{}{}
+	}
+	for _, id := range b {
+		if _, ok := set[id]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// ensureEnabledUser 校验显式指定的负责人；当前用户自身不查库，兼容测试里的合成登录身份。
+func (s *Service) ensureEnabledUser(ctx context.Context, assigneeID uint) error {
+	currentID, err := s.querySrv.CurrentUserID(ctx)
+	if err != nil {
+		return err
+	}
+	if assigneeID == currentID {
+		return nil
+	}
+	found, err := s.userSrv.FindEnabledByID(ctx, assigneeID)
+	if err != nil {
+		return err
+	}
+	if found == nil {
+		return errs.NewBizError("指派用户不存在或已禁用")
+	}
+	return nil
+}
+
+func (s *Service) evictStatistic() {
+	s.cache.DeleteName("service-bill")
 }
 
 func (s *Service) ValidateAmount(bill *ServiceBill) error {
@@ -74,37 +140,6 @@ func validNumber(number string) error {
 	return nil
 }
 
-func (s *Service) FindByID(ctx context.Context, id uint) (*DTO, error) {
-	if id == 0 {
-		return nil, errs.NewBizError("ID不能为空")
-	}
-	bill, err := s.billRepo.FindFullById(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if bill == nil {
-		return nil, errs.NewBizError("单据不存在")
-	}
-	attaches, err := s.relSrv.FindAttachments(ctx, bill.ID)
-	if err != nil {
-		return nil, err
-	}
-	return bill.ToDTO(attaches), nil
-}
-
-func (s *Service) FindByParam(ctx context.Context, param *QueryParam) (*result.PageResult[DTO], error) {
-	if param == nil {
-		return nil, errs.NewBizError("查询参数为空")
-	}
-
-	res, err := s.billRepo.FindByParam(ctx, param)
-	if err != nil {
-		return nil, err
-	}
-
-	return result.NewDTOPageResult(res, ToBaseDTOs), nil
-}
-
 func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	if dto.ID != 0 {
 		return nil, errs.NewBizError("单据 ID 自动生成")
@@ -113,6 +148,28 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	entity := dto.ToEntity()
 	if err := s.ValidateAmount(entity); err != nil {
 		return nil, err
+	}
+	currentID, err := s.querySrv.CurrentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	assigneeIDs := assigneeIDsFromDTO(dto.Assignees)
+	if len(assigneeIDs) == 0 {
+		assigneeIDs = []uint{currentID}
+	} else {
+		assigneeIDs, err = s.resolveUserIDs(ctx, assigneeIDs)
+		if err != nil {
+			return nil, err
+		}
+		if !(len(assigneeIDs) == 1 && assigneeIDs[0] == currentID) {
+			allowed, err := s.querySrv.CanAssign(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if !allowed {
+				return nil, errs.NewBizError("无权限指派服务单")
+			}
+		}
 	}
 	entity.State = Created
 
@@ -125,11 +182,14 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	}
 
 	var attaches []attach.Attach
-	err := s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
+	err = s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
 		if err := s.billRepo.Insert(txCtx, entity); err != nil {
 			return err
 		}
 		if err := s.relSrv.UpdateAttachments(txCtx, entity.ID, dto.Attachments); err != nil {
+			return err
+		}
+		if err := s.billRepo.ReplaceAssignees(txCtx, entity.ID, assigneeIDs); err != nil {
 			return err
 		}
 		// 附件在同一事务里读取，省掉提交后的一次往返，也保证读到刚写入的关联
@@ -140,7 +200,17 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	return entity.ToDTO(attaches), nil
+	full, err := s.billRepo.FindFullById(ctx, entity.ID)
+	if err != nil {
+		return nil, err
+	}
+	s.evictStatistic()
+	result := full.ToDTO(attaches)
+	result.Assignees, err = s.querySrv.FindAssignees(ctx, full.ID)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
@@ -152,26 +222,49 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	if err := s.ValidateAmount(entity); err != nil {
 		return nil, err
 	}
-
 	var attaches []attach.Attach
 	err := s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
 		// 只取状态：本次更新与状态流转互斥由数据库行锁 + 乐观锁版本号保证，
 		// 不需要把明细也读出来
-		bill, err := s.billRepo.FindByID(txCtx, entity.ID)
+		bill, err := s.querySrv.RequireByID(txCtx, entity.ID)
 		if err != nil {
 			return err
-		}
-		if bill == nil {
-			return errs.NewBizError("单据不存在")
 		}
 		if entity.Number != bill.Number {
 			if err := validNumber(entity.Number); err != nil {
 				return err
 			}
 		}
+		// 未提交负责人时保留原值；显式改派需要指派权限
+		var replaceAssigneeIDs *[]uint
+		if dto.Assignees != nil {
+			requestedIDs, err := s.resolveUserIDs(txCtx, assigneeIDsFromDTO(dto.Assignees))
+			if err != nil {
+				return err
+			}
+			existingIDs, err := s.billRepo.FindAssigneeIDs(txCtx, entity.ID)
+			if err != nil {
+				return err
+			}
+			if !sameIDs(existingIDs, requestedIDs) {
+				allowed, err := s.querySrv.CanAssign(txCtx)
+				if err != nil {
+					return err
+				}
+				if !allowed {
+					return errs.NewBizError("无权限指派服务单")
+				}
+				replaceAssigneeIDs = &requestedIDs
+			}
+		}
 		entity.State = bill.State
 		if err = s.billRepo.Updates(txCtx, entity); err != nil {
 			return err
+		}
+		if replaceAssigneeIDs != nil {
+			if err = s.billRepo.ReplaceAssignees(txCtx, entity.ID, *replaceAssigneeIDs); err != nil {
+				return err
+			}
 		}
 		if err = s.relSrv.UpdateAttachments(txCtx, entity.ID, dto.Attachments); err != nil {
 			return err
@@ -182,7 +275,17 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	return entity.ToDTO(attaches), nil
+	full, err := s.billRepo.FindFullById(ctx, entity.ID)
+	if err != nil {
+		return nil, err
+	}
+	s.evictStatistic()
+	result := full.ToDTO(attaches)
+	result.Assignees, err = s.querySrv.FindAssignees(ctx, full.ID)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // Delete 只允许删除创建状态的单据，逐项返回结果。
@@ -192,12 +295,9 @@ func (s *Service) Delete(ctx context.Context, ids []uint) (*result.ActionsResult
 	}
 	return result.ExecuteActions(ids, func(id uint) (any, error) {
 		err := s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
-			bill, err := s.billRepo.FindByID(txCtx, id)
+			bill, err := s.querySrv.RequireByID(txCtx, id)
 			if err != nil {
 				return err
-			}
-			if bill == nil {
-				return errs.NewBizError("单据不存在")
 			}
 			if bill.State != Created {
 				return errs.NewBizError("非创建状态不能删除")
@@ -235,12 +335,9 @@ func (s *Service) transition(
 	}
 	return result.ExecuteActions(ids, func(id uint) (any, error) {
 		err := s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
-			bill, err := s.billRepo.FindByID(txCtx, id)
+			bill, err := s.querySrv.RequireByID(txCtx, id)
 			if err != nil {
 				return err
-			}
-			if bill == nil {
-				return errs.NewBizError("单据不存在")
 			}
 			if err = apply(bill); err != nil {
 				return err
@@ -323,6 +420,29 @@ func (s *Service) CancelFinish(ctx context.Context, ids []uint) (*result.Actions
 	})
 }
 
+// Assign 整体替换单据负责人；assigneeIDs 为空表示取消指派。
+func (s *Service) Assign(ctx context.Context, ids []uint, assigneeIDs []uint) (*result.ActionsResult[uint, any], error) {
+	if len(ids) == 0 {
+		return nil, errs.NewBizError("ID 为空")
+	}
+	assigneeIDs, err := s.resolveUserIDs(ctx, assigneeIDs)
+	if err != nil {
+		return nil, err
+	}
+	res := result.ExecuteActions(ids, func(id uint) (any, error) {
+		err := s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
+			bill, err := s.querySrv.RequireByID(txCtx, id)
+			if err != nil {
+				return err
+			}
+			return s.billRepo.ReplaceAssignees(txCtx, bill.ID, assigneeIDs)
+		})
+		return nil, err
+	})
+	s.evictStatistic()
+	return res, nil
+}
+
 // GenerateByFile 上传并解析文件生成单据 DTO，不落库。
 func (s *Service) GenerateByFile(ctx context.Context, file *multipart.FileHeader) (*DTO, error) {
 	attaches, err := s.attachSrv.Upload(ctx, AttachNamespace, []*multipart.FileHeader{file})
@@ -344,12 +464,9 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 	}
 
 	// 一次取回主表 + 明细 + 公司（固定 3 条语句），而不是每张单据再查一次
-	bills, err := s.billRepo.FindAllWithDetails(ctx, ids)
+	bills, err := s.querySrv.FindAllForExport(ctx, ids)
 	if err != nil {
 		return "", err
-	}
-	if len(bills) == 0 {
-		return "", errs.NewBizError("单据不存在")
 	}
 
 	// 一次取回全部单据的附件，避免逐单据查关联
@@ -431,6 +548,19 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		return "", err
 	}
 	return zipPath, nil
+}
+
+func uniqueUint(values []uint) []uint {
+	seen := make(map[uint]struct{}, len(values))
+	res := make([]uint, 0, len(values))
+	for _, value := range values {
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		res = append(res, value)
+	}
+	return res
 }
 
 // uniqueTargetPath 处理导出目录下的同名附件：name、1-name、2-name ……

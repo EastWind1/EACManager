@@ -13,7 +13,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// Repository 基于 GORM 实现的 Repository，用于 ServiceBill 的数据访问
 type Repository struct {
 	*database.BaseRepository[ServiceBill]
 }
@@ -68,11 +67,15 @@ func (r *Repository) FindFullById(ctx context.Context, id uint) (*ServiceBill, e
 //
 // 固定 3 条语句，与单据数量无关：主表、明细、公司各一次，明细与公司都按主键 IN 批量取回，
 // 避免 Preload 的「先查单据再查明细」退化成每张单据一次查询。
-func (r *Repository) FindAllWithDetails(ctx context.Context, ids []uint) ([]ServiceBill, error) {
+func (r *Repository) FindAllWithDetails(ctx context.Context, ids []uint, scopeUserID *uint) ([]ServiceBill, error) {
 	if len(ids) == 0 {
 		return []ServiceBill{}, nil
 	}
-	bills, err := gorm.G[ServiceBill](r.Ctx(ctx)).Where("id IN ?", ids).Order("id").Find(ctx)
+	g := r.Chain(ctx).Where("id IN ?", ids)
+	if scopeUserID != nil {
+		g = g.Where("id IN (SELECT service_bill_id FROM service_bill_assignee WHERE user_id = ?)", *scopeUserID)
+	}
+	bills, err := g.Order("id").Find(ctx)
 	if err != nil {
 		return nil, errs.Wrap(err)
 	}
@@ -136,11 +139,16 @@ func (r *Repository) findCompaniesByIDs(ctx context.Context, ids []uint) (map[ui
 }
 
 // FindByParam 只负责拼查询链；计数、排序与分页由 BaseRepository.Page 统一处理。
-func (r *Repository) FindByParam(ctx context.Context, param *QueryParam) (*result.PageResult[ServiceBill], error) {
+func (r *Repository) FindByParam(ctx context.Context, param *QueryParam, scopeUserID *uint) (*result.PageResult[ServiceBill], error) {
 	// 条件全部通过泛型链添加：gorm.G 会重置语句，挂在 *gorm.DB 上的条件不会生效
 	g := r.Chain(ctx)
 	if param.Number != "" {
 		g = g.Where("number = ?", param.Number)
+	}
+	if scopeUserID != nil {
+		g = g.Where("id IN (SELECT service_bill_id FROM service_bill_assignee WHERE user_id = ?)", *scopeUserID)
+	} else if param.AssigneeID != nil {
+		g = g.Where("id IN (SELECT service_bill_id FROM service_bill_assignee WHERE user_id = ?)", *param.AssigneeID)
 	}
 	if len(param.States) > 0 {
 		g = g.Where("state IN ?", param.States)
@@ -182,6 +190,64 @@ func (r *Repository) Updates(ctx context.Context, entity *ServiceBill) error {
 		return errs.NewBizError("数据已被更改，稍后重试")
 	}
 	return r.syncDetails(ctx, entity)
+}
+
+// ReplaceAssignees 整体替换一张单据的负责人；userIDs 为空表示清空指派。
+func (r *Repository) ReplaceAssignees(ctx context.Context, billID uint, userIDs []uint) error {
+	if _, err := gorm.G[Assignee](r.Ctx(ctx)).Where("service_bill_id = ?", billID).Delete(ctx); err != nil {
+		return errs.Wrap(err)
+	}
+	if len(userIDs) == 0 {
+		return nil
+	}
+	rows := make([]Assignee, 0, len(userIDs))
+	for _, userID := range userIDs {
+		rows = append(rows, Assignee{ServiceBillID: billID, UserID: userID})
+	}
+	if err := gorm.G[Assignee](r.Ctx(ctx)).CreateInBatches(ctx, &rows, relationBatchSize); err != nil {
+		if database.IsDuplicateKey(err) {
+			return errs.NewBizError("负责人不能重复")
+		}
+		return errs.Wrap(err)
+	}
+	return nil
+}
+
+// FindAssigneesByBillIDs 批量读取负责人关联，供查询服务批量补全 DTO。
+func (r *Repository) FindAssigneesByBillIDs(ctx context.Context, billIDs []uint) ([]Assignee, error) {
+	if len(billIDs) == 0 {
+		return []Assignee{}, nil
+	}
+	rows, err := gorm.G[Assignee](r.Ctx(ctx)).
+		Where("service_bill_id IN ?", billIDs).Order("service_bill_id, user_id").Find(ctx)
+	if err != nil {
+		return nil, errs.Wrap(err)
+	}
+	return rows, nil
+}
+
+// FindAssigneeIDs 返回单据当前负责人 id，供更新时比较和避免无权限用户借普通编辑改派。
+func (r *Repository) FindAssigneeIDs(ctx context.Context, billID uint) ([]uint, error) {
+	rows, err := gorm.G[Assignee](r.Ctx(ctx)).Select("user_id").
+		Where("service_bill_id = ?", billID).Order("user_id").Find(ctx)
+	if err != nil {
+		return nil, errs.Wrap(err)
+	}
+	ids := make([]uint, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.UserID)
+	}
+	return ids, nil
+}
+
+// IsAssignedTo 判断用户是否是指定单据的负责人，供按 id 访问校验。
+func (r *Repository) IsAssignedTo(ctx context.Context, billID, userID uint) (bool, error) {
+	count, err := gorm.G[Assignee](r.Ctx(ctx)).
+		Where("service_bill_id = ? AND user_id = ?", billID, userID).Count(ctx, "*")
+	if err != nil {
+		return false, errs.Wrap(err)
+	}
+	return count > 0, nil
 }
 
 // UpdateState 只更新状态字段；调用方已确认目标状态，这里不做回写
@@ -250,6 +316,10 @@ func (r *Repository) syncDetails(ctx context.Context, entity *ServiceBill) error
 }
 
 func (r *Repository) Delete(ctx context.Context, id uint) (bool, error) {
+	// 子表没有数据库外键，删除主表前显式清理负责人关联
+	if _, err := gorm.G[Assignee](r.Ctx(ctx)).Where("service_bill_id = ?", id).Delete(ctx); err != nil {
+		return false, errs.Wrap(err)
+	}
 	affected, err := gorm.G[*ServiceBill](r.Ctx(ctx)).Select("Details").Where("id = ?", id).Delete(ctx)
 	if err != nil {
 		return false, errs.Wrap(err)

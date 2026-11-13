@@ -23,11 +23,12 @@ public class ServiceBillDTO {
     private String onSiteContact;
     private String onSitePhone;
     private String elevatorInfo;
-    private List<ServiceBillDetailDTO> details = new ArrayList<>();
-    private List<AttachDTO> attachments = new ArrayList<>();
     private BigDecimal totalAmount;
     private Instant orderDate = Instant.now();
     private Instant processedDate;
     private Instant finishedDate;
     private String remark;
+    private List<ServiceBillDetailDTO> details = new ArrayList<>();
+    private List<AttachDTO> attachments = new ArrayList<>();
+    private List<AssigneeDTO> assignees = new ArrayList<>();
 }

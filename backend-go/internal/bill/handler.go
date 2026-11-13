@@ -9,12 +9,14 @@ import (
 )
 
 type Controller struct {
-	srv *Service
+	srv      *Service
+	querySrv *QueryService
 }
 
-func newController(srv *Service) *Controller {
+func newController(srv *Service, querySrv *QueryService) *Controller {
 	return &Controller{
-		srv: srv,
+		srv:      srv,
+		querySrv: querySrv,
 	}
 }
 
@@ -24,7 +26,29 @@ func (c *Controller) QueryByParam(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.srv.FindByParam(ctx, &param)
+	res, err := c.querySrv.FindByParam(ctx, &param)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
+}
+
+func (c *Controller) GetAssignees(ctx fiber.Ctx) error {
+	res, err := c.querySrv.ListAssignees(ctx)
+	if err != nil {
+		return err
+	}
+	result.SetResult(ctx, res)
+	return nil
+}
+
+func (c *Controller) Assign(ctx fiber.Ctx) error {
+	var param AssignParam
+	if err := ctx.Bind().Body(&param); err != nil {
+		return err
+	}
+	res, err := c.srv.Assign(ctx, param.Ids, param.AssigneeIDs)
 	if err != nil {
 		return err
 	}
@@ -41,7 +65,7 @@ func (c *Controller) GetByID(ctx fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	res, err := c.srv.FindByID(ctx, uint(id))
+	res, err := c.querySrv.FindByID(ctx, uint(id))
 	if err != nil {
 		return err
 	}

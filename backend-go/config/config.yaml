@@ -18,7 +18,7 @@ cache:
   expire: 86400
 jwt:
   # 部署时通过 JWT_SECRET 环境变量注入（至少 32 字节）
-  secret: ""
+  secret: "this-is-a-test-jwt-secret-cannot-use-in-production"
   expire: 604800
 attachment:
   path: attachment

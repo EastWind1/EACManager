@@ -26,6 +26,16 @@
               <v-col cols="12" md="4" sm="6" xl="3">
                 <v-text-field v-model="queryParam.projectName" clearable label="项目名称"/>
               </v-col>
+              <v-col v-if="canAssign" cols="12" md="4" sm="6" xl="3">
+                <v-select
+                  v-model="queryParam.assigneeId"
+                  :items="assigneeOptions"
+                  clearable
+                  item-title="name"
+                  item-value="id"
+                  label="负责人"
+                />
+              </v-col>
               <v-col cols="12" md="4" sm="6" xl="3">
                 <v-date-input
                   v-model="queryParam.orderDateRange"
@@ -102,6 +112,17 @@
                 导出
               </v-btn
               >
+              <v-btn
+                v-permission="Permission.SERVICE_BILL_ASSIGN"
+                :disabled="loading"
+                variant="tonal"
+                @click="openAssign"
+              >
+                <template #prepend>
+                  <v-icon :icon="mdiAccountSwitch"></v-icon>
+                </template>
+                指派
+              </v-btn>
               <v-btn
                 v-permission="Permission.SERVICE_BILL_PROCESS"
                 :disabled="loading"
@@ -231,15 +252,51 @@
           <template #[`item.processedDate`]="{ item }">
             {{ item.processedDate ? dateUtil.format(item.processedDate, 'keyboardDate') : '' }}
           </template>
+          <template #[`item.assignees`]="{ item }">
+            <span :class="{ 'text-medium-emphasis': !item.assignees?.length }">
+              {{ item.assignees?.map((assignee) => assignee.name).join('、') || '未指派' }}
+            </span>
+          </template>
         </v-data-table-server>
       </template>
     </v-card>
+
+    <!-- 指派负责人 -->
+    <v-dialog v-model="assignDialog" max-width="480">
+      <v-card rounded="lg">
+        <template #title>
+          <v-icon :icon="mdiAccountSwitch" class="me-2"></v-icon>
+          指派负责人
+        </template>
+        <template #text>
+          <div class="text-body-2 mb-4">已选择 {{ selectedIds.length }} 条服务单</div>
+          <v-select
+            v-model="assignTargetIds"
+            :items="assigneeOptions"
+            chips
+            clearable
+            closable-chips
+            item-title="name"
+            item-value="id"
+            label="负责人"
+            multiple
+            placeholder="留空表示取消指派"
+          ></v-select>
+        </template>
+        <template #actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="assignDialog = false">取消</v-btn>
+          <v-btn color="primary" :disabled="loading" @click="confirmAssign">确定</v-btn>
+        </template>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {
+  type Assignee,
   type ServiceBill,
   type ServiceBillQueryParam,
   ServiceBillState,
@@ -255,6 +312,7 @@ import {useServiceBillActions} from '../composable/ServiceBillActions'
 import {storeToRefs} from 'pinia'
 import {useRouterStore} from '@/common/store/RouterStore'
 import {
+  mdiAccountSwitch,
   mdiCancel,
   mdiCashCheck,
   mdiExport,
@@ -268,8 +326,10 @@ import {
 } from '@mdi/js'
 import {useDate, useHotkey} from 'vuetify/framework'
 import {Permission} from '../model/Permission'
+import {useUserStore} from '@/user/store/UserStore'
 
 const store = useUIStore()
+const userStore = useUserStore()
 const {info, warning, showLoading} = store
 const {loading} = storeToRefs(store)
 const router = useRouter()
@@ -286,6 +346,8 @@ type QueryParam = {
   number?: string
   // 项目名称
   projectName?: string
+  // 负责人
+  assigneeId?: number
   // 单据状态
   states: ServiceBillStateValue[]
   // 创建日期范围
@@ -307,6 +369,7 @@ const QUERY_PARAM_CACHE_KEY = 'BillListQueryParam'
 const queryParam = ref<QueryParam>({
   number: '',
   projectName: '',
+  assigneeId: undefined,
   states: [
     ServiceBillState.CREATED.value,
     ServiceBillState.PROCESSING.value,
@@ -348,6 +411,7 @@ const headers = [
   {title: '类型', key: 'type', sortable: false},
   {title: '项目', key: 'projectName', sortable: false},
   {title: '总金额', key: 'totalAmount', sortable: false},
+  {title: '负责人', key: 'assignees', sortable: false},
   {title: '创建时间', key: 'orderDate', sortable: false},
   {title: '完工时间', key: 'processedDate', sortable: false},
 ]
@@ -365,8 +429,46 @@ const data = ref<PageResult<ServiceBill>>({
 const search = ref('')
 // 选择的项 id
 const selectedIds = ref<number[]>([])
+// 指派候选人
+const assigneeOptions = ref<Assignee[]>([])
+// 指派弹窗
+const assignDialog = ref(false)
+const assignTargetIds = ref<number[]>([])
+// 是否有指派权限（用于显示负责人筛选）
+const canAssign = computed(() => userStore.hasPermission(Permission.SERVICE_BILL_ASSIGN))
 // 搜索快捷键
 useHotkey('enter', () => (search.value = new Date().toString()))
+
+/**
+ * 加载指派候选人
+ */
+async function loadAssignees() {
+  if (assigneeOptions.value.length > 0) {
+    return
+  }
+  assigneeOptions.value = await ServiceBillApi.getAssignees()
+}
+
+/**
+ * 打开指派弹窗
+ */
+async function openAssign() {
+  if (selectedIds.value.length === 0) {
+    warning('请选择要操作的单据')
+    return
+  }
+  assignTargetIds.value = []
+  assignDialog.value = true
+  await loadAssignees()
+}
+
+/**
+ * 确认指派
+ */
+async function confirmAssign() {
+  assignDialog.value = false
+  await reloadAfterAction((ids) => assign(ids, assignTargetIds.value))
+}
 
 /**
  * 加载数据
@@ -388,6 +490,7 @@ async function loadItems(options: {
   const param: ServiceBillQueryParam = {}
   param.number ??= queryParam.value.number
   param.projectName ??= queryParam.value.projectName
+  param.assigneeId ??= queryParam.value.assigneeId
   param.states ??= queryParam.value.states?.length ? queryParam.value.states : undefined
 
   param.pageIndex = options.page - 1
@@ -478,7 +581,7 @@ async function exportToZip() {
   }
 }
 
-const {process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish} =
+const {assign, process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish} =
   useServiceBillActions((id: number) => {
     const row = data.value.items.find((item) => item.id === id)
     if (row) {
@@ -493,5 +596,9 @@ const {process, processed, finish, remove, cancelProcess, cancelProcessed, cance
 async function reloadAfterAction(action: (ids: number[]) => Promise<void>) {
   await action(selectedIds.value)
   search.value = new Date().toString()
+}
+
+if (canAssign.value) {
+  loadAssignees()
 }
 </script>

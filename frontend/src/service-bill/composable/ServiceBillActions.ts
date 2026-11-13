@@ -49,6 +49,17 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
   }
 
   /**
+   * 指派/改派负责人；确认交互由调用方负责
+   */
+  async function assign(ids: number[], assigneeIds: number[]) {
+    if (ids.length === 0) {
+      warning('请选择要操作的单据')
+      return
+    }
+    return showBatchResult(await ServiceBillApi.assign(ids, assigneeIds), getKeyFn)
+  }
+
+  /**
    * 删除
    */
   async function remove(ids: number[]) {
@@ -105,6 +116,7 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
   }
 
   return {
+    assign,
     process,
     processed,
     finish,

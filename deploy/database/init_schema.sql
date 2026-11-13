@@ -234,6 +234,37 @@ CREATE TABLE public.service_bill (
 ALTER TABLE public.service_bill OWNER TO postgres;
 
 --
+-- Name: service_bill_assignee_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.service_bill_assignee_seq
+    START WITH 1
+    INCREMENT BY 50
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.service_bill_assignee_seq OWNER TO postgres;
+
+--
+-- Name: service_bill_assignee; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.service_bill_assignee (
+    id integer DEFAULT nextval('public.service_bill_assignee_seq'::regclass) NOT NULL,
+    service_bill_id integer NOT NULL,
+    user_id integer NOT NULL,
+    created_date timestamp(6) with time zone,
+    last_modified_date timestamp(6) with time zone,
+    created_by_id integer,
+    last_modified_by_id integer
+);
+
+
+ALTER TABLE public.service_bill_assignee OWNER TO postgres;
+
+--
 -- Name: service_bill_attach_relation_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -496,6 +527,22 @@ ALTER TABLE ONLY public.reimbursement
 
 
 --
+-- Name: service_bill_assignee service_bill_assignee_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.service_bill_assignee
+    ADD CONSTRAINT service_bill_assignee_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: service_bill_assignee uk_service_bill_assignee; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.service_bill_assignee
+    ADD CONSTRAINT uk_service_bill_assignee UNIQUE (service_bill_id, user_id);
+
+
+--
 -- Name: service_bill_attach_relation service_bill_attach_relation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -640,6 +687,13 @@ CREATE INDEX idx_service_bill_attach_relation_bill_id ON public.service_bill_att
 
 CREATE INDEX idx_service_bill_created_date ON public.service_bill USING btree (created_date);
 
+
+--
+-- Name: idx_service_bill_assignee_bill_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_service_bill_assignee_bill_id ON public.service_bill_assignee USING btree (service_bill_id);
+CREATE INDEX idx_service_bill_assignee_user_id ON public.service_bill_assignee USING btree (user_id);
 
 --
 -- Name: idx_service_bill_number; Type: INDEX; Schema: public; Owner: postgres

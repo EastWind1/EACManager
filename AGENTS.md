@@ -30,7 +30,7 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 
 ## 数据库
 
-13 张表，整型主键取自 `SEQUENCE`（步长 50），全表带审计列
+14 张表，整型主键取自 `SEQUENCE`（步长 50），全表带审计列
 `created_by_id / created_date / last_modified_by_id / last_modified_date`。
 
 | 表 | 关键字段 |
@@ -41,6 +41,7 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 | `company` | `name`、联系人、`address`、`disabled` |
 | `service_bill` | `number`、`type`(INSTALL/FIX)、`state`、`total_amount`、项目与现场联系人、`product_company_id`、`version` |
 | `service_bill_detail` | `device`、`quantity`、`unit_price`、`subtotal`、FK `service_bill_id` |
+| `service_bill_assignee` | 服务单负责人子表，FK `service_bill_id` / `user_id`，唯一约束 `(service_bill_id, user_id)` |
 | `reimbursement` / `reimburse_detail` | 报销单单头与明细（FK `reimbursement_id`） |
 | `attachment` | `relative_path`(存储 key)、`type`、`status`(TEMP/TRANSIENT/PERSISTENT) |
 | `service_bill_attach_relation` / `reimburse_attach_relation` | 各业务模块**各自拥有**的关联表 |
@@ -48,7 +49,8 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 权限目录在启动时由各模块声明的清单 upsert 进 `sys_permission`（只增改，不删库中额外项）。
 
 `deploy/database/`: `init_schema.sql` 建库；`migrate_attachment.sql`（拆分关联表 + `attachment.status`）
-与 `migrations/migrate_security.sql`（角色/权限重构）为存量库的一次性迁移。
+、`migrations/migrate_security.sql`（角色/权限重构）与
+`migrations/migrate_service_bill_assignee.sql`（服务单负责人子表）为存量库的一次性迁移。
 
 ### 附件模型
 
@@ -80,7 +82,7 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 | `/api/user` | `POST /token`、`GET/POST /initialization`(public)、`PUT /logout`、`GET/POST/PUT /`、`DELETE /:username` |
 | `/api/company` | `GET /`、`POST /`、`PUT /`、`DELETE /:id` |
 | `/api/security` | `GET /permissions`、`GET/POST/PUT/DELETE /roles`、`GET/PUT /role/:id/permissions` |
-| `/api/serviceBill` | `POST /query`、`GET /:id`、`POST /`、`PUT /`、`DELETE /`(批量)、`POST /import`、`PUT /process|processed|finish|cancel-process|cancel-processed|cancel-finish`、`POST /export`、`GET /countByState`、`GET /totalAmountGroupByMonth` |
+| `/api/serviceBill` | `POST /query`、`GET /:id`、`POST /`、`PUT /`、`DELETE /`(批量)、`POST /import`、`PUT /process|processed|finish|cancel-process|cancel-processed|cancel-finish`、`PUT /assign`、`GET /assignees`、`POST /export`、`GET /countByState`、`GET /totalAmountGroupByMonth` |
 | `/api/reimburse` | 同上（无 `cancel-processed`） |
 | `/api/attachment` | `POST /upload`、`GET /`(下载) |
 
@@ -121,6 +123,7 @@ Go 测试读同一份 `config.yaml`，只把附件目录改到系统临时目录
 - 分页统一 `PageResult` + `QueryParam`。**`pageIndex` 是 0 基**（对齐 Spring `PageRequest` 与前端
   `options.page - 1`）。
 - 错误统一 `BizException` / `errs.NewBizError`，由 `ControllerAdvice` / `ErrorHandler` 包装。
+- 跨模块关联引用通过对方模块 Service 暴露的查询方法获取，不使用 `EntityManager`，也不直接 import 对方 Repository。
 - **仓储只返回实体和投影类 DTO**（聚合/统计行这类查询直接映射出的结构）。实体 → 接口 DTO 的转换
   放在 service / model 里：`store.go` 里不出现 `ToDTO()`，也不返回 `XxxDTO`。
 - 注释只写「为什么」与约束；不复述标识符、不复述框架 API、不写过程性步骤标签。
@@ -178,6 +181,7 @@ backend-java/src/main/java/pers/eastwind/billmanager/
   common/    Result / PageResult / QueryParam / ActionsResult / BizException / ControllerAdvice / Snowflake
   security/  角色·权限实体与服务、PermissionSyncService、JWT 过滤器、权限枚举 provider
   user/ company/ servicebill/ reimburse/ attach/   各自 controller·service·repository·model·mapper
+  servicebill/service: ServiceBillQueryService 负责查询/数据权限，ServiceBillService 只做写动作
   {module}/permission/*PermissionProvider.java      模块声明的权限清单（启动时同步）
 
 backend-go/
@@ -187,6 +191,7 @@ backend-go/
       stats: stat_handler.go / stat_svc.go / stat_store.go
       security: sync.go（权限同步 + 初始化）、middleware.go（请求级权限缓存）
       bill/reimburse 额外: *_rule.go（OCR 文本/表格映射）、mapper.go、attach_relation.go
+      bill 查询/动作分离: query_service.go 负责查询与数据权限，service.go 只做写动作
       attach 额外: files.go / ocr.go / office.go / file_tx.go / content.go
   internal/test_util/   集成测试环境（共享应用实例、事务回滚、上传辅助）
   pkg/    auth / cache / database / errs / logger / middleware / result / util

@@ -1,4 +1,6 @@
-package pers.eastwind.billmanager.security.model;
+package pers.eastwind.billmanager.security.permission;
+
+import pers.eastwind.billmanager.security.model.Permission;
 
 /**
  * 安全模块自身权限

@@ -88,6 +88,10 @@ export interface ServiceBill {
    */
   productCompany?: Company
   /**
+   * 负责人列表
+   */
+  assignees?: Assignee[]
+  /**
    * 项目名称
    */
   projectName: string
@@ -146,6 +150,15 @@ export interface ServiceBill {
 }
 
 /**
+ * 服务单负责人（最小用户信息）
+ */
+export interface Assignee {
+  id: number
+  username?: string
+  name: string
+}
+
+/**
  * 服务项目明细
  */
 export interface ServiceBillDetail {
@@ -190,6 +203,11 @@ export interface ServiceBillQueryParam extends QueryParam {
    * 项目名称
    */
   projectName?: string
+
+  /**
+   * 负责人 ID
+   */
+  assigneeId?: number
 
   /**
    * 下单起始日期

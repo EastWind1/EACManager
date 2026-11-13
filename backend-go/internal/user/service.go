@@ -5,8 +5,6 @@ import (
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"regexp"
 	"slices"
 	"strings"
@@ -121,7 +119,7 @@ func (s *Service) Initialize(ctx context.Context, dto *InitDTO) (*DTO, error) {
 		}
 
 		username := strings.TrimSpace(dto.Username)
-		hashed, err := bcrypt.GenerateFromPassword([]byte(sha256Hex(dto.Password+":"+username)), bcrypt.DefaultCost)
+		hashed, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return errs.Wrap(err)
 		}
@@ -179,11 +177,6 @@ func (s *Service) validateInit(dto *InitDTO) error {
 		return errs.NewBizError("邮箱格式不正确")
 	}
 	return nil
-}
-
-func sha256Hex(value string) string {
-	sum := sha256.Sum256([]byte(value))
-	return hex.EncodeToString(sum[:])
 }
 
 func (s *Service) Login(ctx context.Context, username, password string) (*LoginResult, error) {
@@ -483,6 +476,43 @@ func (s *Service) FindEnabledUsersWithRole(ctx context.Context, roleCode string)
 		dtos[i] = *user.ToDTO()
 	}
 	return dtos, nil
+}
+
+// FindEnabled 返回全部启用用户
+func (s *Service) FindEnabled(ctx context.Context) ([]DTO, error) {
+	users, err := s.userRepo.FindAllEnabledList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	dtos := make([]DTO, len(users))
+	for i, user := range users {
+		dtos[i] = *user.ToDTO()
+	}
+	return dtos, nil
+}
+
+// FindByIDs 供其他模块按 id 批量补全用户概要，包含已停用用户
+func (s *Service) FindByIDs(ctx context.Context, ids []uint) ([]DTO, error) {
+	users, err := s.userRepo.FindByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	dtos := make([]DTO, len(users))
+	for i, user := range users {
+		dtos[i] = *user.ToDTO()
+	}
+	return dtos, nil
+}
+
+func (s *Service) FindEnabledByID(ctx context.Context, id uint) (*DTO, error) {
+	user, err := s.userRepo.FindEnabledByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, nil
+	}
+	return user.ToDTO(), nil
 }
 
 func roleCodes(roles []security.RoleDTO) []string {

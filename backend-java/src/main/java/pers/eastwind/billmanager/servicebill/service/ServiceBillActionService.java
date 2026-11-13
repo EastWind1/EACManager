@@ -1,67 +1,59 @@
 package pers.eastwind.billmanager.servicebill.service;
 
-import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import pers.eastwind.billmanager.attach.model.Attach;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.util.Snowflake;
 import pers.eastwind.billmanager.company.model.Company;
-import pers.eastwind.billmanager.company.repository.CompanyRepository;
+import pers.eastwind.billmanager.company.service.CompanyService;
+import pers.eastwind.billmanager.security.model.AuthorityUser;
+import pers.eastwind.billmanager.security.util.AuthUtil;
 import pers.eastwind.billmanager.servicebill.model.*;
+import pers.eastwind.billmanager.servicebill.permission.ServiceBillPermission;
+import pers.eastwind.billmanager.servicebill.repository.ServiceBillAssigneeRepository;
 import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
+import pers.eastwind.billmanager.user.service.UserService;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Service
-public class ServiceBillService {
+public class ServiceBillActionService {
 
     private final ServiceBillRepository serviceBillRepository;
+    private final ServiceBillAssigneeRepository assigneeRepository;
     private final ServiceBillMapper serviceBillMapper;
     private final ServiceBillAttachService serviceBillAttachService;
     private final TransactionTemplate transactionTemplate;
-    private final CompanyRepository companyRepository;
+    private final CompanyService companyService;
+    private final UserService userService;
+    private final ServiceBillQueryService queryService;
 
-    public ServiceBillService(
+    public ServiceBillActionService(
             ServiceBillRepository serviceBillRepository,
+            ServiceBillAssigneeRepository assigneeRepository,
             ServiceBillMapper serviceBillMapper,
             ServiceBillAttachService serviceBillAttachService,
             TransactionTemplate transactionTemplate,
-            CompanyRepository companyRepository
+            CompanyService companyService,
+            UserService userService,
+            ServiceBillQueryService queryService
     ) {
         this.serviceBillRepository = serviceBillRepository;
+        this.assigneeRepository = assigneeRepository;
         this.serviceBillMapper = serviceBillMapper;
         this.serviceBillAttachService = serviceBillAttachService;
         this.transactionTemplate = transactionTemplate;
-        this.companyRepository = companyRepository;
-    }
-
-    public ServiceBillDTO findById(Integer id) {
-        if (id == null) {
-            throw new BizException("ID不能为空");
-        }
-        ServiceBill bill = serviceBillRepository.findDetailById(id).orElse(null);
-        if (bill == null) {
-            throw new BizException("单据不存在");
-        }
-        List<Attach> attachments = serviceBillAttachService.findAttachments(bill.getId());
-        return serviceBillMapper.toDTO(bill, attachments);
+        this.companyService = companyService;
+        this.userService = userService;
+        this.queryService = queryService;
     }
 
     private void validateAmount(ServiceBill serviceBill) {
@@ -83,15 +75,6 @@ public class ServiceBillService {
         }
     }
 
-    /**
-     * 明细是关联维护方（父方 details 为 mappedBy），缺这一步外键会为空。
-     */
-    private void bindDetails(ServiceBill serviceBill) {
-        for (ServiceBillDetail detail : serviceBill.getDetails()) {
-            detail.setServiceBill(serviceBill);
-        }
-    }
-
     private void validNumber(String number) {
         if (number == null || number.isBlank()) {
             throw new BizException("单号为空");
@@ -102,20 +85,75 @@ public class ServiceBillService {
             }
         }
         if ("..".equals(number)) {
-             throw new BizException("单号不能为 ..");
+            throw new BizException("单号不能为 ..");
         }
         if (serviceBillRepository.existsByNumber(number)) {
-                throw new BizException("单据编号已存在");
+            throw new BizException("单据编号已存在");
         }
+    }
+
+    private Set<Integer> requestedAssigneeIds(Collection<AssigneeDTO> requested) {
+        Set<Integer> ids = new HashSet<>();
+        if (requested == null) {
+            return ids;
+        }
+        for (AssigneeDTO assignee : requested) {
+            if (assignee != null && assignee.getId() != null) {
+                ids.add(assignee.getId());
+            }
+        }
+        return ids;
+    }
+
+    private Set<Integer> getCurrentAssignees(Integer billId) {
+        Set<Integer> ids = new HashSet<>();
+        for (ServiceBillAssignee assignee : assigneeRepository.findByServiceBillId(billId)) {
+            ids.add(assignee.getUserId());
+        }
+        return ids;
+    }
+
+    /**
+     * 统一的负责人变更入口：比较新旧 id，校验权限和用户状态后整体替换关联行。
+     */
+    private void updateAssignees(Integer billId, Collection<Integer> oldIds, Collection<Integer> ids) {
+        Set<Integer> oldSet = oldIds == null ? Set.of() : new HashSet<>(oldIds);
+        Set<Integer> newSet = ids == null ? Set.of() : new HashSet<>(ids);
+        if (oldSet.equals(newSet)) {
+            return;
+        }
+        AuthorityUser currentUser = AuthUtil.getCurUser();
+        if (currentUser == null) {
+            throw new BizException("未登录");
+        }
+        // 创建/编辑时把单据指派给自己不需要额外指派权限；改派他人或取消指派需要 serviceBill:assign
+        if (!newSet.equals(Set.of(currentUser.getId()))
+                && !AuthUtil.hasAuthority(ServiceBillPermission.ASSIGN.getCode())) {
+            throw new BizException("无权限指派服务单");
+        }
+        for (Integer userId : newSet) {
+            if (userService.findEnabledById(userId) == null) {
+                throw new BizException("指派用户不存在或已禁用");
+            }
+        }
+        assigneeRepository.deleteByServiceBillId(billId);
+        if (newSet.isEmpty()) {
+            return;
+        }
+        List<ServiceBillAssignee> rows = new ArrayList<>(newSet.size());
+        for (Integer userId : newSet) {
+            ServiceBillAssignee assignee = new ServiceBillAssignee();
+            assignee.setServiceBillId(billId);
+            assignee.setUserId(userId);
+            rows.add(assignee);
+        }
+        assigneeRepository.saveAll(rows);
     }
 
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'countBillsByState'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     @Transactional
@@ -128,25 +166,34 @@ public class ServiceBillService {
         } else {
             validNumber(serviceBillDTO.getNumber());
         }
+        Set<Integer> assigneeIds = requestedAssigneeIds(serviceBillDTO.getAssignees());
+        if (assigneeIds.isEmpty()) {
+            AuthorityUser currentUser = AuthUtil.getCurUser();
+            if (currentUser == null) {
+                throw new BizException("未登录");
+            }
+            assigneeIds = Set.of(currentUser.getId());
+        }
         ServiceBill bill = serviceBillMapper.toEntity(serviceBillDTO);
-        bindDetails(bill);
+        for (ServiceBillDetail detail : bill.getDetails()) {
+            detail.setServiceBill(bill);
+        }
         validateAmount(bill);
         bill.setState(ServiceBillState.CREATED);
         bill = serviceBillRepository.save(bill);
+        updateAssignees(bill.getId(), Set.of(), assigneeIds);
         serviceBillAttachService.updateAttachments(
                 bill.getId(),
                 serviceBillDTO.getAttachments()
         );
-        return serviceBillMapper.toDTO(bill, serviceBillAttachService.findAttachments(bill.getId()));
+        return serviceBillMapper.toDTO(bill, serviceBillAttachService.findAttachments(bill.getId()),
+                queryService.findAssigneesByBillId(bill.getId()));
     }
 
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'sumTotalAmountByMonth'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     @Transactional
@@ -154,18 +201,22 @@ public class ServiceBillService {
         if (serviceBillDTO.getId() == null) {
             throw new BizException("id 不能为空");
         }
-        ServiceBill bill = serviceBillRepository
-                .findById(serviceBillDTO.getId())
-                .orElse(null);
-        if (bill == null) {
-            throw new BizException("单据不存在");
-        }
+        ServiceBill bill = queryService.findEntityById(serviceBillDTO.getId());
         if (!bill.getNumber().equals(serviceBillDTO.getNumber())) {
             validNumber(serviceBillDTO.getNumber());
         }
+        // 先处理负责人再修改明细：Mapper 清理明细后任何查询都会触发 auto-flush，
+        // 此时新明细还没被持久化，Hibernate 会报 detached entity passed to persist。
+        if (serviceBillDTO.getAssignees() != null) {
+            Set<Integer> currentAssigneeIds = getCurrentAssignees(bill.getId());
+            Set<Integer> requestedAssigneeIds = requestedAssigneeIds(serviceBillDTO.getAssignees());
+            updateAssignees(bill.getId(), currentAssigneeIds, requestedAssigneeIds);
+        }
         var originState = bill.getState();
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
-        bindDetails(bill);
+        for (ServiceBillDetail detail : bill.getDetails()) {
+            detail.setServiceBill(bill);
+        }
         bill.setState(originState);
         // 公司关联单独处理, 直接使用 MapStruct 会因为代理对象 ID 变化触发关联变更（即使未设置 Cascade）
         if (
@@ -177,9 +228,8 @@ public class ServiceBillService {
                                         serviceBillDTO.getProductCompany().getId()
                                 ))
         ) {
-            Company targetCompany = companyRepository
-                    .findById(serviceBillDTO.getProductCompany().getId())
-                    .orElse(null);
+            Integer companyId = serviceBillDTO.getProductCompany().getId();
+            Company targetCompany = companyService.findEntityById(companyId);
             if (targetCompany == null) {
                 throw new BizException("公司不存在");
             }
@@ -191,113 +241,38 @@ public class ServiceBillService {
         bill = serviceBillRepository.save(bill);
 
         serviceBillAttachService.updateAttachments(bill.getId(), serviceBillDTO.getAttachments());
-        return serviceBillMapper.toDTO(bill, serviceBillAttachService.findAttachments(bill.getId()));
+        return serviceBillMapper.toDTO(bill, serviceBillAttachService.findAttachments(bill.getId()),
+                queryService.findAssigneesByBillId(bill.getId()));
     }
 
-    @Cacheable(
-            value = "serviceBill_query",
-            key = "'findByParam_' + #param.hashCode()"
+    /**
+     * 指派/改派负责人；assigneeIds 为空表示取消指派。
+     */
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
+            }
     )
-    public Page<ServiceBillDTO> findByParam(ServiceBillQueryParam param) {
-        if (param == null) {
-            throw new BizException("查询参数为空");
+    public ActionsResult<Integer, Void> assign(List<Integer> ids, List<Integer> assigneeIds) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BizException("id不能为空");
         }
-        Specification<ServiceBill> specification = (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            if (param.getNumber() != null) {
-                predicates.add(
-                        cb.like(root.get("number"), param.getNumber() + "%")
-                );
-            }
-            if (param.getStates() != null && !param.getStates().isEmpty()) {
-                if (param.getStates().size() == 1) {
-                    predicates.add(
-                            cb.equal(
-                                    root.get("state"),
-                                    param.getStates().getFirst()
-                            )
-                    );
-                } else {
-                    predicates.add(root.get("state").in(param.getStates()));
-                }
-            }
-            if (param.getProjectName() != null) {
-                predicates.add(
-                        cb.like(
-                                root.get("projectName"),
-                                "%" + param.getProjectName() + "%"
-                        )
-                );
-            }
-            if (param.getOrderStartDate() != null) {
-                predicates.add(
-                        cb.greaterThanOrEqualTo(
-                                root.get("orderDate"),
-                                param.getOrderStartDate()
-                        )
-                );
-            }
-            if (param.getOrderEndDate() != null) {
-                predicates.add(
-                        cb.lessThanOrEqualTo(
-                                root.get("orderDate"),
-                                param.getOrderEndDate()
-                        )
-                );
-            }
-            if (param.getProcessedStartDate() != null) {
-                predicates.add(
-                        cb.greaterThanOrEqualTo(
-                                root.get("processedDate"),
-                                param.getProcessedStartDate()
-                        )
-                );
-            }
-            if (param.getProcessedEndDate() != null) {
-                predicates.add(
-                        cb.lessThanOrEqualTo(
-                                root.get("processedDate"),
-                                param.getProcessedEndDate()
-                        )
-                );
-            }
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
-        int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
-        int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
-        List<Sort.Order> orders =
-                param.getSorts() == null
-                        ? List.of(Sort.Order.desc("orderDate"))
-                        : param
-                        .getSorts()
-                        .stream()
-                        .map(sortParam ->
-                                Sort.Order.by(sortParam.getField()).with(
-                                        Sort.Direction.fromString(
-                                                sortParam.getDirection()
-                                        )
-                                )
-                        )
-                        .toList();
-        Pageable pageable = PageRequest.of(
-                pageIndex,
-                pageSize,
-                Sort.by(orders)
-        );
-        Page<ServiceBill> pageResult = serviceBillRepository.findAll(
-                specification,
-                pageable
-        );
-        return pageResult.map(serviceBillMapper::toBaseDTO);
+        Set<Integer> targetIds = assigneeIds == null ? Set.of() : new HashSet<>(assigneeIds);
+        return ActionsResult.executeActions(ids, id -> {
+            transactionTemplate.executeWithoutResult(_ -> {
+                queryService.findEntityById(id);
+                updateAssignees(id, getCurrentAssignees(id), targetIds);
+            });
+            return null;
+        });
     }
+
 
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'countBillsByState'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> delete(List<Integer> ids) {
@@ -305,16 +280,12 @@ public class ServiceBillService {
             throw new BizException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository
-                        .findById(id)
-                        .orElse(null);
-                if (bill == null) {
-                    throw new BizException("单据不存在");
-                }
+            transactionTemplate.executeWithoutResult(_ -> {
+                ServiceBill bill = queryService.findEntityById(id);
                 if (bill.getState() != ServiceBillState.CREATED) {
                     throw new BizException("非创建状态的单据不能删除");
                 }
+                assigneeRepository.deleteByServiceBillId(id);
                 serviceBillRepository.deleteById(id);
                 serviceBillAttachService.updateAttachments(id, List.of());
             });
@@ -328,10 +299,7 @@ public class ServiceBillService {
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'countBillsByState'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> process(List<Integer> ids) {
@@ -339,13 +307,8 @@ public class ServiceBillService {
             throw new BizException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository
-                        .findById(id)
-                        .orElse(null);
-                if (bill == null) {
-                    throw new BizException("单据不存在");
-                }
+            transactionTemplate.executeWithoutResult(_ -> {
+                ServiceBill bill = queryService.findEntityById(id);
                 if (bill.getState() != ServiceBillState.CREATED) {
                     throw new BizException("非创建状态的单据不能处理");
                 }
@@ -363,14 +326,7 @@ public class ServiceBillService {
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'countBillsByState'"
-                    ),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'sumReceiveAmountByMonth'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> processed(
@@ -383,13 +339,8 @@ public class ServiceBillService {
         final Instant finalProcessedDate =
                 processedDate == null ? Instant.now() : processedDate;
         return ActionsResult.executeActions(ids, id -> {
-            transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository
-                        .findById(id)
-                        .orElse(null);
-                if (bill == null) {
-                    throw new BizException("单据不存在");
-                }
+            transactionTemplate.executeWithoutResult(_ -> {
+                ServiceBill bill = queryService.findEntityById(id);
                 if (bill.getState() != ServiceBillState.PROCESSING) {
                     throw new BizException("非处理中状态的单据不能处理完成");
                 }
@@ -408,10 +359,7 @@ public class ServiceBillService {
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'countBillsByState'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> finish(
@@ -424,13 +372,8 @@ public class ServiceBillService {
         final Instant finalFinishedDate =
                 finishedDate == null ? Instant.now() : finishedDate;
         return ActionsResult.executeActions(ids, id -> {
-            transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository
-                        .findById(id)
-                        .orElse(null);
-                if (bill == null) {
-                    throw new BizException("单据不存在");
-                }
+            transactionTemplate.executeWithoutResult(_ -> {
+                ServiceBill bill = queryService.findEntityById(id);
                 if (bill.getState() != ServiceBillState.PROCESSED) {
                     throw new BizException("非处理完成状态的单据不能完成");
                 }
@@ -449,10 +392,7 @@ public class ServiceBillService {
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'countBillsByState'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> cancelProcess(List<Integer> ids) {
@@ -460,13 +400,8 @@ public class ServiceBillService {
             throw new BizException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository
-                        .findById(id)
-                        .orElse(null);
-                if (bill == null) {
-                    throw new BizException("单据不存在");
-                }
+            transactionTemplate.executeWithoutResult(_ -> {
+                ServiceBill bill = queryService.findEntityById(id);
                 if (bill.getState() != ServiceBillState.PROCESSING) {
                     throw new BizException("非处理中状态的单据不能取消处理");
                 }
@@ -485,10 +420,7 @@ public class ServiceBillService {
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'countBillsByState'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> cancelProcessed(List<Integer> ids) {
@@ -496,13 +428,8 @@ public class ServiceBillService {
             throw new BizException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository
-                        .findById(id)
-                        .orElse(null);
-                if (bill == null) {
-                    throw new BizException("单据不存在");
-                }
+            transactionTemplate.executeWithoutResult(_ -> {
+                ServiceBill bill = queryService.findEntityById(id);
                 if (bill.getState() != ServiceBillState.PROCESSED) {
                     throw new BizException("非处理完成状态的单据不能取消处理完成");
                 }
@@ -521,10 +448,7 @@ public class ServiceBillService {
     @Caching(
             evict = {
                     @CacheEvict(value = "serviceBill_query", allEntries = true),
-                    @CacheEvict(
-                            value = "serviceBill_statistic",
-                            key = "'countBillsByState'"
-                    ),
+                    @CacheEvict(value = "serviceBill_statistic", allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> cancelFinish(List<Integer> ids) {
@@ -532,13 +456,8 @@ public class ServiceBillService {
             throw new BizException("id不能为空");
         }
         return ActionsResult.executeActions(ids, id -> {
-            transactionTemplate.executeWithoutResult(status -> {
-                ServiceBill bill = serviceBillRepository
-                        .findById(id)
-                        .orElse(null);
-                if (bill == null) {
-                    throw new BizException("单据不存在");
-                }
+            transactionTemplate.executeWithoutResult(_ -> {
+                ServiceBill bill = queryService.findEntityById(id);
                 if (bill.getState() != ServiceBillState.FINISHED) {
                     throw new BizException("非完成状态的单据不能取消完成");
                 }

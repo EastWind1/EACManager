@@ -28,7 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class ServiceBillStatisticServiceTest extends BaseServiceTest {
 
     @Autowired
-    private ServiceBillService serviceBillService;
+    private ServiceBillActionService serviceBillActionService;
+
+    @Autowired
+    private ServiceBillQueryService queryService;
 
     @Autowired
     private ServiceBillStatisticService serviceBillStatisticService;
@@ -102,15 +105,15 @@ class ServiceBillStatisticServiceTest extends BaseServiceTest {
         ServiceBillDTO created = createRawBill(total);
         List<Integer> ids = List.of(created.getId());
         if (targetState == ServiceBillState.PROCESSING) {
-            serviceBillService.process(ids);
+            serviceBillActionService.process(ids);
         } else if (targetState == ServiceBillState.PROCESSED || targetState == ServiceBillState.FINISHED) {
-            serviceBillService.process(ids);
-            serviceBillService.processed(ids, Instant.now());
+            serviceBillActionService.process(ids);
+            serviceBillActionService.processed(ids, Instant.now());
             if (targetState == ServiceBillState.FINISHED) {
-                serviceBillService.finish(ids, Instant.now());
+                serviceBillActionService.finish(ids, Instant.now());
             }
         }
-        return serviceBillService.findById(created.getId());
+        return queryService.findFullById(created.getId());
     }
 
     /**
@@ -119,10 +122,10 @@ class ServiceBillStatisticServiceTest extends BaseServiceTest {
     private ServiceBillDTO createProcessedBill(BigDecimal total, Instant processedDate) {
         ServiceBillDTO created = createRawBill(total);
         List<Integer> ids = List.of(created.getId());
-        ActionsResult<Integer, Void> processResult = serviceBillService.process(ids);
+        ActionsResult<Integer, Void> processResult = serviceBillActionService.process(ids);
         assertEquals(1, processResult.getSuccessCount());
-        serviceBillService.processed(ids, processedDate);
-        return serviceBillService.findById(created.getId());
+        serviceBillActionService.processed(ids, processedDate);
+        return queryService.findFullById(created.getId());
     }
 
     private ServiceBillDTO createRawBill(BigDecimal total) {
@@ -141,7 +144,7 @@ class ServiceBillStatisticServiceTest extends BaseServiceTest {
 
         bill.setDetails(List.of(detail));
         bill.setAttachments(new ArrayList<>());
-        return serviceBillService.create(bill);
+        return serviceBillActionService.create(bill);
     }
 
     private static Map<String, BigDecimal> toMonthMap(List<MonthSumAmount> rows) {

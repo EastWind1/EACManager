@@ -62,11 +62,35 @@ func (s *BillServiceTest) TestInvalidNumberCreate() {
 	s.Error(err)
 }
 
+func (s *BillServiceTest) TestAssignAndUnassign() {
+	created, err := s.srv.Create(s.Ctx, s.testBill)
+	s.NoError(err)
+	s.Len(created.Assignees, 1)
+	s.Equal(uint(1), created.Assignees[0].ID)
+
+	res, err := s.srv.Assign(s.Ctx, []uint{created.ID}, []uint{})
+	s.NoError(err)
+	s.Equal(1, res.SuccessCount)
+
+	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	s.NoError(err)
+	s.Empty(found.Assignees)
+
+	res, err = s.srv.Assign(s.Ctx, []uint{created.ID}, []uint{1, 1})
+	s.NoError(err)
+	s.Equal(1, res.SuccessCount)
+
+	found, err = s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	s.NoError(err)
+	s.Len(found.Assignees, 1)
+	s.Equal(uint(1), found.Assignees[0].ID)
+}
+
 func (s *BillServiceTest) TestFindByID() {
 	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 
 	s.NotNil(found)
@@ -99,7 +123,7 @@ func (s *BillServiceTest) TestFindByParam() {
 		PageIndex:   new(1),
 		PageSize:    new(10),
 	}
-	bills, err := s.srv.FindByParam(s.Ctx, queryParam)
+	bills, err := s.App.BillQuery.FindByParam(s.Ctx, queryParam)
 	s.NoError(err)
 
 	s.GreaterOrEqual(bills.TotalCount, 3)
@@ -125,7 +149,7 @@ func (s *BillServiceTest) TestDelete() {
 
 	s.NotNil(res)
 
-	_, err = s.srv.FindByID(s.Ctx, created.ID)
+	_, err = s.App.BillQuery.FindByID(s.Ctx, created.ID)
 	s.Error(err)
 }
 
@@ -139,7 +163,7 @@ func (s *BillServiceTest) TestFinish() {
 	_, err = s.srv.Finish(s.Ctx, []uint{created.ID}, new(time.Now()))
 	s.NoError(err)
 
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Finished, found.State)
 }
@@ -187,7 +211,7 @@ func (s *BillServiceTest) TestValidateAmountError() {
 }
 
 func (s *BillServiceTest) TestFindWithEmptyParam() {
-	_, err := s.srv.FindByParam(s.Ctx, nil)
+	_, err := s.App.BillQuery.FindByParam(s.Ctx, nil)
 	s.Error(err)
 	s.Contains(err.Error(), "查询参数为空")
 }
@@ -261,7 +285,7 @@ func (s *BillServiceTest) TestUpdateNonExistentBill() {
 }
 
 func (s *BillServiceTest) TestFindNonExistentID() {
-	_, err := s.srv.FindByID(s.Ctx, 999999)
+	_, err := s.App.BillQuery.FindByID(s.Ctx, 999999)
 	s.Error(err)
 	s.Contains(err.Error(), "单据不存在")
 }
@@ -410,7 +434,7 @@ func (s *BillServiceTest) TestCancelProcessSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Created, found.State)
 	// ProcessedDate should be nil after cancel
@@ -472,7 +496,7 @@ func (s *BillServiceTest) TestCancelProcessedSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Processing, found.State)
 	// ProcessedDate should be nil after cancel
@@ -545,7 +569,7 @@ func (s *BillServiceTest) TestCancelFinishSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Processed, found.State)
 	// FinishedDate should be nil after cancel

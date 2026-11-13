@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ServiceBillAttachServiceTest extends BaseServiceTest {
 
     @Autowired
-    private ServiceBillService serviceBillService;
+    private ServiceBillActionService serviceBillActionService;
 
     @Autowired
     private ServiceBillAttachService serviceBillAttachService;
@@ -89,7 +89,7 @@ class ServiceBillAttachServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("新增服务单附件时提交附件并建立关联")
     void shouldCreateRelationWhenAttachAdded() throws IOException {
-        ServiceBillDTO created = serviceBillService.create(createTestServiceBill(uploadAttachment()));
+        ServiceBillDTO created = serviceBillActionService.create(createTestServiceBill(uploadAttachment()));
 
         assertEquals(1, created.getAttachments().size());
         List<Attach> attachments = serviceBillAttachService.findAttachments(created.getId());
@@ -101,12 +101,12 @@ class ServiceBillAttachServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("移除服务单附件时清理关联与附件")
     void shouldDeleteRelationWhenAttachRemoved() throws IOException {
-        ServiceBillDTO created = serviceBillService.create(createTestServiceBill(uploadAttachment()));
+        ServiceBillDTO created = serviceBillActionService.create(createTestServiceBill(uploadAttachment()));
         Integer attachId = created.getAttachments().getFirst().getId();
         assertEquals(1, serviceBillAttachService.findAttachments(created.getId()).size());
 
         created.setAttachments(new ArrayList<>());
-        ServiceBillDTO updated = serviceBillService.update(created);
+        ServiceBillDTO updated = serviceBillActionService.update(created);
 
         assertTrue(updated.getAttachments().isEmpty());
         assertTrue(serviceBillAttachService.findAttachments(created.getId()).isEmpty());
@@ -116,10 +116,10 @@ class ServiceBillAttachServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("删除服务单时清理关联记录")
     void shouldDeleteRelationWhenBillDeleted() throws IOException {
-        ServiceBillDTO created = serviceBillService.create(createTestServiceBill(uploadAttachment()));
+        ServiceBillDTO created = serviceBillActionService.create(createTestServiceBill(uploadAttachment()));
         assertEquals(1, serviceBillAttachService.findAttachments(created.getId()).size());
 
-        serviceBillService.delete(List.of(created.getId()));
+        serviceBillActionService.delete(List.of(created.getId()));
 
         assertTrue(serviceBillAttachService.findAttachments(created.getId()).isEmpty());
     }
@@ -127,12 +127,12 @@ class ServiceBillAttachServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("已提交的附件不能被另一张单据复用")
     void shouldRejectCommittedAttachmentReuse() throws IOException {
-        ServiceBillDTO created = serviceBillService.create(createTestServiceBill(uploadAttachment()));
+        ServiceBillDTO created = serviceBillActionService.create(createTestServiceBill(uploadAttachment()));
         AttachDTO committed = created.getAttachments().getFirst();
 
         RuntimeException error = assertThrows(
                 RuntimeException.class,
-                () -> serviceBillService.create(createTestServiceBill(committed))
+                () -> serviceBillActionService.create(createTestServiceBill(committed))
         );
         assertTrue(error.getMessage().contains("附件不存在或已被提交"), error.getMessage());
     }

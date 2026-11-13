@@ -38,6 +38,13 @@ public class CompanyService {
         return companyRepository.findByNameContains(name).stream().map(companyMapper::toDTO).toList();
     }
 
+    public Company findEntityById(Integer id) {
+        if (id == null) {
+            return null;
+        }
+        return companyRepository.findById(id).orElse(null);
+    }
+
     @Transactional
     public CompanyDTO update(CompanyDTO company) {
         if (!companyRepository.existsById(company.getId())) {

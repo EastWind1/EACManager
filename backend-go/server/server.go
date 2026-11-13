@@ -32,6 +32,7 @@ type App struct {
 	Attach        *attach.Service
 	Content       *attach.ContentService
 	Bill          *bill.Service
+	BillQuery     *bill.QueryService
 	BillStat      *bill.StatisticService
 	Reimburse     *reimburse.Service
 	ReimburseStat *reimburse.StatisticService
@@ -73,7 +74,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		app.Company = company.Setup(app.Db, router, securitySrv, permissionSyncSrv)
 		app.Attach, app.Content = attach.Setup(cfg, app.Db, router, securitySrv, permissionSyncSrv)
 		app.Reimburse, app.ReimburseStat = reimburse.Setup(app.Cache, app.Db, router, app.Attach, app.Content, securitySrv, permissionSyncSrv)
-		app.Bill, app.BillStat = bill.Setup(app.Cache, app.Db, router, app.Company, app.Attach, app.Content, securitySrv, permissionSyncSrv)
+		app.Bill, app.BillStat, app.BillQuery = bill.Setup(app.Cache, app.Db, router, app.Company, app.Attach, app.Content, app.User, securitySrv, permissionSyncSrv)
 
 		if err := permissionSyncSrv.Sync(); err != nil {
 			return nil, err

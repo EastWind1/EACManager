@@ -16,4 +16,6 @@ export const Permission = {
   SERVICE_BILL_CANCEL_PROCESSED: 'serviceBill:cancel-processed',
   SERVICE_BILL_CANCEL_FINISH: 'serviceBill:cancel-finish',
   SERVICE_BILL_STATISTIC: 'serviceBill:statistic',
+  SERVICE_BILL_ASSIGN: 'serviceBill:assign',
+  SERVICE_BILL_DATA_ALL: 'serviceBill:data-all',
 } as const

@@ -192,6 +192,22 @@
                   clearable
                 ></v-select>
               </v-col>
+              <!-- 负责人 -->
+              <v-col cols="12" md="4" sm="6" xl="3">
+                <v-select
+                  v-model="serviceBill.assignees"
+                  :disabled="!isEditState || !canAssign"
+                  :items="assigneeData.data"
+                  chips
+                  clearable
+                  closable-chips
+                  item-title="name"
+                  label="负责人"
+                  multiple
+                  return-object
+                  @update:menu="assigneeSelect"
+                ></v-select>
+              </v-col>
               <!-- 项目名称 -->
               <v-col cols="12" md="4" sm="6" xl="3">
                 <v-text-field
@@ -350,8 +366,8 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
-import {type ServiceBill, ServiceBillState, ServiceBillType} from '../model/ServiceBill'
+import {computed, ref} from 'vue'
+import {type Assignee, type ServiceBill, ServiceBillState, ServiceBillType} from '../model/ServiceBill'
 import ServiceBillFormDetail from '../component/ServiceBillFormDetail.vue'
 import ServiceBillApi from '../api/ServiceBillApi'
 import {storeToRefs} from 'pinia'
@@ -381,8 +397,10 @@ import {useDate, useDisplay, useHotkey} from 'vuetify/framework'
 import type {Company} from '@/company/model/Company'
 import CompanyApi from '@/company/api/CompanyApi'
 import {Permission} from '../model/Permission'
+import {useUserStore} from '@/user/store/UserStore'
 
 const store = useUIStore()
+const userStore = useUserStore()
 const {loading} = storeToRefs(store)
 const {warning, success} = store
 const route = useRoute()
@@ -403,6 +421,7 @@ const serviceBill = ref<ServiceBill>({
   projectContactPhone: '',
   details: [],
   attachments: [],
+  assignees: [],
   totalAmount: 0,
   orderDate: new Date(),
 })
@@ -415,6 +434,13 @@ const companyData = ref<{ loaded: boolean; data: Company[] }>({
   loaded: false,
   data: [],
 })
+// 指派候选人
+const assigneeData = ref<{ loaded: boolean; data: Assignee[] }>({
+  loaded: false,
+  data: [],
+})
+// 是否有指派权限
+const canAssign = computed(() => userStore.hasPermission(Permission.SERVICE_BILL_ASSIGN))
 // 当前子表 Tab 页
 const tab = ref('detail')
 
@@ -430,6 +456,17 @@ async function companySelect() {
   }
   companyData.value.data = await CompanyApi.getAll({}).then((res) => res.items)
   companyData.value.loaded = true
+}
+
+/**
+ * 指派候选人加载
+ */
+async function assigneeSelect() {
+  if (!canAssign.value || assigneeData.value.loaded) {
+    return
+  }
+  assigneeData.value.data = await ServiceBillApi.getAssignees()
+  assigneeData.value.loaded = true
 }
 
 /**

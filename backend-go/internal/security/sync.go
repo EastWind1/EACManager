@@ -105,7 +105,7 @@ func (s *PermissionSyncService) initAdmin() error {
 				return err
 			}
 			if permission == nil {
-				return errs.NewBizError("管理员初始化失败：缺少权限配置所需权限")
+				return errs.NewBizError("管理员初始化失败：缺少权限 " + code)
 			}
 			if err := s.repo.CreateRolePermission(txCtx, &RolePermission{
 				RoleID:       admin.ID,
@@ -116,7 +116,7 @@ func (s *PermissionSyncService) initAdmin() error {
 			added++
 		}
 		if added > 0 {
-			log.Infof("管理员角色权限不完整，已授予 %d 项权限配置权限", added)
+			log.Infof("管理员角色权限不完整，已补齐 %d 项权限", added)
 		}
 		return nil
 	})

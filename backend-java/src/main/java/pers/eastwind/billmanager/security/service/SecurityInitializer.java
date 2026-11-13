@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.security.model.PermissionEntity;
 import pers.eastwind.billmanager.security.model.Role;
 import pers.eastwind.billmanager.security.model.RolePermission;
-import pers.eastwind.billmanager.security.model.SecurityPermission;
+import pers.eastwind.billmanager.security.permission.SecurityPermission;
 import pers.eastwind.billmanager.security.repository.PermissionRepository;
 import pers.eastwind.billmanager.security.repository.RolePermissionRepository;
 import pers.eastwind.billmanager.security.repository.RoleRepository;
@@ -66,8 +66,23 @@ public class SecurityInitializer implements ApplicationRunner {
             hasModify = true;
         }
         if (hasModify) {
-            log.info("管理员角色权限不完整，已创建并授予权限配置权限");
+            log.info("管理员角色权限不完整，已补齐权限配置");
         }
+    }
+
+    private boolean grantIfMissing(Role admin, String permissionCode) {
+        if (rolePermissionRepository.existsByRoleCodeAndPermissionCode(admin.getCode(), permissionCode)) {
+            return false;
+        }
+        PermissionEntity permission = permissionRepository.findByCode(permissionCode);
+        if (permission == null) {
+            throw new IllegalStateException("管理员初始化失败：缺少权限 " + permissionCode);
+        }
+        RolePermission relation = new RolePermission();
+        relation.setRoleId(admin.getId());
+        relation.setPermissionId(permission.getId());
+        rolePermissionRepository.save(relation);
+        return true;
     }
 
     private Role ensureRole(String code, String name, int sortOrder) {

@@ -37,6 +37,39 @@ func (r *Repository) FindAllEnabled(ctx context.Context, pageable *result.QueryP
 	return r.Page(ctx, r.Chain(ctx).Where("disabled = ?", false), pageable)
 }
 
+// FindAllEnabledList 返回全部启用用户
+func (r *Repository) FindAllEnabledList(ctx context.Context) ([]User, error) {
+	users, err := gorm.G[User](r.Ctx(ctx)).Where("disabled = ?", false).Order("id").Find(ctx)
+	if err != nil {
+		return nil, errs.Wrap(err)
+	}
+	return users, nil
+}
+
+// FindByIDs 按 id 批量读取用户，包含已停用用户
+func (r *Repository) FindByIDs(ctx context.Context, ids []uint) ([]User, error) {
+	if len(ids) == 0 {
+		return []User{}, nil
+	}
+	users, err := gorm.G[User](r.Ctx(ctx)).
+		Where("id IN ?", ids).Order("id").Find(ctx)
+	if err != nil {
+		return nil, errs.Wrap(err)
+	}
+	return users, nil
+}
+
+func (r *Repository) FindEnabledByID(ctx context.Context, id uint) (*User, error) {
+	user, err := gorm.G[User](r.Ctx(ctx)).Where("id = ? AND disabled = ?", id, false).Take(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, errs.Wrap(err)
+	}
+	return &user, nil
+}
+
 func (r *Repository) Create(ctx context.Context, data *User) error {
 	if err := gorm.G[User](r.Ctx(ctx)).Create(ctx, data); err != nil {
 		// 用户名唯一索引是最终的判重手段；并发创建时靠它兜底，不再依赖「先查后插」

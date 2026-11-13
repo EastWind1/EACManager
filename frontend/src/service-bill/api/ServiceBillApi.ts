@@ -1,4 +1,4 @@
-import type { ServiceBill, ServiceBillQueryParam } from '../model/ServiceBill'
+import type { Assignee, ServiceBill, ServiceBillQueryParam } from '../model/ServiceBill'
 import type { PageResult } from '@/common/model/PageResult'
 import type { ActionsResult } from '@/common/model/ActionsResult'
 import { HttpClient } from '@/common/api/HttpClient'
@@ -22,6 +22,20 @@ const ServiceBillApi = {
    */
   async getById(id: number) {
     return await http.get<ServiceBill>(`/${id}`)
+  },
+  /**
+   * 指派候选人（启用用户）
+   */
+  async getAssignees() {
+    return await http.get<Assignee[]>(`/assignees`)
+  },
+  /**
+   * 指派/改派负责人
+   * @param ids 单据 ID 列表
+   * @param assigneeIds 负责人 ID 列表，空数组表示取消指派
+   */
+  async assign(ids: number[], assigneeIds: number[]) {
+    return await http.put<ActionsResult<number, void>>(`/assign`, { ids, assigneeIds })
   },
   /**
    * 导入

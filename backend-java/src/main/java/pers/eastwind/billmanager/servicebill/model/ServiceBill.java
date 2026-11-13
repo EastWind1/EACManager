@@ -45,14 +45,8 @@ public class ServiceBill extends AuditEntity {
     private Instant finishedDate;
     @Column(length = 1000)
     private String remark;
-    /**
-     * 明细由子端维护关联（mappedBy），插入时带外键；orphanRemoval 保证移除的明细真正删除。
-     */
     @OneToMany(mappedBy = "serviceBill", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ServiceBillDetail> details = new ArrayList<>();
-    /**
-     * 不要给默认值：Spring Data 以非 null 版本判定实体已存在，save() 会走 merge。
-     */
     @Version
     private Integer version;
 }

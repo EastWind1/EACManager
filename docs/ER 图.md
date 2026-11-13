@@ -6,6 +6,8 @@
 erDiagram
     COMPANY ||--o{ SERVICE_BILL : "product_company_id"
     SERVICE_BILL ||--o{ SERVICE_BILL_DETAIL : "service_bill_id"
+    SERVICE_BILL ||--o{ SERVICE_BILL_ASSIGNEE : "service_bill_id"
+    SYS_USER ||--o{ SERVICE_BILL_ASSIGNEE : "user_id"
     SERVICE_BILL ||--o{ SERVICE_BILL_ATTACH_RELATION : "service_bill_id"
     REIMBURSEMENT ||--o{ REIMBURSE_DETAIL : "reimbursement_id"
     REIMBURSEMENT ||--o{ REIMBURSE_ATTACH_RELATION : "reimburse_id"
@@ -59,6 +61,16 @@ erDiagram
         numeric unit_price "单价"
         numeric subtotal "小计"
         varchar remark "备注"
+    }
+
+    SERVICE_BILL_ASSIGNEE {
+        int id PK
+        int service_bill_id FK
+        int user_id FK "负责人（数据权限按此过滤）"
+        int created_by_id FK "审计"
+        timestamptz created_date
+        int last_modified_by_id FK "审计"
+        timestamptz last_modified_date
     }
 
     REIMBURSEMENT {

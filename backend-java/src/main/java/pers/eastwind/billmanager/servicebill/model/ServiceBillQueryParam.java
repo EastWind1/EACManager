@@ -19,4 +19,5 @@ public class ServiceBillQueryParam extends QueryParam {
     private Instant orderEndDate;
     private Instant processedStartDate;
     private Instant processedEndDate;
+    private Integer assigneeId;
 }

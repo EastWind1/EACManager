@@ -5,6 +5,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// 由于
+// InitService
 func Setup(db *gorm.DB, router fiber.Router) (*Service, *PermissionSyncService) {
 	srv := newService(db)
 	permissionSyncSrv := newPermissionSyncService(db)

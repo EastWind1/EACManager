@@ -16,28 +16,31 @@ import java.util.*;
 @Service
 public class ServiceBillStatisticService {
     private final ServiceBillStatisticRepository serviceBillStatisticRepository;
+    private final ServiceBillQueryService queryService;
 
-    public ServiceBillStatisticService(ServiceBillStatisticRepository serviceBillStatisticRepository) {
+    public ServiceBillStatisticService(ServiceBillStatisticRepository serviceBillStatisticRepository,
+                                       ServiceBillQueryService queryService) {
         this.serviceBillStatisticRepository = serviceBillStatisticRepository;
+        this.queryService = queryService;
     }
 
-    @Cacheable(value = "serviceBill_statistic", key = "'countBillsByState'")
+    @Cacheable(value = "serviceBill_statistic", key = "'countBillsByState_' + @serviceBillQueryService.getScopeUserId()")
     public Map<ServiceBillState, Long> countBillsByState() {
         Map<ServiceBillState, Long> stateCountMap = new HashMap<>();
-        for (ServiceBillStateCount row : serviceBillStatisticRepository.countByState()) {
+        for (ServiceBillStateCount row : serviceBillStatisticRepository.countByState(queryService.getScopeUserId())) {
             stateCountMap.put(row.state(), row.count());
         }
         return stateCountMap;
     }
 
 
-    @Cacheable(value = "serviceBill_statistic", key = "'sumReceiveAmountByMonth'")
+    @Cacheable(value = "serviceBill_statistic", key = "'sumReceiveAmountByMonth_' + @serviceBillQueryService.getScopeUserId()")
     public List<MonthSumAmount> sumReceiveAmountByMonth() {
 
         Instant preYear = Instant.now().minus(365, ChronoUnit.DAYS);
         List<MonthAmountRow> results = serviceBillStatisticRepository.sumAmountByStateGroupByMonth(
                 List.of(ServiceBillState.PROCESSED, ServiceBillState.FINISHED),
-                preYear, Instant.now());
+                preYear, Instant.now(), queryService.getScopeUserId());
         List<MonthSumAmount> rows = new ArrayList<>();
 
         for (MonthAmountRow result : results) {

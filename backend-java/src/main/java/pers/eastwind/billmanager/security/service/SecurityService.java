@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.security.model.*;
+import pers.eastwind.billmanager.security.permission.SecurityPermission;
 import pers.eastwind.billmanager.security.repository.PermissionRepository;
 import pers.eastwind.billmanager.security.repository.RolePermissionRepository;
 import pers.eastwind.billmanager.security.repository.RoleRepository;
@@ -187,7 +188,7 @@ public class SecurityService {
         List<UserRole> relations = userRoleRepository.findByUserIdIn(userIds);
         Set<Integer> roleIds = relations.stream()
                 .map(UserRole::getRoleId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+                .collect(Collectors.toCollection(HashSet::new));
         Map<Integer, Role> rolesById = roleIds.isEmpty()
                 ? Map.of()
                 : roleRepository.findByIdIn(roleIds).stream()
@@ -216,7 +217,7 @@ public class SecurityService {
                     .toList();
             List<RoleDTO> roleDTOs = new ArrayList<>(roles.size());
             List<PermissionEntity> permissions = new ArrayList<>();
-            Set<Integer> permissionIds = new LinkedHashSet<>();
+            Set<Integer> permissionIds = new HashSet<>();
             for (Role role : roles) {
                 roleDTOs.add(roleMapper.toBaseDTO(role));
                 for (PermissionEntity permission : permissionsByRole.getOrDefault(role.getId(), List.of())) {

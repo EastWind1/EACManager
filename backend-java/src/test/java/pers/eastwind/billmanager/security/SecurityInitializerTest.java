@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import pers.eastwind.billmanager.common.BaseServiceTest;
 import pers.eastwind.billmanager.security.model.PermissionDTO;
 import pers.eastwind.billmanager.security.model.RoleDTO;
-import pers.eastwind.billmanager.security.model.SecurityPermission;
+import pers.eastwind.billmanager.security.permission.SecurityPermission;
 import pers.eastwind.billmanager.security.service.SecurityInitializer;
 import pers.eastwind.billmanager.security.service.SecurityService;
 

@@ -94,6 +94,7 @@ import {
   usernameRule,
 } from '../model/UserInitValidation'
 import { useUIStore } from '@/common/store/UIStore'
+import Crypto from '@/common/util/Crypto'
 
 const router = useRouter()
 const { success } = useUIStore()
@@ -109,7 +110,7 @@ async function submit() {
   try {
     await UserApi.initialize({
       username: form.username.trim(),
-      password: form.password,
+      password: await Crypto.SHA256(form.password, form.username.trim()),
       name: form.name.trim(),
       phone: form.phone.trim() || undefined,
       email: form.email.trim() || undefined,

@@ -14,7 +14,6 @@ import pers.eastwind.billmanager.attach.util.SafePath;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.servicebill.model.ServiceBill;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
-import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
 
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -25,18 +24,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 服务单导入导出服务
+ */
 @Service
 public class ServiceBillIOService {
-    private final ServiceBillRepository serviceBillRepository;
     private final AttachService attachService;
     private final ServiceBillAttachService serviceBillAttachService;
     private final ServiceBillImportMapper attachMapper;
+    private final ServiceBillQueryService queryService;
 
-    public ServiceBillIOService(ServiceBillRepository serviceBillRepository, AttachService attachService, ServiceBillAttachService serviceBillAttachService, ServiceBillImportMapper attachMapper) {
-        this.serviceBillRepository = serviceBillRepository;
+    public ServiceBillIOService(AttachService attachService, ServiceBillAttachService serviceBillAttachService, ServiceBillImportMapper attachMapper, ServiceBillQueryService queryService) {
         this.attachService = attachService;
         this.serviceBillAttachService = serviceBillAttachService;
         this.attachMapper = attachMapper;
+        this.queryService = queryService;
     }
 
     public ServiceBillDTO generateByFile(Resource resource) {
@@ -50,10 +52,7 @@ public class ServiceBillIOService {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
         }
-        List<ServiceBill> serviceBills = serviceBillRepository.findAllById(ids);
-        if (serviceBills.isEmpty()) {
-            throw new BizException("id不存在");
-        }
+        List<ServiceBill> serviceBills = queryService.findEntityByIds(ids);
         Path tempPath = attachService.createTempDir("export");
         List<FileOp> ops = new ArrayList<>();
         List<List<String>> rows = new ArrayList<>();
@@ -67,7 +66,8 @@ public class ServiceBillIOService {
                     serviceBill.getProjectName(),
                     serviceBill.getProjectAddress(),
                     serviceBill.getTotalAmount().toString(),
-                    serviceBill.getProcessedDate() == null ? "" : dateTimeFormatter.format(serviceBill.getProcessedDate().atZone(ZoneId.systemDefault())),
+                    serviceBill.getProcessedDate() == null ? ""
+                            : dateTimeFormatter.format(serviceBill.getProcessedDate().atZone(ZoneId.systemDefault())),
                     serviceBill.getDetails().stream().map((detail) ->
                                     detail.getDevice() + " : " + detail.getUnitPrice().stripTrailingZeros().toPlainString()
                                             + " * " + detail.getQuantity().stripTrailingZeros().toPlainString() + " ; ")

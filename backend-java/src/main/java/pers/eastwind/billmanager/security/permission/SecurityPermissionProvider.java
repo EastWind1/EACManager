@@ -1,9 +1,8 @@
-package pers.eastwind.billmanager.security.provider;
+package pers.eastwind.billmanager.security.permission;
 
 import org.springframework.stereotype.Component;
 import pers.eastwind.billmanager.security.model.PermissionDTO;
 import pers.eastwind.billmanager.security.model.PermissionProvider;
-import pers.eastwind.billmanager.security.model.SecurityPermission;
 
 import java.util.Arrays;
 import java.util.List;

@@ -1,6 +1,5 @@
 package pers.eastwind.billmanager.servicebill.service;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.Attach;
 import pers.eastwind.billmanager.attach.model.AttachDTO;
@@ -15,7 +14,6 @@ import java.util.stream.Collectors;
 /**
  * 附件落库、提交与删除交给附件模块；本模块只维护关联，差异对比是目标集合与当前关联的集合运算。
  */
-@Slf4j
 @Service
 public class ServiceBillAttachService {
     /**
@@ -53,9 +51,9 @@ public class ServiceBillAttachService {
                 .collect(Collectors.toSet());
 
         // 目标集合中不在当前关联里的即为新增，其余为待删除
-        Set<Integer> addedIds = new LinkedHashSet<>(targetIds);
+        Set<Integer> addedIds = new HashSet<>(targetIds);
         addedIds.removeAll(currentIds);
-        Set<Integer> removedIds = new LinkedHashSet<>(currentIds);
+        Set<Integer> removedIds = new HashSet<>(currentIds);
         removedIds.removeAll(targetIds);
 
         if (addedIds.isEmpty() && removedIds.isEmpty()) {

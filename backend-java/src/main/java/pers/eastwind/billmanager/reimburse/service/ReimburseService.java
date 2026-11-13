@@ -54,10 +54,10 @@ public class ReimburseService {
             }
         }
         if ("..".equals(number)) {
-             throw new BizException("单号不能为 ..");
+            throw new BizException("单号不能为 ..");
         }
         if (reimburseRepository.existsByNumber(number)) {
-                throw new BizException("单据编号已存在");
+            throw new BizException("单据编号已存在");
         }
     }
 

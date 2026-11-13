@@ -17,6 +17,8 @@ const (
 	CancelProcessedAuthCode = "serviceBill:cancel-processed"
 	CancelFinishAuthCode    = "serviceBill:cancel-finish"
 	StatisticAuthCode       = "serviceBill:statistic"
+	AssignAuthCode          = "serviceBill:assign"
+	DataAllAuthCode         = "serviceBill:data-all"
 )
 
 func billPermissions() []security.PermissionDTO {
@@ -35,5 +37,7 @@ func billPermissions() []security.PermissionDTO {
 		security.NewPermissionDTO(0, CancelProcessedAuthCode, "serviceBill", "服务单", "取消处理完成服务单", 12),
 		security.NewPermissionDTO(0, CancelFinishAuthCode, "serviceBill", "服务单", "取消回款完成服务单", 13),
 		security.NewPermissionDTO(0, StatisticAuthCode, "serviceBill", "服务单", "服务单统计", 14),
+		security.NewPermissionDTO(0, AssignAuthCode, "serviceBill", "服务单", "指派服务单", 15),
+		security.NewPermissionDTO(0, DataAllAuthCode, "serviceBill", "服务单", "查看全部服务单", 16),
 	}
 }

@@ -43,7 +43,6 @@ public class FileUtil {
     }
 
 
-    
     private static AttachType getFileType(Path path) throws IOException {
         String mimeType = Files.probeContentType(path);
         if (mimeType == null) {

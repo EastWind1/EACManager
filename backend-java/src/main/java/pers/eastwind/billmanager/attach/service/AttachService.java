@@ -4,7 +4,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -166,7 +165,7 @@ public class AttachService implements InitializingBean {
         FileUtil.validName(fileName);
 
         // 存储 key 只用服务端生成的 hash；原始文件名只作为 attachment.name 留在内存/数据库
-        String relativePath = namespace + "/" + UUID.randomUUID().toString();
+        String relativePath = namespace + "/" + UUID.randomUUID();
         Path targetPath = getAbsolutePathByRela(relativePath);
 
         Attach attachment = new Attach();

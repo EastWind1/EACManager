@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.servicebill.repository;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.query.Param;
 import pers.eastwind.billmanager.common.model.MonthAmountRow;
 import pers.eastwind.billmanager.servicebill.model.ServiceBill;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillState;
@@ -18,9 +19,13 @@ public interface ServiceBillStatisticRepository extends Repository<ServiceBill, 
     @Query("""
             select new pers.eastwind.billmanager.servicebill.model.ServiceBillStateCount(s.state, count(s))
             from ServiceBill s
+            where (:assigneeId is null or exists (
+                select 1 from ServiceBillAssignee a
+                where a.serviceBillId = s.id and a.userId = :assigneeId
+            ))
             group by s.state
             """)
-    List<ServiceBillStateCount> countByState();
+    List<ServiceBillStateCount> countByState(@Param("assigneeId") Integer assigneeId);
 
     /**
      * 按状态条件按完工日期的年月分组，统计金额总和。
@@ -32,7 +37,15 @@ public interface ServiceBillStatisticRepository extends Repository<ServiceBill, 
             where s.state in :states
               and s.processedDate is not null
               and s.processedDate between :start and :end
+              and (:assigneeId is null or exists (
+                  select 1 from ServiceBillAssignee a
+                  where a.serviceBillId = s.id and a.userId = :assigneeId
+              ))
             group by year(s.processedDate), month(s.processedDate)
             """)
-    List<MonthAmountRow> sumAmountByStateGroupByMonth(List<ServiceBillState> states, Instant start, Instant end);
+    List<MonthAmountRow> sumAmountByStateGroupByMonth(
+            @Param("states") List<ServiceBillState> states,
+            @Param("start") Instant start,
+            @Param("end") Instant end,
+            @Param("assigneeId") Integer assigneeId);
 }

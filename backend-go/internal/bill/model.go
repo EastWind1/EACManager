@@ -116,6 +116,18 @@ type ServiceBill struct {
 	Version             optimisticlock.Version
 }
 
+// Assignee 服务单负责人子表；只保存关联 id，不建立实体关联。
+type Assignee struct {
+	ID            uint `gorm:"primaryKey"`
+	ServiceBillID uint `gorm:"not null;index;uniqueIndex:uk_service_bill_assignee"`
+	UserID        uint `gorm:"not null;index;uniqueIndex:uk_service_bill_assignee"`
+	security.Audit
+}
+
+func (*Assignee) TableName() string {
+	return "service_bill_assignee"
+}
+
 type Detail struct {
 	ID            uint `gorm:"primaryKey"`
 	ServiceBillID uint `gorm:"index"`
@@ -133,25 +145,33 @@ func (d *Detail) TableName() string {
 }
 
 type DTO struct {
-	ID                  uint         `json:"id"`
-	Number              string       `json:"number"`
-	Type                Type         `json:"type"`
-	State               State        `json:"state"`
-	ProductCompany      *company.DTO `json:"productCompany"`
-	ProjectName         string       `json:"projectName"`
-	ProjectAddress      string       `json:"projectAddress"`
-	ProjectContact      string       `json:"projectContact"`
-	ProjectContactPhone string       `json:"projectPhone"`
-	OnSiteContact       string       `json:"onSiteContact"`
-	OnSitePhone         string       `json:"onSitePhone"`
-	ElevatorInfo        string       `json:"elevatorInfo"`
-	TotalAmount         float64      `json:"totalAmount"`
-	OrderDate           *time.Time   `json:"orderDate"`
-	ProcessedDate       *time.Time   `json:"processedDate"`
-	FinishedDate        *time.Time   `json:"finishedDate"`
-	Remark              string       `json:"remark"`
-	Details             []DetailDTO  `json:"details"`
-	Attachments         []attach.DTO `json:"attachments"`
+	ID                  uint          `json:"id"`
+	Number              string        `json:"number"`
+	Type                Type          `json:"type"`
+	State               State         `json:"state"`
+	ProductCompany      *company.DTO  `json:"productCompany"`
+	Assignees           []AssigneeDTO `json:"assignees"`
+	ProjectName         string        `json:"projectName"`
+	ProjectAddress      string        `json:"projectAddress"`
+	ProjectContact      string        `json:"projectContact"`
+	ProjectContactPhone string        `json:"projectPhone"`
+	OnSiteContact       string        `json:"onSiteContact"`
+	OnSitePhone         string        `json:"onSitePhone"`
+	ElevatorInfo        string        `json:"elevatorInfo"`
+	TotalAmount         float64       `json:"totalAmount"`
+	OrderDate           *time.Time    `json:"orderDate"`
+	ProcessedDate       *time.Time    `json:"processedDate"`
+	FinishedDate        *time.Time    `json:"finishedDate"`
+	Remark              string        `json:"remark"`
+	Details             []DetailDTO   `json:"details"`
+	Attachments         []attach.DTO  `json:"attachments"`
+}
+
+// AssigneeDTO 负责人 / 指派候选人的最小信息，不携带角色与权限。
+type AssigneeDTO struct {
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Name     string `json:"name"`
 }
 
 type DetailDTO struct {
