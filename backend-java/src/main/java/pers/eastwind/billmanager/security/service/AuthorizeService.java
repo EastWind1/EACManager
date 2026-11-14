@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class SecurityService {
+public class AuthorizeService {
     public static final String ADMIN_ROLE_CODE = "ADMIN";
 
     private final RoleMapper roleMapper;
@@ -30,7 +30,7 @@ public class SecurityService {
     private final RolePermissionRepository rolePermissionRepository;
     private final PermissionRepository permissionRepository;
 
-    public SecurityService(RoleMapper roleMapper, PermissionMapper permissionMapper, RoleRepository roleRepository,
+    public AuthorizeService(RoleMapper roleMapper, PermissionMapper permissionMapper, RoleRepository roleRepository,
                            UserRoleRepository userRoleRepository,
                            RolePermissionRepository rolePermissionRepository,
                            PermissionRepository permissionRepository) {
@@ -209,7 +209,7 @@ public class SecurityService {
             }
         }
 
-        Map<Integer, AuthConfig> result = new HashMap<>();
+        Map<Integer, AuthConfig> res = new HashMap<>();
         for (Integer userId : userIds) {
             List<Role> roles = roleIdsByUser.getOrDefault(userId, List.of()).stream()
                     .map(rolesById::get)
@@ -226,11 +226,11 @@ public class SecurityService {
                     }
                 }
             }
-            permissions.sort(Comparator.comparing(PermissionEntity::getSortOrder)
-                    .thenComparing(PermissionEntity::getCode));
-            result.put(userId, new AuthConfig(roleDTOs, permissionMapper.toBaseDTOs(permissions)));
+            permissions.sort(Comparator.comparing(PermissionEntity::getModule)
+                    .thenComparing(PermissionEntity::getSortOrder));
+            res.put(userId, new AuthConfig(roleDTOs, permissionMapper.toBaseDTOs(permissions)));
         }
-        return result;
+        return res;
     }
 
     /**

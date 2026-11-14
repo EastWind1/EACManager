@@ -1,27 +1,16 @@
 <template>
   <v-progress-linear
     absolute
-    v-model="loadingProgress"
-    :active
-    style="z-index: 9999"
+    :active="loading"
     :indeterminate="loadingProgress < 0"
+    :model-value="loadingProgress < 0 ? 0 : loadingProgress"
+    style="z-index: 9999"
   ></v-progress-linear>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useUIStore } from '@/common/store/UIStore'
 
-const loadingProgress = ref(0)
-const active = ref(false)
-
-function show(progress?: number) {
-  loadingProgress.value = progress ?? -1
-  active.value = true
-}
-
-function hide() {
-  active.value = false
-}
-
-defineExpose({ show, hide })
+const { loading, loadingProgress } = storeToRefs(useUIStore())
 </script>

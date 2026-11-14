@@ -15,14 +15,14 @@ import (
 // 威垦与菱电共用同一份表单模板，仅识别关键词与公司名不同，因此用字段区分，
 // 避免靠结构体嵌入继承行为（Go 的提升方法按静态类型派发，子类型重写的判定不会生效）
 type WKMapRule struct {
-	companySrc *company.Service
+	companySvc *company.Service
 	keyword    string
 	maps       map[string]func(*DTO, string)
 }
 
-func newWKMapRule(companySrc *company.Service, keyword string) *WKMapRule {
+func newWKMapRule(companySvc *company.Service, keyword string) *WKMapRule {
 	return &WKMapRule{
-		companySrc: companySrc,
+		companySvc: companySvc,
 		keyword:    keyword,
 		maps: map[string]func(*DTO, string){
 			"合同编号": func(dto *DTO, value string) { dto.Number = value },
@@ -62,7 +62,7 @@ func (r *WKMapRule) SetCompany(target *DTO, name string) {
 	if name == "" {
 		return
 	}
-	companies, err := r.companySrc.FindByName(context.Background(), name)
+	companies, err := r.companySvc.FindByName(context.Background(), name)
 	if err != nil {
 		return
 	}

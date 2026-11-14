@@ -1,9 +1,8 @@
-package bill_test
+package test
 
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/bill"
-	"backend-go/internal/test"
 	"backend-go/pkg/result"
 	"strconv"
 	"testing"
@@ -14,7 +13,7 @@ import (
 
 // BillServiceTest 业务服务测试
 type BillServiceTest struct {
-	test.BaseSuite
+	BaseSuite
 	srv      *bill.Service
 	testBill *bill.DTO
 }
@@ -25,7 +24,7 @@ func TestBillService(t *testing.T) {
 
 func (s *BillServiceTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	s.srv = s.App.Bill
+	s.srv = s.App.Bill.Service
 }
 
 func (s *BillServiceTest) SetupTest() {
@@ -72,7 +71,7 @@ func (s *BillServiceTest) TestAssignAndUnassign() {
 	s.NoError(err)
 	s.Equal(1, res.SuccessCount)
 
-	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	found, err := s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Empty(found.Assignees)
 
@@ -80,17 +79,32 @@ func (s *BillServiceTest) TestAssignAndUnassign() {
 	s.NoError(err)
 	s.Equal(1, res.SuccessCount)
 
-	found, err = s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	found, err = s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Len(found.Assignees, 1)
 	s.Equal(uint(1), found.Assignees[0].ID)
+}
+
+func (s *BillServiceTest) TestAssignRejectedAfterProcessed() {
+	created, err := s.srv.Create(s.Ctx, s.testBill)
+	s.NoError(err)
+	_, err = s.srv.Process(s.Ctx, []uint{created.ID})
+	s.NoError(err)
+	now := time.Now()
+	_, err = s.srv.Processed(s.Ctx, []uint{created.ID}, &now)
+	s.NoError(err)
+
+	res, err := s.srv.Assign(s.Ctx, []uint{created.ID}, []uint{})
+	s.NoError(err)
+	s.Equal(0, res.SuccessCount)
+	s.Contains(res.Results[0].Message, "只有新建或处理中的单据才能指派")
 }
 
 func (s *BillServiceTest) TestFindByID() {
 	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 
-	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	found, err := s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 
 	s.NotNil(found)
@@ -123,7 +137,7 @@ func (s *BillServiceTest) TestFindByParam() {
 		PageIndex:   new(1),
 		PageSize:    new(10),
 	}
-	bills, err := s.App.BillQuery.FindByParam(s.Ctx, queryParam)
+	bills, err := s.App.Bill.Query.FindByParam(s.Ctx, queryParam)
 	s.NoError(err)
 
 	s.GreaterOrEqual(bills.TotalCount, 3)
@@ -149,7 +163,7 @@ func (s *BillServiceTest) TestDelete() {
 
 	s.NotNil(res)
 
-	_, err = s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	_, err = s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.Error(err)
 }
 
@@ -163,7 +177,7 @@ func (s *BillServiceTest) TestFinish() {
 	_, err = s.srv.Finish(s.Ctx, []uint{created.ID}, new(time.Now()))
 	s.NoError(err)
 
-	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	found, err := s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Finished, found.State)
 }
@@ -211,7 +225,7 @@ func (s *BillServiceTest) TestValidateAmountError() {
 }
 
 func (s *BillServiceTest) TestFindWithEmptyParam() {
-	_, err := s.App.BillQuery.FindByParam(s.Ctx, nil)
+	_, err := s.App.Bill.Query.FindByParam(s.Ctx, nil)
 	s.Error(err)
 	s.Contains(err.Error(), "查询参数为空")
 }
@@ -285,7 +299,7 @@ func (s *BillServiceTest) TestUpdateNonExistentBill() {
 }
 
 func (s *BillServiceTest) TestFindNonExistentID() {
-	_, err := s.App.BillQuery.FindByID(s.Ctx, 999999)
+	_, err := s.App.Bill.Query.FindByID(s.Ctx, 999999)
 	s.Error(err)
 	s.Contains(err.Error(), "单据不存在")
 }
@@ -434,7 +448,7 @@ func (s *BillServiceTest) TestCancelProcessSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	found, err := s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Created, found.State)
 	// ProcessedDate should be nil after cancel
@@ -496,7 +510,7 @@ func (s *BillServiceTest) TestCancelProcessedSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	found, err := s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Processing, found.State)
 	// ProcessedDate should be nil after cancel
@@ -569,7 +583,7 @@ func (s *BillServiceTest) TestCancelFinishSuccess() {
 	s.Len(res.Results, 1)
 	s.True(res.Results[0].Success)
 
-	found, err := s.App.BillQuery.FindByID(s.Ctx, created.ID)
+	found, err := s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(bill.Processed, found.State)
 	// FinishedDate should be nil after cancel
@@ -578,7 +592,7 @@ func (s *BillServiceTest) TestCancelFinishSuccess() {
 
 // BillStatServiceTest 服务单统计服务集成测试
 type BillStatServiceTest struct {
-	test.BaseSuite
+	BaseSuite
 	srv     *bill.Service
 	statSrv *bill.StatisticService
 }
@@ -589,7 +603,7 @@ func TestBillStatService(t *testing.T) {
 
 func (s *BillStatServiceTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	s.srv, s.statSrv = s.App.Bill, s.App.BillStat
+	s.srv, s.statSrv = s.App.Bill.Service, s.App.Bill.Statistic
 }
 
 func (s *BillStatServiceTest) SetupTest() {
@@ -663,7 +677,7 @@ func monthSumToMap(rows []result.MonthSumAmount) map[string]float64 {
 
 // BillAttachTest 服务单↔附件关联测试
 type BillAttachTest struct {
-	test.BaseSuite
+	BaseSuite
 	attachSrv *attach.Service
 	srv       *bill.Service
 }
@@ -674,8 +688,8 @@ func TestBillAttach(t *testing.T) {
 
 func (s *BillAttachTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	s.attachSrv = s.App.Attach
-	s.srv = s.App.Bill
+	s.attachSrv = s.App.Attach.Service
+	s.srv = s.App.Bill.Service
 }
 
 func (s *BillAttachTest) upload(name string) attach.DTO {

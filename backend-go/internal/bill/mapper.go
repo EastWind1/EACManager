@@ -6,6 +6,10 @@ import (
 	"backend-go/pkg/errs"
 )
 
+/*
+	导入映射相关
+*/
+
 // MapRule 仅在本模块内部使用，不对外注册，规则集合由 Mapper 自己持有。
 type MapRule interface {
 	CanMapTexts(texts []string) bool
@@ -20,12 +24,12 @@ type Mapper struct {
 	rules   []MapRule
 }
 
-func newServiceBillMapper(content *attach.ContentService, companySrc *company.Service) *Mapper {
+func newServiceBillMapper(content *attach.ContentService, companySvc *company.Service) *Mapper {
 	return &Mapper{
 		content: content,
 		rules: []MapRule{
-			newWKMapRule(companySrc, "菱电"),
-			newWKMapRule(companySrc, "威垦"),
+			newWKMapRule(companySvc, "菱电"),
+			newWKMapRule(companySvc, "威垦"),
 		},
 	}
 }

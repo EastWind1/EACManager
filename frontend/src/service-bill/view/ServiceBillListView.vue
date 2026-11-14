@@ -127,7 +127,7 @@
                 v-permission="Permission.SERVICE_BILL_PROCESS"
                 :disabled="loading"
                 color="primary"
-                @click="reloadAfterAction(process)"
+                @click="process(selectedIds)"
               >
                 <template #prepend>
                   <v-icon :icon="mdiWrench"></v-icon>
@@ -138,7 +138,7 @@
                 v-permission="Permission.SERVICE_BILL_PROCESSED"
                 :disabled="loading"
                 color="primary"
-                @click="reloadAfterAction(processed)"
+                @click="processed(selectedIds)"
               >
                 <template #prepend>
                   <v-icon :icon="mdiWrenchCheck"></v-icon>
@@ -149,7 +149,7 @@
                 v-permission="Permission.SERVICE_BILL_FINISH"
                 :disabled="loading"
                 color="primary"
-                @click="reloadAfterAction(finish)"
+                @click="finish(selectedIds)"
               >
                 <template #prepend>
                   <v-icon :icon="mdiCashCheck"></v-icon>
@@ -175,19 +175,19 @@
                   <v-list density="compact">
                     <v-list-item
                       v-permission="Permission.SERVICE_BILL_CANCEL_PROCESS"
-                      @click="reloadAfterAction(cancelProcess)"
+                      @click="cancelProcess(selectedIds)"
                     >
                       <v-list-item-title>取消处理</v-list-item-title>
                     </v-list-item>
                     <v-list-item
                       v-permission="Permission.SERVICE_BILL_CANCEL_PROCESSED"
-                      @click="reloadAfterAction(cancelProcessed)"
+                      @click="cancelProcessed(selectedIds)"
                     >
                       <v-list-item-title>取消处理完成</v-list-item-title>
                     </v-list-item>
                     <v-list-item
                       v-permission="Permission.SERVICE_BILL_CANCEL_FINISH"
-                      @click="reloadAfterAction(cancelFinish)"
+                      @click="cancelFinish(selectedIds)"
                     >
                       <v-list-item-title>取消完成</v-list-item-title>
                     </v-list-item>
@@ -198,7 +198,7 @@
                 v-permission="Permission.SERVICE_BILL_DELETE"
                 :disabled="loading"
                 color="error"
-                @click="reloadAfterAction(remove)"
+                @click="remove(selectedIds)"
               >
                 <template #prepend>
                   <v-icon :icon="mdiTrashCan"></v-icon>
@@ -261,42 +261,20 @@
       </template>
     </v-card>
 
-    <!-- 指派负责人 -->
-    <v-dialog v-model="assignDialog" max-width="480">
-      <v-card rounded="lg">
-        <template #title>
-          <v-icon :icon="mdiAccountSwitch" class="me-2"></v-icon>
-          指派负责人
-        </template>
-        <template #text>
-          <div class="text-body-2 mb-4">已选择 {{ selectedIds.length }} 条服务单</div>
-          <v-select
-            v-model="assignTargetIds"
-            :items="assigneeOptions"
-            chips
-            clearable
-            closable-chips
-            item-title="name"
-            item-value="id"
-            label="负责人"
-            multiple
-            placeholder="留空表示取消指派"
-          ></v-select>
-        </template>
-        <template #actions>
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="assignDialog = false">取消</v-btn>
-          <v-btn color="primary" :disabled="loading" @click="confirmAssign">确定</v-btn>
-        </template>
-      </v-card>
-    </v-dialog>
+    <ServiceBillAssignDialog
+      v-model="assignDialog"
+      v-model:target-ids="assignTargetIds"
+      :assignee-options="assigneeOptions"
+      :count="assignCount"
+      :loading="loading"
+      @confirm="confirmAssign"
+    />
   </v-container>
 </template>
 
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {
-  type Assignee,
   type ServiceBill,
   type ServiceBillQueryParam,
   ServiceBillState,
@@ -309,6 +287,8 @@ import {useRoute, useRouter} from 'vue-router'
 import {useUIStore} from '@/common/store/UIStore'
 import {useFileSelector} from '@/attachment/composable/FileSelector'
 import {useServiceBillActions} from '../composable/ServiceBillActions'
+import {useServiceBillAssign} from '../composable/ServiceBillAssign'
+import ServiceBillAssignDialog from '../component/ServiceBillAssignDialog.vue'
 import {storeToRefs} from 'pinia'
 import {useRouterStore} from '@/common/store/RouterStore'
 import {
@@ -429,46 +409,10 @@ const data = ref<PageResult<ServiceBill>>({
 const search = ref('')
 // 选择的项 id
 const selectedIds = ref<number[]>([])
-// 指派候选人
-const assigneeOptions = ref<Assignee[]>([])
-// 指派弹窗
-const assignDialog = ref(false)
-const assignTargetIds = ref<number[]>([])
 // 是否有指派权限（用于显示负责人筛选）
 const canAssign = computed(() => userStore.hasPermission(Permission.SERVICE_BILL_ASSIGN))
 // 搜索快捷键
 useHotkey('enter', () => (search.value = new Date().toString()))
-
-/**
- * 加载指派候选人
- */
-async function loadAssignees() {
-  if (assigneeOptions.value.length > 0) {
-    return
-  }
-  assigneeOptions.value = await ServiceBillApi.getAssignees()
-}
-
-/**
- * 打开指派弹窗
- */
-async function openAssign() {
-  if (selectedIds.value.length === 0) {
-    warning('请选择要操作的单据')
-    return
-  }
-  assignTargetIds.value = []
-  assignDialog.value = true
-  await loadAssignees()
-}
-
-/**
- * 确认指派
- */
-async function confirmAssign() {
-  assignDialog.value = false
-  await reloadAfterAction((ids) => assign(ids, assignTargetIds.value))
-}
 
 /**
  * 加载数据
@@ -582,21 +526,25 @@ async function exportToZip() {
 }
 
 const {assign, process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish} =
-  useServiceBillActions((id: number) => {
-    const row = data.value.items.find((item) => item.id === id)
-    if (row) {
-      return row.number!
-    }
-    return String(id)
+  useServiceBillActions({
+    getKeyFn: (id: number) => {
+      const row = data.value.items.find((item) => item.id === id)
+      return row?.number ?? String(id)
+    },
+    callback: async () => {
+      search.value = new Date().toString()
+    },
   })
 
-/**
- * 执行动作后刷新
- */
-async function reloadAfterAction(action: (ids: number[]) => Promise<void>) {
-  await action(selectedIds.value)
-  search.value = new Date().toString()
-}
+const {
+  assignDialog,
+  assignTargetIds,
+  assigneeOptions,
+  assignCount,
+  loadAssignees,
+  openAssign,
+  confirmAssign,
+} = useServiceBillAssign(assign)
 
 if (canAssign.value) {
   loadAssignees()

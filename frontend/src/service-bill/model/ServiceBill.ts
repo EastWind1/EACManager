@@ -67,6 +67,13 @@ export type ServiceBillStateValue =
   (typeof ServiceBillState)[keyof typeof ServiceBillState]['value']
 
 /**
+ * 只有新建、处理中的单据允许指派或取消指派。
+ */
+export function isAssignableState(state: ServiceBillStateValue) {
+  return state === ServiceBillState.CREATED.value || state === ServiceBillState.PROCESSING.value
+}
+
+/**
  * 服务单实体
  */
 export interface ServiceBill {

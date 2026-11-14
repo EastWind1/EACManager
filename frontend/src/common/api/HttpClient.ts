@@ -1,6 +1,5 @@
 import axios, { type AxiosProgressEvent } from 'axios'
 import { useUIStore } from '@/common/store/UIStore'
-import { useRouter } from 'vue-router'
 
 export interface HttpConfig {
   url?: string
@@ -69,7 +68,6 @@ export class HttpClient {
 
   async request<T>(cfg?: HttpConfig): Promise<T> {
     const uiState = useUIStore()
-    const router = useRouter()
     // 加载条
     const useLoad = cfg?.useLoad ?? true
     if (useLoad) {
@@ -122,9 +120,10 @@ export class HttpClient {
               msg = '请求地址不存在'
               uiState.warning(msg)
               break
-            case 401:
+            case 401: {
               msg = '未授权'
               uiState.warning(msg)
+              const { default: router } = await import('@/router')
               await router.push({
                 path: '/login',
                 query: {
@@ -132,6 +131,7 @@ export class HttpClient {
                 },
               })
               break
+            }
             case 403:
               msg = '权限不足'
               uiState.warning(msg)

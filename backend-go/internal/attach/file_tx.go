@@ -10,6 +10,11 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 )
 
+/*
+	文件事务操作
+	确保一组文件操作事务
+*/
+
 func validSrc(origin string) error {
 	if origin == "" {
 		return errs.NewFileOpError("源路径不能为空", "")

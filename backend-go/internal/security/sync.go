@@ -6,16 +6,16 @@ import (
 	"slices"
 
 	"github.com/gofiber/fiber/v3/log"
-	"gorm.io/gorm"
 )
 
+// PermissionSyncService 权限同步服务，用于各模块注册权限字段
 type PermissionSyncService struct {
-	repo        *Repository
+	repo        *AuthRepository
 	definitions []PermissionDTO
 }
 
-func newPermissionSyncService(db *gorm.DB) *PermissionSyncService {
-	return &PermissionSyncService{repo: newRepository(db)}
+func newPermissionSyncService(repo *AuthRepository) *PermissionSyncService {
+	return &PermissionSyncService{repo: repo}
 }
 
 func (s *PermissionSyncService) Register(definitions ...PermissionDTO) {
@@ -37,7 +37,7 @@ func (s *PermissionSyncService) syncPermission() error {
 		declared[definition.Code] = definition
 	}
 
-	ctx := SetUserToCtx(context.Background(), SystemUser{})
+	ctx := SetUserToCtx(context.Background(), &AuthorityUser{Username: "system"})
 	return s.repo.Transaction(ctx, func(txCtx context.Context) error {
 		existing, err := s.repo.FindAllTypesOrdered(txCtx)
 		if err != nil {
@@ -81,7 +81,7 @@ func (s *PermissionSyncService) syncPermission() error {
 
 // InitAdmin 确保管理员、普通用户角色存在，并补齐管理员权限配置的查看和修改权限
 func (s *PermissionSyncService) initAdmin() error {
-	ctx := SetUserToCtx(context.Background(), SystemUser{})
+	ctx := SetUserToCtx(context.Background(), &AuthorityUser{Username: "system"})
 	return s.repo.Transaction(ctx, func(txCtx context.Context) error {
 		admin, err := s.ensureRole(txCtx, AdminRoleCode, "管理员", 1)
 		if err != nil {

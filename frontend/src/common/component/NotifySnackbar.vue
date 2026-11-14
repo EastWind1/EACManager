@@ -1,18 +1,28 @@
 <template>
-  <v-snackbar-queue v-model="queue" location="top right" />
+  <v-snackbar
+    v-model="show"
+    :color="notification?.color"
+    :timeout="notification?.timeout"
+    location="top right"
+  >
+    {{ notification?.text }}
+  </v-snackbar>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useUIStore } from '@/common/store/UIStore'
 
-type NotifyType = 'primary' | 'success' | 'info' | 'warning' | 'error'
-type NotifyInfo = string | { text?: string; color?: string; timeout?: number }
+const store = useUIStore()
+const { notification } = storeToRefs(store)
 
-const queue = ref<NotifyInfo[]>([])
-
-function notify(text: string, type: NotifyType, timeout: number) {
-  queue.value.push({ text, color: type, timeout })
-}
-
-defineExpose({ notify })
+const show = computed({
+  get: () => !!notification.value,
+  set: (value: boolean) => {
+    if (!value) {
+      store.clearNotification()
+    }
+  },
+})
 </script>

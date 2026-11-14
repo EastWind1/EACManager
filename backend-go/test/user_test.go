@@ -1,8 +1,7 @@
-package user_test
+package test
 
 import (
 	"backend-go/internal/security"
-	"backend-go/internal/test"
 	"backend-go/internal/user"
 	"backend-go/pkg/result"
 	"context"
@@ -14,7 +13,7 @@ import (
 
 // UserServiceTest 用户服务测试
 type UserServiceTest struct {
-	test.BaseSuite
+	BaseSuite
 	srv      *user.Service
 	testUser *user.DTO
 }
@@ -32,10 +31,8 @@ func (s *UserServiceTest) SetupTest() {
 	s.BaseSuite.SetupTest()
 	s.Ctx = s.adminContext(s.Ctx)
 	s.testUser = &user.DTO{
-		Username: "testUser",
-		Password: new("password123"),
-		Name:     "测试用户",
-		Roles:    []security.RoleDTO{{Code: "ADMIN"}},
+		AuthorityUser: security.AuthorityUser{Username: "testUser", Password: "password123", Roles: []security.RoleDTO{{Code: "ADMIN"}}},
+		Name:          "测试用户",
 	}
 }
 
@@ -46,19 +43,18 @@ func (s *UserServiceTest) adminContext(ctx context.Context) context.Context {
 	required, err := s.srv.IsInitializationRequired(ctx)
 	s.NoError(err)
 	if required {
-		admin, err := s.srv.Initialize(ctx, &user.InitDTO{
-			Username: "testAdmin",
-			Password: "Password123",
-			Name:     "测试管理员",
+		admin, err := s.srv.Initialize(ctx, &user.DTO{
+			AuthorityUser: security.AuthorityUser{Username: "testAdmin", Password: "Password123"},
+			Name:          "测试管理员",
 		})
 		s.NoError(err)
-		return security.SetUserToCtx(ctx, &user.DTO{ID: admin.ID, Username: admin.Username})
+		return security.SetUserToCtx(ctx, &security.AuthorityUser{ID: admin.ID, Username: admin.Username})
 	}
 
-	admin, err := s.srv.FindEnabledUsersWithRole(ctx, security.AdminRoleCode)
+	admin, err := s.srv.FindEnabledUsersByRole(ctx, security.AdminRoleCode)
 	s.NoError(err)
 	s.NotEmpty(admin)
-	return context.WithValue(ctx, security.CurUserKey{}, &admin[0])
+	return security.SetUserToCtx(ctx, &security.AuthorityUser{ID: admin[0].ID, Username: admin[0].Username})
 }
 
 func (s *UserServiceTest) TestCreate() {
@@ -74,7 +70,7 @@ func (s *UserServiceTest) TestFindByUsername() {
 	_, err := s.srv.Create(s.Ctx, s.testUser)
 	s.NoError(err)
 
-	found, err := s.srv.FindByUsername(s.Ctx, s.testUser.Username)
+	found, err := s.App.Security.Authenticate.FindByUsername(s.Ctx, s.testUser.Username)
 	s.NoError(err)
 
 	s.NotNil(found)
@@ -97,11 +93,8 @@ func (s *UserServiceTest) TestLogin() {
 func (s *UserServiceTest) TestGetAll() {
 	for i := range 3 {
 		newUser := &user.DTO{
-			Username: "user" + strconv.Itoa(i),
-			// 密码至少 10 位，否则会被 validPassword 拒绝
-			Password: new("password123"),
-			Name:     "用户" + strconv.Itoa(i),
-			Roles:    []security.RoleDTO{{Code: "ADMIN"}},
+			AuthorityUser: security.AuthorityUser{Username: "user" + strconv.Itoa(i), Password: "password123", Roles: []security.RoleDTO{{Code: "ADMIN"}}},
+			Name:          "用户" + strconv.Itoa(i),
 		}
 		_, err := s.srv.Create(s.Ctx, newUser)
 		s.NoError(err)
@@ -133,7 +126,7 @@ func (s *UserServiceTest) TestUpdate() {
 func (s *UserServiceTest) TestDisable() {
 	_, err := s.srv.Create(s.Ctx, s.testUser)
 	s.NoError(err)
-	err = s.srv.Disable(s.Ctx, s.testUser.Username)
+	err = s.App.Security.Authenticate.Disable(s.Ctx, s.testUser.Username)
 	s.NoError(err)
 }
 
@@ -142,10 +135,8 @@ func (s *UserServiceTest) TestCreateDuplicateUsername() {
 	s.NoError(err)
 
 	duplicate := &user.DTO{
-		Username: "testUser",
-		Password: new("password123"),
-		Name:     "重复用户",
-		Roles:    []security.RoleDTO{{Code: "USER"}},
+		AuthorityUser: security.AuthorityUser{Username: "testUser", Password: "password123", Roles: []security.RoleDTO{{Code: "USER"}}},
+		Name:          "重复用户",
 	}
 	_, err = s.srv.Create(s.Ctx, duplicate)
 	s.Error(err)
@@ -164,7 +155,7 @@ func (s *UserServiceTest) TestLoginWithWrongPassword() {
 func (s *UserServiceTest) TestLoginDisabledUser() {
 	_, err := s.srv.Create(s.Ctx, s.testUser)
 	s.NoError(err)
-	err = s.srv.Disable(s.Ctx, s.testUser.Username)
+	err = s.App.Security.Authenticate.Disable(s.Ctx, s.testUser.Username)
 	s.NoError(err)
 
 	_, err = s.srv.Login(s.Ctx, "testUser", "password123")

@@ -6,22 +6,20 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-
-	"gorm.io/gorm"
 )
 
 var roleCodePattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
 
-type Service struct {
-	repo *Repository
+type AuthorizeService struct {
+	repo *AuthRepository
 }
 
-func newService(db *gorm.DB) *Service {
-	return &Service{repo: newRepository(db)}
+func newAuthorizeService(repo *AuthRepository) *AuthorizeService {
+	return &AuthorizeService{repo: repo}
 }
 
 // Permissions 按模块分组返回权限目录。
-func (s *Service) Permissions(ctx context.Context) (map[string][]PermissionDTO, error) {
+func (s *AuthorizeService) Permissions(ctx context.Context) (map[string][]PermissionDTO, error) {
 	permissions, err := s.repo.FindAllTypesOrdered(ctx)
 	if err != nil {
 		return nil, err
@@ -33,23 +31,23 @@ func (s *Service) Permissions(ctx context.Context) (map[string][]PermissionDTO, 
 	return res, nil
 }
 
-func (s *Service) HasAdminUser(ctx context.Context) (bool, error) {
+func (s *AuthorizeService) HasAdminUser(ctx context.Context) (bool, error) {
 	return s.repo.HasAdminUser(ctx, AdminRoleCode)
 }
 
 // RoleByCodeForUpdate 按编码取角色并加行锁，未查到时返回 nil
 //
 // 供首管理员初始化使用：调用方需在事务内调用，行锁才有意义。
-func (s *Service) RoleByCodeForUpdate(ctx context.Context, code string) (*Role, error) {
+func (s *AuthorizeService) RoleByCodeForUpdate(ctx context.Context, code string) (*Role, error) {
 	return s.repo.FindRoleByCodeForUpdate(ctx, code)
 }
 
-func (s *Service) PermissionCodes(ctx context.Context, userID uint) ([]string, error) {
+func (s *AuthorizeService) PermissionCodes(ctx context.Context, userID uint) ([]string, error) {
 	return s.repo.FindPermissionsByUserID(ctx, userID)
 }
 
 // HasPermission 保留给没有 fiber.Ctx 的调用方；中间件与处理器应优先用 middleware.go 的请求级缓存版本。
-func (s *Service) HasPermission(ctx context.Context, code string) (bool, error) {
+func (s *AuthorizeService) HasPermission(ctx context.Context, code string) (bool, error) {
 	codes, err := s.currentUserPermissionCodes(ctx)
 	if err != nil {
 		return false, err
@@ -57,15 +55,15 @@ func (s *Service) HasPermission(ctx context.Context, code string) (bool, error) 
 	return slices.Contains(codes, code), nil
 }
 
-func (s *Service) currentUserPermissionCodes(ctx context.Context) ([]string, error) {
+func (s *AuthorizeService) currentUserPermissionCodes(ctx context.Context) ([]string, error) {
 	user, err := GetCurrentUser(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return s.PermissionCodes(ctx, user.GetID())
+	return s.PermissionCodes(ctx, user.ID)
 }
 
-func (s *Service) Roles(ctx context.Context) ([]RoleDTO, error) {
+func (s *AuthorizeService) Roles(ctx context.Context) ([]RoleDTO, error) {
 	roles, err := s.repo.FindAllRoles(ctx)
 	if err != nil {
 		return nil, err
@@ -77,7 +75,7 @@ func (s *Service) Roles(ctx context.Context) ([]RoleDTO, error) {
 	return res, nil
 }
 
-func (s *Service) CreateRole(ctx context.Context, dto *RoleDTO) (*RoleDTO, error) {
+func (s *AuthorizeService) CreateRole(ctx context.Context, dto *RoleDTO) (*RoleDTO, error) {
 	if !roleCodePattern.MatchString(dto.Code) {
 		return nil, errs.NewBizError("角色编码必须为大写字母、数字或下划线，且不能以数字开头")
 	}
@@ -95,7 +93,7 @@ func (s *Service) CreateRole(ctx context.Context, dto *RoleDTO) (*RoleDTO, error
 	return role.ToDTO(), nil
 }
 
-func (s *Service) UpdateRole(ctx context.Context, dto *RoleDTO) (*RoleDTO, error) {
+func (s *AuthorizeService) UpdateRole(ctx context.Context, dto *RoleDTO) (*RoleDTO, error) {
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("角色 id 不能为空")
 	}
@@ -121,7 +119,7 @@ func (s *Service) UpdateRole(ctx context.Context, dto *RoleDTO) (*RoleDTO, error
 	return role.ToDTO(), nil
 }
 
-func (s *Service) DeleteRole(ctx context.Context, id uint) error {
+func (s *AuthorizeService) DeleteRole(ctx context.Context, id uint) error {
 	role, err := s.repo.FindRoleByID(ctx, id)
 	if err != nil {
 		return err
@@ -144,11 +142,11 @@ func (s *Service) DeleteRole(ctx context.Context, id uint) error {
 	})
 }
 
-func (s *Service) RoleCodes(ctx context.Context, userID uint) ([]string, error) {
+func (s *AuthorizeService) RoleCodes(ctx context.Context, userID uint) ([]string, error) {
 	return s.repo.FindRoleCodesByUserID(ctx, userID)
 }
 
-func (s *Service) UserRoles(ctx context.Context, userID uint) ([]RoleDTO, error) {
+func (s *AuthorizeService) UserRoles(ctx context.Context, userID uint) ([]RoleDTO, error) {
 	roles, err := s.repo.FindEnabledRolesByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -160,7 +158,7 @@ func (s *Service) UserRoles(ctx context.Context, userID uint) ([]RoleDTO, error)
 	return res, nil
 }
 
-func (s *Service) UserPermissions(ctx context.Context, userID uint) ([]PermissionDTO, error) {
+func (s *AuthorizeService) UserPermissions(ctx context.Context, userID uint) ([]PermissionDTO, error) {
 	codes, err := s.PermissionCodes(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -176,7 +174,7 @@ func (s *Service) UserPermissions(ctx context.Context, userID uint) ([]Permissio
 }
 
 // SetUserRoles 整体替换用户的角色，返回写入后的角色列表。
-func (s *Service) SetUserRoles(ctx context.Context, userID uint, roleCodes []string) ([]RoleDTO, error) {
+func (s *AuthorizeService) SetUserRoles(ctx context.Context, userID uint, roleCodes []string) ([]RoleDTO, error) {
 	uniqueCodes := unique(roleCodes)
 	granted := make([]RoleDTO, 0, len(uniqueCodes))
 	err := s.repo.Transaction(ctx, func(txCtx context.Context) error {
@@ -207,7 +205,7 @@ func (s *Service) SetUserRoles(ctx context.Context, userID uint, roleCodes []str
 	return granted, nil
 }
 
-func (s *Service) HasRole(ctx context.Context, userID uint, roleCode string) (bool, error) {
+func (s *AuthorizeService) HasRole(ctx context.Context, userID uint, roleCode string) (bool, error) {
 	codes, err := s.RoleCodes(ctx, userID)
 	if err != nil {
 		return false, err
@@ -215,7 +213,7 @@ func (s *Service) HasRole(ctx context.Context, userID uint, roleCode string) (bo
 	return slices.Contains(codes, roleCode), nil
 }
 
-func (s *Service) RolePermissions(ctx context.Context, roleID uint) ([]PermissionDTO, error) {
+func (s *AuthorizeService) RolePermissions(ctx context.Context, roleID uint) ([]PermissionDTO, error) {
 	role, err := s.repo.FindRoleByID(ctx, roleID)
 	if err != nil {
 		return nil, err
@@ -230,7 +228,7 @@ func (s *Service) RolePermissions(ctx context.Context, roleID uint) ([]Permissio
 	return permissionDTOs(permissions), nil
 }
 
-func (s *Service) UpdateRolePermissions(ctx context.Context, roleID uint, permissionIDs []uint) ([]PermissionDTO, error) {
+func (s *AuthorizeService) UpdateRolePermissions(ctx context.Context, roleID uint, permissionIDs []uint) ([]PermissionDTO, error) {
 	role, err := s.repo.FindRoleByID(ctx, roleID)
 	if err != nil {
 		return nil, err

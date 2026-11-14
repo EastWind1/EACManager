@@ -7,8 +7,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import pers.eastwind.billmanager.security.model.AuthorityUser;
 import pers.eastwind.billmanager.security.model.RoleDTO;
-import pers.eastwind.billmanager.security.service.SecurityService;
+import pers.eastwind.billmanager.security.service.AuthenticateService;
+import pers.eastwind.billmanager.security.service.AuthorizeService;
 import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
 
@@ -21,6 +23,9 @@ public class BaseServiceTest {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private AuthenticateService authenticateService;
+
     @BeforeEach
     protected void setUp() {
         setAdmin();
@@ -31,21 +36,21 @@ public class BaseServiceTest {
      * 用户与角色关联都在测试事务内，用例结束随事务回滚。
      */
     protected void setAdmin() {
-        authenticate(ensureAdmin());
+        authenticate(ensureAdmin().getUsername());
     }
 
     /**
      * 设置普通用户，同样先落库再放进 SecurityContext
      */
     protected void setUser() {
-        authenticate(ensureAdmin());
+        authenticate(ensureAdmin().getUsername());
 
         UserDTO dto = new UserDTO();
         dto.setUsername("baseTestUser");
         dto.setPassword("User123456");
         dto.setName("测试用户");
         dto.setRoles(List.of(new RoleDTO(null, "USER", "普通用户", 2, false)));
-        authenticate(userService.create(dto));
+        authenticate(userService.create(dto).getUsername());
     }
 
     private UserDTO ensureAdmin() {
@@ -57,12 +62,13 @@ public class BaseServiceTest {
             return userService.initialize(dto);
         }
 
-        return userService.findEnabledUsersByRole(SecurityService.ADMIN_ROLE_CODE).stream()
+        return userService.findEnabledUsersByRole(AuthorizeService.ADMIN_ROLE_CODE).stream()
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("数据库中没有启用的管理员用户"));
     }
 
-    private void authenticate(UserDTO user) {
+    private void authenticate(String username) {
+        AuthorityUser user = authenticateService.loadUserByUsername(username);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(user, "", user.getAuthorities()));
     }

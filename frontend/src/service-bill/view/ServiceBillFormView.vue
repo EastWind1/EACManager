@@ -47,10 +47,22 @@
                   编辑
                 </v-btn>
                 <v-btn
+                  v-if="serviceBill.id && !isEditState && canAssign && assignable"
+                  v-permission="Permission.SERVICE_BILL_ASSIGN"
+                  :disabled="loading"
+                  variant="tonal"
+                  @click="openAssign([serviceBill])"
+                >
+                  <template #prepend>
+                    <v-icon :icon="mdiAccountSwitch"></v-icon>
+                  </template>
+                  指派负责人
+                </v-btn>
+                <v-btn
                   v-if="!isEditState && serviceBill.state === ServiceBillState.CREATED.value"
                   v-permission="Permission.SERVICE_BILL_PROCESS"
                   :disabled="loading"
-                  @click="reloadAfterAction(process)"
+                  @click="process([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiWrench"></v-icon>
@@ -61,7 +73,7 @@
                   v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSING.value"
                   v-permission="Permission.SERVICE_BILL_PROCESSED"
                   :disabled="loading"
-                  @click="reloadAfterAction(processed)"
+                  @click="processed([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiWrenchCheck"></v-icon>
@@ -72,7 +84,7 @@
                   v-if="!isEditState && serviceBill.state === ServiceBillState.PROCESSED.value"
                   v-permission="Permission.SERVICE_BILL_FINISH"
                   :disabled="loading"
-                  @click="reloadAfterAction(finish)"
+                  @click="finish([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiCashCheck"></v-icon>
@@ -84,7 +96,7 @@
                   v-permission="Permission.SERVICE_BILL_DELETE"
                   :disabled="loading"
                   color="error"
-                  @click="backAfterAction(remove)"
+                  @click="remove([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiTrashCan"></v-icon>
@@ -96,7 +108,7 @@
                   v-permission="Permission.SERVICE_BILL_CANCEL_PROCESS"
                   :disabled="loading"
                   color="warning"
-                  @click="reloadAfterAction(cancelProcess)"
+                  @click="cancelProcess([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiCancel"></v-icon>
@@ -108,7 +120,7 @@
                   v-permission="Permission.SERVICE_BILL_CANCEL_PROCESSED"
                   :disabled="loading"
                   color="warning"
-                  @click="reloadAfterAction(cancelProcessed)"
+                  @click="cancelProcessed([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiCancel"></v-icon>
@@ -120,7 +132,7 @@
                   v-permission="Permission.SERVICE_BILL_CANCEL_FINISH"
                   :disabled="loading"
                   color="warning"
-                  @click="reloadAfterAction(cancelFinish)"
+                  @click="cancelFinish([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiCancel"></v-icon>
@@ -196,8 +208,8 @@
               <v-col cols="12" md="4" sm="6" xl="3">
                 <v-select
                   v-model="serviceBill.assignees"
-                  :disabled="!isEditState || !canAssign"
-                  :items="assigneeData.data"
+                  :disabled="!isEditState || !canAssign || !assignable"
+                  :items="assigneeOptions"
                   chips
                   clearable
                   closable-chips
@@ -205,7 +217,7 @@
                   label="负责人"
                   multiple
                   return-object
-                  @update:menu="assigneeSelect"
+                  @update:menu="loadAssignees"
                 ></v-select>
               </v-col>
               <!-- 项目名称 -->
@@ -362,13 +374,27 @@
         </template>
       </v-card>
     </v-form>
+    <ServiceBillAssignDialog
+      v-model="assignDialog"
+      v-model:target-ids="assignTargetIds"
+      :assignee-options="assigneeOptions"
+      :count="assignCount"
+      :loading="loading"
+      @confirm="confirmAssign"
+    />
   </v-container>
 </template>
 
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
-import {type Assignee, type ServiceBill, ServiceBillState, ServiceBillType} from '../model/ServiceBill'
+import {
+  type ServiceBill,
+  ServiceBillState,
+  ServiceBillType,
+  isAssignableState,
+} from '../model/ServiceBill'
 import ServiceBillFormDetail from '../component/ServiceBillFormDetail.vue'
+import ServiceBillAssignDialog from '../component/ServiceBillAssignDialog.vue'
 import ServiceBillApi from '../api/ServiceBillApi'
 import {storeToRefs} from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
@@ -376,7 +402,9 @@ import {useRoute, useRouter} from 'vue-router'
 import {useUIStore} from '@/common/store/UIStore'
 import {useRouterStore} from '@/common/store/RouterStore'
 import {useServiceBillActions} from '../composable/ServiceBillActions'
+import {useServiceBillAssign} from '../composable/ServiceBillAssign'
 import {
+  mdiAccountSwitch,
   mdiCancel,
   mdiCashCheck,
   mdiClose,
@@ -434,13 +462,12 @@ const companyData = ref<{ loaded: boolean; data: Company[] }>({
   loaded: false,
   data: [],
 })
-// 指派候选人
-const assigneeData = ref<{ loaded: boolean; data: Assignee[] }>({
-  loaded: false,
-  data: [],
-})
 // 是否有指派权限
 const canAssign = computed(() => userStore.hasPermission(Permission.SERVICE_BILL_ASSIGN))
+// 当前状态是否允许指派/取消指派
+const assignable = computed(() => isAssignableState(serviceBill.value.state))
+// 当前单据 id，供动作调用
+const billId = computed(() => serviceBill.value.id!)
 // 当前子表 Tab 页
 const tab = ref('detail')
 
@@ -456,17 +483,6 @@ async function companySelect() {
   }
   companyData.value.data = await CompanyApi.getAll({}).then((res) => res.items)
   companyData.value.loaded = true
-}
-
-/**
- * 指派候选人加载
- */
-async function assigneeSelect() {
-  if (!canAssign.value || assigneeData.value.loaded) {
-    return
-  }
-  assigneeData.value.data = await ServiceBillApi.getAssignees()
-  assigneeData.value.loaded = true
 }
 
 /**
@@ -519,24 +535,27 @@ async function cancel() {
   }
 }
 
-const {process, processed, finish, cancelProcess, cancelProcessed, cancelFinish, remove} =
-  useServiceBillActions(() => serviceBill.value.number!)
+const {assign, process, processed, finish, cancelProcess, cancelProcessed, cancelFinish, remove} =
+  useServiceBillActions({
+    getKeyFn: () => serviceBill.value.number ?? String(serviceBill.value.id),
+    callback: async (action) => {
+      if (action === 'remove') {
+        await router.push('/services')
+        return
+      }
+      await loadById(serviceBill.value.id!)
+    },
+  })
 
-/**
- * 执行动作后刷新
- */
-async function reloadAfterAction(action: (ids: number[]) => Promise<void>) {
-  await action([serviceBill.value.id!])
-  await loadById(serviceBill.value.id!)
-}
-
-/**
- * 执行动作后返回
- */
-async function backAfterAction(action: (ids: number[]) => Promise<void>) {
-  await action([serviceBill.value.id!])
-  await router.push('/services')
-}
+const {
+  assignDialog,
+  assignTargetIds,
+  assigneeOptions,
+  assignCount,
+  loadAssignees,
+  openAssign,
+  confirmAssign,
+} = useServiceBillAssign(assign)
 
 /**
  * 打开地图

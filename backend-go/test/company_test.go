@@ -1,8 +1,7 @@
-package company_test
+package test
 
 import (
 	"backend-go/internal/company"
-	"backend-go/internal/test"
 	"backend-go/pkg/result"
 	"strconv"
 	"testing"
@@ -12,7 +11,7 @@ import (
 
 // CompanyServiceTest CompanyService集成测试
 type CompanyServiceTest struct {
-	test.BaseSuite
+	BaseSuite
 	srv     *company.Service
 	testCom *company.DTO
 }

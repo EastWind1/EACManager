@@ -9,10 +9,10 @@ import (
 )
 
 type Controller struct {
-	srv *Service
+	srv *AuthorizeService
 }
 
-func newController(srv *Service) *Controller {
+func newController(srv *AuthorizeService) *Controller {
 	return &Controller{srv: srv}
 }
 

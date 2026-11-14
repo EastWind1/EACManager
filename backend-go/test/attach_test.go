@@ -1,8 +1,7 @@
-package attach_test
+package test
 
 import (
 	"backend-go/internal/attach"
-	"backend-go/internal/test"
 	"testing"
 	"time"
 
@@ -13,7 +12,7 @@ const testNamespace = "TEST_ATTACH"
 
 // ServiceTest 附件服务测试
 type ServiceTest struct {
-	test.BaseSuite
+	BaseSuite
 	srv *attach.Service
 }
 
@@ -23,7 +22,7 @@ func TestService(t *testing.T) {
 
 func (s *ServiceTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	s.srv = s.App.Attach
+	s.srv = s.App.Attach.Service
 }
 
 func (s *ServiceTest) upload(name string) attach.DTO {

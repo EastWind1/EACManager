@@ -3,7 +3,7 @@ package pers.eastwind.billmanager.servicebill.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import pers.eastwind.billmanager.user.model.User;
+import pers.eastwind.billmanager.user.model.UserDTO;
 
 /**
  * 服务单负责人 / 指派候选人的最小信息，不携带用户的角色与权限。
@@ -16,7 +16,7 @@ public class AssigneeDTO {
     private String username;
     private String name;
 
-    public static AssigneeDTO from(User user) {
+    public static AssigneeDTO from(UserDTO user) {
         if (user == null) {
             return null;
         }

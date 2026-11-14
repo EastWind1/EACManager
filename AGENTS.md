@@ -23,19 +23,20 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 - 公开接口只有 `POST /api/user/token` 与首管理员初始化（`GET/POST /api/user/initialization`）。
 - 登录写 `X-Auth-Token` httpOnly cookie（`path=/api`、`SameSite=Strict`、`Secure`）
 - 授权是**动作级**：每个接口要求 `{module}:{action}` 权限码（如 `serviceBill:cancel-finish`）。
-  Java 用 `@PreAuthorize` + `UserService.loadUserByUsername` 组装的 `authorities`（**故意不缓存**，
-  改角色权限后下一次请求即生效）；Go 用 `security.Middleware`。
+  Java 用 `@PreAuthorize` + `AuthenticateService.loadUserByUsername` 组装的 `authorities`（**故意不缓存**，
+  改角色权限后下一次请求即生效）；Go 用 `security.Security.Middleware`。
 - 无 ADMIN 用户时前端跳 `/user/init`；未登录的 API 请求返回 428。初始化用行锁防并发双建。
 - `ADMIN` 必须始终保留 `permission:query` / `permission:update`（保存时校验），否则权限页会自锁。
 
 ## 数据库
 
-14 张表，整型主键取自 `SEQUENCE`（步长 50），全表带审计列
+15 张表，整型主键取自 `SEQUENCE`（步长 50），全表带审计列
 `created_by_id / created_date / last_modified_by_id / last_modified_date`。
 
 | 表 | 关键字段 |
 |---|---|
-| `sys_user` | `username`(unique)、`name`、`password`(bcrypt)、`disabled` — **无角色列** |
+| `sys_user` | 账户：`username`(unique)、`password`(bcrypt)、`disabled` — **无角色列、无资料字段** |
+| `user_profile` | 用户资料：`user_id`(PK)、`name`、`phone`、`email`，由 user 模块维护 |
 | `sys_role` / `sys_user_role` | 角色 `code`(unique)、`sort_order`；用户↔角色唯一约束 |
 | `sys_permission` / `sys_role_permission` | 权限 `code`(unique)、`module`、`module_name`、`sort_order` |
 | `company` | `name`、联系人、`address`、`disabled` |
@@ -48,9 +49,10 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
 
 权限目录在启动时由各模块声明的清单 upsert 进 `sys_permission`（只增改，不删库中额外项）。
 
-`deploy/database/`: `init_schema.sql` 建库；`migrate_attachment.sql`（拆分关联表 + `attachment.status`）
-、`migrations/migrate_security.sql`（角色/权限重构）与
-`migrations/migrate_service_bill_assignee.sql`（服务单负责人子表）为存量库的一次性迁移。
+`deploy/database/`: `init_schema.sql` 建库；`migrate_attachment.sql`（拆分关联表 + `attachment.status`）、
+`migrations/migrate_security.sql`（角色/权限重构）、
+`migrations/migrate_service_bill_assignee.sql`（服务单负责人子表）与
+`migrations/migrate_user_profile.sql`（账户/用户资料拆表）为存量库的一次性迁移。
 
 ### 附件模型
 
@@ -72,7 +74,8 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 ```
 
 每次前进要求精确的前置状态；每个 `cancel-*` 只回退一格并清空对应日期列
-（`processed_date` / `finished_date`）。只有 `CREATED` 可删除。单号 `S`/`R` + 雪花式 int id
+（`processed_date` / `finished_date`）。只有 `CREATED` 可删除。指派/取消指派只允许在
+`CREATED` / `PROCESSING` 状态进行。单号 `S`/`R` + 雪花式 int id
 （毫秒时间戳左移 5 位或上 1..31 序列），手填单号重复时拒绝。
 
 ## API
@@ -112,76 +115,44 @@ cd frontend     && pnpm install && pnpm dev        # pnpm build / type-check / l
 ```
 
 两端都是**集成测试，必须有可达的 PostgreSQL**，没有 mock 数据库层。Java 用 `@SpringBootTest` +
-`@Transactional` 回滚（`common/BaseServiceTest`）；Go 每个包一个 `_test.go`，无 `TestMain`：
-`test_util.App()` 懒初始化共享应用实例，走与 `server.Run` 相同的组装、权限同步和角色初始化路径，
-每个用例 `test_util.BeginTx(t)` 返回携带事务的 context，用例结束自动回滚。
+`@Transactional` 回滚（`common/BaseServiceTest`）；Go 测试集中在 `backend-go/test`，
+`BaseSuite.SetupSuite` 懒初始化共享应用实例，走与 `server.Run` 相同的组装、权限同步和角色初始化路径，
+每个用例的 `SetupTest` 开启事务，用例结束自动回滚。
 Go 测试读同一份 `config.yaml`，只把附件目录改到系统临时目录。
 
 ## 约定
 
-- 批量写接口收 id 列表，返回 `ActionsResult`（逐项成败，不做整体回滚），每项独立事务。
-- 分页统一 `PageResult` + `QueryParam`。**`pageIndex` 是 0 基**（对齐 Spring `PageRequest` 与前端
-  `options.page - 1`）。
-- 错误统一 `BizException` / `errs.NewBizError`，由 `ControllerAdvice` / `ErrorHandler` 包装。
-- 跨模块关联引用通过对方模块 Service 暴露的查询方法获取，不使用 `EntityManager`，也不直接 import 对方 Repository。
-- **仓储只返回实体和投影类 DTO**（聚合/统计行这类查询直接映射出的结构）。实体 → 接口 DTO 的转换
-  放在 service / model 里：`store.go` 里不出现 `ToDTO()`，也不返回 `XxxDTO`。
-- 注释只写「为什么」与约束；不复述标识符、不复述框架 API、不写过程性步骤标签。
+### 架构边界
 
-## 易踩的坑
+- **查询与写动作分离**：查询、详情、导出读取和数据权限放在 QueryService；动作服务只做事务内写。动作服务需要按 id 读写时，复用查询服务的访问入口和权限判断，不再单独维护 DataScope。
+- **数据权限只在查询边界处理**：列表、统计、导出由查询条件过滤；按 id 的写操作必须经过同一套权限判断，避免“列表看不到但按 id 能改”。
+- **跨模块只通过 Service 协作**：不直接依赖其他模块的 Repository，也不使用 EntityManager 组装关联实体。
+- **关联表使用标量 ID 显式维护**：负责人、附件等关系表只存 id，通过批量查询关联行再补 DTO；不建立 ORM 关联来“自动带出”。删除、替换和唯一性约束由业务显式处理。
+- **鉴权统一收口 security**：账户、登录、token、禁用、角色权限属于安全模块；user 模块只维护用户资料。认证主体与账户信息尽量共用一个类型，响应 DTO 用继承或嵌入扩展，不复制字段。
+- **避免过度抽象和死代码**：只有一个调用的辅助方法优先内联；删除未使用的 DTO、参数类型、方法和旧实现。保持模块边界干净比保留过渡层更重要。
+- **公共契约保持稳定**：分页统一 PageResult + QueryParam，pageIndex 从 0 开始；批量写返回 ActionsResult；错误统一 BizException / errs.NewBizError；仓储只返回实体或投影 DTO，实体到接口 DTO 的转换放在 service/model。
+- **注释只写“为什么”和约束**：不复述标识符、不写框架 API 说明、不记录过程性步骤。
 
-**JPA（Java）**
+### 数据访问
 
-- 明细是双向关联：父 `@OneToMany(mappedBy="serviceBill", cascade=ALL, orphanRemoval=true)`，
-  子 `@ManyToOne(LAZY)` 持有外键。因此服务在映射后必须 `bindDetails(...)`，否则外键为空。
-  更新按 id 对账：保留行原地 UPDATE，移除行真 DELETE。
-- `@Version` 字段**不要给默认值**，否则 Spring Data 认为是已持久化对象，`save()` 走 merge 而非 persist。
-- 关联加载用 `@EntityGraph` 显式声明（列表取 `productCompany`、导出取 `details`），不要 EAGER。
-- 聚合读用 JPQL 构造器投影到 record，不要 `Object[]` 解包。
-- 批量删除用 `@Modifying @Query("delete from …")`；派生 `deleteBy…` 会先查再逐条删。
-- 主键保持 `GenerationType.IDENTITY`：Go 侧共用同一批 sequence，改成 `SEQUENCE` 会与其分配冲突。
+- **JPA**：明细是双向关联，写入前必须绑定父实体；更新按 id 对账，保留行原地更新、移除行真删除。@Version 不设默认值。关联加载用 EntityGraph 显式声明。批量删除用 JPQL，不依赖派生 deleteBy。主键保持 IDENTITY，与 Go 共用 sequence。
+- **GORM**：统一使用泛型 API；整行写传指针，单列更新用 Select；动态条件从 Chain 累加，传给 gorm.G 的 DB 不能带子句；事务通过 context 传播；分页只在 BaseRepository.Page 做一次。服务层不直接 import GORM，复杂查询收在 store.go。
+- **跨语言一致性**：Java 与 Go 共享数据库和 API，字段、状态、单号、分页和错误语义必须保持一致；任一端改契约都要同步另一端。
 
-**GORM（Go）**
+### 变更与验证
 
-- 数据访问一律走泛型 API `gorm.G[T]`（含单列更新、联表、行锁）：读用值类型（直接得 `[]T`）；
-  整行写用 `gorm.G[*T]` 并传指针；单列更新用 `Select("column").Updates(ctx, &T{...})`；
-  联表用「子查询 + 外键 IN」；行锁用 `gorm.G[T](db, clause.Locking{Strength: "UPDATE"})`。
-  不再使用 `Model/Table/Joins/Pluck/Scan/Clauses` 这类经典链式写法。
-- 整行写必须传 `*T`：内嵌 `security.Audit` 的钩子要求可寻址值，值类型会报
-  `invalid value, should be pointer to struct`。
-- **`gorm.G[T](db)` 会丢弃 `db` 上已拼好的条件**（它用 `Session{NewDB:true}` 造空语句）。
-  动态条件一律从 `r.Chain(ctx)` 累加；传给 `gorm.G` 的 `*gorm.DB` 必须无子句。
-- **语句 context 取终止操作传入的那个**：`gorm.G[T](db).Find(ctx)` 会用 `ctx` 覆盖语句 context
-  （审计钩子里的当前用户、取消与超时都来自它），链上 `WithContext` 挂的会被覆盖。所以仓储统一用
-  `r.Ctx(ctx)` 取会话（优先取 context 里的事务）、并把同一个 `ctx` 传给终止调用。
-- `Select` 限定更新列时，未列出的列不会进 `SET`：钩子照常执行、内存里的审计字段也有值，但会被
-  **静默丢弃**。所以 `Audit.BeforeUpdate` 会在列清单非空时把 `last_modified_by_id` /
-  `last_modified_date` 补进去，调用方只写业务列即可；列清单为空（不限制列）时钩子不追加，否则会变成
-  只更新这两列。注意 `Select` 是按列名逐个匹配 schema 的，传逗号串会被当成一个未知列。
-- 关联表批量写入用 `database.RelationBatchSize`（30），与 Java 的 `hibernate.jdbc.batch_size` 对齐。
-- 分页只在 `BaseRepository.Page(ctx, chain, pageParam)` 做一次，且**只做分页**：计数、排序、偏移、
-  组装结果。条件与预加载由调用方在**同一条链**上拼好传入——`Count` 不会触发 Preload（Preload 是
-  独立的 `IN (...)` 查询），所以不需要区分「计数链」和「取数链」。排序用 `clause.OrderByColumn`
-  表达，列名交给 GORM 按标识符加引号（不再自己拼 SQL、也不做字段白名单；非法列由数据库报错）；
-  客户端传驼峰，这里只按命名约定转下划线。**分页但无排序时以 `id DESC` 兜底**；不分页时不注入排序。
-- **事务放在 context 里**（`database.TxKey`）：`Transaction(ctx, fn func(ctx) error)` 把事务实例塞进
-  回调的 ctx，之后的仓储调用凭同一个 ctx 自动加入事务。这样业务层只传 context，不接触 `*gorm.DB`，
-  也就不会为了传递事务句柄而把 GORM 类型散到 service 里。测试同理：`test_util.BeginTx(t)` 直接返回
-  携带事务的 ctx。
-- `PrepareStmt` + `SkipDefaultTransaction` 已开，连接池有上限。**不要**开
-  `postgres.Config.WithoutReturning`：批量插入会丢 `RETURNING`，所有 create 失败。
-- 有唯一索引处（`username`、`role.code`、单号）不做「先查后插」，用 `database.IsDuplicateKey` 归一化错误。
-- 服务层不 import GORM：行锁、条件更新、子查询都收在对应 `store.go` 的具名方法里，service 只拿
-  context 调它们。
+- 重构优先保持 API 和前端 DTO 形状不变；确需变更时同时更新两端、前端和文档。
+- 涉及删列、拆表或数据回填的迁移必须显式说明执行顺序和影响，迁移前先备份。
+- 结构调整后必须跑两端集成测试；Java 用 mvn clean test，避免删除类后的旧 class 残留；涉及前端时跑 pnpm run build。
 
 ## 代码地图
 
 ```
 backend-java/src/main/java/pers/eastwind/billmanager/
   common/    Result / PageResult / QueryParam / ActionsResult / BizException / ControllerAdvice / Snowflake
-  security/  角色·权限实体与服务、PermissionSyncService、JWT 过滤器、权限枚举 provider
-  user/ company/ servicebill/ reimburse/ attach/   各自 controller·service·repository·model·mapper
-  servicebill/service: ServiceBillQueryService 负责查询/数据权限，ServiceBillService 只做写动作
+  security/  AuthorizeService（角色/权限）、AuthenticateService（登录/token/禁用/账户）、JWT 过滤器
+  user/      只维护 user_profile 资料；company/ servicebill/ reimburse/ attach/ 各自模块
+  servicebill/service: ServiceBillQueryService 负责查询/数据权限，ServiceBillActionService 只做写动作
   {module}/permission/*PermissionProvider.java      模块声明的权限清单（启动时同步）
 
 backend-go/
@@ -189,12 +160,13 @@ backend-go/
   internal/{user,company,bill,reimburse,attach,security}/
       handler.go  service.go  store.go  model.go  permission.go
       stats: stat_handler.go / stat_svc.go / stat_store.go
-      security: sync.go（权限同步 + 初始化）、middleware.go（请求级权限缓存）
+      security: Security 聚合（Authorize / Authenticate / PermissionSync / Auth 中间件）、sync.go（权限同步 + 初始化）
       bill/reimburse 额外: *_rule.go（OCR 文本/表格映射）、mapper.go、attach_relation.go
-      bill 查询/动作分离: query_service.go 负责查询与数据权限，service.go 只做写动作
+      attach/reimburse/bill 以 Module 聚合多个对外服务；bill 查询/动作分离: query_service.go 负责查询与数据权限，service.go 只做写动作
       attach 额外: files.go / ocr.go / office.go / file_tx.go / content.go
-  internal/test_util/   集成测试环境（共享应用实例、事务回滚、上传辅助）
-  pkg/    auth / cache / database / errs / logger / middleware / result / util
+  pkg/core/  App（config / cache / db / server / router 聚合）
+  test/      集成测试环境（共享应用实例、事务回滚、上传辅助）
+  pkg/       auth / cache / database / errs / logger / middleware / result / util
   config/ config.go + config.yaml
 
 frontend/src/

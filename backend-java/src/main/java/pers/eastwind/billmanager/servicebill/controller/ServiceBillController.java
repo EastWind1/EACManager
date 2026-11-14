@@ -1,6 +1,5 @@
 package pers.eastwind.billmanager.servicebill.controller;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -20,7 +19,6 @@ import pers.eastwind.billmanager.servicebill.service.ServiceBillActionService;
 import java.time.Instant;
 import java.util.List;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/serviceBill")
 public class ServiceBillController {

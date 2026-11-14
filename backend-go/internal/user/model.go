@@ -1,81 +1,33 @@
 package user
 
-import "backend-go/internal/security"
+import (
+	"backend-go/internal/security"
+)
 
-type User struct {
-	ID       uint   `gorm:"primaryKey"`
-	Username string `gorm:"uniqueIndex"`
-	Password string
-	Name     string
-	Phone    string
-	Email    string
-	Disabled bool
+// UserProfile 用户资料表，与安全模块账户 sys_user 通过 user_id 对应。
+type UserProfile struct {
+	UserID uint `gorm:"primaryKey;column:user_id"`
+	Name   string
+	Phone  string
+	Email  string
 	security.Audit
 }
 
-func (u *User) TableName() string {
-	return "sys_user"
-}
-
-type InitDTO struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Name     string `json:"name"`
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-}
+func (*UserProfile) TableName() string { return "user_profile" }
 
 type InitStatus struct {
 	Required bool `json:"required"`
 }
 
+// DTO 用户接口响应：嵌入统一鉴权账户，补充资料字段。
 type DTO struct {
-	ID          uint                     `json:"id"`
-	Username    string                   `json:"username"`
-	Password    *string                  `json:"password"`
-	Name        string                   `json:"name"`
-	Phone       string                   `json:"phone"`
-	Email       string                   `json:"email"`
-	Disabled    bool                     `json:"disabled"`
-	Roles       []security.RoleDTO       `json:"roles"`
-	Permissions []security.PermissionDTO `json:"permissions,omitempty"`
+	security.AuthorityUser
+	Name  string `json:"name"`
+	Phone string `json:"phone"`
+	Email string `json:"email"`
 }
 
-func (dto *DTO) GetID() uint {
-	return dto.ID
-}
-
-func (u *User) ToDTO() *DTO {
-	return &DTO{
-		ID:       u.ID,
-		Username: u.Username,
-		// 密码不进行映射
-		Name:     u.Name,
-		Phone:    u.Phone,
-		Email:    u.Email,
-		Disabled: u.Disabled,
-	}
-}
-
-func (dto *DTO) ToEntity() *User {
-	return &User{
-		ID:       dto.ID,
-		Username: dto.Username,
-		Password: *dto.Password,
-		Name:     dto.Name,
-		Phone:    dto.Phone,
-		Email:    dto.Email,
-		Disabled: dto.Disabled,
-	}
-}
-
-func ToDTOs(users []User) []DTO {
-	if users == nil {
-		return nil
-	}
-	userDTOs := make([]DTO, len(users))
-	for i, user := range users {
-		userDTOs[i] = *user.ToDTO()
-	}
-	return userDTOs
+type LoginResult struct {
+	Token string `json:"token"`
+	User  DTO    `json:"user"`
 }

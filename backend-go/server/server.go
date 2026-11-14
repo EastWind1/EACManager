@@ -9,6 +9,7 @@ import (
 	"backend-go/internal/security"
 	"backend-go/internal/user"
 	"backend-go/pkg/cache"
+	"backend-go/pkg/core"
 	"backend-go/pkg/database"
 	"backend-go/pkg/logger"
 	"backend-go/pkg/middleware"
@@ -17,26 +18,18 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/recover"
-	"gorm.io/gorm"
 )
 
-// App 组装完成的应用程序；基础设施与各模块 service 都由它持有
+// App 组装完成的应用程序；基础设施字段由 core.App 提供。
 type App struct {
-	Cfg    *config.Config
-	Cache  cache.Cache
-	Db     *gorm.DB
-	Server *fiber.App
+	*core.App
 
-	User          *user.Service
-	Company       *company.Service
-	Attach        *attach.Service
-	Content       *attach.ContentService
-	Bill          *bill.Service
-	BillQuery     *bill.QueryService
-	BillStat      *bill.StatisticService
-	Reimburse     *reimburse.Service
-	ReimburseStat *reimburse.StatisticService
-	Security      *security.Service
+	Security  *security.Module
+	User      *user.Service
+	Company   *company.Service
+	Attach    *attach.Module
+	Bill      *bill.Module
+	Reimburse *reimburse.Module
 }
 
 func Run() {
@@ -44,41 +37,39 @@ func Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := app.Server.Listen(fmt.Sprintf(":%d", app.Cfg.Server.Port)); err != nil {
+	if err := app.Server.Listen(fmt.Sprintf(":%d", app.Config.Server.Port)); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func NewApp(cfg *config.Config) (*App, error) {
-	app := &App{
-		Cfg:   cfg,
-		Cache: cache.NewInMemoryCache(cfg.Cache),
-		Db:    database.NewDB(cfg.Db, cfg.Log),
+	base := &core.App{
+		Config: cfg,
+		Cache:  cache.NewInMemoryCache(cfg.Cache),
+		DB:     database.NewDB(cfg.Db, cfg.Log),
 		Server: fiber.New(fiber.Config{
 			ErrorHandler: middleware.ErrorHandler(),
 			BodyLimit:    int(cfg.Attach.MaxFileSize),
 		}),
 	}
+	base.Router = base.Server.Group("/api")
+
+	app := &App{App: base}
 	logger.InitLogger(cfg.Log)
-	app.Server.Use(recover.New(recover.Config{
+	base.Server.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))
-	app.Server.Use(middleware.ResultWrap())
+	base.Server.Use(middleware.ResultWrap())
 
-	router := app.Server.Group("/api")
-	{
-		securitySrv, permissionSyncSrv := security.Setup(app.Db, router)
+	app.Security = security.Setup(base)
+	app.User = user.Setup(base, app.Security)
+	app.Company = company.Setup(base, app.Security)
+	app.Attach = attach.Setup(base, app.Security)
+	app.Reimburse = reimburse.Setup(base, app.Attach, app.Security)
+	app.Bill = bill.Setup(base, app.Company, app.Attach, app.User, app.Security)
 
-		app.Security = securitySrv
-		app.User = user.Setup(cfg, app.Db, router, securitySrv, permissionSyncSrv)
-		app.Company = company.Setup(app.Db, router, securitySrv, permissionSyncSrv)
-		app.Attach, app.Content = attach.Setup(cfg, app.Db, router, securitySrv, permissionSyncSrv)
-		app.Reimburse, app.ReimburseStat = reimburse.Setup(app.Cache, app.Db, router, app.Attach, app.Content, securitySrv, permissionSyncSrv)
-		app.Bill, app.BillStat, app.BillQuery = bill.Setup(app.Cache, app.Db, router, app.Company, app.Attach, app.Content, app.User, securitySrv, permissionSyncSrv)
-
-		if err := permissionSyncSrv.Sync(); err != nil {
-			return nil, err
-		}
-		return app, nil
+	if err := app.Security.PermissionSync.Sync(); err != nil {
+		return nil, err
 	}
+	return app, nil
 }

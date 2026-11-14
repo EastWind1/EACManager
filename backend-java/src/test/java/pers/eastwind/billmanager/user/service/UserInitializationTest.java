@@ -3,7 +3,7 @@ package pers.eastwind.billmanager.user.service;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import pers.eastwind.billmanager.common.BaseServiceTest;
-import pers.eastwind.billmanager.security.service.SecurityService;
+import pers.eastwind.billmanager.security.service.AuthorizeService;
 import pers.eastwind.billmanager.user.model.UserDTO;
 
 import java.nio.charset.StandardCharsets;
@@ -20,14 +20,14 @@ class UserInitializationTest extends BaseServiceTest {
     @Autowired
     private UserService userService;
     @Autowired
-    private SecurityService securityService;
+    private AuthorizeService authorizeService;
 
     /**
      * 空库或已有数据的库都先清掉管理员角色，模拟尚未初始化的状态。
      */
     private void clearAdminRoles() {
-        for (UserDTO admin : userService.findEnabledUsersByRole(SecurityService.ADMIN_ROLE_CODE)) {
-            securityService.setUserRoles(admin.getId(), Set.of());
+        for (UserDTO admin : userService.findEnabledUsersByRole(AuthorizeService.ADMIN_ROLE_CODE)) {
+            authorizeService.setUserRoles(admin.getId(), Set.of());
         }
     }
 

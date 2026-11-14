@@ -18,37 +18,14 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onUnmounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { mdiHelpCircleOutline } from '@mdi/js'
+import { useUIStore } from '@/common/store/UIStore'
 
-type ConfirmInfo = {
-  title: string
-  text: string
-  resolve: (value: boolean) => void
-}
-
-const queue = ref<ConfirmInfo[]>([])
-const request = computed(() => queue.value[0])
-
-/**
- * 确认弹窗
- * @param title 标题
- * @param text 内容
- */
-function confirm(title: string, text: string): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    queue.value.push({ title, text, resolve })
-  })
-}
+const store = useUIStore()
+const { confirmRequest: request } = storeToRefs(store)
 
 function settle(confirmed: boolean) {
-  queue.value.shift()?.resolve(confirmed)
+  store.resolveConfirm(confirmed)
 }
-
-onUnmounted(() => {
-  // 取消所有后续
-  queue.value.splice(0).forEach((item) => item.resolve(false))
-})
-
-defineExpose({ confirm })
 </script>

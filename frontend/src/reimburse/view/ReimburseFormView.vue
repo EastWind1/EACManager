@@ -50,7 +50,7 @@
                   v-if="!isEditState && reimbursement.state === ReimburseState.CREATED.value"
                   v-permission="Permission.REIMBURSE_PROCESS"
                   :disabled="loading"
-                  @click="reloadAfterAction(process)"
+                  @click="process([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiSend"></v-icon>
@@ -61,7 +61,7 @@
                   v-if="!isEditState && reimbursement.state === ReimburseState.PROCESSING.value"
                   v-permission="Permission.REIMBURSE_FINISH"
                   :disabled="loading"
-                  @click="reloadAfterAction(finish)"
+                  @click="finish([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiCheckCircle"></v-icon>
@@ -73,7 +73,7 @@
                   v-permission="Permission.REIMBURSE_CANCEL_PROCESS"
                   :disabled="loading"
                   color="warning"
-                  @click="reloadAfterAction(cancelProcess)"
+                  @click="cancelProcess([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiCancel"></v-icon>
@@ -85,7 +85,7 @@
                   v-permission="Permission.REIMBURSE_CANCEL_FINISH"
                   :disabled="loading"
                   color="warning"
-                  @click="reloadAfterAction(cancelFinish)"
+                  @click="cancelFinish([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiCancel"></v-icon>
@@ -97,7 +97,7 @@
                   v-permission="Permission.REIMBURSE_DELETE"
                   :disabled="loading"
                   color="error"
-                  @click="backAfterAction(remove)"
+                  @click="remove([billId])"
                 >
                   <template #prepend>
                     <v-icon :icon="mdiTrashCan"></v-icon>
@@ -223,7 +223,7 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {type Reimburse, ReimburseState} from '../model/Reimburse'
 import ReimburseDetail from '../component/ReimburseDetail.vue'
 import ReimburseApi from '../api/ReimburseApi'
@@ -270,6 +270,8 @@ const isEditState = ref(false)
 const valid = ref(false)
 // 当前 Tab 页
 const tab = ref('detail')
+// 当前单据 id，供动作调用
+const billId = computed(() => reimbursement.value.id!)
 
 // 必填验证
 const requiredRule = (v: unknown) => !!v || '必填项'
@@ -321,25 +323,16 @@ async function cancel() {
   }
 }
 
-const {process, finish, remove, cancelProcess, cancelFinish} = useReimburseActions(
-  () => reimbursement.value.number!,
-)
-
-/**
- * 执行动作后刷新
- */
-async function reloadAfterAction(action: (ids: number[]) => Promise<void>) {
-  await action([reimbursement.value.id!])
-  await loadById(reimbursement.value.id!)
-}
-
-/**
- * 执行动作后返回
- */
-async function backAfterAction(action: (ids: number[]) => Promise<void>) {
-  await action([reimbursement.value.id!])
-  await router.push('/reimburse')
-}
+const {process, finish, remove, cancelProcess, cancelFinish} = useReimburseActions({
+  getKeyFn: () => reimbursement.value.number ?? String(reimbursement.value.id),
+  callback: async (action) => {
+    if (action === 'remove') {
+      await router.push('/reimburse')
+      return
+    }
+    await loadById(reimbursement.value.id!)
+  },
+})
 
 // 初始化
 async function init() {

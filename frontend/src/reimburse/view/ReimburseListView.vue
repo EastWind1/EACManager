@@ -82,7 +82,7 @@
                 v-permission="Permission.REIMBURSE_PROCESS"
                 :disabled="loading"
                 color="primary"
-                @click="reloadAfterAction(process)"
+                @click="process(selectedIds)"
               >
                 <template #prepend>
                   <v-icon :icon="mdiSend"></v-icon>
@@ -93,7 +93,7 @@
                 v-permission="Permission.REIMBURSE_FINISH"
                 :disabled="loading"
                 color="primary"
-                @click="reloadAfterAction(finish)"
+                @click="finish(selectedIds)"
               >
                 <template #prepend>
                   <v-icon :icon="mdiCheckCircle"></v-icon>
@@ -118,13 +118,13 @@
                   <v-list density="compact">
                     <v-list-item
                       v-permission="Permission.REIMBURSE_CANCEL_PROCESS"
-                      @click="reloadAfterAction(cancelProcess)"
+                      @click="cancelProcess(selectedIds)"
                     >
                       <v-list-item-title>取消处理</v-list-item-title>
                     </v-list-item>
                     <v-list-item
                       v-permission="Permission.REIMBURSE_CANCEL_FINISH"
-                      @click="reloadAfterAction(cancelFinish)"
+                      @click="cancelFinish(selectedIds)"
                     >
                       <v-list-item-title>取消处理完成</v-list-item-title>
                     </v-list-item>
@@ -135,7 +135,7 @@
                 v-permission="Permission.REIMBURSE_DELETE"
                 :disabled="loading"
                 color="error"
-                @click="reloadAfterAction(remove)"
+                @click="remove(selectedIds)"
               >
                 <template #prepend>
                   <v-icon :icon="mdiTrashCan"></v-icon>
@@ -362,23 +362,15 @@ async function loadItems(options: {
 }
 
 // 动作结果
-const {process, finish, remove, cancelProcess, cancelFinish} = useReimburseActions(
-  (id: number) => {
+const {process, finish, remove, cancelProcess, cancelFinish} = useReimburseActions({
+  getKeyFn: (id: number) => {
     const row = data.value.items.find((item) => item.id === id)
-    if (row) {
-      return row.number!
-    }
-    return String(id)
+    return row?.number ?? String(id)
   },
-)
-
-/**
- * 执行动作后刷新
- */
-async function reloadAfterAction(action: (ids: number[]) => Promise<void>) {
-  await action(selectedIds.value)
-  search.value = new Date().toString()
-}
+  callback: async () => {
+    search.value = new Date().toString()
+  },
+})
 
 /**
  * 新建

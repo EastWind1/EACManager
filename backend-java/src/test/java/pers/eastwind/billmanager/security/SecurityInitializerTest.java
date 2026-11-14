@@ -7,7 +7,7 @@ import pers.eastwind.billmanager.security.model.PermissionDTO;
 import pers.eastwind.billmanager.security.model.RoleDTO;
 import pers.eastwind.billmanager.security.permission.SecurityPermission;
 import pers.eastwind.billmanager.security.service.SecurityInitializer;
-import pers.eastwind.billmanager.security.service.SecurityService;
+import pers.eastwind.billmanager.security.service.AuthorizeService;
 
 import java.util.List;
 
@@ -18,24 +18,24 @@ class SecurityInitializerTest extends BaseServiceTest {
     @Autowired
     private SecurityInitializer securityInitializer;
     @Autowired
-    private SecurityService securityService;
+    private AuthorizeService authorizeService;
 
     @Test
     void shouldCreateDefaultRolesAndGrantPermissionConfig() {
         securityInitializer.run(null);
 
-        RoleDTO admin = securityService.getRoles().stream()
+        RoleDTO admin = authorizeService.getRoles().stream()
                 .filter(role -> "ADMIN".equals(role.getCode()))
                 .findFirst()
                 .orElse(null);
         assertNotNull(admin);
-        RoleDTO user = securityService.getRoles().stream()
+        RoleDTO user = authorizeService.getRoles().stream()
                 .filter(role -> "USER".equals(role.getCode()))
                 .findFirst()
                 .orElse(null);
         assertNotNull(user);
 
-        List<String> codes = securityService.getRolePermissions(admin.getId()).stream()
+        List<String> codes = authorizeService.getRolePermissions(admin.getId()).stream()
                 .map(PermissionDTO::getCode)
                 .toList();
         assertTrue(codes.contains(SecurityPermission.QUERY.getCode()));

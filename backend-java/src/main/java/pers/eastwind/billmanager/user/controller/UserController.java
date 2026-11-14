@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.security.config.JWTProperties;
+import pers.eastwind.billmanager.security.service.AuthenticateService;
 import pers.eastwind.billmanager.user.model.LoginResult;
 import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
@@ -18,10 +19,15 @@ import java.util.Map;
 public class UserController {
     private final JWTProperties config;
     private final UserService userService;
+    private final AuthenticateService authenticateService;
 
-    public UserController(JWTProperties config, UserService userService) {
+    public UserController(JWTProperties config, UserService userService, AuthenticateService authenticateService) {
         this.config = config;
         this.userService = userService;
+        this.authenticateService = authenticateService;
+    }
+
+    public record LoginParam(String username, String password) {
     }
 
     @PostMapping("/token")
@@ -79,12 +85,9 @@ public class UserController {
         return userService.update(user);
     }
 
-    @DeleteMapping("/{username}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).DISABLE.getCode())")
-    public void disable(@PathVariable String username) {
-        userService.disable(username);
-    }
-
-    public record LoginParam(String username, String password) {
+    public void disable(@PathVariable Integer id) {
+        authenticateService.disable(id);
     }
 }

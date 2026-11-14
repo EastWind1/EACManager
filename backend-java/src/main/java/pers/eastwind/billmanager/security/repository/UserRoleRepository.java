@@ -39,7 +39,7 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Integer> {
      */
     @Query("""
             select count(distinct u.id)
-            from User u, UserRole ur, Role r
+            from Account u, UserRole ur, Role r
             where ur.userId = u.id and ur.roleId = r.id
               and r.code = :roleCode and r.disabled = false and u.disabled = false
             """)

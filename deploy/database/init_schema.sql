@@ -473,11 +473,8 @@ CREATE TABLE public.sys_user (
     id integer DEFAULT nextval('public.sys_user_seq'::regclass) NOT NULL,
     created_date timestamp(6) with time zone,
     last_modified_date timestamp(6) with time zone,
-    email character varying(255),
     disabled boolean NOT NULL,
-    name character varying(255) NOT NULL,
     password character varying(255) NOT NULL,
-    phone character varying(255),
     username text,
     created_by_id integer,
     last_modified_by_id integer
@@ -485,6 +482,24 @@ CREATE TABLE public.sys_user (
 
 
 ALTER TABLE public.sys_user OWNER TO postgres;
+
+--
+-- Name: user_profile; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_profile (
+    user_id integer NOT NULL,
+    name character varying(255) NOT NULL,
+    phone character varying(255),
+    email character varying(255),
+    created_date timestamp(6) with time zone,
+    last_modified_date timestamp(6) with time zone,
+    created_by_id integer,
+    last_modified_by_id integer
+);
+
+
+ALTER TABLE public.user_profile OWNER TO postgres;
 
 --
 -- Name: attachment attachment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -636,6 +651,14 @@ ALTER TABLE ONLY public.sys_role_permission
 
 ALTER TABLE ONLY public.sys_user
     ADD CONSTRAINT uk_user_username UNIQUE (username);
+
+
+--
+-- Name: user_profile user_profile_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_profile
+    ADD CONSTRAINT user_profile_pkey PRIMARY KEY (user_id);
 
 
 --

@@ -1,9 +1,8 @@
-package reimburse_test
+package test
 
 import (
 	"backend-go/internal/attach"
 	"backend-go/internal/reimburse"
-	"backend-go/internal/test"
 	"strconv"
 	"testing"
 	"time"
@@ -13,7 +12,7 @@ import (
 
 // ReimburseServiceTest 报销服务测试
 type ReimburseServiceTest struct {
-	test.BaseSuite
+	BaseSuite
 	srv      *reimburse.Service
 	testReim *reimburse.DTO
 }
@@ -24,7 +23,7 @@ func TestReimburseService(t *testing.T) {
 
 func (s *ReimburseServiceTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	s.srv = s.App.Reimburse
+	s.srv = s.App.Reimburse.Service
 }
 
 func (s *ReimburseServiceTest) SetupTest() {
@@ -369,7 +368,7 @@ func (s *ReimburseServiceTest) TestExport() {
 
 // ReimburseStatServiceTest 报销单统计服务集成测试
 type ReimburseStatServiceTest struct {
-	test.BaseSuite
+	BaseSuite
 	srv     *reimburse.Service
 	statSrv *reimburse.StatisticService
 }
@@ -380,8 +379,8 @@ func TestReimburseStatService(t *testing.T) {
 
 func (s *ReimburseStatServiceTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	s.srv = s.App.Reimburse
-	s.statSrv = s.App.ReimburseStat
+	s.srv = s.App.Reimburse.Service
+	s.statSrv = s.App.Reimburse.Statistic
 }
 
 func (s *ReimburseStatServiceTest) SetupTest() {
@@ -440,7 +439,7 @@ func (s *ReimburseStatServiceTest) newReimburseAt(total float64, date time.Time)
 
 // ReimburseAttachTest 报销单↔附件关联测试
 type ReimburseAttachTest struct {
-	test.BaseSuite
+	BaseSuite
 	attachSrv *attach.Service
 	srv       *reimburse.Service
 }
@@ -451,8 +450,8 @@ func TestReimburseAttach(t *testing.T) {
 
 func (s *ReimburseAttachTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
-	s.attachSrv = s.App.Attach
-	s.srv = s.App.Reimburse
+	s.attachSrv = s.App.Attach.Service
+	s.srv = s.App.Reimburse.Service
 }
 
 func (s *ReimburseAttachTest) upload(name string) attach.DTO {

@@ -15,20 +15,12 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useUIStore } from '@/common/store/UIStore'
 
-/**
- * 日期选择弹窗消息
- */
-type DatePickerInfo = {
-  title?: string
-  min?: Date
-  max?: Date
-  resolve: (value: Date | undefined) => void
-}
-
-const queue = ref<DatePickerInfo[]>([])
-const request = computed(() => queue.value[0])
+const store = useUIStore()
+const { dateRequest: request } = storeToRefs(store)
 const selectedDate = ref<string | number | Date | null>(null)
 
 // 每次打开重置已选日期
@@ -36,31 +28,12 @@ watch(request, () => {
   selectedDate.value = null
 })
 
-/**
- * 选择日期
- * @param title 标题
- * @param minDate 最小日期
- * @param maxDate 最大日期
- */
-function selectDate(title?: string, minDate?: Date, maxDate?: Date): Promise<Date | undefined> {
-  return new Promise<Date | undefined>((resolve) => {
-    queue.value.push({ title, min: minDate, max: maxDate, resolve })
-  })
-}
-
 function confirm() {
   const value = selectedDate.value
-  queue.value.shift()?.resolve(value ? new Date(value) : undefined)
+  store.resolveDate(value ? new Date(value) : undefined)
 }
 
 function cancel() {
-  queue.value.shift()?.resolve(undefined)
+  store.resolveDate(undefined)
 }
-
-onUnmounted(() => {
-  // 取消所有后续
-  queue.value.splice(0).forEach((item) => item.resolve(undefined))
-})
-
-defineExpose({ selectDate })
 </script>

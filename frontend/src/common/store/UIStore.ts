@@ -1,172 +1,190 @@
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import type { ActionsResult } from '@/common/model/ActionsResult.ts'
 
 /**
  * 通知类型
  */
-type NotifyType = 'primary' | 'success' | 'info' | 'warning' | 'error'
+export type NotifyType = 'primary' | 'success' | 'info' | 'warning' | 'error'
 
-/**
- * 组件实现钩子
- */
-type UIHook = {
-  showLoading?: (progress?: number) => void
-  hideLoading?: () => void
-  notify?: (text: string, type: NotifyType, timeout: number) => void
-  confirm?: (title: string, text: string) => Promise<boolean>
-  selectDate?: (title?: string, minDate?: Date, maxDate?: Date) => Promise<Date | undefined>
-  showBatchResult?: (
-    result: ActionsResult<number, void>,
-    getKeyFn?: (id: number) => string,
-  ) => Promise<void>
+export type Notification = {
+  text: string
+  color: NotifyType
+  timeout: number
+}
+
+type ConfirmRequest = {
+  title: string
+  text: string
+  resolve: (value: boolean) => void
+}
+
+type DateRequest = {
+  title?: string
+  min?: Date
+  max?: Date
+  resolve: (value: Date | undefined) => void
+}
+
+export type BatchResult = {
+  successCount: number
+  failedCount: number
+  rows: {
+    key: string
+    message: string
+  }[]
+}
+
+type BatchRequest = BatchResult & {
+  resolve: () => void
 }
 
 /**
- * 全局 UI
+ * 全局 UI 状态。
+ *
+ * 同一时刻只存在一个通知、确认、日期选择和批量结果请求；新请求会结束旧请求，
+ * 避免调用方永久等待。
  */
 export const useUIStore = defineStore('uiStore', () => {
-  // 是否加载状态
   const loading = ref(false)
+  const loadingProgress = ref(0)
+  const notification = shallowRef<Notification | null>(null)
+  const confirmRequest = shallowRef<ConfirmRequest | null>(null)
+  const dateRequest = shallowRef<DateRequest | null>(null)
+  const batchRequest = shallowRef<BatchRequest | null>(null)
 
-  let api: UIHook = {}
-
-  /**
-   * 组件未注册回退
-   * @param name
-   */
-  function fallback(name: string) {
-    console.warn(`${name} 组件尚未挂载`)
-  }
-
-  /**
-   * 注册 UI 回调
-   * @param handlers
-   */
-  function registerUI(handlers: UIHook) {
-    api = handlers
-  }
-
-  /**
-   * 显示全局加载条
-   * @param progress 进度
-   */
   function showLoading(progress?: number) {
-    if (!api.showLoading) {
-      fallback('showLoading')
-      return
-    }
-    api.showLoading(progress)
+    loadingProgress.value = progress ?? -1
     loading.value = true
   }
 
-  /**
-   * 隐藏全局加载条
-   */
   function hideLoading() {
-    if (!api.hideLoading) {
-      fallback('hideLoading')
-      return
-    }
-    api.hideLoading()
     loading.value = false
   }
 
-  /**
-   * 通知
-   * @param text 文本
-   * @param color 颜色
-   * @param timeout 超时
-   */
-  function notify(text: string, color: NotifyType, timeout?: number) {
-    if (!api.notify) {
-      fallback('notify')
-      return
-    }
-    api.notify(text, color, timeout ?? 2000)
+  function notify(text: string, color: NotifyType, timeout = 2000) {
+    notification.value = { text, color, timeout }
   }
 
-  /**
-   * 成功通知
-   * @param text 文本
-   * @param timeout 超时
-   */
+  function clearNotification() {
+    notification.value = null
+  }
+
   function success(text: string, timeout = 2000) {
     notify(text, 'success', timeout)
   }
 
-  /**
-   * 普通通知
-   * @param text 文本
-   * @param timeout 超时
-   */
   function info(text: string, timeout = 2000) {
     notify(text, 'primary', timeout)
   }
 
-  /**
-   * 警告通知
-   * @param text 文本
-   * @param timeout 超时
-   */
   function warning(text: string, timeout = 4000) {
     notify(text, 'warning', timeout)
   }
 
-  /**
-   * 确认弹窗
-   * @param title 标题
-   * @param content 内容
-   */
-  function confirm(title: string, content: string): Promise<boolean> {
-    if (!api.confirm) {
-      fallback('confirm')
-      return Promise.resolve(false)
-    }
-    return api.confirm(title, content)
+  function confirm(title: string, text: string): Promise<boolean> {
+    confirmRequest.value?.resolve(false)
+    return new Promise<boolean>((resolve) => {
+      confirmRequest.value = { title, text, resolve }
+    })
   }
 
-  /**
-   * 选择日期弹窗
-   * @param title 标题
-   * @param minDate 最小日期
-   * @param maxDate 最大日期
-   */
+  function resolveConfirm(confirmed: boolean) {
+    const request = confirmRequest.value
+    confirmRequest.value = null
+    request?.resolve(confirmed)
+  }
+
   function selectDate(title?: string, minDate?: Date, maxDate?: Date): Promise<Date | undefined> {
-    if (!api.selectDate) {
-      fallback('selectDate')
-      return Promise.resolve(undefined)
-    }
-    return api.selectDate(title, minDate, maxDate)
+    dateRequest.value?.resolve(undefined)
+    return new Promise<Date | undefined>((resolve) => {
+      dateRequest.value = { title, min: minDate, max: maxDate, resolve }
+    })
+  }
+
+  function resolveDate(value: Date | undefined) {
+    const request = dateRequest.value
+    dateRequest.value = null
+    request?.resolve(value)
   }
 
   /**
    * 处理动作结果：返回结果 ≤ 1 条只提示，多条存在失败时弹窗
-   *
-   * @param result 结果
-   * @param getKeyFn 获取 key 回调
    */
   function showBatchResult(
     result: ActionsResult<number, void>,
-    getKeyFn?: (id: number) => string,
+    getKeyFn: (id: number) => string = (id) => String(id),
   ): Promise<void> {
-    if (!api.showBatchResult) {
-      fallback('showBatchResult')
+    if (result.results.length <= 1) {
+      const item = result.results[0]
+      if (item) {
+        if (item.success) {
+          success('操作成功')
+        } else {
+          warning(`操作失败：${item.message}`)
+        }
+      }
       return Promise.resolve()
     }
-    return api.showBatchResult(result, getKeyFn)
+    if (result.failCount) {
+      batchRequest.value?.resolve()
+      return new Promise<void>((resolve) => {
+        batchRequest.value = {
+          successCount: result.successCount,
+          failedCount: result.failCount,
+          rows: result.results
+            .filter((item) => !item.success)
+            .map((item) => ({
+              key: getKeyFn(item.param),
+              message: item.message,
+            })),
+          resolve,
+        }
+      })
+    }
+    success(`${result.successCount} 条单据操作成功, 0 条失败`)
+    return Promise.resolve()
+  }
+
+  function resolveBatchResult() {
+    const request = batchRequest.value
+    batchRequest.value = null
+    request?.resolve()
+  }
+
+  /**
+   * App 卸载时结束所有等待，避免未完成的 Promise 永久挂起。
+   */
+  function cancelAll() {
+    confirmRequest.value?.resolve(false)
+    dateRequest.value?.resolve(undefined)
+    batchRequest.value?.resolve()
+    confirmRequest.value = null
+    dateRequest.value = null
+    batchRequest.value = null
+    notification.value = null
+    loading.value = false
   }
 
   return {
     loading,
+    loadingProgress,
+    notification,
+    confirmRequest,
+    dateRequest,
+    batchRequest,
     showLoading,
     hideLoading,
     success,
     info,
     warning,
+    clearNotification,
     confirm,
+    resolveConfirm,
     selectDate,
+    resolveDate,
     showBatchResult,
-    registerUI,
+    resolveBatchResult,
+    cancelAll,
   }
 })

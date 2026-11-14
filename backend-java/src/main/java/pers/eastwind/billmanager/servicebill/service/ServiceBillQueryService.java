@@ -17,7 +17,7 @@ import pers.eastwind.billmanager.servicebill.model.*;
 import pers.eastwind.billmanager.servicebill.permission.ServiceBillPermission;
 import pers.eastwind.billmanager.servicebill.repository.ServiceBillAssigneeRepository;
 import pers.eastwind.billmanager.servicebill.repository.ServiceBillRepository;
-import pers.eastwind.billmanager.user.model.User;
+import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
 
 import java.util.*;
@@ -229,13 +229,13 @@ public class ServiceBillQueryService {
         for (ServiceBillAssignee row : rows) {
             userIds.add(row.getUserId());
         }
-        Map<Integer, User> users = new HashMap<>();
-        for (User user : userService.findByIds(userIds)) {
+        Map<Integer, UserDTO> users = new HashMap<>();
+        for (UserDTO user : userService.findByIds(userIds)) {
             users.put(user.getId(), user);
         }
         Map<Integer, List<AssigneeDTO>> result = new HashMap<>();
         for (ServiceBillAssignee row : rows) {
-            User user = users.get(row.getUserId());
+            UserDTO user = users.get(row.getUserId());
             if (user == null) {
                 continue;
             }

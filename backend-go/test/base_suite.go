@@ -4,7 +4,6 @@ package test
 import (
 	"backend-go/config"
 	"backend-go/internal/security"
-	"backend-go/internal/user"
 	"backend-go/pkg/database"
 	"backend-go/server"
 	"bytes"
@@ -21,9 +20,9 @@ import (
 )
 
 var (
-	appOnce   sync.Once
-	app       *server.App
-	initError error
+	appOnce sync.Once
+	app     *server.App
+	err     error
 )
 
 // BaseSuite 集成测试基类：SetupSuite 初始化应用，SetupTest 开启事务，TearDownTest 回滚
@@ -35,22 +34,28 @@ type BaseSuite struct {
 }
 
 func (s *BaseSuite) SetupSuite() {
-	initApp()
-	if initError != nil {
-		s.Require().NoError(initError, "初始化测试应用失败")
+	appOnce.Do(func() {
+		if os.Getenv("JWT_SECRET") == "" {
+			_ = os.Setenv("JWT_SECRET", "test-only-jwt-key-4f6c1d2a9b8e7c3d5a1f0e9d8c7b6a5f")
+		}
+		cfg := config.NewConfig()
+
+		// 附件统一落到临时目录，避免在各模块目录下留下 attachment/
+		if cfg.Attach != nil {
+			cfg.Attach.Path = filepath.Join(os.TempDir(), "eac-test-attachment")
+		}
+		app, err = server.NewApp(cfg)
+	})
+	if err != nil {
+		s.Require().NoError(err, "初始化测试应用失败")
 	}
 	s.App = app
 }
 
 func (s *BaseSuite) SetupTest() {
-	s.Tx = s.App.Db.Begin()
+	s.Tx = s.App.DB.Begin()
 	s.Require().NoError(s.Tx.Error, "开启测试事务失败")
-	ctx := security.SetUserToCtx(s.T().Context(), new(user.DTO{
-		ID:       1,
-		Username: "root",
-		Password: new("root"),
-		Name:     "测试管理员",
-	}))
+	ctx := security.SetUserToCtx(s.T().Context(), &security.AuthorityUser{ID: 1, Username: "root", Password: "root"})
 	s.Ctx = context.WithValue(ctx, database.TxKey{}, s.Tx)
 }
 
@@ -86,19 +91,4 @@ func (s *BaseSuite) UploadFileHeaders(name, content string) ([]*multipart.FileHe
 		return nil, err
 	}
 	return request.MultipartForm.File["files"], nil
-}
-
-func initApp() {
-	appOnce.Do(func() {
-		if os.Getenv("JWT_SECRET") == "" {
-			_ = os.Setenv("JWT_SECRET", "test-only-jwt-key-4f6c1d2a9b8e7c3d5a1f0e9d8c7b6a5f")
-		}
-		cfg := config.NewConfig()
-
-		// 附件统一落到临时目录，避免在各模块目录下留下 attachment/
-		if cfg.Attach != nil {
-			cfg.Attach.Path = filepath.Join(os.TempDir(), "eac-test-attachment")
-		}
-		app, initError = server.NewApp(cfg)
-	})
 }

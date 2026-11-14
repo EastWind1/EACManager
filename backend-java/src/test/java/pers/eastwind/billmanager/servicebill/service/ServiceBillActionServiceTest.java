@@ -591,6 +591,18 @@ class ServiceBillActionServiceTest extends BaseServiceTest {
     }
 
     @Test
+    @DisplayName("处理完成后的单据不能指派或取消指派")
+    void shouldRejectAssignAfterProcessed() {
+        ServiceBillDTO bill = serviceBillActionService.create(createTestServiceBill());
+        serviceBillActionService.process(List.of(bill.getId()));
+        serviceBillActionService.processed(List.of(bill.getId()), Instant.now());
+
+        ActionsResult<Integer, Void> result = serviceBillActionService.assign(List.of(bill.getId()), List.of());
+        assertEquals(0, result.getSuccessCount());
+        assertTrue(result.getResults().getFirst().getMessage().contains("只有新建或处理中的单据才能指派"));
+    }
+
+    @Test
     @DisplayName("非管理员只能访问指派给自己的服务单")
     void shouldLimitDataScopeByAssignee() {
         ServiceBillDTO adminBill = serviceBillActionService.create(createTestServiceBill());

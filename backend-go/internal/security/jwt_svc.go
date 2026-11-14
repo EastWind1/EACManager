@@ -1,4 +1,4 @@
-package user
+package security
 
 import (
 	"backend-go/config"
@@ -14,10 +14,7 @@ type JWTService struct {
 }
 
 func newJWTService(cfg *config.JWTConfig) *JWTService {
-	return &JWTService{
-		secret: []byte(cfg.Secret),
-		expire: cfg.Expire,
-	}
+	return &JWTService{secret: []byte(cfg.Secret), expire: cfg.Expire}
 }
 
 func (s *JWTService) GenerateToken(subject string) (string, error) {
@@ -27,7 +24,6 @@ func (s *JWTService) GenerateToken(subject string) (string, error) {
 		IssuedAt:  jwt.NewNumericDate(now),
 		Subject:   subject,
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	res, err := token.SignedString(s.secret)
 	if err != nil {
@@ -38,18 +34,15 @@ func (s *JWTService) GenerateToken(subject string) (string, error) {
 
 func (s *JWTService) VerifyToken(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		// 固定签名算法，避免 alg 混淆；只接受本服务签发的 HS256
 		if token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
 			return nil, errs.NewUnauthError("Token 无效")
 		}
 		return s.secret, nil
 	})
-
 	if err != nil || !token.Valid {
 		return "", errs.NewUnauthError("Token 无效")
 	}
-
-	if expireTime, ok := token.Claims.GetExpirationTime(); ok != nil || expireTime.Before(time.Now()) {
+	if expireTime, err := token.Claims.GetExpirationTime(); err != nil || expireTime.Before(time.Now()) {
 		return "", errs.NewUnauthError("Token 过期")
 	}
 	sub, err := token.Claims.GetSubject()

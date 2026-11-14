@@ -26,7 +26,7 @@ type Service struct {
 	cfg        *config.AttachConfig
 }
 
-const tempPrefix = "eac-"
+const tempPrefix = "temp-"
 
 // transientRetention 游离附件保留时长，超过后由 CleanTransientFiles 回收
 const transientRetention = 7 * 24 * time.Hour
@@ -49,7 +49,7 @@ func newService(
 	if err := os.MkdirAll(rootPath, 0755); err != nil {
 		log.Fatalf("创建附件根目录失败: %v - %v", rootPath, err)
 	}
-	tempPath, err := os.MkdirTemp(os.TempDir(), tempPrefix+"*")
+	tempPath, err := os.MkdirTemp(rootPath, tempPrefix+"*")
 	if err != nil {
 		log.Fatalf("创建临时目录失败: %v - %v", tempPath, err)
 	}
@@ -316,7 +316,7 @@ func assertCanAccess(ctx context.Context, attachment *Attach) error {
 	if err != nil {
 		return errs.NewUnauthError("未登录")
 	}
-	if attachment.CreatedByID != 0 && attachment.CreatedByID != user.GetID() {
+	if attachment.CreatedByID != 0 && attachment.CreatedByID != user.ID {
 		return errs.NewAuthError("无权访问该附件")
 	}
 	return nil

@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 @Slf4j
 @Service
 public class AttachService implements InitializingBean {
-    private static final String TEMP_PREFIX = "eac-";
+    private static final String TEMP_PREFIX = "temp-";
     private static final Duration TEMP_RETENTION = Duration.ofDays(7);
     private static final Pattern NAMESPACE_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]+$");
 
@@ -61,7 +61,7 @@ public class AttachService implements InitializingBean {
         rootPath = properties.getPath().normalize().toAbsolutePath();
         try {
             Files.createDirectories(rootPath);
-            tempPath = Files.createTempDirectory(TEMP_PREFIX);
+            tempPath = Files.createTempDirectory(rootPath, TEMP_PREFIX);
             tempPath.toFile().deleteOnExit();
         } catch (IOException e) {
             throw new FileOpException("创建附件目录失败", e);

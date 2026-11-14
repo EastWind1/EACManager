@@ -2,7 +2,6 @@ package user
 
 import (
 	"backend-go/config"
-	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"time"
 
@@ -31,7 +30,7 @@ func (c *Controller) InitializationStatus(ctx fiber.Ctx) error {
 }
 
 func (c *Controller) Initialize(ctx fiber.Ctx) error {
-	var dto InitDTO
+	var dto DTO
 	if err := ctx.Bind().Body(&dto); err != nil {
 		return err
 	}
@@ -123,18 +122,5 @@ func (c *Controller) Update(ctx fiber.Ctx) error {
 	}
 
 	result.SetResult(ctx, res)
-	return nil
-}
-
-func (c *Controller) Disable(ctx fiber.Ctx) error {
-	username := ctx.Params("username")
-	if username == "" {
-		return errs.NewBizError("用户名为空")
-	}
-
-	if err := c.userService.Disable(ctx, username); err != nil {
-		return err
-	}
-
 	return nil
 }

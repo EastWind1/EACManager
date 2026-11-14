@@ -210,7 +210,12 @@ public class ServiceBillActionService {
         if (serviceBillDTO.getAssignees() != null) {
             Set<Integer> currentAssigneeIds = getCurrentAssignees(bill.getId());
             Set<Integer> requestedAssigneeIds = requestedAssigneeIds(serviceBillDTO.getAssignees());
-            updateAssignees(bill.getId(), currentAssigneeIds, requestedAssigneeIds);
+            if (!currentAssigneeIds.equals(requestedAssigneeIds)) {
+                if (bill.getState() != ServiceBillState.CREATED && bill.getState() != ServiceBillState.PROCESSING) {
+                    throw new BizException("只有新建或处理中的单据才能指派");
+                }
+                updateAssignees(bill.getId(), currentAssigneeIds, requestedAssigneeIds);
+            }
         }
         var originState = bill.getState();
         serviceBillMapper.updateEntityFromDTO(serviceBillDTO, bill);
@@ -261,7 +266,10 @@ public class ServiceBillActionService {
         Set<Integer> targetIds = assigneeIds == null ? Set.of() : new HashSet<>(assigneeIds);
         return ActionsResult.executeActions(ids, id -> {
             transactionTemplate.executeWithoutResult(_ -> {
-                queryService.findEntityById(id);
+                ServiceBill bill = queryService.findEntityById(id);
+                if (bill.getState() != ServiceBillState.CREATED && bill.getState() != ServiceBillState.PROCESSING) {
+                    throw new BizException("只有新建或处理中的单据才能指派");
+                }
                 updateAssignees(id, getCurrentAssignees(id), targetIds);
             });
             return null;

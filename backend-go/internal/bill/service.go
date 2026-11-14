@@ -247,6 +247,9 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 				return err
 			}
 			if !sameIDs(existingIDs, requestedIDs) {
+				if bill.State != Created && bill.State != Processing {
+					return errs.NewBizError("只有新建或处理中的单据才能指派")
+				}
 				allowed, err := s.querySrv.CanAssign(txCtx)
 				if err != nil {
 					return err
@@ -434,6 +437,9 @@ func (s *Service) Assign(ctx context.Context, ids []uint, assigneeIDs []uint) (*
 			bill, err := s.querySrv.RequireByID(txCtx, id)
 			if err != nil {
 				return err
+			}
+			if bill.State != Created && bill.State != Processing {
+				return errs.NewBizError("只有新建或处理中的单据才能指派")
 			}
 			return s.billRepo.ReplaceAssignees(txCtx, bill.ID, assigneeIDs)
 		})

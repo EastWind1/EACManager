@@ -8,6 +8,7 @@ import pers.eastwind.billmanager.common.BaseServiceTest;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.security.model.RoleDTO;
+import pers.eastwind.billmanager.security.service.AuthenticateService;
 import pers.eastwind.billmanager.user.model.UserDTO;
 
 import java.util.List;
@@ -21,6 +22,9 @@ class UserServiceTest extends BaseServiceTest {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private AuthenticateService authenticateService;
 
     private UserDTO testUser;
 
@@ -75,8 +79,8 @@ class UserServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试禁用用户")
     void shouldDisableUser() {
-        userService.create(testUser);
-        userService.disable(testUser.getUsername());
+        UserDTO createdUser = userService.create(testUser);
+        authenticateService.disable(createdUser.getId());
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> userService.login(testUser.getUsername(), "password123"));
         assertTrue(ex.getMessage().contains("用户已禁用"));
@@ -106,7 +110,7 @@ class UserServiceTest extends BaseServiceTest {
     @DisplayName("测试加载用户信息")
     void shouldLoadUserByUsername() {
         userService.create(testUser);
-        var user = userService.loadUserByUsername(testUser.getUsername());
+        var user = authenticateService.loadUserByUsername(testUser.getUsername());
         assertNotNull(user);
         assertEquals(testUser.getUsername(), user.getUsername());
     }
@@ -130,8 +134,8 @@ class UserServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("测试禁用用户登录失败")
     void shouldFailLoginWhenDisabled() {
-        userService.create(testUser);
-        userService.disable(testUser.getUsername());
+        UserDTO createdUser = userService.create(testUser);
+        authenticateService.disable(createdUser.getId());
 
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> userService.login(testUser.getUsername(), "password123"));

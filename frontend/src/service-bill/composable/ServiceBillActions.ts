@@ -1,11 +1,45 @@
 import { useUIStore } from '@/common/store/UIStore'
+import type { ActionsResult } from '@/common/model/ActionsResult'
 import ServiceBillApi from '../api/ServiceBillApi'
+
+type ServiceBillAction =
+  | 'assign'
+  | 'process'
+  | 'processed'
+  | 'finish'
+  | 'remove'
+  | 'cancelProcess'
+  | 'cancelProcessed'
+  | 'cancelFinish'
+
+type Options = {
+  /**
+   * 批量情况下，异常结果展示的第一列取数方法，用于展示是哪一条数据
+   */
+  getKeyFn?: (id: number) => string
+  /**
+   * 动作成功后的页面级处理；列表刷新、详情重载、删除后返回都由调用方决定。
+   */
+  callback?: (action: ServiceBillAction) => void | Promise<void>
+}
 
 /**
  * 单据操作
  */
-export function useServiceBillActions(getKeyFn?: (id: number) => string) {
+export function useServiceBillActions(options: Options = {}) {
+  const { getKeyFn, callback } = options
   const { warning, confirm, showBatchResult } = useUIStore()
+
+  async function invokeCallback(
+    action: ServiceBillAction,
+    result: ActionsResult<number, void>,
+  ) {
+    await showBatchResult(result, getKeyFn)
+    if (result.successCount > 0) {
+      await callback?.(action)
+    }
+    return result
+  }
 
   /**
    * 开始处理
@@ -15,7 +49,7 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
       warning('请选择要操作的单据')
       return
     }
-    return showBatchResult(await ServiceBillApi.process(ids), getKeyFn)
+    return invokeCallback('process', await ServiceBillApi.process(ids))
   }
 
   /**
@@ -30,7 +64,7 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
     if (!date) {
       return
     }
-    return showBatchResult(await ServiceBillApi.processed(ids, date), getKeyFn)
+    return invokeCallback('processed', await ServiceBillApi.processed(ids, date))
   }
 
   /**
@@ -45,7 +79,7 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
     if (!date) {
       return
     }
-    return showBatchResult(await ServiceBillApi.finish(ids, date), getKeyFn)
+    return invokeCallback('finish', await ServiceBillApi.finish(ids, date))
   }
 
   /**
@@ -56,7 +90,7 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
       warning('请选择要操作的单据')
       return
     }
-    return showBatchResult(await ServiceBillApi.assign(ids, assigneeIds), getKeyFn)
+    return invokeCallback('assign', await ServiceBillApi.assign(ids, assigneeIds))
   }
 
   /**
@@ -67,10 +101,10 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
       warning('请选择要操作的单据')
       return
     }
-    if (!(await confirm(`确认`, `确认删除 ${ids.length} 条单据?`))) {
+    if (!(await confirm('确认', `确认删除 ${ids.length} 条单据?`))) {
       return
     }
-    return showBatchResult(await ServiceBillApi.delete(ids), getKeyFn)
+    return invokeCallback('remove', await ServiceBillApi.delete(ids))
   }
 
   /**
@@ -81,10 +115,10 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
       warning('请选择要操作的单据')
       return
     }
-    if (!(await confirm(`确认`, `确认取消处理 ${ids.length} 条单据?`))) {
+    if (!(await confirm('确认', `确认取消处理 ${ids.length} 条单据?`))) {
       return
     }
-    return showBatchResult(await ServiceBillApi.cancelProcess(ids), getKeyFn)
+    return invokeCallback('cancelProcess', await ServiceBillApi.cancelProcess(ids))
   }
 
   /**
@@ -95,10 +129,10 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
       warning('请选择要操作的单据')
       return
     }
-    if (!(await confirm(`确认`, `确认取消处理完成 ${ids.length} 条单据?`))) {
+    if (!(await confirm('确认', `确认取消处理完成 ${ids.length} 条单据?`))) {
       return
     }
-    return showBatchResult(await ServiceBillApi.cancelProcessed(ids), getKeyFn)
+    return invokeCallback('cancelProcessed', await ServiceBillApi.cancelProcessed(ids))
   }
 
   /**
@@ -109,10 +143,10 @@ export function useServiceBillActions(getKeyFn?: (id: number) => string) {
       warning('请选择要操作的单据')
       return
     }
-    if (!(await confirm(`确认`, `确认取消完成 ${ids.length} 条单据?`))) {
+    if (!(await confirm('确认', `确认取消完成 ${ids.length} 条单据?`))) {
       return
     }
-    return showBatchResult(await ServiceBillApi.cancelFinish(ids), getKeyFn)
+    return invokeCallback('cancelFinish', await ServiceBillApi.cancelFinish(ids))
   }
 
   return {

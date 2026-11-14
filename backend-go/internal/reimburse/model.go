@@ -4,6 +4,7 @@ import (
 	"backend-go/internal/attach"
 	"backend-go/internal/security"
 	"backend-go/pkg/errs"
+	"backend-go/pkg/result"
 	"encoding/json"
 	"time"
 
@@ -166,4 +167,13 @@ func (r *DTO) ToEntity() *Reimburse {
 	}
 	entity.Details = details
 	return &entity
+}
+
+type QueryParam struct {
+	Number             string     `json:"number"`
+	Summary            string     `json:"summary"`
+	States             []State    `json:"states"`
+	ReimburseStartDate *time.Time `json:"reimburseStartDate"`
+	ReimburseEndDate   *time.Time `json:"reimburseEndDate"`
+	result.QueryParam
 }

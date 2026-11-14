@@ -15,8 +15,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.security.config.JWTProperties;
 import pers.eastwind.billmanager.security.model.AuthorityUser;
+import pers.eastwind.billmanager.security.service.AuthenticateService;
 import pers.eastwind.billmanager.security.util.JWTUtil;
-import pers.eastwind.billmanager.user.service.UserService;
 
 import java.io.IOException;
 
@@ -26,11 +26,11 @@ import java.io.IOException;
 @Slf4j
 @Component
 public class JWTTokenFilter extends OncePerRequestFilter {
-    private final UserService userService;
+    private final AuthenticateService authenticateService;
     private final JWTProperties properties;
 
-    public JWTTokenFilter(UserService userService, JWTProperties properties) {
-        this.userService = userService;
+    public JWTTokenFilter(AuthenticateService authenticateService, JWTProperties properties) {
+        this.authenticateService = authenticateService;
         this.properties = properties;
     }
 
@@ -54,7 +54,7 @@ public class JWTTokenFilter extends OncePerRequestFilter {
                 log.warn("JWT 解析失败: {}", e.getMessage());
             }
             if (userName != null) {
-                AuthorityUser user = userService.loadUserByUsername(userName);
+                AuthorityUser user = authenticateService.loadUserByUsername(userName);
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         user, user.getPassword(), user.getAuthorities()
                 );
