@@ -4,14 +4,9 @@ import (
 	"backend-go/internal/security"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
+	"backend-go/pkg/validation"
 	"context"
-	"regexp"
 	"strings"
-)
-
-var (
-	phonePattern = regexp.MustCompile(`^1[3-9]\d{9}$`)
-	emailPattern = regexp.MustCompile(`^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$`)
 )
 
 type Service struct {
@@ -40,11 +35,11 @@ func (s *Service) Login(ctx context.Context, username, password string) (*LoginR
 }
 
 func (s *Service) Initialize(ctx context.Context, dto *DTO) (*DTO, error) {
+	if err := validation.Struct(dto); err != nil {
+		return nil, err
+	}
 	if dto.Password == "" {
 		return nil, errs.NewBizError("密码不能为空")
-	}
-	if err := s.validateProfile(dto.Name, dto.Phone, dto.Email); err != nil {
-		return nil, err
 	}
 	var res *DTO
 	err := s.profileRepo.Transaction(ctx, func(txCtx context.Context) error {
@@ -115,11 +110,11 @@ func (s *Service) GetAll(ctx context.Context, queryParam *result.QueryParam) (*r
 }
 
 func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
+	if err := validation.Struct(dto); err != nil {
+		return nil, err
+	}
 	if dto.Password == "" {
 		return nil, errs.NewBizError("密码不能为空")
-	}
-	if err := s.validateProfile(dto.Name, dto.Phone, dto.Email); err != nil {
-		return nil, err
 	}
 	var res *DTO
 	err := s.profileRepo.Transaction(ctx, func(txCtx context.Context) error {
@@ -159,7 +154,7 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	if existing.Username != dto.Username {
 		return nil, errs.NewBizError("用户名不能修改")
 	}
-	if err := s.validateProfile(dto.Name, dto.Phone, dto.Email); err != nil {
+	if err := validation.Struct(dto); err != nil {
 		return nil, err
 	}
 	var res *DTO
@@ -278,20 +273,4 @@ func toDTO(account *security.AuthorityUser, profile *UserProfile) *DTO {
 		dto.Email = profile.Email
 	}
 	return dto
-}
-
-func (s *Service) validateProfile(name, phone, email string) error {
-	name = strings.TrimSpace(name)
-	if name == "" || len([]rune(name)) > 64 {
-		return errs.NewBizError("姓名不能为空且不能超过 64 个字符")
-	}
-	phone = strings.TrimSpace(phone)
-	if phone != "" && !phonePattern.MatchString(phone) {
-		return errs.NewBizError("手机号格式不正确")
-	}
-	email = strings.TrimSpace(email)
-	if email != "" && (len(email) > 128 || !emailPattern.MatchString(email)) {
-		return errs.NewBizError("邮箱格式不正确")
-	}
-	return nil
 }

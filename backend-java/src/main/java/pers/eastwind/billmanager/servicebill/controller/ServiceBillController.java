@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.servicebill.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -61,13 +62,13 @@ public class ServiceBillController {
 
     @PostMapping
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.servicebill.permission.ServiceBillPermission).CREATE.getCode())")
-    public ServiceBillDTO create(@RequestBody ServiceBillDTO serviceBillDTO) {
+    public ServiceBillDTO create(@Valid @RequestBody ServiceBillDTO serviceBillDTO) {
         return serviceBillActionService.create(serviceBillDTO);
     }
 
     @PutMapping
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.servicebill.permission.ServiceBillPermission).UPDATE.getCode())")
-    public ServiceBillDTO update(@RequestBody ServiceBillDTO serviceBillDTO) {
+    public ServiceBillDTO update(@Valid @RequestBody ServiceBillDTO serviceBillDTO) {
         return serviceBillActionService.update(serviceBillDTO);
     }
 

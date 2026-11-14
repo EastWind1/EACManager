@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.security.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.security.model.PermissionDTO;
@@ -33,13 +34,13 @@ public class SecurityController {
 
     @PostMapping("/role")
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.security.permission.SecurityPermission).UPDATE.getCode())")
-    public RoleDTO createRole(@RequestBody RoleDTO role) {
+    public RoleDTO createRole(@Valid @RequestBody RoleDTO role) {
         return authorizeService.createRole(role);
     }
 
     @PutMapping("/role")
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.security.permission.SecurityPermission).UPDATE.getCode())")
-    public RoleDTO updateRole(@RequestBody RoleDTO role) {
+    public RoleDTO updateRole(@Valid @RequestBody RoleDTO role) {
         return authorizeService.updateRole(role);
     }
 

@@ -1,5 +1,8 @@
 package pers.eastwind.billmanager.servicebill.model;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import pers.eastwind.billmanager.attach.model.AttachDTO;
 import pers.eastwind.billmanager.company.model.CompanyDTO;
@@ -28,6 +31,7 @@ public class ServiceBillDTO {
     private Instant processedDate;
     private Instant finishedDate;
     private String remark;
+    @Valid
     private List<ServiceBillDetailDTO> details = new ArrayList<>();
     private List<AttachDTO> attachments = new ArrayList<>();
     private List<AssigneeDTO> assignees = new ArrayList<>();

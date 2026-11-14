@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.reimburse.controller;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -46,13 +47,13 @@ public class ReimburseController {
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).CREATE.getCode())")
     @PostMapping
-    public ReimburseDTO create(@RequestBody ReimburseDTO reimburseDTO) {
+    public ReimburseDTO create(@Valid @RequestBody ReimburseDTO reimburseDTO) {
         return reimburseService.create(reimburseDTO);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).UPDATE.getCode())")
     @PutMapping
-    public ReimburseDTO save(@RequestBody ReimburseDTO reimburseDTO) {
+    public ReimburseDTO save(@Valid @RequestBody ReimburseDTO reimburseDTO) {
         return reimburseService.update(reimburseDTO);
     }
 

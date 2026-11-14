@@ -3,6 +3,7 @@ package company
 import (
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
+	"backend-go/pkg/validation"
 	"context"
 )
 
@@ -38,8 +39,8 @@ func (s *Service) FindByName(ctx context.Context, name string) ([]DTO, error) {
 }
 
 func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
-	if dto.Name == "" {
-		return nil, errs.NewBizError("公司名称不能为空")
+	if err := validation.Struct(dto); err != nil {
+		return nil, err
 	}
 	company := dto.ToEntity()
 	if err := s.companyRepo.Create(ctx, company); err != nil {
@@ -49,6 +50,9 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 }
 
 func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
+	if err := validation.Struct(dto); err != nil {
+		return nil, err
+	}
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("公司 ID 不能为空")
 	}

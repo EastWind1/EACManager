@@ -1,5 +1,6 @@
 package pers.eastwind.billmanager.company.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.common.model.PageResult;
@@ -24,13 +25,13 @@ public class CompanyController {
 
     @PostMapping
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.company.permission.CompanyPermission).CREATE.getCode())")
-    public CompanyDTO create(@RequestBody CompanyDTO companyDTO) {
+    public CompanyDTO create(@Valid @RequestBody CompanyDTO companyDTO) {
         return companyService.create(companyDTO);
     }
 
     @PutMapping
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.company.permission.CompanyPermission).UPDATE.getCode())")
-    public CompanyDTO update(@RequestBody CompanyDTO companyDTO) {
+    public CompanyDTO update(@Valid @RequestBody CompanyDTO companyDTO) {
         return companyService.update(companyDTO);
     }
 

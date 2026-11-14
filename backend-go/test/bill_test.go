@@ -703,10 +703,11 @@ func (s *BillAttachTest) upload(name string) attach.DTO {
 
 func (s *BillAttachTest) newBillDTO(attachments ...attach.DTO) *bill.DTO {
 	return &bill.DTO{
-		ProjectName: "附件关联测试项目",
-		TotalAmount: 100.00,
-		OrderDate:   new(time.Now()),
-		Attachments: attachments,
+		ProjectName:    "附件关联测试项目",
+		ProjectAddress: "测试地址",
+		TotalAmount:    100.00,
+		OrderDate:      new(time.Now()),
+		Attachments:    attachments,
 		Details: []bill.DetailDTO{
 			{
 				Device:    "测试设备",

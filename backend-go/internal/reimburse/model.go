@@ -90,17 +90,17 @@ type DTO struct {
 	ID            uint         `json:"id"`
 	Number        string       `json:"number"`
 	State         State        `json:"state"`
-	Summary       string       `json:"summary"`
+	Summary       string       `json:"summary" validate:"required,notblank,max=255" label:"摘要"`
 	TotalAmount   float64      `json:"totalAmount"`
 	ReimburseDate *time.Time   `json:"reimburseDate"`
 	Remark        string       `json:"remark"`
-	Details       []DetailDTO  `json:"details"`
+	Details       []DetailDTO  `json:"details" validate:"dive"`
 	Attachments   []attach.DTO `json:"attachments"`
 }
 
 type DetailDTO struct {
 	ID     uint    `json:"id"`
-	Name   string  `json:"name"`
+	Name   string  `json:"name" validate:"required,notblank,max=255" label:"项目名称"`
 	Amount float64 `json:"amount"`
 }
 

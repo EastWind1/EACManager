@@ -3,6 +3,7 @@ package user
 import (
 	"backend-go/config"
 	"backend-go/pkg/result"
+	"backend-go/pkg/validation"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -46,6 +47,9 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 	var param LoginParam
 	err := ctx.Bind().Body(&param)
 	if err != nil {
+		return err
+	}
+	if err = validation.Struct(&param); err != nil {
 		return err
 	}
 	res, err := c.userService.Login(ctx, param.Username, param.Password)

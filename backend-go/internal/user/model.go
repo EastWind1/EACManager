@@ -22,9 +22,9 @@ type InitStatus struct {
 // DTO 用户接口响应：嵌入统一鉴权账户，补充资料字段。
 type DTO struct {
 	security.AuthorityUser
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
-	Email string `json:"email"`
+	Name  string `json:"name" validate:"required,notblank,max=64" label:"姓名"`
+	Phone string `json:"phone" validate:"omitempty,phone" label:"手机号"`
+	Email string `json:"email" validate:"omitempty,email,max=128" label:"邮箱"`
 }
 
 type LoginResult struct {

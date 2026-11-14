@@ -1,5 +1,7 @@
 package pers.eastwind.billmanager.user.controller;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,11 +29,13 @@ public class UserController {
         this.authenticateService = authenticateService;
     }
 
-    public record LoginParam(String username, String password) {
+    public record LoginParam(
+            @NotBlank(message = "用户名不能为空") String username,
+            @NotBlank(message = "密码不能为空") String password) {
     }
 
     @PostMapping("/token")
-    public ResponseEntity<UserDTO> login(@RequestBody LoginParam param) {
+    public ResponseEntity<UserDTO> login(@Valid @RequestBody LoginParam param) {
         LoginResult res = userService.login(param.username, param.password);
         return ResponseEntity.ok().header("Set-Cookie",
                         ResponseCookie.from("X-Auth-Token", res.token())
@@ -49,7 +53,7 @@ public class UserController {
     }
 
     @PostMapping("/initialization")
-    public UserDTO initialize(@RequestBody UserDTO param) {
+    public UserDTO initialize(@Valid @RequestBody UserDTO param) {
         return userService.initialize(param);
     }
 
@@ -75,13 +79,13 @@ public class UserController {
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).CREATE.getCode())")
     @PostMapping
-    public UserDTO create(@RequestBody UserDTO user) {
+    public UserDTO create(@Valid @RequestBody UserDTO user) {
         return userService.create(user);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).UPDATE.getCode())")
     @PutMapping
-    public UserDTO update(@RequestBody UserDTO user) {
+    public UserDTO update(@Valid @RequestBody UserDTO user) {
         return userService.update(user);
     }
 

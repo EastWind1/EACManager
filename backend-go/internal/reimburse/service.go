@@ -5,6 +5,7 @@ import (
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"backend-go/pkg/util"
+	"backend-go/pkg/validation"
 	"context"
 	"fmt"
 	"mime/multipart"
@@ -73,6 +74,9 @@ func (s *Service) FindByID(ctx context.Context, id uint) (*DTO, error) {
 }
 
 func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
+	if err := validation.Struct(dto); err != nil {
+		return nil, err
+	}
 	if dto.ID != 0 {
 		return nil, errs.NewBizError("单据 ID 不为空")
 	}
@@ -105,6 +109,9 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 }
 
 func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
+	if err := validation.Struct(dto); err != nil {
+		return nil, err
+	}
 	if dto.ID == 0 {
 		return nil, errs.NewBizError("id不能为空")
 	}

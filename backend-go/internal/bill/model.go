@@ -152,8 +152,8 @@ type DTO struct {
 	State               State         `json:"state"`
 	ProductCompany      *company.DTO  `json:"productCompany"`
 	Assignees           []AssigneeDTO `json:"assignees"`
-	ProjectName         string        `json:"projectName"`
-	ProjectAddress      string        `json:"projectAddress"`
+	ProjectName         string        `json:"projectName" validate:"required,notblank,max=128" label:"项目名称"`
+	ProjectAddress      string        `json:"projectAddress" validate:"required,notblank,max=255" label:"项目地址"`
 	ProjectContact      string        `json:"projectContact"`
 	ProjectContactPhone string        `json:"projectPhone"`
 	OnSiteContact       string        `json:"onSiteContact"`
@@ -164,7 +164,7 @@ type DTO struct {
 	ProcessedDate       *time.Time    `json:"processedDate"`
 	FinishedDate        *time.Time    `json:"finishedDate"`
 	Remark              string        `json:"remark"`
-	Details             []DetailDTO   `json:"details"`
+	Details             []DetailDTO   `json:"details" validate:"dive"`
 	Attachments         []attach.DTO  `json:"attachments"`
 }
 
@@ -177,7 +177,7 @@ type AssigneeDTO struct {
 
 type DetailDTO struct {
 	ID        uint    `json:"id"`
-	Device    string  `json:"device"`
+	Device    string  `json:"device" validate:"required,notblank,max=100" label:"设备类型"`
 	Quantity  float64 `json:"quantity"`
 	UnitPrice float64 `json:"unitPrice"`
 	Subtotal  float64 `json:"subtotal"`

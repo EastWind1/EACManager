@@ -57,7 +57,6 @@ public class UserService {
         if (user == null) {
             throw new BizException("用户不能为空");
         }
-        validateProfile(user);
         AuthorityUser account = authenticateService.createAccount(user.getUsername(), user.getPassword(), user.getRoles());
         UserProfile profile = new UserProfile();
         profile.setUserId(account.getId());
@@ -80,7 +79,6 @@ public class UserService {
         if (!Objects.equals(existing.getUsername(), user.getUsername())) {
             throw new BizException("用户名不能修改");
         }
-        validateProfile(user);
         AuthorityUser account = authenticateService.updateAccount(user.getId(), user.getRoles(), user.getPassword());
         UserProfile profile = profileRepository.findById(user.getId()).orElseGet(() -> {
             UserProfile created = new UserProfile();
@@ -104,7 +102,6 @@ public class UserService {
         if (dto == null) {
             throw new BizException("初始化信息不能为空");
         }
-        validateProfile(dto);
         AuthorityUser account = authenticateService.initialize(dto.getUsername(), dto.getPassword());
         UserProfile profile = new UserProfile();
         profile.setUserId(account.getId());
@@ -169,12 +166,5 @@ public class UserService {
         return dto;
     }
 
-    private void validateProfile(UserDTO user) {
-        if (user.getName() == null || user.getName().trim().isEmpty()) {
-            throw new BizException("姓名不能为空");
-        }
-        if (user.getName().trim().length() > 64) {
-            throw new BizException("姓名不能超过 64 个字符");
-        }
-    }
+
 }
