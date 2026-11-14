@@ -11,6 +11,7 @@ import pers.eastwind.billmanager.security.service.AuthorizeService;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,7 +22,7 @@ class SecurityInitializerTest extends BaseServiceTest {
     private AuthorizeService authorizeService;
 
     @Test
-    void shouldCreateDefaultRolesAndGrantPermissionConfig() {
+    void shouldCreateDefaultRolesAndGrantAdminAllPermissions() {
         securityInitializer.run(null);
 
         RoleDTO admin = authorizeService.getRoles().stream()
@@ -38,7 +39,13 @@ class SecurityInitializerTest extends BaseServiceTest {
         List<String> codes = authorizeService.getRolePermissions(admin.getId()).stream()
                 .map(PermissionDTO::getCode)
                 .toList();
+        long total = authorizeService.getPermissions().values().stream()
+                .flatMap(List::stream)
+                .count();
+        assertEquals(total, codes.size());
         assertTrue(codes.contains(SecurityPermission.QUERY.getCode()));
         assertTrue(codes.contains(SecurityPermission.UPDATE.getCode()));
+        assertTrue(codes.contains("serviceBill:assign"));
+        assertTrue(codes.contains("serviceBill:data-all"));
     }
 }

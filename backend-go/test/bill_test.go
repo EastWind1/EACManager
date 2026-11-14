@@ -65,7 +65,7 @@ func (s *BillServiceTest) TestAssignAndUnassign() {
 	created, err := s.srv.Create(s.Ctx, s.testBill)
 	s.NoError(err)
 	s.Len(created.Assignees, 1)
-	s.Equal(uint(1), created.Assignees[0].ID)
+	s.Equal(s.UserID, created.Assignees[0].ID)
 
 	res, err := s.srv.Assign(s.Ctx, []uint{created.ID}, []uint{})
 	s.NoError(err)
@@ -75,14 +75,14 @@ func (s *BillServiceTest) TestAssignAndUnassign() {
 	s.NoError(err)
 	s.Empty(found.Assignees)
 
-	res, err = s.srv.Assign(s.Ctx, []uint{created.ID}, []uint{1, 1})
+	res, err = s.srv.Assign(s.Ctx, []uint{created.ID}, []uint{s.UserID, s.UserID})
 	s.NoError(err)
 	s.Equal(1, res.SuccessCount)
 
 	found, err = s.App.Bill.Query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Len(found.Assignees, 1)
-	s.Equal(uint(1), found.Assignees[0].ID)
+	s.Equal(s.UserID, found.Assignees[0].ID)
 }
 
 func (s *BillServiceTest) TestAssignRejectedAfterProcessed() {

@@ -131,6 +131,14 @@ public class ServiceBillActionService {
                 && !AuthUtil.hasAuthority(ServiceBillPermission.ASSIGN.getCode())) {
             throw new BizException("无权限指派服务单");
         }
+        replaceAssignees(billId, newSet);
+    }
+
+    /**
+     * 已由调用方完成权限校验后，整体替换负责人。
+     */
+    private void replaceAssignees(Integer billId, Collection<Integer> ids) {
+        Set<Integer> newSet = ids == null ? Set.of() : new HashSet<>(ids);
         for (Integer userId : newSet) {
             if (userService.findEnabledById(userId) == null) {
                 throw new BizException("指派用户不存在或已禁用");
@@ -270,7 +278,7 @@ public class ServiceBillActionService {
                 if (bill.getState() != ServiceBillState.CREATED && bill.getState() != ServiceBillState.PROCESSING) {
                     throw new BizException("只有新建或处理中的单据才能指派");
                 }
-                updateAssignees(id, getCurrentAssignees(id), targetIds);
+                replaceAssignees(id, targetIds);
             });
             return null;
         });

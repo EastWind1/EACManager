@@ -79,7 +79,7 @@ func (s *PermissionSyncService) syncPermission() error {
 	})
 }
 
-// InitAdmin 确保管理员、普通用户角色存在，并补齐管理员权限配置的查看和修改权限
+// InitAdmin 确保管理员、普通用户角色存在，并为管理员补齐全部权限
 func (s *PermissionSyncService) initAdmin() error {
 	ctx := SetUserToCtx(context.Background(), &AuthorityUser{Username: "system"})
 	return s.repo.Transaction(ctx, func(txCtx context.Context) error {
@@ -95,17 +95,14 @@ func (s *PermissionSyncService) initAdmin() error {
 		if err != nil {
 			return err
 		}
+		permissions, err := s.repo.FindAllTypesOrdered(txCtx)
+		if err != nil {
+			return err
+		}
 		added := 0
-		for _, code := range []string{QueryAuthCode, UpdateAuthCode} {
-			if slices.Contains(existing, code) {
+		for _, permission := range permissions {
+			if slices.Contains(existing, permission.Code) {
 				continue
-			}
-			permission, err := s.repo.FindPermissionByCode(txCtx, code)
-			if err != nil {
-				return err
-			}
-			if permission == nil {
-				return errs.NewBizError("管理员初始化失败：缺少权限 " + code)
 			}
 			if err := s.repo.CreateRolePermission(txCtx, &RolePermission{
 				RoleID:       admin.ID,

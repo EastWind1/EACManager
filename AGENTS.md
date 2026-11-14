@@ -26,7 +26,7 @@ postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
   Java 用 `@PreAuthorize` + `AuthenticateService.loadUserByUsername` 组装的 `authorities`（**故意不缓存**，
   改角色权限后下一次请求即生效）；Go 用 `security.Security.Middleware`。
 - 无 ADMIN 用户时前端跳 `/user/init`；未登录的 API 请求返回 428。初始化用行锁防并发双建。
-- `ADMIN` 必须始终保留 `permission:query` / `permission:update`（保存时校验），否则权限页会自锁。
+- `ADMIN` 启动时自动补齐全部权限，且必须始终保留 `permission:query` / `permission:update`（保存时校验），否则权限页会自锁。
 
 ## 数据库
 

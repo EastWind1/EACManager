@@ -4,6 +4,7 @@ package test
 import (
 	"backend-go/config"
 	"backend-go/internal/security"
+	"backend-go/internal/user"
 	"backend-go/pkg/database"
 	"backend-go/server"
 	"bytes"
@@ -28,9 +29,11 @@ var (
 // BaseSuite 集成测试基类：SetupSuite 初始化应用，SetupTest 开启事务，TearDownTest 回滚
 type BaseSuite struct {
 	suite.Suite
-	App *server.App
-	Ctx context.Context
-	Tx  *gorm.DB
+	App      *server.App
+	Ctx      context.Context
+	Tx       *gorm.DB
+	UserID   uint
+	UserName string
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -50,12 +53,38 @@ func (s *BaseSuite) SetupSuite() {
 		s.Require().NoError(err, "初始化测试应用失败")
 	}
 	s.App = app
+	s.ensureAdmin()
+}
+
+// ensureAdmin 让测试上下文使用真实管理员，避免新库中伪造的用户 ID 没有对应账户。
+func (s *BaseSuite) ensureAdmin() {
+	ctx := security.SetUserToCtx(context.Background(), &security.AuthorityUser{ID: 0, Username: "system"})
+	required, err := app.User.IsInitializationRequired(ctx)
+	s.Require().NoError(err)
+	var admin *user.DTO
+	if required {
+		admin, err = app.User.Initialize(ctx, &user.DTO{
+			AuthorityUser: security.AuthorityUser{
+				Username: "goTestAdmin",
+				Password: "GoTest12345",
+			},
+			Name: "Go测试管理员",
+		})
+		s.Require().NoError(err)
+	} else {
+		admins, err := app.User.FindEnabledUsersByRole(ctx, security.AdminRoleCode)
+		s.Require().NoError(err)
+		s.Require().NotEmpty(admins, "数据库中缺少启用的管理员")
+		admin = &admins[0]
+	}
+	s.UserID = admin.ID
+	s.UserName = admin.Username
 }
 
 func (s *BaseSuite) SetupTest() {
 	s.Tx = s.App.DB.Begin()
 	s.Require().NoError(s.Tx.Error, "开启测试事务失败")
-	ctx := security.SetUserToCtx(s.T().Context(), &security.AuthorityUser{ID: 1, Username: "root", Password: "root"})
+	ctx := security.SetUserToCtx(s.T().Context(), &security.AuthorityUser{ID: s.UserID, Username: s.UserName})
 	s.Ctx = context.WithValue(ctx, database.TxKey{}, s.Tx)
 }
 

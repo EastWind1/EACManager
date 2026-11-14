@@ -18,7 +18,7 @@ import pers.eastwind.billmanager.security.repository.RoleRepository;
  * 安全模块初始化。
  * <p>
  * 权限类型同步完成后执行：确保管理员、普通用户角色存在，
- * 并补齐管理员角色的权限配置查看和修改权限。
+ * 并补齐管理员角色的全部权限。
  */
 @Slf4j
 @Component
@@ -41,32 +41,19 @@ public class SecurityInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         Role admin = ensureRole(AuthorizeService.ADMIN_ROLE_CODE, "管理员", 1);
         ensureRole("USER", "普通用户", 2);
-        boolean hasModify = false;
-        if (!rolePermissionRepository.existsByRoleCodeAndPermissionCode(AuthorizeService.ADMIN_ROLE_CODE, SecurityPermission.QUERY.getCode())) {
-            RolePermission relation = new RolePermission();
-            PermissionEntity query = permissionRepository.findByCode(SecurityPermission.QUERY.getCode());
-            if (query == null) {
-                throw new IllegalStateException("管理员初始化失败：缺少权限配置所需权限");
+        int added = 0;
+        for (PermissionEntity permission : permissionRepository.findAll()) {
+            if (rolePermissionRepository.existsByRoleCodeAndPermissionCode(AuthorizeService.ADMIN_ROLE_CODE, permission.getCode())) {
+                continue;
             }
-            relation.setRoleId(admin.getId());
-            relation.setPermissionId(query.getId());
-            rolePermissionRepository.save(relation);
-            hasModify = true;
-        }
-
-        if (!rolePermissionRepository.existsByRoleCodeAndPermissionCode(AuthorizeService.ADMIN_ROLE_CODE, SecurityPermission.UPDATE.getCode())) {
             RolePermission relation = new RolePermission();
-            PermissionEntity query = permissionRepository.findByCode(SecurityPermission.UPDATE.getCode());
-            if (query == null) {
-                throw new IllegalStateException("管理员初始化失败：缺少权限配置所需权限");
-            }
             relation.setRoleId(admin.getId());
-            relation.setPermissionId(query.getId());
+            relation.setPermissionId(permission.getId());
             rolePermissionRepository.save(relation);
-            hasModify = true;
+            added++;
         }
-        if (hasModify) {
-            log.info("管理员角色权限不完整，已补齐权限配置");
+        if (added > 0) {
+            log.info("管理员角色权限不完整，已补齐 {} 项权限", added);
         }
     }
 
