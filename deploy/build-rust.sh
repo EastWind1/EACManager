@@ -38,12 +38,10 @@ if [ ! -f "$RUST_BIN" ]; then
 fi
 
 echo "[2/2] 组装 Rust 交付物..."
-# 只重建 Rust 自己的交付目录，不碰 backend-java / backend-go / frontend
 rm -rf "$DEPLOY_DIR/backend-rust"
 mkdir -p "$DEPLOY_DIR/backend-rust"
 cp "$RUST_BIN" "$DEPLOY_DIR/backend-rust/backend-rust"
 cp -r "$BACKEND_RUST_DIR/config" "$DEPLOY_DIR/backend-rust/"
-# 在 Windows 挂载盘（/mnt/c）上 chmod 可能是空操作，失败不影响交付
 chmod +x "$DEPLOY_DIR/backend-rust/backend-rust" 2>/dev/null || true
 
 echo "Rust 打包完成：$DEPLOY_DIR/backend-rust"

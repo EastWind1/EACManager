@@ -29,21 +29,12 @@
 
 - Axum + sqlx + PostgreSQL
 - 参考 Java/Go 的分域方式与业务模型，但路由、DTO、错误信息、权限清单允许按 Rust 惯用法偏离
-- 若想连现有数据库跑通主要流程，按 `deploy/database/init_schema.sql` 建库即可
 - 同样通过 `ocr.url` 调用 RapidOCR 服务；PDF 优先取文本层，失败再降级 OCR
-- 代码位于 `backend-rust/`，本机自测：
-
-    ```bash
-    cd backend-rust && cargo build && cargo clippy --all-targets && cargo fmt --check && cargo test
-    ```
-
-- 如需产出 `deploy/backend-rust/`（musl 静态二进制），单独执行 `deploy/build-rust.sh` 或 `deploy/build-rust.bat`
 
 ## 构建
 
 - Java/Go/前端：Windows 使用 `deploy\build.bat`，Linux 使用 `deploy/build.sh`
-- Rust（学习实现，独立打包）：Windows 使用 `deploy\build-rust.bat`（经 WSL 交叉编译），
-  Linux 使用 `deploy/build-rust.sh`；产物只写入 `deploy/backend-rust/`，不参与常规打包与 CI
+- Rust（独立打包） `deploy/build-rust.sh`；产物只写入 `deploy/backend-rust/`，不参与常规打包与 CI
 
 ## 部署
 
@@ -67,7 +58,7 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 
 ### Java 版后端
 
-- 使用 docker-compose.yml
+- 使用 `compose-java.yml`
 - 交付物使用挂载目录管理，便于动态替换
 - 容器
     - eac-frontend
@@ -83,7 +74,7 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 
 ### Go 版后端
 
-- 使用 docker-compose-go.yml
+- 使用 `compose.yml`
 - 交付物使用挂载目录管理，便于动态替换
 - 容器
     - eac-frontend
@@ -99,7 +90,7 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
         - 默认不启用
         - 基于 rapidocr 官方 Dockerfile
 
-### Rust 版后端（学习/演示，可选）
+### Rust 版后端
 
 - 使用 `compose-rust.yml`
 - 仅用于本地体验，不承诺与 Java/Go 版本功能同步
@@ -108,7 +99,7 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
         - 使用 Caddy 镜像
     - eac-backend-rust
         - 使用 Alpine 镜像
-        - 挂载目录中放置静态链接的 `backend-rust` 与 `config/`
+        - 挂载目录中放置 `backend-rust` 与 `config/`
         - 默认情况下在挂载目录生成附件文件夹
     - eac-postgres
         - 使用 postgres 镜像
@@ -117,7 +108,7 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 ### 手动部署
 
 1. 将 `deploy` 拷贝至服务器
-2. 赋予 `deploy/backend-go/backend-go` 可执行权限（学习用的 `deploy/backend-rust/backend-rust` 同理）
+2. 赋予 `deploy/backend-go/backend-go` 可执行权限（rust `deploy/backend-rust/backend-rust` 同理）
 3. 执行 `docker compose up -d`
 
 ### 脚本部署
@@ -131,5 +122,4 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 
 1. `cd deploy`
 2. 执行目录下的 `build.bat` 脚本打包
-3. 执行 `docker-compose -f docker-compose-java up -d` 或 `docker-compose -f docker-compose-go.yml up -d`
-   （学习用的 Rust 版本可执行 `docker compose -f compose-rust.yml up -d`）
+3. 执行 `docker-compose -f docker-compose up -d` 或 `docker-compose -f docker-compose-java.yml up -d` 或 `docker compose -f compose-rust.yml up -d`
