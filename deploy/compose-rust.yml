@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: eac-postgres
+    environment:
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      start_period: 5s
+  # ocr-server:
+  #   build:
+  #     context: ./ocr-server
+  #   image: ocr-server:latest
+  backend:
+    image: alpine:3
+    container_name: eac-backend-rust
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - OCR_URL=http://ocr-server:9003/ocr
+    env_file:
+      - .env
+    volumes:
+      - ./backend-rust:/app/backend
+    working_dir: /app/backend
+    command: ["./backend-rust"]
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
+      start_period: 5s
+  frontend:
+    image: caddy:2-alpine
+    container_name: eac-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - BACKEND_URL=http://backend:8080
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./frontend/conf:/etc/caddy
+      - ./frontend/cert:/data
+      - ./frontend/html:/srv
+volumes:
+  pgdata:

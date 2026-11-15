@@ -1,22 +1,44 @@
 # AGENTS.md
 
-电梯空调服务单管理系统：工单/报销单、OCR 导入、附件管理。Java 与 Go 两个后端共享 PostgreSQL 与 Vue 3 前端。
+电梯空调服务单管理系统：工单/报销单、OCR 导入、附件管理。Java、Go 两个后端为交付实现，共享 PostgreSQL 与 Vue 3 前端；
+Rust 后端是**学习用**的独立实现，定位见下节，不要求与 Java/Go 同步。
 细节以代码为准，这里只记架构边界与容易踩错的约定。
+
+## 实现定位
+
+| 实现 | 定位 | 与其它实现的关系 |
+|---|---|---|
+| Java | 交付实现（主实现） | 与 Go 保持接口、DTO、状态机一致 |
+| Go | 交付实现 | 与 Java 保持接口、DTO、状态机一致 |
+| Rust | **学习用实现** | 参考 Java/Go，但**不要求功能同步、不要求契约一致** |
+
+- Rust 侧只保证**自成体系、可编译、可跑通自身集成测试**；路由、响应字段、错误消息、权限清单
+  都可以与 Java/Go 不同，允许按 Rust 惯用法偏离。
+- 不承诺 Rust 能与 Java/Go 互换部署，也不建议把它当生产交付物；`deploy/compose-rust.yml`
+  与 `deploy/build-rust.sh` / `build-rust.bat` 只用于本地体验，并且**已从常规 build 脚本与 CI 中剥离**。
+- 三者共用的只有 PostgreSQL 表结构约定：想让 Rust 连现有库跑起来，尽量按
+  `deploy/database/init_schema.sql` 建库；不追求兼容时也可以自行调整。
+- 改 Rust 代码时优先考虑“更符合 Rust 惯用法”，而不是“照抄 Go/Java 的结构”；
+  它的结构可以随 Rust 侧演进自由调整，不需要与另两端对齐。
 
 ## 架构
 
-| | Java | Go |
-|---|---|---|
-| 栈 | Spring Boot 4.1 / Java 25 / JPA + Hibernate 7 | Fiber v3 + GORM |
-| 端口 | 8080 | 8080 |
-| 部署 | `deploy/compose-java.yml` | `deploy/compose.yml` |
+| | Java | Go | Rust |
+|---|---|---|---|
+| 栈 | Spring Boot 4.1 / Java 25 / JPA + Hibernate 7 | Fiber v3 + GORM | Axum 0.8 + sqlx |
+| 端口 | 8080 | 8080 | 8080 |
+| 部署 | `deploy/compose-java.yml` | `deploy/compose.yml` | `deploy/compose-rust.yml` |
 
-两者暴露同一套 `/api`，响应统一 `{code, message, data}`，模块划分一致：Java 是
+Java 与 Go 暴露同一套 `/api`，响应统一 `{code, message, data}`，模块划分一致：Java 是
 `controller → service → repository → model`（MapStruct 映射），Go 每个域一个包，内含
 `handler.go` / `service.go` / `store.go` / `model.go`。
+Rust 只参考同样的分域方式（每个域一个包，含 `handler.rs` / `service.rs` / `store.rs` / `model.rs`，
+另有 `query.rs` / `relation.rs` / `stat.rs`），不保证路由、响应形状与权限码与 Java/Go 相同。
 
-部署：`deploy/build.sh` 打包三者（Maven 解包 jar、交叉编译 Go、复制 Vite dist），compose 跑
-postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
+部署：`deploy/build.sh`（Windows 为 `build.bat`）打包 Java/Go/前端（Maven 解包 jar、交叉编译 Go、复制 Vite dist），
+compose 跑 postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
+Rust 学习实现单独打包：`deploy/build-rust.sh`（Windows 用 `build-rust.bat` 经 WSL 执行），
+只产出 `deploy/backend-rust/`，不进常规打包与 CI。
 
 ## 认证与授权
 
@@ -89,6 +111,7 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 | `/api/reimburse` | 同上（无 `cancel-processed`） |
 | `/api/attachment` | `POST /upload`、`GET /`(下载) |
 
+上表是 **Java/Go 交付实现**的契约；Rust 学习实现目前大致沿用，但不承诺逐项一致。
 导出是 Excel 流；服务单导出把附件一起打成 zip。统计 `countByState` 按状态计数，
 `totalAmountGroupByMonth` 按单据日期聚合（Go 侧有缓存）。
 
@@ -103,8 +126,14 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 `cache.expire`、`jwt.*`、`attachment.*`、`ocr.url`。`jwt.secret` 不写默认值，必须通过
 `JWT_SECRET` 环境变量注入，缺失或不足 32 字节时启动失败。
 
-**OCR**：Java 本地跑 RapidOCR；Go 无原生中文 OCR，调 `ocr.url`（完整端点，默认
-`http://localhost:9003/ocr`）的独立 FastAPI 服务 `ocr-server/`。
+**Rust**（`config/config.yaml`，编译期内嵌，可被工作目录下的同名文件覆盖）：键名**参考** Go
+（`server` / `log` / `db` / `cache` / `jwt` / `attachment` / `ocr`），环境变量也参考 Go 并支持 `SERVER_MODE`；
+因为 Rust 是学习实现，配置项不必与 Go 保持一一对应，可以随实现增减。
+`jwt.secret` 同样不写默认值，必须由 `JWT_SECRET` 注入且不短于 32 字节。
+
+**OCR**：Java 本地跑 RapidOCR；Go 与 Rust 无原生中文 OCR，调 `ocr.url`（完整端点，默认
+`http://localhost:9003/ocr`）的独立 FastAPI 服务 `ocr-server/`。Rust 解析 PDF 时先取文本层，
+为空才降级 OCR。
 
 ## 构建与测试
 
@@ -114,11 +143,19 @@ cd backend-go   && go build ./... && go test ./...
 cd frontend     && pnpm install && pnpm dev        # pnpm build / type-check / lint
 ```
 
-两端都是**集成测试，必须有可达的 PostgreSQL**，没有 mock 数据库层。Java 用 `@SpringBootTest` +
+Java/Go/Rust 都是**集成测试，需要可达的 PostgreSQL**，没有 mock 数据库层。Java 用 `@SpringBootTest` +
 `@Transactional` 回滚（`common/BaseServiceTest`）；Go 测试集中在 `backend-go/test`，
 `BaseSuite.SetupSuite` 懒初始化共享应用实例，走与 `server.Run` 相同的组装、权限同步和角色初始化路径，
 每个用例的 `SetupTest` 开启事务，用例结束自动回滚。
 Go 测试读同一份 `config.yaml`，只把附件目录改到系统临时目录。
+
+Rust 测试在 `backend-rust/tests/integration.rs`：每次运行重建 `billmanager_rust_test` schema，
+所有场景由单个 `#[test]`（`integration_contract`）在同一个 runtime 里顺序执行——连接池绑定了创建它的
+runtime，拆成多个 `#[tokio::test]` 会让后续用例拿到已失效的连接。附件目录用 `CARGO_TARGET_TMPDIR`。
+这些用例只描述 **Rust 实现自身的契约**，全部通过也不代表与 Java/Go 行为一致。
+```bash
+cd backend-rust && cargo build && cargo clippy --all-targets && cargo fmt --check && cargo test
+```
 
 ## 约定
 
@@ -137,13 +174,19 @@ Go 测试读同一份 `config.yaml`，只把附件目录改到系统临时目录
 
 - **JPA**：明细是双向关联，写入前必须绑定父实体；更新按 id 对账，保留行原地更新、移除行真删除。@Version 不设默认值。关联加载用 EntityGraph 显式声明。批量删除用 JPQL，不依赖派生 deleteBy。主键保持 IDENTITY，与 Go 共用 sequence。
 - **GORM**：统一使用泛型 API；整行写传指针，单列更新用 Select；动态条件从 Chain 累加，传给 gorm.G 的 DB 不能带子句；事务通过 context 传播；分页只在 BaseRepository.Page 做一次。服务层不直接 import GORM，复杂查询收在 store.go。
-- **跨语言一致性**：Java 与 Go 共享数据库和 API，字段、状态、单号、分页和错误语义必须保持一致；任一端改契约都要同步另一端。
+- **sqlx（Rust）**：不引 ORM，SQL 全写在 store.rs；`NUMERIC` 列必须显式 `::float8`，否则 `f64` 解码失败。
+事务**显式传参**：`Db::transaction(async |conn| …)` 把 `&mut PgConnection` 交给闭包，需要原子性的写入
+（主表 + 明细 + 附件关联）在同一次调用里共用这条连接；事务外只有单条语句的读取走 `db.pool()`。
+不存在 task-local 事务或连接守卫，跨模块调用不会再出现同一任务二次取连接的自锁。
+动态条件用 `sqlx::QueryBuilder` 的 `push_bind` 累加，SQL 片段全部来自字面量。
 
 ### 变更与验证
 
-- 重构优先保持 API 和前端 DTO 形状不变；确需变更时同时更新两端、前端和文档。
+- Java/Go 重构优先保持 API 和前端 DTO 形状不变；确需变更时同时更新两端、前端和文档。
+  Rust 是学习实现，允许按 Rust 惯用法调整接口与结构，不受此约束。
 - 涉及删列、拆表或数据回填的迁移必须显式说明执行顺序和影响，迁移前先备份。
-- 结构调整后必须跑两端集成测试；Java 用 mvn clean test，避免删除类后的旧 class 残留；涉及前端时跑 pnpm run build。
+- Java/Go 结构调整后必须跑两端集成测试；Java 用 mvn clean test，避免删除类后的旧 class 残留；涉及前端时跑 pnpm run build。
+  Rust 改动只需跑 `backend-rust` 自己的 `cargo build && cargo clippy --all-targets && cargo fmt --check && cargo test`。
 
 ## 代码地图
 
@@ -169,16 +212,30 @@ backend-go/
   pkg/       auth / cache / database / errs / logger / middleware / result / util
   config/ config.go + config.yaml
 
+backend-rust/                        # 学习实现：结构可自由演进，无需与 Java/Go 对齐
+  src/main.rs, src/lib.rs, server.rs  入口与路由装配（`/api` 统一 nest，认证中间件在整体外层）
+  src/{config,error,model,util,db,cache,auth,state}.rs  公共设施：配置、thiserror 错误映射、分页/批量结果、
+      `Db`（连接池 + 显式事务）、`auth`（JWT 校验 + 请求主体 task-local）、`AppState`（Clone，含 config/db/cache）
+  src/{user,company,attach,bill,reimburse}/  handler.rs service.rs store.rs model.rs
+      bill 额外: query.rs（查询与数据权限）/ relation.rs / stat.rs / mapper.rs
+      reimburse 额外: relation.rs / stat.rs / mapper.rs
+      attach 额外: files.rs / ocr.rs / office.rs / content.rs
+  src/security/  authenticate.rs（登录/token/账户）、authorize.rs（角色/权限）、
+                 middleware.rs（认证中间件 + 动作级权限校验）、sync.rs（权限同步 + 管理员初始化）
+  tests/integration.rs + tests/schema.sql  集成测试与建表脚本（由 init_schema.sql 去注释得到）
+
 frontend/src/
   common/  api/HttpClient.ts（去重、loading、401 跳转、解包 data、blob、进度）、
            directive/permission.ts（按动作码 display:none）、store、model、util/Crypto.ts
   {user,company,service-bill,reimburse,attachment,statistic,permission}/  api · model · view · component
   permission/                                                                角色×动作权限配置页
 
-deploy/     compose*.yml、database/（init_schema、迁移）、frontend/（html、Caddyfile、cert）、build.sh
+deploy/     compose*.yml、database/（init_schema、迁移）、frontend/（html、Caddyfile、cert）、build.sh / build.bat
 ocr-server/ Go 后端用的独立 FastAPI OCR 服务（uv 管理，PDF 先取文本层再降级 OCR）
 ```
 
 命名：Java 用 `{Entity}{Role}`，词根 `ServiceBill` / `Reimburse` / `Attach`（不用
 `Reimbursement`/`Attachment`，不用 `Biz`/`Rel` 缩写）。Go 用包名作命名空间，类型去掉实体前缀
-（`bill.Service`、`bill.DTO`），实体保留表名语义并用 `TableName()` 固定。
+（`bill.Service`、`bill.DTO`），实体保留表名语义并用 `TableName()` 固定。Rust 作为学习实现，
+命名只作参考（实体去掉前缀，如 `bill::Bill`、`BillDto`），对外字段用
+`#[serde(rename_all = "camelCase")]`；如需与 Rust 生态更一致，可以自由改名，不必迁就另两端。

@@ -57,6 +57,7 @@ rsync -az --delete --info=progress2 \
     --exclude='frontend/cert/' \
     --exclude='backend-go/attachment/' \
     --exclude='backend-java/attachment/' \
+    --exclude='backend-rust/' \
     "$SCRIPT_DIR/" "${REMOTE}:${DEPLOY_PATH}/"
 
 echo "重启远程服务 ..."

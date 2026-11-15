@@ -1,0 +1,29 @@
+server:
+  port: 8080
+  mode: release
+  # 为空表示不启用 CORS
+  allowedOrigins: []
+log:
+  level: info
+db:
+  host: localhost
+  port: 5432
+  name: dump
+  username: postgres
+  password: admin
+  sslmode: disable
+  # 连接池：默认 20/20，连接最长存活 60 分钟
+  maxOpenConns: 20
+  maxIdleConns: 20
+  connMaxLifetime: 60
+cache:
+  expire: 86400
+jwt:
+  # 部署时通过 JWT_SECRET 环境变量注入（至少 32 字节）
+  secret: "this-is-a-test-jwt-secret-cannot-use-in-produce"
+  expire: 604800
+attachment:
+  path: attachment
+  maxFileSize: 5242880
+ocr:
+  url: http://localhost:9003/ocr
