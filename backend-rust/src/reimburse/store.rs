@@ -55,7 +55,7 @@ fn detail_from_row(row: DetailRow) -> ReimburseDetail {
 }
 
 pub async fn find_by_id(db: &Db, id: i32) -> AppResult<Option<Reimburse>> {
-    let row = sqlx::query_as::<_, ReimburseRow>(&format!(
+    let row = sqlx::query_as::<_, ReimburseRow>(safe_sql!(
         "SELECT {COLUMNS} FROM reimbursement WHERE id = $1"
     ))
     .bind(id)
@@ -239,7 +239,7 @@ pub struct ListQuery {
 ///
 /// 计数与取页两条语句共用同一份条件，因此这里只借用条件、不消费：
 /// 字符串字段以引用绑定，避免为了复用而复制单号与摘要。
-fn bind_filters<'q>(builder: &mut QueryBuilder<'q, Postgres>, query: &'q ListQuery) {
+fn bind_filters(builder: &mut QueryBuilder<Postgres>, query: &ListQuery) {
     if let Some(number) = &query.number {
         builder.push(" AND number = ").push_bind(number);
     }
@@ -275,7 +275,7 @@ pub async fn find_page(
         return Ok(PageResult::empty(page));
     }
 
-    let mut select: QueryBuilder<'_, Postgres> =
+    let mut select: QueryBuilder<Postgres> =
         QueryBuilder::new(format!("SELECT {COLUMNS} FROM reimbursement WHERE 1 = 1"));
     bind_filters(&mut select, query);
     select.push(" ORDER BY ");
@@ -304,7 +304,7 @@ pub async fn find_all_with_details(db: &Db, ids: &[i32]) -> AppResult<Vec<Reimbu
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    let rows = sqlx::query_as::<_, ReimburseRow>(&format!(
+    let rows = sqlx::query_as::<_, ReimburseRow>(safe_sql!(
         "SELECT {COLUMNS} FROM reimbursement WHERE id = ANY($1) ORDER BY id"
     ))
     .bind(ids)

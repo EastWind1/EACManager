@@ -72,10 +72,10 @@ pub fn exists(path: &Path) -> bool {
 }
 
 pub fn delete_quietly(path: &Path) {
-    if let Err(error) = std::fs::remove_file(path) {
-        if error.kind() != std::io::ErrorKind::NotFound {
-            tracing::error!("删除附件文件失败 {}: {error}", path.display());
-        }
+    if let Err(error) = std::fs::remove_file(path)
+        && error.kind() != std::io::ErrorKind::NotFound
+    {
+        tracing::error!("删除附件文件失败 {}: {error}", path.display());
     }
 }
 

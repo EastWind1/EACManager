@@ -42,8 +42,7 @@ type BatchRequest = BatchResult & {
 /**
  * 全局 UI 状态。
  *
- * 同一时刻只存在一个通知、确认、日期选择和批量结果请求；新请求会结束旧请求，
- * 避免调用方永久等待。
+ * 包含 loading、notify、confirm 等全局组件的编程调用
  */
 export const useUIStore = defineStore('uiStore', () => {
   const loading = ref(false)

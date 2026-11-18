@@ -42,7 +42,7 @@ pub async fn find_enabled_page(
     } else {
         String::new()
     };
-    Ok(sqlx::query_as::<_, CompanyRow>(&format!(
+    Ok(sqlx::query_as::<_, CompanyRow>(safe_sql!(
         "SELECT {COLUMNS} FROM company WHERE disabled = false {order_clause} {page}"
     ))
     .fetch_all(db.pool())
@@ -50,7 +50,7 @@ pub async fn find_enabled_page(
 }
 
 pub async fn find_enabled_by_name_contains(db: &Db, name: &str) -> AppResult<Vec<CompanyRow>> {
-    Ok(sqlx::query_as::<_, CompanyRow>(&format!(
+    Ok(sqlx::query_as::<_, CompanyRow>(safe_sql!(
         "SELECT {COLUMNS} FROM company WHERE disabled = false AND name LIKE $1 ORDER BY id"
     ))
     .bind(format!("%{name}%"))
@@ -67,7 +67,7 @@ pub async fn create(
     address: &str,
 ) -> AppResult<CompanyRow> {
     let operator = current_operator_id();
-    sqlx::query_as::<_, CompanyRow>(&format!(
+    sqlx::query_as::<_, CompanyRow>(safe_sql!(
         "INSERT INTO company (name, contact_name, contact_phone, email, address, disabled, \
          created_date, last_modified_date, created_by_id, last_modified_by_id) \
          VALUES ($1, $2, $3, $4, $5, false, now(), now(), $6, $6) RETURNING {COLUMNS}"
@@ -135,7 +135,7 @@ pub async fn find_by_ids(db: &Db, ids: &[i32]) -> AppResult<Vec<CompanyRow>> {
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    Ok(sqlx::query_as::<_, CompanyRow>(&format!(
+    Ok(sqlx::query_as::<_, CompanyRow>(safe_sql!(
         "SELECT {COLUMNS} FROM company WHERE id = ANY($1)"
     ))
     .bind(ids)

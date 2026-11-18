@@ -66,7 +66,12 @@ async fn save_one(
     // 落盘文件名使用服务端生成的 hash；原始文件名只作为 attachment.name 留在数据库
     let mut hasher = Sha256::new();
     hasher.update(Uuid::new_v4().to_string());
-    let relative_path = format!("{namespace}/{:x}", hasher.finalize());
+    let hash: String = hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    let relative_path = format!("{namespace}/{hash}");
     let target = absolute_path(app, &relative_path)?;
     files::create_parent_dirs(&target)?;
     std::fs::write(&target, &file.data)?;

@@ -2,7 +2,7 @@
 name = "billmanager"
 version = "1.0.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.94"
 
 [[bin]]
 name = "billmanager"
@@ -23,25 +23,25 @@ axum = { version = "0.8", features = ["multipart"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.9"
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "chrono", "macros"] }
+yaml_serde = "0.10"
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "macros"] }
 chrono = { version = "0.4", features = ["serde"] }
-jsonwebtoken = "10"
-bcrypt = "0.16"
-sha2 = "0.10"
+jsonwebtoken = { version = "12", features = ["rust_crypto"] }
+bcrypt = "0.19"
+sha2 = "0.11"
 uuid = { version = "1", features = ["v4"] }
 regex = "1"
 thiserror = "2"
-infer = "0.19"
-calamine = "0.30"
-rust_xlsxwriter = "0.90"
-zip = { version = "4", default-features = false, features = ["deflate"] }
-reqwest = { version = "0.12", features = ["multipart", "rustls-tls", "json"], default-features = false }
-pdf-extract = "0.10"
+infer = "0.22"
+calamine = "0.38"
+rust_xlsxwriter = "0.102"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+reqwest = { version = "0.13", features = ["multipart", "rustls", "json"], default-features = false }
+pdf-extract = "0.12"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bytes = "1"
-tower-http = { version = "0.6", features = ["trace"] }
+tower-http = { version = "0.7", features = ["trace"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

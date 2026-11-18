@@ -137,22 +137,18 @@ pub fn generate_token(
         iat: now.timestamp(),
         exp: (now + ChronoDuration::seconds(expire_seconds)).timestamp(),
     };
-    encode(
-        &Header::new(Algorithm::HS256),
-        &claims,
-        &EncodingKey::from_secret(secret.as_bytes()),
-    )
-    .map_err(|error| AppError::Internal(format!("生成 Token 失败: {error}")))
+    let encoding_key = EncodingKey::from_secret(secret.as_bytes())
+        .map_err(|error| AppError::Internal(format!("生成 Token 失败: {error}")))?;
+    encode(&Header::new(Algorithm::HS256), &claims, &encoding_key)
+        .map_err(|error| AppError::Internal(format!("生成 Token 失败: {error}")))
 }
 
 pub fn verify_token(secret: &str, token: &str) -> Result<String, AppError> {
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;
-    let data = decode::<Claims>(
-        token,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        &validation,
-    )
-    .map_err(|_| AppError::Unauthorized("Token 无效".into()))?;
+    let decoding_key = DecodingKey::from_secret(secret.as_bytes())
+        .map_err(|_| AppError::Unauthorized("Token 无效".into()))?;
+    let data = decode::<Claims>(token, &decoding_key, &validation)
+        .map_err(|_| AppError::Unauthorized("Token 无效".into()))?;
     Ok(data.claims.sub)
 }

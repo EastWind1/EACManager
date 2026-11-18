@@ -48,7 +48,7 @@ const USERS_WITH_ROLE: &str = "user_id IN (SELECT ur.user_id FROM sys_user_role 
      JOIN sys_role r ON r.id = ur.role_id WHERE r.code = $1)";
 
 pub async fn has_admin_user(db: &Db, role_code: &str) -> AppResult<bool> {
-    let count: i64 = sqlx::query_scalar(&format!(
+    let count: i64 = sqlx::query_scalar(safe_sql!(
         "SELECT count(1) FROM sys_user_role WHERE {USERS_WITH_ROLE}"
     ))
     .bind(role_code)
@@ -58,7 +58,7 @@ pub async fn has_admin_user(db: &Db, role_code: &str) -> AppResult<bool> {
 }
 
 pub async fn find_accounts_by_role(db: &Db, role_code: &str) -> AppResult<Vec<AccountRow>> {
-    Ok(sqlx::query_as::<_, AccountRow>(&format!(
+    Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
         "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE disabled = false AND {USERS_WITH_ROLE} ORDER BY id"
     ))
     .bind(role_code)
@@ -67,7 +67,7 @@ pub async fn find_accounts_by_role(db: &Db, role_code: &str) -> AppResult<Vec<Ac
 }
 
 pub async fn find_all_permissions_ordered(db: &Db) -> AppResult<Vec<PermissionRow>> {
-    Ok(sqlx::query_as::<_, PermissionRow>(&format!(
+    Ok(sqlx::query_as::<_, PermissionRow>(safe_sql!(
         "SELECT {PERMISSION_COLUMNS} FROM sys_permission ORDER BY sort_order, code"
     ))
     .fetch_all(db.pool())
@@ -79,7 +79,7 @@ pub async fn upsert_permissions(
     conn: &mut PgConnection,
     definitions: &[PermissionRow],
 ) -> AppResult<(usize, usize)> {
-    let existing = sqlx::query_as::<_, PermissionRow>(&format!(
+    let existing = sqlx::query_as::<_, PermissionRow>(safe_sql!(
         "SELECT {PERMISSION_COLUMNS} FROM sys_permission ORDER BY sort_order, code"
     ))
     .fetch_all(&mut *conn)
@@ -171,7 +171,7 @@ pub async fn find_roles_by_user_ids(db: &Db, user_ids: &[i32]) -> AppResult<Vec<
 }
 
 pub async fn find_enabled_roles_by_user_id(db: &Db, user_id: i32) -> AppResult<Vec<RoleRow>> {
-    Ok(sqlx::query_as::<_, RoleRow>(&format!(
+    Ok(sqlx::query_as::<_, RoleRow>(safe_sql!(
         "SELECT {ROLE_COLUMNS} FROM sys_role WHERE disabled = false \
          AND id IN (SELECT role_id FROM sys_user_role WHERE user_id = $1) \
          ORDER BY sort_order, id"
@@ -185,7 +185,7 @@ pub async fn find_permissions_by_ids(db: &Db, ids: &[i32]) -> AppResult<Vec<Perm
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    Ok(sqlx::query_as::<_, PermissionRow>(&format!(
+    Ok(sqlx::query_as::<_, PermissionRow>(safe_sql!(
         "SELECT {PERMISSION_COLUMNS} FROM sys_permission WHERE id = ANY($1) ORDER BY sort_order, code"
     ))
     .bind(ids)
@@ -194,7 +194,7 @@ pub async fn find_permissions_by_ids(db: &Db, ids: &[i32]) -> AppResult<Vec<Perm
 }
 
 pub async fn find_permissions_by_role_id(db: &Db, role_id: i32) -> AppResult<Vec<PermissionRow>> {
-    Ok(sqlx::query_as::<_, PermissionRow>(&format!(
+    Ok(sqlx::query_as::<_, PermissionRow>(safe_sql!(
         "SELECT {PERMISSION_COLUMNS} FROM sys_permission \
          WHERE id IN (SELECT permission_id FROM sys_role_permission WHERE role_id = $1) \
          ORDER BY sort_order, code"
@@ -244,7 +244,7 @@ pub async fn create_role(
     sort_order: i32,
 ) -> AppResult<RoleRow> {
     let operator = current_operator_id();
-    sqlx::query_as::<_, RoleRow>(&format!(
+    sqlx::query_as::<_, RoleRow>(safe_sql!(
         "INSERT INTO sys_role (code, name, sort_order, disabled, created_date, last_modified_date, \
          created_by_id, last_modified_by_id) VALUES ($1, $2, $3, false, now(), now(), $4, $4) \
          RETURNING {ROLE_COLUMNS}"
@@ -347,7 +347,7 @@ pub async fn find_roles_by_codes(
     if codes.is_empty() {
         return Ok(Vec::new());
     }
-    Ok(sqlx::query_as::<_, RoleRow>(&format!(
+    Ok(sqlx::query_as::<_, RoleRow>(safe_sql!(
         "SELECT {ROLE_COLUMNS} FROM sys_role WHERE code = ANY($1) ORDER BY sort_order, id"
     ))
     .bind(codes)
@@ -356,7 +356,7 @@ pub async fn find_roles_by_codes(
 }
 
 pub async fn find_all_roles(db: &Db) -> AppResult<Vec<RoleRow>> {
-    Ok(sqlx::query_as::<_, RoleRow>(&format!(
+    Ok(sqlx::query_as::<_, RoleRow>(safe_sql!(
         "SELECT {ROLE_COLUMNS} FROM sys_role ORDER BY sort_order, id"
     ))
     .fetch_all(db.pool())
@@ -364,7 +364,7 @@ pub async fn find_all_roles(db: &Db) -> AppResult<Vec<RoleRow>> {
 }
 
 pub async fn find_role_by_id(db: &Db, id: i32) -> AppResult<Option<RoleRow>> {
-    Ok(sqlx::query_as::<_, RoleRow>(&format!(
+    Ok(sqlx::query_as::<_, RoleRow>(safe_sql!(
         "SELECT {ROLE_COLUMNS} FROM sys_role WHERE id = $1"
     ))
     .bind(id)
@@ -373,7 +373,7 @@ pub async fn find_role_by_id(db: &Db, id: i32) -> AppResult<Option<RoleRow>> {
 }
 
 pub async fn find_role_by_code(db: &Db, code: &str) -> AppResult<Option<RoleRow>> {
-    Ok(sqlx::query_as::<_, RoleRow>(&format!(
+    Ok(sqlx::query_as::<_, RoleRow>(safe_sql!(
         "SELECT {ROLE_COLUMNS} FROM sys_role WHERE code = $1"
     ))
     .bind(code)
@@ -383,7 +383,7 @@ pub async fn find_role_by_code(db: &Db, code: &str) -> AppResult<Option<RoleRow>
 
 /// 按编码取角色并加行锁；只在事务内调用才有意义（首管理员初始化）。
 pub async fn lock_role_by_code(conn: &mut PgConnection, code: &str) -> AppResult<Option<RoleRow>> {
-    Ok(sqlx::query_as::<_, RoleRow>(&format!(
+    Ok(sqlx::query_as::<_, RoleRow>(safe_sql!(
         "SELECT {ROLE_COLUMNS} FROM sys_role WHERE code = $1 FOR UPDATE"
     ))
     .bind(code)
@@ -392,7 +392,7 @@ pub async fn lock_role_by_code(conn: &mut PgConnection, code: &str) -> AppResult
 }
 
 pub async fn find_account_by_username(db: &Db, username: &str) -> AppResult<Option<AccountRow>> {
-    Ok(sqlx::query_as::<_, AccountRow>(&format!(
+    Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
         "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE username = $1"
     ))
     .bind(username)
@@ -404,7 +404,7 @@ pub async fn find_enabled_account_by_username(
     db: &Db,
     username: &str,
 ) -> AppResult<Option<AccountRow>> {
-    Ok(sqlx::query_as::<_, AccountRow>(&format!(
+    Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
         "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE username = $1 AND disabled = false"
     ))
     .bind(username)
@@ -413,7 +413,7 @@ pub async fn find_enabled_account_by_username(
 }
 
 pub async fn find_account_by_id(db: &Db, id: i32) -> AppResult<Option<AccountRow>> {
-    Ok(sqlx::query_as::<_, AccountRow>(&format!(
+    Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
         "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE id = $1"
     ))
     .bind(id)
@@ -425,7 +425,7 @@ pub async fn find_accounts_by_ids(db: &Db, ids: &[i32]) -> AppResult<Vec<Account
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    Ok(sqlx::query_as::<_, AccountRow>(&format!(
+    Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
         "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE id = ANY($1) ORDER BY id"
     ))
     .bind(ids)
@@ -434,7 +434,7 @@ pub async fn find_accounts_by_ids(db: &Db, ids: &[i32]) -> AppResult<Vec<Account
 }
 
 pub async fn find_enabled_accounts(db: &Db) -> AppResult<Vec<AccountRow>> {
-    Ok(sqlx::query_as::<_, AccountRow>(&format!(
+    Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
         "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE disabled = false ORDER BY id"
     ))
     .fetch_all(db.pool())
@@ -466,7 +466,7 @@ pub async fn find_enabled_accounts_page(
     } else {
         String::new()
     };
-    Ok(sqlx::query_as::<_, AccountRow>(&format!(
+    Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
         "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE disabled = false {order_clause} {page}"
     ))
     .fetch_all(db.pool())
@@ -479,7 +479,7 @@ pub async fn create_account(
     password: &str,
 ) -> AppResult<AccountRow> {
     let operator = current_operator_id();
-    sqlx::query_as::<_, AccountRow>(&format!(
+    sqlx::query_as::<_, AccountRow>(safe_sql!(
         "INSERT INTO sys_user (username, password, disabled, created_date, last_modified_date, \
          created_by_id, last_modified_by_id) VALUES ($1, $2, false, now(), now(), $3, $3) \
          RETURNING {ACCOUNT_COLUMNS}"

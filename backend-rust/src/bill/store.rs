@@ -89,7 +89,7 @@ fn detail_from_row(row: DetailRow) -> BillDetail {
 
 /// 只取状态流转需要的主表字段
 pub async fn find_by_id(db: &Db, id: i32) -> AppResult<Option<Bill>> {
-    let row = sqlx::query_as::<_, BillRow>(&format!(
+    let row = sqlx::query_as::<_, BillRow>(safe_sql!(
         "SELECT {BILL_COLUMNS} FROM service_bill WHERE id = $1"
     ))
     .bind(id)
@@ -385,7 +385,7 @@ pub struct ListQuery {
 ///
 /// 计数与取页两条语句共用同一份条件，因此这里只借用条件、不消费：
 /// 字符串字段以引用绑定，避免为了复用而复制单号与项目名。
-fn bind_filters<'q>(builder: &mut QueryBuilder<'q, Postgres>, query: &'q ListQuery) {
+fn bind_filters(builder: &mut QueryBuilder<Postgres>, query: &ListQuery) {
     if let Some(number) = &query.number {
         builder.push(" AND number = ").push_bind(number);
     }
@@ -413,7 +413,7 @@ fn bind_filters<'q>(builder: &mut QueryBuilder<'q, Postgres>, query: &'q ListQue
 }
 
 fn bind_range(
-    builder: &mut QueryBuilder<'_, Postgres>,
+    builder: &mut QueryBuilder<Postgres>,
     column: &str,
     value: Option<DateTime<Utc>>,
     operator: &str,
@@ -442,7 +442,7 @@ pub async fn find_page(
         return Ok(PageResult::empty(page));
     }
 
-    let mut select: QueryBuilder<'_, Postgres> = QueryBuilder::new(format!(
+    let mut select: QueryBuilder<Postgres> = QueryBuilder::new(format!(
         "SELECT {BILL_COLUMNS} FROM service_bill WHERE 1 = 1"
     ));
     bind_filters(&mut select, query);
@@ -478,7 +478,7 @@ pub async fn find_all_with_details(
     }
     let rows = match scope_user {
         Some(user_id) => {
-            sqlx::query_as::<_, BillRow>(&format!(
+            sqlx::query_as::<_, BillRow>(safe_sql!(
                 "SELECT {BILL_COLUMNS} FROM service_bill WHERE id = ANY($1) AND id IN \
                  (SELECT service_bill_id FROM service_bill_assignee WHERE user_id = $2) ORDER BY id"
             ))
@@ -488,7 +488,7 @@ pub async fn find_all_with_details(
             .await?
         }
         None => {
-            sqlx::query_as::<_, BillRow>(&format!(
+            sqlx::query_as::<_, BillRow>(safe_sql!(
                 "SELECT {BILL_COLUMNS} FROM service_bill WHERE id = ANY($1) ORDER BY id"
             ))
             .bind(ids)

@@ -52,10 +52,10 @@ async fn setup(db_name: &str) -> Result<Router, String> {
     let mut config = Config::load()?;
     // 附件目录放在 target 下，避免依赖系统临时目录的权限
     let temp = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("attachment");
-    if let Err(error) = std::fs::remove_dir_all(&temp) {
-        if error.kind() != std::io::ErrorKind::NotFound {
-            return Err(format!("清理附件目录失败 {}: {error}", temp.display()));
-        }
+    if let Err(error) = std::fs::remove_dir_all(&temp)
+        && error.kind() != std::io::ErrorKind::NotFound
+    {
+        return Err(format!("清理附件目录失败 {}: {error}", temp.display()));
     }
     std::fs::create_dir_all(&temp)
         .map_err(|error| format!("创建附件目录失败 {}: {error}", temp.display()))?;
@@ -89,7 +89,7 @@ async fn recreate_schema(config: &Config, db_name: &str) -> Result<(), String> {
             .await
             .map_err(|e| e.to_string())?;
     if exists.is_none() {
-        sqlx::query(&format!("CREATE DATABASE {db_name}"))
+        sqlx::query(sqlx::AssertSqlSafe(format!("CREATE DATABASE {db_name}")))
             .execute(&admin)
             .await
             .map_err(|e| e.to_string())?;
@@ -124,13 +124,16 @@ async fn recreate_schema(config: &Config, db_name: &str) -> Result<(), String> {
         if statement.is_empty() {
             continue;
         }
-        sqlx::query(statement).execute(&pool).await.map_err(|e| {
-            format!(
-                "建表语句失败: {e}
+        sqlx::query(sqlx::AssertSqlSafe(statement))
+            .execute(&pool)
+            .await
+            .map_err(|e| {
+                format!(
+                    "建表语句失败: {e}
 语句: {}",
-                statement.chars().take(200).collect::<String>()
-            )
-        })?;
+                    statement.chars().take(200).collect::<String>()
+                )
+            })?;
     }
     drop(pool);
     Ok(())

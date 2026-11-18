@@ -142,12 +142,12 @@ impl Config {
         if let Some(path) = &local {
             let text = std::fs::read_to_string(path)
                 .map_err(|e| format!("读取配置文件失败 {}: {e}", path.display()))?;
-            let overlay: serde_yaml::Value =
-                serde_yaml::from_str(&text).map_err(|e| format!("解析配置文件失败: {e}"))?;
-            let mut base = serde_yaml::to_value(&value).map_err(|e| e.to_string())?;
+            let overlay: yaml_serde::Value =
+                yaml_serde::from_str(&text).map_err(|e| format!("解析配置文件失败: {e}"))?;
+            let mut base = yaml_serde::to_value(&value).map_err(|e| e.to_string())?;
             merge_yaml(&mut base, overlay);
             value =
-                serde_yaml::from_value(base).map_err(|e| format!("反序列化配置文件失败: {e}"))?;
+                yaml_serde::from_value(base).map_err(|e| format!("反序列化配置文件失败: {e}"))?;
         }
         apply_env(&mut value);
         if value.jwt.secret.len() < 32 {
@@ -157,7 +157,7 @@ impl Config {
     }
 
     fn parse_default() -> Result<Self, String> {
-        serde_yaml::from_str(DEFAULT_YAML).map_err(|e| format!("加载内嵌配置文件失败：{e}"))
+        yaml_serde::from_str(DEFAULT_YAML).map_err(|e| format!("加载内嵌配置文件失败：{e}"))
     }
 
     /// sqlx 连接串
@@ -202,9 +202,9 @@ fn find_local_config() -> Option<PathBuf> {
     None
 }
 
-fn merge_yaml(base: &mut serde_yaml::Value, overlay: serde_yaml::Value) {
+fn merge_yaml(base: &mut yaml_serde::Value, overlay: yaml_serde::Value) {
     match (base, overlay) {
-        (serde_yaml::Value::Mapping(base_map), serde_yaml::Value::Mapping(overlay_map)) => {
+        (yaml_serde::Value::Mapping(base_map), yaml_serde::Value::Mapping(overlay_map)) => {
             for (key, value) in overlay_map {
                 match base_map.get_mut(&key) {
                     Some(existing) => merge_yaml(existing, value),

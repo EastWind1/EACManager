@@ -30,7 +30,7 @@ const COLUMNS: &str = "id, name, type AS attach_type, relative_path, status, cre
 
 pub async fn find_by_id(db: &Db, id: i32) -> AppResult<Option<AttachRow>> {
     Ok(
-        sqlx::query_as::<_, AttachRow>(&format!("SELECT {COLUMNS} FROM attachment WHERE id = $1"))
+        sqlx::query_as::<_, AttachRow>(safe_sql!("SELECT {COLUMNS} FROM attachment WHERE id = $1"))
             .bind(id)
             .fetch_optional(db.pool())
             .await?,
@@ -41,7 +41,7 @@ pub async fn find_by_ids(db: &Db, ids: &[i32]) -> AppResult<Vec<AttachRow>> {
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    Ok(sqlx::query_as::<_, AttachRow>(&format!(
+    Ok(sqlx::query_as::<_, AttachRow>(safe_sql!(
         "SELECT {COLUMNS} FROM attachment WHERE id = ANY($1) ORDER BY id"
     ))
     .bind(ids)
@@ -57,7 +57,7 @@ pub async fn create(
     status: AttachStatus,
 ) -> AppResult<AttachRow> {
     let operator = current_operator_id();
-    Ok(sqlx::query_as::<_, AttachRow>(&format!(
+    Ok(sqlx::query_as::<_, AttachRow>(safe_sql!(
         "INSERT INTO attachment (name, type, relative_path, status, created_date, last_modified_date, \
          created_by_id, last_modified_by_id) VALUES ($1, $2, $3, $4, now(), now(), $5, $5) \
          RETURNING {COLUMNS}"
@@ -123,7 +123,7 @@ pub async fn find_by_ids_conn(
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    Ok(sqlx::query_as::<_, AttachRow>(&format!(
+    Ok(sqlx::query_as::<_, AttachRow>(safe_sql!(
         "SELECT {COLUMNS} FROM attachment WHERE id = ANY($1) ORDER BY id"
     ))
     .bind(ids)
@@ -132,7 +132,7 @@ pub async fn find_by_ids_conn(
 }
 
 pub async fn find_transient_before(db: &Db, cutoff: DateTime<Utc>) -> AppResult<Vec<AttachRow>> {
-    Ok(sqlx::query_as::<_, AttachRow>(&format!(
+    Ok(sqlx::query_as::<_, AttachRow>(safe_sql!(
         "SELECT {COLUMNS} FROM attachment WHERE status = $1 AND created_date < $2 ORDER BY id"
     ))
     .bind(AttachStatus::Transient.code())
