@@ -1,5 +1,6 @@
 backend-java
 backend-go
+backend-rust
 frontend/cert
 frontend/html
 ocr-server

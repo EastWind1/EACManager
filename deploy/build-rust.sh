@@ -1,9 +1,9 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # 单独打包 Rust 版本（学习实现）。
 # 与 build.sh 解耦：它只产出 deploy/backend-rust，不影响 Java/Go/前端交付，也不参与常规 CI。
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKEND_RUST_DIR="$ROOT_DIR/backend-rust"
 DEPLOY_DIR="$ROOT_DIR/deploy"
@@ -45,4 +45,3 @@ cp -r "$BACKEND_RUST_DIR/config" "$DEPLOY_DIR/backend-rust/"
 chmod +x "$DEPLOY_DIR/backend-rust/backend-rust" 2>/dev/null || true
 
 echo "Rust 打包完成：$DEPLOY_DIR/backend-rust"
-echo "提示：Rust 版本仅用于学习与本地体验，不随 deploy/build.sh 一起打包。"

@@ -33,8 +33,9 @@
 
 ## 构建
 
-- Java/Go/前端：Windows 使用 `deploy\build.bat`，Linux 使用 `deploy/build.sh`
+- Java/Go/前端： `deploy/build.sh`
 - Rust（独立打包） `deploy/build-rust.sh`；产物只写入 `deploy/backend-rust/`，不参与常规打包与 CI
+  - 依赖中的 `aws-lc-sys` 需要 CMake 与 C 工具链；musl 交叉编译还需 `cargo-zigbuild`，缺失时脚本会提示
 
 ## 部署
 
@@ -121,5 +122,5 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
 ## 运行
 
 1. `cd deploy`
-2. 执行目录下的 `build.bat` 脚本打包
+2. 执行目录下的 `build.sh` 脚本打包
 3. 执行 `docker-compose -f docker-compose up -d` 或 `docker-compose -f docker-compose-java.yml up -d` 或 `docker compose -f compose-rust.yml up -d`

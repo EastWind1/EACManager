@@ -1,8 +1,8 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # 设置目录
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 OCR_DIR="$ROOT_DIR/ocr-server"
 BACKEND_JAVA_DIR="$ROOT_DIR/backend-java"
@@ -55,4 +55,3 @@ mkdir -p "$DEPLOY_HTML"
 cp -r "$FRONTEND_DIR/dist"/* "$DEPLOY_HTML/"
 
 echo "构建和拷贝完成！"
-chmod -R 755 "$DEPLOY_DIR"

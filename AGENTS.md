@@ -15,7 +15,7 @@ Rust 后端是**学习用**的独立实现，定位见下节，不要求与 Java
 - Rust 侧只保证**自成体系、可编译、可跑通自身集成测试**；路由、响应字段、错误消息、权限清单
   都可以与 Java/Go 不同，允许按 Rust 惯用法偏离。
 - 不承诺 Rust 能与 Java/Go 互换部署，也不建议把它当生产交付物；`deploy/compose-rust.yml`
-  与 `deploy/build-rust.sh` / `build-rust.bat` 只用于本地体验，并且**已从常规 build 脚本与 CI 中剥离**。
+  与 `deploy/build-rust.sh` 只用于本地体验，并且**已从常规 build 脚本与 CI 中剥离**。
 - 三者共用的只有 PostgreSQL 表结构约定：想让 Rust 连现有库跑起来，尽量按
   `deploy/database/init_schema.sql` 建库；不追求兼容时也可以自行调整。
 - 改 Rust 代码时优先考虑“更符合 Rust 惯用法”，而不是“照抄 Go/Java 的结构”；
@@ -35,9 +35,9 @@ Java 与 Go 暴露同一套 `/api`，响应统一 `{code, message, data}`，模�
 Rust 只参考同样的分域方式（每个域一个包，含 `handler.rs` / `service.rs` / `store.rs` / `model.rs`，
 另有 `query.rs` / `relation.rs` / `stat.rs`），不保证路由、响应形状与权限码与 Java/Go 相同。
 
-部署：`deploy/build.sh`（Windows 为 `build.bat`）打包 Java/Go/前端（Maven 解包 jar、交叉编译 Go、复制 Vite dist），
+部署：`deploy/build.sh` 打包 Java/Go/前端（Maven 解包 jar、交叉编译 Go、复制 Vite dist），
 compose 跑 postgres + backend + Caddy（静态文件、`/api` 反代、Let's Encrypt）。
-Rust 学习实现单独打包：`deploy/build-rust.sh`（Windows 用 `build-rust.bat` 经 WSL 执行），
+Rust 学习实现单独打包：`deploy/build-rust.sh`，
 只产出 `deploy/backend-rust/`，不进常规打包与 CI。
 
 ## 认证与授权
@@ -230,7 +230,7 @@ frontend/src/
   {user,company,service-bill,reimburse,attachment,statistic,permission}/  api · model · view · component
   permission/                                                                角色×动作权限配置页
 
-deploy/     compose*.yml、database/（init_schema、迁移）、frontend/（html、Caddyfile、cert）、build.sh / build.bat
+deploy/     compose*.yml、database/（init_schema、迁移）、frontend/（html、Caddyfile、cert）、build.sh
 ocr-server/ Go 后端用的独立 FastAPI OCR 服务（uv 管理，PDF 先取文本层再降级 OCR）
 ```
 
