@@ -71,14 +71,6 @@ public class UserController {
                         .sameSite("Strict").build().toString()).build();
     }
 
-    /**
-     * 当前登录用户。
-     */
-    @GetMapping("/me")
-    public UserDTO me() {
-        return userService.getCurrent();
-    }
-
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).QUERY.getCode())")
     @GetMapping
     public PageResult<UserDTO> getAll(QueryParam queryParam) {

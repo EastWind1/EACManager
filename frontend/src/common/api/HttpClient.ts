@@ -1,5 +1,6 @@
 import axios, { type AxiosProgressEvent } from 'axios'
 import { useUIStore } from '@/common/store/UIStore'
+import { useRouter } from 'vue-router'
 
 export interface HttpConfig {
   url?: string
@@ -26,7 +27,11 @@ export interface HttpConfig {
   /**
    * 取消信号
    */
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  /**
+   * 是否内部处理异常
+   */
+  handleError?: boolean
 }
 
 export interface JSONResponse<T> {
@@ -98,8 +103,9 @@ export class HttpClient {
 
   request = async <T>(cfg?: HttpConfig): Promise<T> => {
     const uiState = useUIStore()
-    // 加载条
+    const router = useRouter()
     const useLoad = cfg?.useLoad ?? true
+    const handleError = cfg?.handleError?? true
     if (useLoad) {
       beginLoading()
     }
@@ -131,8 +137,8 @@ export class HttpClient {
           return res.data as T
         })
         .catch(async (err) => {
-          // 网络异常、请求被取消等没有响应体，直接抛出
-          if (!axios.isAxiosError(err) || !err.response) {
+          // 不处理异常、网络异常、请求被取消等没有响应体，直接抛出
+          if (!handleError || !axios.isAxiosError(err) || !err.response) {
             throw err
           }
           const res = err.response
@@ -144,15 +150,14 @@ export class HttpClient {
               uiState.warning(msg)
               break
             case 401: {
-              msg = '未授权'
-              uiState.warning(msg)
-              const { default: router } = await import('@/router')
+              msg = '未登录或登陆失效'
               await router.push({
                 path: '/login',
                 query: {
                   redirect: location.pathname + location.search,
                 },
               })
+              uiState.warning(msg)
               break
             }
             case 403:

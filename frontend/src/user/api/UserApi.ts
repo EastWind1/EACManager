@@ -58,12 +58,7 @@ const UserApi = {
   async logout() {
     return await http.request({ method: 'PUT', url: `/logout`, data: {} })
   },
-  /**
-   * 当前登录用户。
-   */
-  async getCurrent() {
-    return await http.request<User>({ method: 'GET', url: '/me', useLoad: false })
-  },
+
   /**
    * 获取所有用户
    */

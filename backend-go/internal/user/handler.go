@@ -86,15 +86,6 @@ func (c *Controller) Logout(ctx fiber.Ctx) error {
 	return nil
 }
 
-func (c *Controller) Me(ctx fiber.Ctx) error {
-	res, err := c.userService.Current(ctx)
-	if err != nil {
-		return err
-	}
-	result.SetResult(ctx, res)
-	return nil
-}
-
 func (c *Controller) GetAll(ctx fiber.Ctx) error {
 	var param result.QueryParam
 	err := ctx.Bind().Query(&param)
