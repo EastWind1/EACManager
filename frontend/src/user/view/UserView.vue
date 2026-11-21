@@ -118,6 +118,7 @@ import SecurityApi from '@/permission/api/SecurityApi'
 import type {Role} from '@/permission/model/Permission'
 import {useUIStore} from '@/common/store/UIStore'
 import type {PageResult} from '@/common/model/PageResult'
+import {useUserStore} from "@/user/store/UserStore.ts";
 
 // 表头
 const headers = [
@@ -127,6 +128,11 @@ const headers = [
   {title: '邮箱', key: 'email', sortable: false},
   {title: '角色', key: 'roles', sortable: false},
 ]
+
+const userStore = useUserStore()
+if (userStore.hasAnyPermission([Permission.USER_UPDATE, Permission.USER_DISABLE])) {
+  headers.push({title: '操作', key: 'actions', sortable: false})
+}
 
 // 角色列表
 const roles = ref<Role[]>([])
