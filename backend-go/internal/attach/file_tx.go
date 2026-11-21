@@ -99,9 +99,10 @@ func execSingleOp(op *FileOp) (*FileOp, error) {
 			break
 		}
 		res = &FileOp{
-			Type:   FileOpMove,
-			Origin: op.Target,
-			Target: tempFile.Name(),
+			Type:       FileOpMove,
+			Origin:     op.Target,
+			Target:     tempFile.Name(),
+			SoftDelete: true,
 		}
 	default:
 		err = errs.NewFileOpError("不支持的操作类型", fmt.Sprintf("%d", op.Type))
@@ -130,6 +131,12 @@ func Exec(ops []FileOp) error {
 		// 回滚已执行的操作
 		rollback(executedOps)
 		return errs.NewFileOpError("", "", err)
+	}
+	// 提交后删除软删除暂存的临时文件。
+	for _, op := range executedOps {
+		if op.SoftDelete {
+			DeleteQuietly(op.Target)
+		}
 	}
 	log.Debugf("文件事务提交: %v 个操作", len(executedOps))
 	return nil

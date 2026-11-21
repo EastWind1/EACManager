@@ -28,14 +28,19 @@ public class CompanyService {
 
     @Transactional
     public CompanyDTO create(CompanyDTO company) {
-        if (company.getName() == null || company.getName().isEmpty()) {
+        if (company.getName() == null || company.getName().isBlank()) {
             throw new BizException("公司名称不能为空");
         }
-        return companyMapper.toDTO(companyRepository.save(companyMapper.toEntity(company)));
+        Company entity = companyMapper.toEntity(company);
+        entity.setDisabled(false);
+        return companyMapper.toDTO(companyRepository.save(entity));
     }
 
-    public List<CompanyDTO> findByName(String name) {
-        return companyRepository.findByNameContains(name).stream().map(companyMapper::toDTO).toList();
+    /**
+     * 下拉候选只返回启用公司
+     */
+    public List<CompanyDTO> findEnabledByName(String name) {
+        return companyRepository.findByDisabledFalseAndNameContains(name).stream().map(companyMapper::toDTO).toList();
     }
 
     public Company findEntityById(Integer id) {
@@ -47,10 +52,15 @@ public class CompanyService {
 
     @Transactional
     public CompanyDTO update(CompanyDTO company) {
-        if (!companyRepository.existsById(company.getId())) {
-            throw new BizException("公司不存在: " + company.getName());
+        if (company.getId() == null) {
+            throw new BizException("公司 ID 不能为空");
         }
-        return companyMapper.toDTO(companyRepository.save(companyMapper.toEntity(company)));
+        Company existing = companyRepository.findById(company.getId())
+                .orElseThrow(() -> new BizException("公司不存在: " + company.getName()));
+        Company entity = companyMapper.toEntity(company);
+        // 启用状态只由 disable 接口维护。
+        entity.setDisabled(Boolean.TRUE.equals(existing.getDisabled()));
+        return companyMapper.toDTO(companyRepository.save(entity));
     }
 
     @Transactional

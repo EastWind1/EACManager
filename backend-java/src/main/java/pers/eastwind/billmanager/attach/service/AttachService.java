@@ -2,18 +2,14 @@ package pers.eastwind.billmanager.attach.service;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pers.eastwind.billmanager.attach.config.AttachConfigProperties;
+import pers.eastwind.billmanager.attach.config.AttachPaths;
 import pers.eastwind.billmanager.attach.model.*;
 import pers.eastwind.billmanager.attach.repository.AttachRepository;
-import pers.eastwind.billmanager.attach.util.FileTxUtil;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.SafePath;
 import pers.eastwind.billmanager.common.exception.BizException;
@@ -26,8 +22,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * 附件以「namespace/唯一id」为 key 存储，写入后不再移动，故不存在难以原子的“改库 + 搬文件”操作。
@@ -35,44 +33,34 @@ import java.util.regex.Pattern;
  */
 @Slf4j
 @Service
-public class AttachService implements InitializingBean {
-    private static final String TEMP_PREFIX = "temp-";
+public class AttachService {
     private static final Duration TEMP_RETENTION = Duration.ofDays(7);
     private static final Pattern NAMESPACE_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]+$");
 
-    private final AttachConfigProperties properties;
     private final AttachRepository attachRepository;
     private final AttachMapper attachMapper;
+    private final FileTxService fileTxService;
+    private final Path rootPath;
+    private final Path tempPath;
     @PersistenceContext
     private EntityManager entityManager;
-    @Getter
-    private Path rootPath;
-    @Getter
-    private Path tempPath;
 
-    public AttachService(AttachConfigProperties properties, AttachRepository attachRepository, AttachMapper attachMapper) {
-        this.properties = properties;
+    public AttachService(
+            AttachPaths paths,
+            AttachRepository attachRepository,
+            AttachMapper attachMapper,
+            FileTxService fileTxService
+    ) {
         this.attachRepository = attachRepository;
         this.attachMapper = attachMapper;
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        rootPath = properties.getPath().normalize().toAbsolutePath();
-        try {
-            Files.createDirectories(rootPath);
-            tempPath = Files.createTempDirectory(rootPath, TEMP_PREFIX);
-            tempPath.toFile().deleteOnExit();
-        } catch (IOException e) {
-            throw new FileOpException("创建附件目录失败", e);
-        }
+        this.fileTxService = fileTxService;
+        this.rootPath = paths.root();
+        this.tempPath = paths.temp();
     }
 
     public Path createTempFile(String prefix, String suffix) {
         try {
-            Path res = Files.createTempFile(tempPath, prefix, suffix);
-            res.toFile().deleteOnExit();
-            return res;
+            return Files.createTempFile(tempPath, prefix, suffix);
         } catch (IOException e) {
             throw new FileOpException("创建临时文件失败", e);
         }
@@ -80,50 +68,93 @@ public class AttachService implements InitializingBean {
 
     public Path createTempDir(String prefix) {
         try {
-            Path res = Files.createTempDirectory(tempPath, prefix);
-            res.toFile().deleteOnExit();
-            return res;
+            return Files.createTempDirectory(tempPath, prefix);
         } catch (IOException e) {
             throw new FileOpException("创建临时文件失败", e);
         }
     }
 
-    public Path getAbsolutePathByRela(String relativePath) {
+    /**
+     * 把附件复制到目标目录。
+     */
+    public void copyTo(Collection<Integer> ids, Path targetDir) {
+        Map<Integer, AttachFile> files = getPaths(ids);
+        if (files.isEmpty()) {
+            return;
+        }
+        List<FileOp> ops = new ArrayList<>(files.size());
+        Set<String> used = new HashSet<>();
+        for (AttachFile file : files.values()) {
+            String name = uniqueName(targetDir, used, file.attachment().getName());
+            ops.add(new FileOp(FileOpType.COPY, file.path(), targetDir.resolve(name)));
+        }
+        fileTxService.exec(ops);
+    }
+
+    private static String uniqueName(Path targetDir, Set<String> used, String name) {
+        String base = name == null || name.isBlank() ? "attachment" : name;
+        String candidate = base;
+        int repeat = 1;
+        while (!used.add(candidate) || Files.exists(targetDir.resolve(candidate))) {
+            candidate = repeat++ + "-" + base;
+        }
+        return candidate;
+    }
+
+    /**
+     * 打包临时目录，压缩包放在附件临时目录下。
+     */
+    public Path zipDirectory(Path sourceDir) {
+        Path zip = tempPath.resolve(sourceDir.getFileName() + ".zip");
+        return FileUtil.zip(sourceDir, zip);
+    }
+
+    private Path getAbsolutePathByRela(String relativePath) {
         if (relativePath == null || relativePath.isEmpty()) {
             throw new BizException("路径为空");
         }
         return SafePath.of(rootPath).resolve(relativePath).toPath();
     }
 
-    public Path getAbsolutePathById(Integer id) {
-        return getAbsolutePathByRela(requireAttach(id).getRelativePath());
+    /**
+     * 批量读取附件，返回 DTO 与磁盘路径。
+     */
+    public Map<Integer, AttachFile> getPaths(Collection<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        Set<Integer> uniqueIds = new LinkedHashSet<>(ids);
+        if (uniqueIds.contains(null)) {
+            throw new BizException("附件 ID 不能为空");
+        }
+        List<Attach> attachments = attachRepository.findAllById(uniqueIds);
+        if (attachments.size() != uniqueIds.size()) {
+            throw new BizException("附件不存在");
+        }
+        Map<Integer, AttachFile> result = new HashMap<>(attachments.size());
+        for (Attach attachment : attachments) {
+            assertCanAccess(attachment);
+            Path path = getAbsolutePathByRela(attachment.getRelativePath());
+            if (!Files.exists(path)) {
+                throw new BizException("文件不存在");
+            }
+            result.put(attachment.getId(), new AttachFile(attachMapper.toDTO(attachment), path));
+        }
+        return result;
     }
 
-    public AttachStatus getStatus(Integer id) {
-        return requireAttach(id).getStatus();
-    }
-
-    public String getRelativePath(Integer id) {
-        return requireAttach(id).getRelativePath();
-    }
-
-    public boolean exists(Integer id) {
-        return id != null && attachRepository.existsById(id);
-    }
-
-    private Attach requireAttach(Integer id) {
+    /**
+     * 读取单个附件。
+     */
+    public AttachFile getPath(Integer id) {
         if (id == null) {
             throw new BizException("附件 ID 不能为空");
         }
-        return attachRepository.findById(id).orElseThrow(() -> new BizException("附件不存在"));
-    }
-
-    public Resource getResource(AttachDTO attachDTO) {
-        Path path = getAbsolutePathById(attachDTO.getId());
-        if (!Files.exists(path)) {
-            throw new BizException("文件不存在");
+        AttachFile file = getPaths(List.of(id)).get(id);
+        if (file == null) {
+            throw new BizException("附件不存在");
         }
-        return new FileSystemResource(path);
+        return file;
     }
 
     /**
@@ -234,7 +265,7 @@ public class AttachService implements InitializingBean {
             }
             ops.add(new FileOp(FileOpType.DELETE, null, targetPath));
         }
-        FileTxUtil.exec(ops);
+        fileTxService.exec(ops);
     }
 
     /**
@@ -244,6 +275,7 @@ public class AttachService implements InitializingBean {
     @Scheduled(cron = "0 0 2 * * *")
     public void cleanTransientFiles() {
         cleanTransientFiles(Instant.now().minus(TEMP_RETENTION));
+        cleanTempFiles(Instant.now().minus(1, ChronoUnit.DAYS));
     }
 
     /**
@@ -268,11 +300,52 @@ public class AttachService implements InitializingBean {
             ops.add(new FileOp(FileOpType.DELETE, null, targetPath));
         }
         try {
-            FileTxUtil.exec(ops);
+            fileTxService.exec(ops);
         } catch (Exception e) {
             log.error("回收游离附件文件失败", e);
         }
         log.info("回收游离附件 {} 个", expired.size());
+    }
+
+    /**
+     * 回收临时目录中超过一天的文件与空目录。
+     */
+    private void cleanTempFiles(Instant cutoff) {
+        if (tempPath == null || !Files.isDirectory(tempPath)) {
+            return;
+        }
+        try (Stream<Path> files = Files.walk(tempPath)) {
+            files.filter(Files::isRegularFile)
+                    .filter(path -> {
+                        try {
+                            return Files.getLastModifiedTime(path).toInstant().isBefore(cutoff);
+                        } catch (IOException e) {
+                            return false;
+                        }
+                    })
+                    .forEach(FileUtil::deleteQuietly);
+        } catch (IOException e) {
+            log.error("清理临时文件失败", e);
+            return;
+        }
+        try (Stream<Path> dirs = Files.walk(tempPath)) {
+            dirs.sorted(Comparator.reverseOrder())
+                    .filter(Files::isDirectory)
+                    .filter(path -> !path.equals(tempPath))
+                    .forEach(this::deleteIfEmpty);
+        } catch (IOException e) {
+            log.error("清理临时目录失败", e);
+        }
+    }
+
+    private void deleteIfEmpty(Path dir) {
+        try (Stream<Path> children = Files.list(dir)) {
+            if (children.findAny().isEmpty()) {
+                Files.deleteIfExists(dir);
+            }
+        } catch (IOException e) {
+            log.debug("删除临时目录失败: {}", dir, e);
+        }
     }
 
 

@@ -10,11 +10,13 @@ import (
 
 type Controller struct {
 	reimburseService *Service
+	queryService     *QueryService
 }
 
-func newReimburseController(reimburseService *Service) *Controller {
+func newReimburseController(reimburseService *Service, queryService *QueryService) *Controller {
 	return &Controller{
 		reimburseService: reimburseService,
+		queryService:     queryService,
 	}
 }
 
@@ -24,7 +26,7 @@ func (c *Controller) QueryByParam(ctx fiber.Ctx) error {
 		return err
 	}
 
-	res, err := c.reimburseService.FindByParam(ctx, &param)
+	res, err := c.queryService.FindByParam(ctx, &param)
 	if err != nil {
 		return err
 	}
@@ -41,7 +43,7 @@ func (c *Controller) GetByID(ctx fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	res, err := c.reimburseService.FindByID(ctx, uint(id))
+	res, err := c.queryService.FindByID(ctx, uint(id))
 	if err != nil {
 		return err
 	}

@@ -43,8 +43,7 @@ func (r *Repository) Update(ctx context.Context, company *Company) error {
 
 // SetDisabled 只更新禁用列
 func (r *Repository) SetDisabled(ctx context.Context, id uint) error {
-	affected, err := gorm.G[*Company](r.Ctx(ctx)).Select("name", "contact_name", "contact_phone", "email", "address").
-		Select("disabled").
+	affected, err := gorm.G[*Company](r.Ctx(ctx)).Select("disabled").
 		Where("id = ?", id).
 		Updates(ctx, &Company{Disabled: true})
 	if err != nil {

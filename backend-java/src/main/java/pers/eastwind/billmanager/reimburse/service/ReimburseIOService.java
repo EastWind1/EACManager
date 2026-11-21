@@ -4,20 +4,13 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.Attach;
 import pers.eastwind.billmanager.attach.model.AttachDTO;
-import pers.eastwind.billmanager.attach.model.FileOp;
-import pers.eastwind.billmanager.attach.model.FileOpType;
 import pers.eastwind.billmanager.attach.service.AttachService;
-import pers.eastwind.billmanager.attach.util.FileTxUtil;
-import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.attach.util.SafePath;
-import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.reimburse.model.Reimburse;
 import pers.eastwind.billmanager.reimburse.model.ReimburseDTO;
-import pers.eastwind.billmanager.reimburse.repository.ReimburseRepository;
 
 import java.math.BigDecimal;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -31,26 +24,19 @@ public class ReimburseIOService {
     private final AttachService attachService;
     private final ReimburseAttachService reimburseAttachService;
     private final ReimburseImportMapper attachMapper;
-    private final ReimburseRepository reimburseRepository;
+    private final ReimburseQueryService queryService;
 
-    public ReimburseIOService(AttachService attachService, ReimburseAttachService reimburseAttachService, ReimburseImportMapper attachMapper, ReimburseRepository reimburseRepository) {
+    public ReimburseIOService(AttachService attachService, ReimburseAttachService reimburseAttachService, ReimburseImportMapper attachMapper, ReimburseQueryService queryService) {
         this.attachService = attachService;
         this.reimburseAttachService = reimburseAttachService;
         this.attachMapper = attachMapper;
-        this.reimburseRepository = reimburseRepository;
+        this.queryService = queryService;
     }
 
     public Path export(List<Integer> ids) {
-        if (ids == null || ids.isEmpty()) {
-            throw new BizException("id不能为空");
-        }
-        List<Reimburse> reimbursements = reimburseRepository.findAllById(ids);
-        if (reimbursements.isEmpty()) {
-            throw new BizException("id不存在");
-        }
+        List<Reimburse> reimbursements = queryService.findEntityByIds(ids);
 
         Path tempPath = attachService.createTempDir("export");
-        List<FileOp> ops = new ArrayList<>();
 
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("单据编号", "摘要", "总额", "报销日期", "备注"));
@@ -58,40 +44,28 @@ public class ReimburseIOService {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         for (Reimburse reimbursement : reimbursements) {
             rows.add(List.of(
-                    reimbursement.getNumber(),
-                    reimbursement.getSummary(),
-                    reimbursement.getTotalAmount().toString(),
+                    text(reimbursement.getNumber()),
+                    text(reimbursement.getSummary()),
+                    amountText(reimbursement.getTotalAmount()),
                     reimbursement.getReimburseDate() == null ? "" : dateTimeFormatter.format(reimbursement.getReimburseDate().atZone(ZoneId.systemDefault())),
                     reimbursement.getDetails().stream().map((detail) ->
-                                    detail.getName() + " : " + detail.getAmount().stripTrailingZeros().toPlainString() + " ; ")
+                                    text(detail.getName()) + " : " + amountText(detail.getAmount()) + " ; ")
                             .collect(Collectors.joining())
             ));
             totalAmount = totalAmount.add(reimbursement.getTotalAmount());
             SafePath temp = SafePath.of(tempPath);
             SafePath curDir = temp.resolve(reimbursement.getNumber());
             List<Attach> attachments = reimburseAttachService.findAttachments(reimbursement.getId());
-            for (Attach attachment : attachments) {
-                Path origin = attachService.getAbsolutePathByRela(attachment.getRelativePath());
-                Path target = curDir.resolve(attachment.getName()).toPath();
-                // 处理可能的重名
-                int repeatCount = 1;
-                while (Files.exists(target)) {
-                    target = curDir.resolve(repeatCount + "-" + attachment.getName()).toPath();
-                    repeatCount++;
-                }
-                ops.add(new FileOp(FileOpType.COPY, origin, target));
-            }
+            attachService.copyTo(
+                    attachments.stream().map(Attach::getId).toList(),
+                    curDir.toPath());
         }
         rows.add(List.of("", "合计", totalAmount.toString(), "", ""));
 
         String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         Path excel = SafePath.of(tempPath).resolve("导出结果" + timeStr + ".xlsx").toPath();
         OfficeFileUtil.generateExcelFromList(rows, excel);
-        FileTxUtil.exec(ops);
-
-        Path zip = SafePath.of(attachService.getTempPath()).resolve(tempPath + ".zip").toPath();
-        FileUtil.zip(tempPath, zip);
-        return zip;
+        return attachService.zipDirectory(tempPath);
     }
 
     public ReimburseDTO generateByFile(Resource resource) {
@@ -99,5 +73,14 @@ public class ReimburseIOService {
         ReimburseDTO dto = attachMapper.map(attachment);
         dto.setAttachments(List.of(attachment));
         return dto;
+    }
+
+    /** 导出的单元格不接受 null：List.of 遇到 null 会直接抛 NPE。 */
+    private static String text(Object value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private static String amountText(BigDecimal value) {
+        return value == null ? "" : value.stripTrailingZeros().toPlainString();
     }
 }

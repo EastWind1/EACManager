@@ -51,9 +51,9 @@ func (s *ServiceTest) TestUploadPersistsTransient() {
 	uploaded := s.upload("附件.txt")
 	s.Positive(uploaded.ID)
 
-	attachment, err := s.srv.FindById(s.Ctx, uploaded.ID)
+	readable, err := s.srv.GetPath(s.Ctx, uploaded.ID)
 	s.NoError(err)
-	s.NotNil(attachment)
+	s.NotNil(readable.Attachment)
 }
 
 // TestPersist 只能提交一次
@@ -63,9 +63,9 @@ func (s *ServiceTest) TestPersist() {
 
 	s.NoError(s.srv.Persist(s.Ctx, ids))
 
-	attachment, err := s.srv.FindById(s.Ctx, ids[0])
+	readable, err := s.srv.GetPath(s.Ctx, ids[0])
 	s.NoError(err)
-	s.NotNil(attachment)
+	s.NotNil(readable.Attachment)
 
 	s.Error(s.srv.Persist(s.Ctx, ids))
 }
@@ -75,15 +75,14 @@ func (s *ServiceTest) TestDelete() {
 	uploaded := s.upload("待删除附件.txt")
 	ids := []uint{uploaded.ID}
 
-	path, err := s.srv.GetAbsolutePathById(s.Ctx, uploaded.ID)
+	readable, err := s.srv.GetPath(s.Ctx, uploaded.ID)
 	s.NoError(err)
 
 	s.NoError(s.srv.Delete(s.Ctx, ids))
 
-	remaining, err := s.srv.FindById(s.Ctx, ids[0])
-	s.NoError(err)
-	s.Nil(remaining)
-	s.False(attach.Exists(path))
+	_, err = s.srv.GetPath(s.Ctx, ids[0])
+	s.Error(err)
+	s.False(attach.Exists(readable.Path))
 }
 
 // TestCleanTransientFiles 过期游离附件按状态回收
@@ -94,7 +93,6 @@ func (s *ServiceTest) TestCleanTransientFiles() {
 
 	s.NoError(s.srv.CleanTransientFiles(s.Ctx))
 
-	remaining, err := s.srv.FindById(s.Ctx, uploaded.ID)
-	s.NoError(err)
-	s.Nil(remaining)
+	_, err := s.srv.GetPath(s.Ctx, uploaded.ID)
+	s.Error(err)
 }

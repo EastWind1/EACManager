@@ -57,7 +57,7 @@ class CompanyServiceTest extends BaseServiceTest {
     void shouldFindCompanyByName() {
         companyService.create(newCompany);
 
-        var list = companyService.findByName("测试");
+        var list = companyService.findEnabledByName("测试");
 
         assertNotNull(list);
         assertFalse(list.isEmpty());
@@ -84,7 +84,7 @@ class CompanyServiceTest extends BaseServiceTest {
     void shouldDisableCompany() {
         CompanyDTO createdCompany = companyService.create(newCompany);
         companyService.disable(createdCompany.getId());
-        var companies = companyService.findByName(createdCompany.getName());
-        assertFalse(companies.isEmpty());
+        var companies = companyService.findEnabledByName(createdCompany.getName());
+        assertTrue(companies.isEmpty());
     }
 }

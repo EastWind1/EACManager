@@ -26,6 +26,21 @@ func (s *Service) FindEnabled(ctx context.Context, param *result.QueryParam) (*r
 	return result.NewDTOPageResult(companies, ToDTOs), nil
 }
 
+// FindByID 返回任意状态的公司（含已停用），供单据关联校验；不存在时返回 nil。
+func (s *Service) FindByID(ctx context.Context, id uint) (*DTO, error) {
+	if id == 0 {
+		return nil, nil
+	}
+	found, err := s.companyRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if found == nil {
+		return nil, nil
+	}
+	return found.ToDTO(), nil
+}
+
 func (s *Service) FindByName(ctx context.Context, name string) ([]DTO, error) {
 	companies, err := s.companyRepo.FindEnabledByNameContains(ctx, name)
 	if err != nil {

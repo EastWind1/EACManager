@@ -9,6 +9,7 @@ import (
 // Module 聚合报销模块对外服务。
 type Module struct {
 	Service   *Service
+	Query     *QueryService
 	Statistic *StatisticService
 }
 
@@ -16,9 +17,11 @@ func Setup(base *core.App, attachMod *attach.Module, sec *security.Module) *Modu
 	sec.PermissionSync.Register(reimbursePermissions()...)
 	reimburseRepo := newReimburseRepository(base.DB)
 	reimburseMapper := newMapper(attachMod.Content)
-	reimburseService := newService(reimburseRepo, attachMod.Service, newAttachRelService(base.DB, attachMod.Service), reimburseMapper)
+	relSrv := newAttachRelService(base.DB, attachMod.Service)
+	querySrv := newQueryService(reimburseRepo, relSrv)
+	reimburseService := newService(reimburseRepo, attachMod.Service, relSrv, reimburseMapper, querySrv)
 	statisticSrv := newStatisticService(base.Cache, reimburseRepo)
-	reimburseController := newReimburseController(reimburseService)
+	reimburseController := newReimburseController(reimburseService, querySrv)
 	statisticController := newStatisticController(statisticSrv)
 	reimburseGroup := base.Router.Group("/reimburse")
 	{
@@ -38,6 +41,7 @@ func Setup(base *core.App, attachMod *attach.Module, sec *security.Module) *Modu
 	}
 	return &Module{
 		Service:   reimburseService,
+		Query:     querySrv,
 		Statistic: statisticSrv,
 	}
 }

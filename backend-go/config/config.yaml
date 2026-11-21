@@ -1,6 +1,5 @@
 server:
   port: 8080
-  mode: release
 log:
   level: info
 db:

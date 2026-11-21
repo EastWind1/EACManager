@@ -27,7 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class ReimburseStatisticServiceTest extends BaseServiceTest {
 
     @Autowired
-    private ReimburseService reimburseService;
+    private ReimburseQueryService queryService;
+
+    @Autowired
+    private ReimburseActionService actionService;
 
     @Autowired
     private ReimburseStatisticService reimburseStatisticService;
@@ -97,22 +100,22 @@ class ReimburseStatisticServiceTest extends BaseServiceTest {
      * 创建报销单并推进到指定状态
      */
     private ReimburseDTO createReimburse(BigDecimal total, ReimburseState targetState) {
-        ReimburseDTO created = reimburseService.create(createRawReimburse(total, Instant.now()));
+        ReimburseDTO created = actionService.create(createRawReimburse(total, Instant.now()));
         List<Integer> ids = List.of(created.getId());
         if (targetState == ReimburseState.PROCESSING || targetState == ReimburseState.FINISHED) {
-            reimburseService.process(ids);
+            actionService.process(ids);
             if (targetState == ReimburseState.FINISHED) {
-                reimburseService.finish(ids);
+                actionService.finish(ids);
             }
         }
-        return reimburseService.findById(created.getId());
+        return queryService.findFullById(created.getId());
     }
 
     /**
      * 创建报销单，指定报销日期
      */
     private ReimburseDTO createReimburseAt(BigDecimal total, Instant date) {
-        return reimburseService.create(createRawReimburse(total, date));
+        return actionService.create(createRawReimburse(total, date));
     }
 
     private ReimburseDTO createRawReimburse(BigDecimal total, Instant date) {

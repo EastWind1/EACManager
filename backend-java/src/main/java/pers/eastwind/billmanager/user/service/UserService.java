@@ -92,6 +92,21 @@ public class UserService {
         return toDTO(account, profile);
     }
 
+    /**
+     * 当前登录用户。
+     */
+    public UserDTO getCurrent() {
+        AuthorityUser curUser = AuthUtil.getCurUser();
+        if (curUser == null) {
+            throw new BizException("未登录");
+        }
+        AuthorityUser account = authenticateService.findById(curUser.getId());
+        if (account == null) {
+            throw new BizException("用户不存在");
+        }
+        return toDTO(account, profileRepository.findById(account.getId()).orElse(null));
+    }
+
     public LoginResult login(String username, String password) {
         pers.eastwind.billmanager.security.model.LoginResult result = authenticateService.login(username, password);
         UserProfile profile = profileRepository.findById(result.account().getId()).orElse(null);

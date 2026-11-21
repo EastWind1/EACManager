@@ -142,10 +142,13 @@ async function loadItems(options: {
   itemsPerPage: number
   sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
 }) {
-  data.value = await CompanyApi.getAll({
+  const res = await CompanyApi.getAll({
     pageIndex: options.page - 1,
     pageSize: options.itemsPerPage,
   })
+  if (res) {
+    data.value = res
+  }
 }
 
 // 添加

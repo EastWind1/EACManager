@@ -3,6 +3,7 @@ package pers.eastwind.billmanager.attach.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.AttachDTO;
+import pers.eastwind.billmanager.attach.model.AttachFile;
 import pers.eastwind.billmanager.attach.model.AttachType;
 import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
@@ -30,8 +31,10 @@ public class AttachContentService {
      * 图片走 OCR；PDF 先取文本层，未识别到文本时转图片再 OCR。
      */
     public List<String> text(AttachDTO attachment) {
-        Path path = attachService.getAbsolutePathById(attachment.getId());
-        return switch (attachment.getType()) {
+        AttachFile file = attachService.getPath(attachment.getId());
+        Path path = file.path();
+        // 类型只认数据库里的判定结果，不信任调用方传入的值
+        return switch (file.attachment().getType()) {
             case IMAGE -> ocrService.parseImage(path);
             case PDF -> {
                 String[] texts = FileUtil.extractPDFText(path);
@@ -47,9 +50,9 @@ public class AttachContentService {
     }
 
     public List<List<String>> grid(AttachDTO attachment) {
-        Path path = attachService.getAbsolutePathById(attachment.getId());
-        if (attachment.getType() == AttachType.EXCEL) {
-            return OfficeFileUtil.parseExcel(path);
+        AttachFile file = attachService.getPath(attachment.getId());
+        if (file.attachment().getType() == AttachType.EXCEL) {
+            return OfficeFileUtil.parseExcel(file.path());
         }
         throw new BizException("不支持解析为表格的附件类型");
     }

@@ -170,7 +170,8 @@
 import { computed, ref } from 'vue'
 import { ServiceBillState, type ServiceBillStateValue } from '@/service-bill/model/ServiceBill'
 import { ReimburseState, type ReimburseStateValue } from '@/reimburse/model/Reimburse'
-import { StatisticApi } from '../api/StatisticApi'
+import ServiceBillApi from '@/service-bill/api/ServiceBillApi'
+import ReimburseApi from '@/reimburse/api/ReimburseApi'
 import { useRouter } from 'vue-router'
 import { mdiCash, mdiCurrencyUsd, mdiMonitorDashboard, mdiReceipt } from '@mdi/js'
 import { useUserStore } from '@/user/store/UserStore'
@@ -241,19 +242,19 @@ async function reimburseStateClick(state: ReimburseStateValue) {
 // 初始化
 async function init() {
   if (canBillStatistic) {
-    StatisticApi.countBillsByState().then((res) => {
-      countByState.value = res
+    ServiceBillApi.countByState().then((res) => {
+      if (res) countByState.value = res
     })
-    StatisticApi.sumTotalAmountByMonth().then((res) => {
-      amountGroupByMonth.value = res
+    ServiceBillApi.sumTotalAmountByMonth().then((res) => {
+      if (res) amountGroupByMonth.value = res
     })
   }
   if (canReimburseStatistic) {
-    StatisticApi.countReimbursesByState().then((res) => {
-      reimburseCountByState.value = res
+    ReimburseApi.countByState().then((res) => {
+      if (res) reimburseCountByState.value = res
     })
-    StatisticApi.sumReimburseTotalAmountByMonth().then((res) => {
-      reimburseAmountGroupByMonth.value = res
+    ReimburseApi.sumTotalAmountByMonth().then((res) => {
+      if (res) reimburseAmountGroupByMonth.value = res
     })
   }
 }

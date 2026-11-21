@@ -7,6 +7,7 @@ import org.springframework.core.io.FileSystemResource;
 import pers.eastwind.billmanager.attach.model.Attach;
 import pers.eastwind.billmanager.attach.model.AttachDTO;
 import pers.eastwind.billmanager.attach.model.AttachStatus;
+import pers.eastwind.billmanager.attach.repository.AttachRepository;
 import pers.eastwind.billmanager.attach.service.AttachService;
 import pers.eastwind.billmanager.common.BaseServiceTest;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
@@ -41,6 +42,9 @@ class ServiceBillAttachServiceTest extends BaseServiceTest {
     @Autowired
     private AttachService attachService;
 
+    @Autowired
+    private AttachRepository attachRepository;
+
     /**
      * 上传一个附件
      */
@@ -74,15 +78,19 @@ class ServiceBillAttachServiceTest extends BaseServiceTest {
         return bill;
     }
 
+    private String relativePath(AttachDTO attachment) {
+        return attachRepository.findById(attachment.getId()).orElseThrow().getRelativePath();
+    }
+
     @Test
     @DisplayName("上传即落库，key 为 namespace 下的唯一标识")
     void shouldPersistAttachmentOnUpload() throws IOException {
         AttachDTO uploaded = uploadAttachment();
 
-        assertEquals(AttachStatus.TRANSIENT, attachService.getStatus(uploaded.getId()));
+        assertEquals(AttachStatus.TRANSIENT, uploaded.getStatus());
         assertTrue(
-                attachService.getRelativePath(uploaded.getId()).startsWith(ServiceBillAttachService.ATTACH_NAMESPACE + "/"),
-                "附件 key 应位于自身命名空间下: " + attachService.getRelativePath(uploaded.getId())
+                relativePath(uploaded).startsWith(ServiceBillAttachService.ATTACH_NAMESPACE + "/"),
+                "附件 key 应位于自身命名空间下: " + relativePath(uploaded)
         );
     }
 
@@ -110,7 +118,7 @@ class ServiceBillAttachServiceTest extends BaseServiceTest {
 
         assertTrue(updated.getAttachments().isEmpty());
         assertTrue(serviceBillAttachService.findAttachments(created.getId()).isEmpty());
-        assertFalse(attachService.exists(attachId));
+        assertFalse(attachRepository.existsById(attachId));
     }
 
     @Test
@@ -145,6 +153,6 @@ class ServiceBillAttachServiceTest extends BaseServiceTest {
         // 用未来截止时间触发回收，避免直接改库伪造创建时间
         attachService.cleanTransientFiles(Instant.now().plus(1, ChronoUnit.DAYS));
 
-        assertFalse(attachService.exists(uploaded.getId()));
+        assertFalse(attachRepository.existsById(uploaded.getId()));
     }
 }

@@ -19,7 +19,11 @@ public class ServiceBillDTO {
     private ServiceBillType type = ServiceBillType.INSTALL;
     private ServiceBillState state = ServiceBillState.CREATED;
     private CompanyDTO productCompany;
+    @NotBlank(message = "项目名称不能为空")
+    @Size(max = 128, message = "项目名称不能超过 128 个字符")
     private String projectName;
+    @NotBlank(message = "项目地址不能为空")
+    @Size(max = 255, message = "项目地址不能超过 255 个字符")
     private String projectAddress;
     private String projectContact;
     private String projectContactPhone;

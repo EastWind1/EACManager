@@ -17,6 +17,7 @@ func Setup(base *core.App, sec *security.Module) *Service {
 		api.Get("/initialization", userController.InitializationStatus)
 		api.Post("/initialization", userController.Initialize)
 		api.Put("/logout", userController.Logout)
+		api.Get("/me", userController.Me)
 		api.Get("/", sec.Middleware(QueryAuthCode), userController.GetAll)
 		api.Post("/", sec.Middleware(CreateAuthCode), userController.Create)
 		api.Put("/", sec.Middleware(UpdateAuthCode), userController.Update)

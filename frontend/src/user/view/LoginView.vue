@@ -34,7 +34,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/common/store/UIStore'
 import { useUserStore } from '../store/UserStore'
-import Crypto from '@/common/util/Crypto'
 import { useHotkey } from 'vuetify/framework'
 
 const store = useUIStore()
@@ -61,10 +60,7 @@ async function login() {
   if (!valid.value) {
     return
   }
-  const user = await UserApi.login(
-    username.value,
-    await Crypto.SHA256(password.value, username.value),
-  )
+  const user = await UserApi.login(username.value, password.value)
   setUser(user)
   success('登录成功')
   if (route.query.redirect) {

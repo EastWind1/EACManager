@@ -12,6 +12,11 @@ import java.util.List;
 @Data
 public class QueryParam {
     /**
+     * 单页最大条数，超出时按上限裁剪
+     */
+    public static final int MAX_PAGE_SIZE = 200;
+
+    /**
      * 页面大小，为空或至少为 1
      */
     private Integer pageSize;
@@ -46,7 +51,13 @@ public class QueryParam {
             if (pageSize == null || pageIndex == null) {
                 throw new BizException("分页参数不能只有一个为空");
             }
-            return PageRequest.of(pageIndex, pageSize, sort);
+            if (pageSize < 1) {
+                throw new BizException("分页大小必须大于 0");
+            }
+            if (pageIndex < 0) {
+                throw new BizException("页码不能小于 0");
+            }
+            return PageRequest.of(pageIndex, Math.min(pageSize, MAX_PAGE_SIZE), sort);
         }
     }
 

@@ -1,7 +1,9 @@
-package pers.eastwind.billmanager.attach.util;
+package pers.eastwind.billmanager.attach.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.file.PathUtils;
+import org.springframework.stereotype.Service;
+import pers.eastwind.billmanager.attach.config.AttachPaths;
 import pers.eastwind.billmanager.attach.model.FileOp;
 import pers.eastwind.billmanager.attach.model.FileOpType;
 import pers.eastwind.billmanager.common.exception.FileOpException;
@@ -13,9 +15,19 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 文件事务：一组文件操作要么全部完成，要么回滚已完成的部分。
+ */
 @Slf4j
-public class FileTxUtil {
-    private static void validTarget(Path path, boolean exists) {
+@Service
+public class FileTxService {
+    private final AttachPaths paths;
+
+    public FileTxService(AttachPaths paths) {
+        this.paths = paths;
+    }
+
+    private void validTarget(Path path, boolean exists) {
         if (path == null) {
             throw new FileOpException("目标不能为空");
         }
@@ -23,14 +35,12 @@ public class FileTxUtil {
             if (!Files.exists(path)) {
                 throw new FileOpException("目标不存在: " + path);
             }
-        } else {
-            if (Files.exists(path)) {
-                throw new FileOpException("目标已存在: " + path);
-            }
+        } else if (Files.exists(path)) {
+            throw new FileOpException("目标已存在: " + path);
         }
     }
 
-    private static void validOrigin(Path path) {
+    private void validOrigin(Path path) {
         if (path == null) {
             throw new FileOpException("源不能为空");
         }
@@ -42,8 +52,10 @@ public class FileTxUtil {
         }
     }
 
-    public static void exec(List<FileOp> ops) {
+    public void exec(List<FileOp> ops) {
         List<FileOp> executedOps = new ArrayList<>();
+        // 软删除时暂存到附件临时目录，事务提交成功后立即删除，避免堆积
+        List<Path> softDeleted = new ArrayList<>();
         try {
             for (FileOp op : ops) {
                 switch (op.type()) {
@@ -69,12 +81,12 @@ public class FileTxUtil {
                     }
                     case DELETE -> {
                         validTarget(op.target(), true);
-                        // 软删除
+                        // 软删除：先移到临时目录，提交成功后立即删除
                         Path fileName = op.target().getFileName();
-                        Path temp = Files.createTempFile(fileName.toString(), null);
-                        temp.toFile().deleteOnExit();
+                        Path temp = Files.createTempFile(paths.temp(), fileName.toString(), null);
                         Files.move(op.target(), temp, StandardCopyOption.REPLACE_EXISTING);
                         executedOps.add(new FileOp(FileOpType.MOVE, op.target(), temp));
+                        softDeleted.add(temp);
                     }
                     default -> throw new FileOpException("不支持的操作: " + op.type());
                 }
@@ -83,10 +95,17 @@ public class FileTxUtil {
             rollback(executedOps);
             throw new FileOpException("文件事务执行失败", e);
         }
+        for (Path temp : softDeleted) {
+            try {
+                Files.deleteIfExists(temp);
+            } catch (IOException e) {
+                log.warn("删除软删除临时文件失败: {}", temp, e);
+            }
+        }
         log.debug("文件事务提交: {} 个操作", executedOps.size());
     }
 
-    private static void rollback(List<FileOp> executedOps) {
+    private void rollback(List<FileOp> executedOps) {
         List<Throwable> rollbackErrors = new ArrayList<>();
         // 倒序回滚
         for (int i = executedOps.size() - 1; i >= 0; i--) {
@@ -105,7 +124,6 @@ public class FileTxUtil {
                     } catch (Exception e) {
                         rollbackErrors.add(e);
                     }
-
                 }
                 default -> rollbackErrors.add(new FileOpException("不支持的回滚操作: " + op.type()));
             }

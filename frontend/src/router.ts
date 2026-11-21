@@ -88,11 +88,15 @@ const router = createRouter({
 })
 
 // 动作权限路由守卫
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const userStore = useUserStore()
   // 未登录时交给父路由的 beforeEnter 跳转登录页
   if (!userStore.getUser()) {
     return
+  }
+  // 首次导航时刷新权限。
+  if (!(await userStore.ensurePermissionsFresh())) {
+    return { path: '/login' }
   }
   const required = to.meta.permissions as string[] | undefined
   if (required?.length && !userStore.hasAnyPermission(required)) {

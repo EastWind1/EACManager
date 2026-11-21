@@ -10,5 +10,5 @@ import java.util.List;
 public interface CompanyRepository extends BaseRepository<Company> {
     Page<Company> findByDisabled(boolean disabled, Pageable pageable);
 
-    List<Company> findByNameContains(String name);
+    List<Company> findByDisabledFalseAndNameContains(String name);
 }

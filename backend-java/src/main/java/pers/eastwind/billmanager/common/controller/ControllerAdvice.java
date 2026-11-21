@@ -8,6 +8,8 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -84,6 +86,26 @@ public class ControllerAdvice implements ResponseBodyAdvice<Object> {
                 .map(violation -> violation.getMessage())
                 .orElse("参数校验失败");
         return Result.error(message);
+    }
+
+    /**
+     * 唯一约束冲突。
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Object> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("唯一约束冲突: {}", e.getMostSpecificCause().getMessage());
+        return Result.error("数据已存在或违反唯一约束");
+    }
+
+    /**
+     * 非法的排序字段。
+     */
+    @ExceptionHandler(PropertyReferenceException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Object> handlePropertyReference(PropertyReferenceException e) {
+        log.warn("非法的排序字段: {}", e.getPropertyName());
+        return Result.error("排序字段不合法: " + e.getPropertyName());
     }
 
     @ExceptionHandler(BizException.class)

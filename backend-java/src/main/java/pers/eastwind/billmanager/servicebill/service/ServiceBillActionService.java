@@ -232,23 +232,18 @@ public class ServiceBillActionService {
         }
         bill.setState(originState);
         // 公司关联单独处理, 直接使用 MapStruct 会因为代理对象 ID 变化触发关联变更（即使未设置 Cascade）
-        if (
-                serviceBillDTO.getProductCompany() != null &&
-                        serviceBillDTO.getProductCompany().getId() != null &&
-                        (bill.getProductCompany() == null ||
-                                !Objects.equals(
-                                        bill.getProductCompany().getId(),
-                                        serviceBillDTO.getProductCompany().getId()
-                                ))
-        ) {
-            Integer companyId = serviceBillDTO.getProductCompany().getId();
+        Integer companyId = serviceBillDTO.getProductCompany() == null
+                ? null
+                : serviceBillDTO.getProductCompany().getId();
+        if (companyId == null) {
+            bill.setProductCompany(null);
+        } else if (bill.getProductCompany() == null
+                || !Objects.equals(bill.getProductCompany().getId(), companyId)) {
             Company targetCompany = companyService.findEntityById(companyId);
             if (targetCompany == null) {
                 throw new BizException("公司不存在");
             }
             bill.setProductCompany(targetCompany);
-        } else {
-            bill.setProductCompany(null);
         }
         validateAmount(bill);
         bill = serviceBillRepository.save(bill);

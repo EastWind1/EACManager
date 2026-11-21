@@ -481,8 +481,11 @@ async function companySelect() {
   if (companyData.value.loaded) {
     return
   }
-  companyData.value.data = await CompanyApi.getAll({}).then((res) => res.items)
-  companyData.value.loaded = true
+  const res = await CompanyApi.getAll({})
+  if (res) {
+    companyData.value.data = res.items
+    companyData.value.loaded = true
+  }
 }
 
 /**

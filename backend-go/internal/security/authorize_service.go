@@ -173,6 +173,27 @@ func (s *AuthorizeService) UserPermissions(ctx context.Context, userID uint) ([]
 	return resolvePermissions(codes, permissionDTOMap(permissions)), nil
 }
 
+// UserPermissionsByUserIDs 批量返回用户权限。
+func (s *AuthorizeService) UserPermissionsByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]PermissionDTO, error) {
+	res := make(map[uint][]PermissionDTO, len(userIDs))
+	if len(userIDs) == 0 {
+		return res, nil
+	}
+	codesByUser, err := s.repo.FindPermissionCodesByUserIDs(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	permissions, err := s.Permissions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	byCode := permissionDTOMap(permissions)
+	for _, id := range userIDs {
+		res[id] = resolvePermissions(codesByUser[id], byCode)
+	}
+	return res, nil
+}
+
 // SetUserRoles 整体替换用户的角色，返回写入后的角色列表。
 func (s *AuthorizeService) SetUserRoles(ctx context.Context, userID uint, roleCodes []string) ([]RoleDTO, error) {
 	uniqueCodes := unique(roleCodes)

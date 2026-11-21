@@ -3,6 +3,7 @@ package reimburse
 import (
 	"backend-go/internal/attach"
 	"backend-go/pkg/errs"
+	"context"
 )
 
 // Mapper 仅支持标准税务发票（文本），规则由本模块自己持有。
@@ -18,11 +19,11 @@ func newMapper(content *attach.ContentService) *Mapper {
 	}
 }
 
-func (m *Mapper) Map(attachment *attach.DTO) (*DTO, error) {
+func (m *Mapper) Map(ctx context.Context, attachment *attach.DTO) (*DTO, error) {
 	if attachment == nil {
 		return nil, errs.NewBizError("附件为空")
 	}
-	texts, err := m.content.Texts(attachment)
+	texts, err := m.content.Texts(ctx, attachment)
 	if err != nil {
 		return nil, err
 	}

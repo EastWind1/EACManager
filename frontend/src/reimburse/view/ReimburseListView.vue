@@ -352,12 +352,9 @@ async function loadItems(options: {
     direction: item.order === true || item.order === 'asc' ? 'ASC' : 'DESC',
   }))
   selectedIds.value = []
-  data.value = (await ReimburseApi.getByQueryParam(param)) ?? {
-    items: [],
-    totalCount: 0,
-    totalPages: 0,
-    pageSize: 0,
-    pageIndex: 0,
+  const res = await ReimburseApi.getByQueryParam(param)
+  if (res) {
+    data.value = res
   }
 }
 

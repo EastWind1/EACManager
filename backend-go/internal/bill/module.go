@@ -21,7 +21,7 @@ func Setup(base *core.App, companySrv *company.Service, attachMod *attach.Module
 	serviceBillRepo := newRepository(base.DB)
 	relSrv := newAttachRelService(base.DB, attachMod.Service)
 	querySrv := newQueryService(serviceBillRepo, relSrv, userSrv, sec.Authorize)
-	srv := newService(base.Cache, serviceBillRepo, attachMod.Service, relSrv, newServiceBillMapper(attachMod.Content, companySrv), querySrv, userSrv)
+	srv := newService(base.Cache, serviceBillRepo, attachMod.Service, relSrv, newServiceBillMapper(attachMod.Content, companySrv), querySrv, userSrv, companySrv)
 	statisticSrv := newStatisticService(base.Cache, serviceBillRepo, querySrv)
 	serviceBillController := newController(srv, querySrv)
 	statisticController := newStatisticController(statisticSrv)

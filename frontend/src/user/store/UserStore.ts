@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { User } from '../model/User'
+import UserApi from '../api/UserApi'
 
 /**
  * 用户存储
@@ -27,12 +28,18 @@ export const useUserStore = defineStore('userStore', () => {
     }
   }
 
+  // 当前登录会话是否已刷新权限。
+  let permissionsRefreshed = false
+  // 进行中的刷新请求。
+  let refreshing: Promise<boolean> | undefined
+
   /**
    * 设置当前用户
    */
   function setUser(value: User) {
     localStorage.setItem(USER_KEY, JSON.stringify(value))
     user.value = value
+    permissionsRefreshed = true
   }
 
   /**
@@ -48,6 +55,40 @@ export const useUserStore = defineStore('userStore', () => {
   function removeUser() {
     user.value = undefined
     localStorage.removeItem(USER_KEY)
+    permissionsRefreshed = false
+    refreshing = undefined
+  }
+
+  /**
+   * 每个登录会话首次进入时刷新权限。
+   * @returns false 表示登录态已失效，调用方应跳转登录页
+   */
+  async function ensurePermissionsFresh(): Promise<boolean> {
+    if (!user.value || permissionsRefreshed) {
+      return true
+    }
+    if (!refreshing) {
+      refreshing = (async () => {
+        try {
+          const fresh = await UserApi.getCurrent()
+          if (!user.value) {
+            return false
+          }
+          setUser(fresh)
+          return true
+        } catch (error) {
+          if ((error as { response?: { status?: number } })?.response?.status === 401) {
+            removeUser()
+            return false
+          }
+          permissionsRefreshed = true
+          return true
+        } finally {
+          refreshing = undefined
+        }
+      })()
+    }
+    return await refreshing
   }
 
   /**
@@ -68,6 +109,7 @@ export const useUserStore = defineStore('userStore', () => {
     setUser,
     getUser,
     removeUser,
+    ensurePermissionsFresh,
     hasPermission,
     hasAnyPermission,
   }

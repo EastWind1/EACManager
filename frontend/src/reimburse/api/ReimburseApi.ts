@@ -1,9 +1,10 @@
 import type { PageResult } from '@/common/model/PageResult'
 import type { ActionsResult } from '@/common/model/ActionsResult'
-import type { Reimburse, ReimburseQueryParam } from '../model/Reimburse'
+import type { Reimburse, ReimburseQueryParam, ReimburseStateValue } from '../model/Reimburse'
 import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/reimburse')
+const debouncedRequest = http.debounce(http.request)
 
 /**
  * 报销单 API
@@ -14,7 +15,11 @@ const ReimburseApi = {
    * @param queryParam 查询参数
    */
   async getByQueryParam(queryParam: ReimburseQueryParam) {
-    return await http.post<PageResult<Reimburse>>(`/query`, queryParam)
+    return await debouncedRequest<PageResult<Reimburse>>({
+      method: 'POST',
+      url: `/query`,
+      data: queryParam,
+    })
   },
 
   /**
@@ -22,7 +27,7 @@ const ReimburseApi = {
    * @param id 单据 ID
    */
   async getById(id: number) {
-    return await http.get<Reimburse>(`/${id}`)
+    return await http.request<Reimburse>({ method: 'GET', url: `/${id}` })
   },
 
   /**
@@ -31,7 +36,7 @@ const ReimburseApi = {
   async import(file: File) {
     const formData = new FormData()
     formData.append('file', file)
-    return await http.postForm<Reimburse>(`/import`, formData)
+    return await http.request<Reimburse>({ method: 'POST', url: `/import`, data: formData })
   },
 
   /**
@@ -39,7 +44,7 @@ const ReimburseApi = {
    * @param reimbursement 单据
    */
   async create(reimbursement: Reimburse) {
-    return await http.post<Reimburse>('', reimbursement)
+    return await http.request<Reimburse>({ method: 'POST', url: '', data: reimbursement })
   },
 
   /**
@@ -47,7 +52,7 @@ const ReimburseApi = {
    * @param reimbursement 单据
    */
   async save(reimbursement: Reimburse) {
-    return await http.put<Reimburse>('', reimbursement)
+    return await http.request<Reimburse>({ method: 'PUT', url: '', data: reimbursement })
   },
 
   /**
@@ -55,7 +60,11 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async delete(ids: number[]) {
-    return await http.delete<ActionsResult<number, void>>('', { data: ids })
+    return await http.request<ActionsResult<number, void>>({
+      method: 'DELETE',
+      url: '',
+      data: ids,
+    })
   },
 
   /**
@@ -63,7 +72,11 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async process(ids: number[]) {
-    return await http.put<ActionsResult<number, void>>(`/process`, ids)
+    return await http.request<ActionsResult<number, void>>({
+      method: 'PUT',
+      url: `/process`,
+      data: ids,
+    })
   },
 
   /**
@@ -71,7 +84,11 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async finish(ids: number[]) {
-    return await http.put<ActionsResult<number, void>>(`/finish`, ids)
+    return await http.request<ActionsResult<number, void>>({
+      method: 'PUT',
+      url: `/finish`,
+      data: ids,
+    })
   },
 
   /**
@@ -79,7 +96,11 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async cancelProcess(ids: number[]) {
-    return await http.put<ActionsResult<number, void>>(`/cancel-process`, ids)
+    return await http.request<ActionsResult<number, void>>({
+      method: 'PUT',
+      url: `/cancel-process`,
+      data: ids,
+    })
   },
 
   /**
@@ -87,7 +108,11 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async cancelFinish(ids: number[]) {
-    return await http.put<ActionsResult<number, void>>(`/cancel-finish`, ids)
+    return await http.request<ActionsResult<number, void>>({
+      method: 'PUT',
+      url: `/cancel-finish`,
+      data: ids,
+    })
   },
 
   /**
@@ -95,9 +120,32 @@ const ReimburseApi = {
    * @param ids 单据 ID 列表
    */
   async export(ids: number[], onProgress?: (e: { loaded?: number; total?: number }) => void) {
-    return await http.post<Blob>(`/export`, ids, {
+    return await http.request<Blob>({
+      method: 'POST',
+      url: `/export`,
+      data: ids,
       responseType: 'blob',
       onDownloadProgress: onProgress,
+    })
+  },
+
+  /**
+   * 按状态统计报销单数量
+   */
+  async countByState() {
+    return await debouncedRequest<{ [key in ReimburseStateValue]?: number }>({
+      method: 'GET',
+      url: `/countByState`,
+    })
+  },
+
+  /**
+   * 按月统计报销单金额
+   */
+  async sumTotalAmountByMonth() {
+    return await debouncedRequest<{ month: string; amount: number }[]>({
+      method: 'GET',
+      url: `/totalAmountGroupByMonth`,
     })
   },
 }

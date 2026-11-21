@@ -7,6 +7,7 @@ import org.springframework.core.io.FileSystemResource;
 import pers.eastwind.billmanager.attach.model.Attach;
 import pers.eastwind.billmanager.attach.model.AttachDTO;
 import pers.eastwind.billmanager.attach.model.AttachStatus;
+import pers.eastwind.billmanager.attach.repository.AttachRepository;
 import pers.eastwind.billmanager.attach.service.AttachService;
 import pers.eastwind.billmanager.common.BaseServiceTest;
 import pers.eastwind.billmanager.reimburse.model.ReimburseDetailDTO;
@@ -32,13 +33,19 @@ import static org.junit.jupiter.api.Assertions.*;
 class ReimburseAttachServiceTest extends BaseServiceTest {
 
     @Autowired
-    private ReimburseService reimburseService;
+    private ReimburseQueryService queryService;
+
+    @Autowired
+    private ReimburseActionService actionService;
 
     @Autowired
     private ReimburseAttachService reimburseAttachService;
 
     @Autowired
     private AttachService attachService;
+
+    @Autowired
+    private AttachRepository attachRepository;
 
     /**
      * 上传一个附件
@@ -69,22 +76,26 @@ class ReimburseAttachServiceTest extends BaseServiceTest {
         return dto;
     }
 
+    private String relativePath(AttachDTO attachment) {
+        return attachRepository.findById(attachment.getId()).orElseThrow().getRelativePath();
+    }
+
     @Test
     @DisplayName("上传即落库，key 为 namespace 下的唯一标识")
     void shouldPersistAttachmentOnUpload() throws IOException {
         AttachDTO uploaded = uploadAttachment();
 
-        assertEquals(AttachStatus.TRANSIENT, attachService.getStatus(uploaded.getId()));
+        assertEquals(AttachStatus.TRANSIENT, uploaded.getStatus());
         assertTrue(
-                attachService.getRelativePath(uploaded.getId()).startsWith(ReimburseAttachService.ATTACH_NAMESPACE + "/"),
-                "附件 key 应位于自身命名空间下: " + attachService.getRelativePath(uploaded.getId())
+                relativePath(uploaded).startsWith(ReimburseAttachService.ATTACH_NAMESPACE + "/"),
+                "附件 key 应位于自身命名空间下: " + relativePath(uploaded)
         );
     }
 
     @Test
     @DisplayName("新增报销单附件时提交附件并建立关联")
     void shouldCreateRelationWhenAttachAdded() throws IOException {
-        ReimburseDTO created = reimburseService.create(createTestReimbursement(uploadAttachment()));
+        ReimburseDTO created = actionService.create(createTestReimbursement(uploadAttachment()));
 
         assertEquals(1, created.getAttachments().size());
         List<Attach> attachments = reimburseAttachService.findAttachments(created.getId());
@@ -96,25 +107,25 @@ class ReimburseAttachServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("移除报销单附件时清理关联与附件")
     void shouldDeleteRelationWhenAttachRemoved() throws IOException {
-        ReimburseDTO created = reimburseService.create(createTestReimbursement(uploadAttachment()));
+        ReimburseDTO created = actionService.create(createTestReimbursement(uploadAttachment()));
         Integer attachId = created.getAttachments().getFirst().getId();
         assertEquals(1, reimburseAttachService.findAttachments(created.getId()).size());
 
         created.setAttachments(new ArrayList<>());
-        ReimburseDTO updated = reimburseService.update(created);
+        ReimburseDTO updated = actionService.update(created);
 
         assertTrue(updated.getAttachments().isEmpty());
         assertTrue(reimburseAttachService.findAttachments(created.getId()).isEmpty());
-        assertFalse(attachService.exists(attachId));
+        assertFalse(attachRepository.existsById(attachId));
     }
 
     @Test
     @DisplayName("删除报销单时清理关联记录")
     void shouldDeleteRelationWhenBillDeleted() throws IOException {
-        ReimburseDTO created = reimburseService.create(createTestReimbursement(uploadAttachment()));
+        ReimburseDTO created = actionService.create(createTestReimbursement(uploadAttachment()));
         assertEquals(1, reimburseAttachService.findAttachments(created.getId()).size());
 
-        reimburseService.delete(List.of(created.getId()));
+        actionService.delete(List.of(created.getId()));
 
         assertTrue(reimburseAttachService.findAttachments(created.getId()).isEmpty());
     }
@@ -122,12 +133,12 @@ class ReimburseAttachServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("已提交的附件不能被另一张单据复用")
     void shouldRejectCommittedAttachmentReuse() throws IOException {
-        ReimburseDTO created = reimburseService.create(createTestReimbursement(uploadAttachment()));
+        ReimburseDTO created = actionService.create(createTestReimbursement(uploadAttachment()));
         AttachDTO committed = created.getAttachments().getFirst();
 
         RuntimeException error = assertThrows(
                 RuntimeException.class,
-                () -> reimburseService.create(createTestReimbursement(committed))
+                () -> actionService.create(createTestReimbursement(committed))
         );
         assertTrue(error.getMessage().contains("附件不存在或已被提交"), error.getMessage());
     }
@@ -140,6 +151,6 @@ class ReimburseAttachServiceTest extends BaseServiceTest {
         // 用未来截止时间触发回收，避免直接改库伪造创建时间
         attachService.cleanTransientFiles(Instant.now().plus(1, ChronoUnit.DAYS));
 
-        assertFalse(attachService.exists(uploaded.getId()));
+        assertFalse(attachRepository.existsById(uploaded.getId()));
     }
 }

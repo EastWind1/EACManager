@@ -28,7 +28,6 @@ type LogConfig struct {
 
 type ServerConfig struct {
 	Port int
-	Mode string
 }
 
 type DatabaseConfig struct {
@@ -97,8 +96,8 @@ func NewConfig() *Config {
 	if config.JWT == nil || len(config.JWT.Secret) < 32 {
 		log.Fatalf("jwt.secret 未配置或不足 32 字节：请通过 JWT_SECRET 环境变量注入")
 	}
-	log.Infof("配置: server.port=%d server.mode=%s log.level=%s db.host=%s db.name=%s jwt.expire=%ds attachment.path=%s",
-		config.Server.Port, config.Server.Mode, config.Log.Level,
+	log.Infof("配置: server.port=%d log.level=%s db.host=%s db.name=%s jwt.expire=%ds attachment.path=%s",
+		config.Server.Port, config.Log.Level,
 		config.Db.Host, config.Db.Name, config.JWT.Expire, config.Attach.Path)
 
 	return config

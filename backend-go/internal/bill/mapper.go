@@ -4,6 +4,7 @@ import (
 	"backend-go/internal/attach"
 	"backend-go/internal/company"
 	"backend-go/pkg/errs"
+	"context"
 )
 
 /*
@@ -34,18 +35,18 @@ func newServiceBillMapper(content *attach.ContentService, companySvc *company.Se
 	}
 }
 
-func (m *Mapper) Map(attachment *attach.DTO) (*DTO, error) {
+func (m *Mapper) Map(ctx context.Context, attachment *attach.DTO) (*DTO, error) {
 	if attachment == nil {
 		return nil, errs.NewBizError("附件为空")
 	}
 	if attachment.Type == attach.Excel {
-		rows, err := m.content.Grid(attachment)
+		rows, err := m.content.Grid(ctx, attachment)
 		if err != nil {
 			return nil, err
 		}
 		return m.fromGrid(rows)
 	}
-	texts, err := m.content.Texts(attachment)
+	texts, err := m.content.Texts(ctx, attachment)
 	if err != nil {
 		return nil, err
 	}

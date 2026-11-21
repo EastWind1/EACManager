@@ -13,8 +13,9 @@ import pers.eastwind.billmanager.common.model.ActionsResult;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.reimburse.model.ReimburseDTO;
 import pers.eastwind.billmanager.reimburse.model.ReimburseQueryParam;
+import pers.eastwind.billmanager.reimburse.service.ReimburseActionService;
 import pers.eastwind.billmanager.reimburse.service.ReimburseIOService;
-import pers.eastwind.billmanager.reimburse.service.ReimburseService;
+import pers.eastwind.billmanager.reimburse.service.ReimburseQueryService;
 
 import java.util.List;
 
@@ -22,69 +23,73 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reimburse")
 public class ReimburseController {
-    private final ReimburseService reimburseService;
+    private final ReimburseQueryService queryService;
+    private final ReimburseActionService actionService;
     private final ReimburseIOService reimburseIOService;
 
-    public ReimburseController(ReimburseService reimburseService, ReimburseIOService reimburseIOService) {
-        this.reimburseService = reimburseService;
+    public ReimburseController(
+            ReimburseQueryService queryService,
+            ReimburseActionService actionService,
+            ReimburseIOService reimburseIOService
+    ) {
+        this.queryService = queryService;
+        this.actionService = actionService;
         this.reimburseIOService = reimburseIOService;
     }
 
     @PostMapping("/query")
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).QUERY.getCode())")
     public PageResult<ReimburseDTO> queryByParam(@RequestBody ReimburseQueryParam queryParam) {
-
-        Page<ReimburseDTO> pageResult = reimburseService.findByParam(queryParam);
+        Page<ReimburseDTO> pageResult = queryService.findByParam(queryParam);
         return PageResult.fromPage(pageResult);
-
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).DETAIL.getCode())")
     @GetMapping("/{id}")
     public ReimburseDTO getById(@PathVariable Integer id) {
-        return reimburseService.findById(id);
+        return queryService.findFullById(id);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).CREATE.getCode())")
     @PostMapping
     public ReimburseDTO create(@Valid @RequestBody ReimburseDTO reimburseDTO) {
-        return reimburseService.create(reimburseDTO);
+        return actionService.create(reimburseDTO);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).UPDATE.getCode())")
     @PutMapping
     public ReimburseDTO save(@Valid @RequestBody ReimburseDTO reimburseDTO) {
-        return reimburseService.update(reimburseDTO);
+        return actionService.update(reimburseDTO);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).DELETE.getCode())")
     @DeleteMapping
     public ActionsResult<Integer, Void> delete(@RequestBody List<Integer> ids) {
-        return reimburseService.delete(ids);
+        return actionService.delete(ids);
     }
 
     @PutMapping("/process")
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).PROCESS.getCode())")
     public ActionsResult<Integer, Void> process(@RequestBody List<Integer> ids) {
-        return reimburseService.process(ids);
+        return actionService.process(ids);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).FINISH.getCode())")
     @PutMapping("/finish")
     public ActionsResult<Integer, Void> finish(@RequestBody List<Integer> ids) {
-        return reimburseService.finish(ids);
+        return actionService.finish(ids);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).CANCEL_PROCESS.getCode())")
     @PutMapping("/cancel-process")
     public ActionsResult<Integer, Void> cancelProcess(@RequestBody List<Integer> ids) {
-        return reimburseService.cancelProcess(ids);
+        return actionService.cancelProcess(ids);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).CANCEL_FINISH.getCode())")
     @PutMapping("/cancel-finish")
     public ActionsResult<Integer, Void> cancelFinish(@RequestBody List<Integer> ids) {
-        return reimburseService.cancelFinish(ids);
+        return actionService.cancelFinish(ids);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.reimburse.permission.ReimbursePermission).IMPORT.getCode())")

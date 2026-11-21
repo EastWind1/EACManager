@@ -178,7 +178,8 @@ func (r *Repository) Updates(ctx context.Context, entity *ServiceBill) error {
 	affected, err := gorm.G[*ServiceBill](r.Ctx(ctx)).Select(
 		"number", "type", "state", "total_amount", "project_name", "project_address",
 		"project_contact", "project_contact_phone", "on_site_contact", "on_site_phone",
-		"elevator_info", "order_date", "processed_date", "finished_date", "remark").
+		"elevator_info", "order_date", "processed_date", "finished_date", "remark",
+		"product_company_id").
 		Where("id = ?", entity.ID).Updates(ctx, entity)
 	if err != nil {
 		if database.IsDuplicateKey(err) {

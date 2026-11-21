@@ -117,7 +117,6 @@ import UserApi from '../api/UserApi'
 import SecurityApi from '@/permission/api/SecurityApi'
 import type {Role} from '@/permission/model/Permission'
 import {useUIStore} from '@/common/store/UIStore'
-import Crypto from '@/common/util/Crypto'
 import type {PageResult} from '@/common/model/PageResult'
 
 // 表头
@@ -200,10 +199,13 @@ async function loadItems(options: {
   itemsPerPage: number
   sortBy: { key: string; order: 'asc' | 'desc' | boolean }[]
 }) {
-  data.value = await UserApi.getAll({
+  const res = await UserApi.getAll({
     pageIndex: options.page - 1,
     pageSize: options.itemsPerPage,
   })
+  if (res) {
+    data.value = res
+  }
 }
 
 // 添加
@@ -235,9 +237,6 @@ async function saveUser() {
     .map((code) => roles.value.find((role) => role.code === code))
     .filter((role): role is Role => !!role)
 
-  if (postUser.password) {
-    postUser.password = await Crypto.SHA256(postUser.password, postUser.username)
-  }
   if (postUser.id) {
     if (!postUser.password && !postUser.passwordAgain) {
       delete postUser.password

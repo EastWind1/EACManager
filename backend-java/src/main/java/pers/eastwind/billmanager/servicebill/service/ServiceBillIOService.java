@@ -4,11 +4,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import pers.eastwind.billmanager.attach.model.Attach;
 import pers.eastwind.billmanager.attach.model.AttachDTO;
-import pers.eastwind.billmanager.attach.model.FileOp;
-import pers.eastwind.billmanager.attach.model.FileOpType;
 import pers.eastwind.billmanager.attach.service.AttachService;
-import pers.eastwind.billmanager.attach.util.FileTxUtil;
-import pers.eastwind.billmanager.attach.util.FileUtil;
 import pers.eastwind.billmanager.attach.util.OfficeFileUtil;
 import pers.eastwind.billmanager.attach.util.SafePath;
 import pers.eastwind.billmanager.common.exception.BizException;
@@ -16,7 +12,6 @@ import pers.eastwind.billmanager.servicebill.model.ServiceBill;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillDTO;
 
 import java.math.BigDecimal;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -54,23 +49,22 @@ public class ServiceBillIOService {
         }
         List<ServiceBill> serviceBills = queryService.findEntityByIds(ids);
         Path tempPath = attachService.createTempDir("export");
-        List<FileOp> ops = new ArrayList<>();
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("单据编号", "状态", "项目名称", "项目地址", "总额", "安装完成日期", "备注"));
         BigDecimal totalAmount = BigDecimal.ZERO;
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         for (ServiceBill serviceBill : serviceBills) {
             rows.add(List.of(
-                    serviceBill.getNumber(),
-                    serviceBill.getState().getLabel(),
-                    serviceBill.getProjectName(),
-                    serviceBill.getProjectAddress(),
-                    serviceBill.getTotalAmount().toString(),
+                    text(serviceBill.getNumber()),
+                    serviceBill.getState() == null ? "" : serviceBill.getState().getLabel(),
+                    text(serviceBill.getProjectName()),
+                    text(serviceBill.getProjectAddress()),
+                    amountText(serviceBill.getTotalAmount()),
                     serviceBill.getProcessedDate() == null ? ""
                             : dateTimeFormatter.format(serviceBill.getProcessedDate().atZone(ZoneId.systemDefault())),
                     serviceBill.getDetails().stream().map((detail) ->
-                                    detail.getDevice() + " : " + detail.getUnitPrice().stripTrailingZeros().toPlainString()
-                                            + " * " + detail.getQuantity().stripTrailingZeros().toPlainString() + " ; ")
+                                    text(detail.getDevice()) + " : " + amountText(detail.getUnitPrice())
+                                            + " * " + amountText(detail.getQuantity()) + " ; ")
                             .collect(Collectors.joining())
             ));
             totalAmount = totalAmount.add(serviceBill.getTotalAmount());
@@ -79,25 +73,23 @@ public class ServiceBillIOService {
             SafePath curDir = temp.resolve(serviceBill.getNumber());
 
             List<Attach> attachments = serviceBillAttachService.findAttachments(serviceBill.getId());
-            for (Attach attachment : attachments) {
-                Path origin = attachService.getAbsolutePathByRela(attachment.getRelativePath());
-                Path target = curDir.resolve(attachment.getName()).toPath();
-                // 处理可能的重名
-                int repeatCount = 1;
-                while (Files.exists(target)) {
-                    target = curDir.resolve(repeatCount + "-" + attachment.getName()).toPath();
-                    repeatCount++;
-                }
-                ops.add(new FileOp(FileOpType.COPY, origin, target));
-            }
+            attachService.copyTo(
+                    attachments.stream().map(Attach::getId).toList(),
+                    curDir.toPath());
         }
         rows.add(List.of("", "", "", "合计", totalAmount.toString(), ""));
 
         Path excel = SafePath.of(tempPath).resolve("导出结果.xlsx").toPath();
         OfficeFileUtil.generateExcelFromList(rows, excel);
-        FileTxUtil.exec(ops);
-        Path zip = SafePath.of(attachService.getTempPath()).resolve(tempPath + ".zip").toPath();
-        FileUtil.zip(tempPath, zip);
-        return zip;
+        return attachService.zipDirectory(tempPath);
+    }
+
+    /** 导出的单元格不接受 null：List.of 遇到 null 会直接抛 NPE。 */
+    private static String text(Object value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private static String amountText(BigDecimal value) {
+        return value == null ? "" : value.stripTrailingZeros().toPlainString();
     }
 }

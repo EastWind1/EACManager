@@ -31,7 +31,7 @@ const AttachApi = {
       warning('文件过大，总大小超过 5MB')
       return Promise.resolve([])
     }
-    return await http.postForm<Attach[]>(`/upload`, formData)
+    return await http.request<Attach[]>({ method: 'POST', url: `/upload`, data: formData })
   },
   /**
    * 下载文件
@@ -43,7 +43,9 @@ const AttachApi = {
     attach: Attach,
     onProgress?: (e: { loaded?: number; total?: number }) => void,
   ) {
-    return await http.get<Blob>('/', {
+    return await http.request<Blob>({
+      method: 'GET',
+      url: '/',
       params: attach,
       responseType: 'blob',
       onDownloadProgress: onProgress,

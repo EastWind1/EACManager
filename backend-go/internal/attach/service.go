@@ -7,10 +7,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 	"uuid"
 
@@ -26,7 +28,8 @@ type Service struct {
 	cfg        *config.AttachConfig
 }
 
-const tempPrefix = "temp-"
+// tempDirName 与业务 namespace 隔离（namespace 不允许包含点）。
+const tempDirName = ".tmp"
 
 // transientRetention 游离附件保留时长，超过后由 CleanTransientFiles 回收
 const transientRetention = 7 * 24 * time.Hour
@@ -49,11 +52,11 @@ func newService(
 	if err := os.MkdirAll(rootPath, 0755); err != nil {
 		log.Fatalf("创建附件根目录失败: %v - %v", rootPath, err)
 	}
-	tempPath, err := os.MkdirTemp(rootPath, tempPrefix+"*")
-	if err != nil {
+	tempPath := filepath.Join(rootPath, tempDirName)
+	if err := os.MkdirAll(tempPath, 0755); err != nil {
 		log.Fatalf("创建临时目录失败: %v - %v", tempPath, err)
 	}
-	log.Infof("创建临时文件夹 %v", tempPath)
+	log.Infof("临时文件夹 %v", tempPath)
 
 	return &Service{
 		attachRepo: attachRepo,
@@ -61,6 +64,37 @@ func newService(
 		tempPath:   tempPath,
 		cfg:        cfg,
 	}
+}
+
+// cleanTempDir 回收临时目录中超过一天的文件与空目录，与 Java 端一致。
+func cleanTempDir(dir string) {
+	const retention = 24 * time.Hour
+	cutoff := time.Now().Add(-retention)
+	var dirs []string
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || path == dir {
+			return nil
+		}
+		if info.IsDir() {
+			dirs = append(dirs, path)
+			return nil
+		}
+		if info.Mode().IsRegular() && info.ModTime().Before(cutoff) {
+			DeleteQuietly(path)
+		}
+		return nil
+	})
+	// 自底向上删除空目录
+	for i := len(dirs) - 1; i >= 0; i-- {
+		if entries, err := os.ReadDir(dirs[i]); err == nil && len(entries) == 0 {
+			_ = os.Remove(dirs[i])
+		}
+	}
+}
+
+// CleanTempFiles 回收超过一天的临时文件与目录。
+func (s *Service) CleanTempFiles() {
+	cleanTempDir(s.tempPath)
 }
 
 func (s *Service) CreateTempFile(prefix string, suffix string) (string, error) {
@@ -80,56 +114,111 @@ func (s *Service) CreateTempDir(prefix string) (string, error) {
 	return dir, nil
 }
 
-func (s *Service) GetAbsolutePathById(ctx context.Context, id uint) (string, error) {
-	if id <= 0 {
-		return "", errs.NewBizError("附件 ID 不合法")
-	}
-	attachment, err := s.attachRepo.FindByID(ctx, id)
-	if err != nil {
-		return "", errs.Wrap(err)
-	}
-	if attachment == nil {
-		return "", errs.NewBizError("附件不存在")
-	}
-	return s.GetAbsolutePathByRela(attachment.RelativePath)
+// AttachFile 已完成访问校验的附件 DTO 与磁盘路径。
+type AttachFile struct {
+	Attachment *DTO
+	Path       string
 }
 
-func (s *Service) GetAbsolutePathByRela(relativePath string) (string, error) {
+// GetPaths 批量读取附件，返回 DTO 与磁盘路径。
+func (s *Service) GetPaths(ctx context.Context, ids []uint) (map[uint]AttachFile, error) {
+	unique := uniqueIDs(ids)
+	if len(unique) == 0 {
+		return map[uint]AttachFile{}, nil
+	}
+	attachments, err := s.attachRepo.FindAll(ctx, "id IN ?", unique)
+	if err != nil {
+		return nil, errs.Wrap(err)
+	}
+	if len(attachments) != len(unique) {
+		return nil, errs.NewBizError("附件不存在")
+	}
+	files := make(map[uint]AttachFile, len(attachments))
+	for i := range attachments {
+		attachment := &attachments[i]
+		if err = assertCanAccess(ctx, attachment); err != nil {
+			return nil, err
+		}
+		path, err := s.getAbsolutePathByRela(attachment.RelativePath)
+		if err != nil {
+			return nil, err
+		}
+		if !Exists(path) {
+			return nil, errs.NewBizError("文件不存在")
+		}
+		files[attachment.ID] = AttachFile{Attachment: attachment.ToDTO(), Path: path}
+	}
+	return files, nil
+}
+
+// GetPath 读取单个附件。
+func (s *Service) GetPath(ctx context.Context, id uint) (*AttachFile, error) {
+	if id == 0 {
+		return nil, errs.NewBizError("附件 ID 不合法")
+	}
+	files, err := s.GetPaths(ctx, []uint{id})
+	if err != nil {
+		return nil, err
+	}
+	file, ok := files[id]
+	if !ok {
+		return nil, errs.NewBizError("附件不存在")
+	}
+	return &file, nil
+}
+
+// CopyTo 把附件复制到目标目录，源路径解析与重名处理都在附件模块内。
+func (s *Service) CopyTo(ctx context.Context, ids []uint, targetDir string) error {
+	files, err := s.GetPaths(ctx, ids)
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return nil
+	}
+	used := make(map[string]bool, len(files))
+	ops := make([]FileOp, 0, len(files))
+	for _, file := range files {
+		target, err := uniqueTargetPath(targetDir, used, file.Attachment.Name)
+		if err != nil {
+			return err
+		}
+		ops = append(ops, FileOp{Type: FileOpCopy, Origin: file.Path, Target: target})
+	}
+	return Exec(ops)
+}
+
+// ZipDirectory 打包临时目录，压缩包放在附件临时目录下。
+func (s *Service) ZipDirectory(sourceDir string) (string, error) {
+	return Zip(sourceDir, filepath.Join(s.tempPath, filepath.Base(sourceDir)+".zip"))
+}
+
+func uniqueTargetPath(dir string, used map[string]bool, name string) (string, error) {
+	base := strings.TrimSpace(name)
+	if base == "" {
+		base = "attachment"
+	}
+	candidate := base
+	for repeat := 1; ; repeat++ {
+		if !used[candidate] {
+			target, err := SafeJoin(dir, candidate)
+			if err != nil {
+				return "", err
+			}
+			if !Exists(target) {
+				used[candidate] = true
+				return target, nil
+			}
+		}
+		candidate = fmt.Sprintf("%d-%s", repeat, base)
+	}
+}
+
+func (s *Service) getAbsolutePathByRela(relativePath string) (string, error) {
 	if relativePath == "" {
 		return "", errs.NewBizError("相对路径为空")
 	}
 	return SafeJoin(s.rootPath, relativePath)
-}
-
-func (s *Service) GetRelativePath(absolutePath string) (string, error) {
-	if absolutePath == "" {
-		return "", errs.NewBizError("路径不能为空")
-	}
-	absolutePath = filepath.Clean(absolutePath)
-	if err := EnsureWithin(s.rootPath, absolutePath); err != nil {
-		return "", errs.NewBizError("路径不合法")
-	}
-	relativePath, err := filepath.Rel(s.rootPath, absolutePath)
-	if err != nil {
-		return "", errs.Wrap(err)
-	}
-	return relativePath, nil
-}
-
-func (s *Service) FindById(ctx context.Context, id uint) (*DTO, error) {
-	attachment, err := s.attachRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	if attachment == nil {
-		return nil, err
-	}
-
-	if err := assertCanAccess(ctx, attachment); err != nil {
-		return nil, err
-	}
-	return attachment.ToDTO(), nil
 }
 
 func (s *Service) Upload(ctx context.Context, namespace string, fileHeaders []*multipart.FileHeader) ([]DTO, error) {
@@ -160,7 +249,7 @@ func (s *Service) saveOne(ctx context.Context, namespace string, fileHeader *mul
 	// 落盘文件名使用服务端生成的 hash；原始文件名只作为 Attach.Name 留在内存/数据库
 	sum := sha256.Sum256([]byte(uuid.New().String()))
 	relativePath := namespace + "/" + hex.EncodeToString(sum[:])
-	targetPath, err := s.GetAbsolutePathByRela(relativePath)
+	targetPath, err := s.getAbsolutePathByRela(relativePath)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +357,7 @@ func (s *Service) CleanTransientFiles(ctx context.Context) error {
 func (s *Service) deleteFiles(attachments []Attach) error {
 	ops := make([]FileOp, 0, len(attachments))
 	for _, attachment := range attachments {
-		targetPath, err := s.GetAbsolutePathByRela(attachment.RelativePath)
+		targetPath, err := s.getAbsolutePathByRela(attachment.RelativePath)
 		if err != nil {
 			continue
 		}
@@ -284,26 +373,15 @@ func (s *Service) GetResource(ctx context.Context, dto *DTO) (filename string, p
 	if dto == nil {
 		return "", "", errs.NewBizError("附件信息不能为空")
 	}
-
-	attachment, err := s.attachRepo.FindByID(ctx, dto.ID)
-	if err != nil {
-		return "", "", errs.Wrap(err)
-	}
-	if attachment == nil {
-		return "", "", errs.NewBizError("附件不存在")
-	}
-	if err = assertCanAccess(ctx, attachment); err != nil {
-		return "", "", err
-	}
-	path, err = s.GetAbsolutePathByRela(attachment.RelativePath)
+	readable, err := s.GetPath(ctx, dto.ID)
 	if err != nil {
 		return "", "", err
 	}
-	filename = attachment.Name
+	filename = readable.Attachment.Name
 	if filename == "" {
 		filename = dto.Name
 	}
-	return filename, path, nil
+	return filename, readable.Path, nil
 }
 
 // assertCanAccess 未绑定单据的瞬时附件只允许上传者本人读取：

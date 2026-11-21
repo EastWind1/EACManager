@@ -65,6 +65,26 @@ func (s *Service) Initialize(ctx context.Context, dto *DTO) (*DTO, error) {
 	return res, nil
 }
 
+// Current 返回当前登录用户及其最新角色、权限。
+func (s *Service) Current(ctx context.Context) (*DTO, error) {
+	curUser, err := security.GetCurrentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	account, err := s.security.Authenticate.FindByID(ctx, curUser.GetID())
+	if err != nil {
+		return nil, err
+	}
+	if account == nil {
+		return nil, errs.NewBizError("用户不存在")
+	}
+	profile, err := s.profileRepo.FindByUserID(ctx, account.ID)
+	if err != nil {
+		return nil, err
+	}
+	return toDTO(account, profile), nil
+}
+
 func (s *Service) GetAll(ctx context.Context, queryParam *result.QueryParam) (*result.PageResult[DTO], error) {
 	curUser, err := security.GetCurrentUser(ctx)
 	if err != nil {

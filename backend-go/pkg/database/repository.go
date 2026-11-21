@@ -136,6 +136,9 @@ func (r *BaseRepository[T]) Page(
 	}
 	records, err := query.Find(ctx)
 	if err != nil {
+		if IsUndefinedColumn(err) {
+			return nil, errs.NewBizError("排序字段不合法")
+		}
 		return nil, errs.Wrap(err)
 	}
 	return result.NewPageResult(records, int(total), pageParam.GetPageIndex(), pageParam.GetPageSize()), nil

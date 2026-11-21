@@ -53,7 +53,7 @@ public class ServiceBillImportRule {
     }
 
     private void setCompany(ServiceBillDTO target, String name) {
-        List<CompanyDTO> company = companyService.findByName(name);
+        List<CompanyDTO> company = companyService.findEnabledByName(name);
         if (!company.isEmpty()) {
             target.setProductCompany(company.getFirst());
         }

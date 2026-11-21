@@ -54,7 +54,6 @@ func (s *Type) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// UnmarshalText 用于查询参数反序列化
 func (s *Type) UnmarshalText(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err == nil {
@@ -90,24 +89,27 @@ func (a *Attach) TableName() string {
 }
 
 type DTO struct {
-	ID   uint `json:"id"`
-	Name string
-	Type Type
+	ID     uint   `json:"id"`
+	Name   string `json:"name"`
+	Type   Type   `json:"type"`
+	Status Status `json:"status"`
 }
 
 func (a *Attach) ToDTO() *DTO {
 	return &DTO{
-		ID:   a.ID,
-		Name: a.Name,
-		Type: a.Type,
+		ID:     a.ID,
+		Name:   a.Name,
+		Type:   a.Type,
+		Status: a.Status,
 	}
 }
 
 func (a *DTO) TOEntity() *Attach {
 	return &Attach{
-		ID:   a.ID,
-		Name: a.Name,
-		Type: a.Type,
+		ID:     a.ID,
+		Name:   a.Name,
+		Type:   a.Type,
+		Status: a.Status,
 	}
 }
 
@@ -132,6 +134,49 @@ const (
 	// StatusPersistent 持久态
 	StatusPersistent
 )
+
+func (s Status) String() string {
+	switch s {
+	case StatusTemp:
+		return "TEMP"
+	case StatusTransient:
+		return "TRANSIENT"
+	case StatusPersistent:
+		return "PERSISTENT"
+	default:
+		return ""
+	}
+}
+
+func (s *Status) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+func (s *Status) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return errs.NewBizError("不支持的附件状态")
+	}
+	return s.setFromString(str)
+}
+
+func (s *Status) UnmarshalText(data []byte) error {
+	return s.setFromString(string(data))
+}
+
+func (s *Status) setFromString(str string) error {
+	switch str {
+	case "TEMP":
+		*s = StatusTemp
+	case "TRANSIENT":
+		*s = StatusTransient
+	case "PERSISTENT":
+		*s = StatusPersistent
+	default:
+		return errs.NewBizError("不支持的附件状态")
+	}
+	return nil
+}
 
 type FileOpType uint
 
@@ -161,4 +206,6 @@ type FileOp struct {
 	Type   FileOpType
 	Origin string
 	Target string
+	// SoftDelete 表示该 Move 只是「先移走以便回滚」的删除；事务提交后需要真正删掉目标文件
+	SoftDelete bool
 }

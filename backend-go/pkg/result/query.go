@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// MaxPageSize 是单页条数上限。
+const MaxPageSize = 200
+
 type SortParam struct {
 	Field     string `json:"field"`
 	Direction string `json:"direction"`
@@ -30,6 +33,9 @@ func (p *QueryParam) GetOffset() int {
 func (p *QueryParam) Valid() error {
 	if p.HasPage() && (*p.PageSize < 1 || *p.PageIndex < 0) {
 		return errs.NewBizError("分页参数不合法，索引必须非负，页大小必须大于0")
+	}
+	if p.HasPage() && *p.PageSize > MaxPageSize {
+		*p.PageSize = MaxPageSize
 	}
 	for i := range p.Sorts {
 		if p.Sorts[i].Field == "" {

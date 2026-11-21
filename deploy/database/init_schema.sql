@@ -700,7 +700,7 @@ CREATE INDEX idx_reimburse_attach_relation_bill_id ON public.reimburse_attach_re
 -- Name: idx_reimbursement_number; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_reimbursement_number ON public.reimbursement USING btree (number);
+CREATE UNIQUE INDEX idx_reimbursement_number ON public.reimbursement USING btree (number);
 
 
 --
@@ -756,7 +756,7 @@ CREATE INDEX idx_service_bill_created_date ON public.service_bill USING btree (c
 -- Name: idx_service_bill_number; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_service_bill_number ON public.service_bill USING btree (number);
+CREATE UNIQUE INDEX idx_service_bill_number ON public.service_bill USING btree (number);
 
 
 --

@@ -19,8 +19,8 @@ export function useFileSelector(accept: string, multiple: boolean): Promise<File
         return
       }
       for (const file of input.files) {
-        if (file.size > 1024 * 1024 * 50) {
-          warning('文件大小不能超过50M')
+        if (file.size > 5 * 1024 * 1024) {
+          warning('文件大小不能超过5M')
           reject()
           return
         }

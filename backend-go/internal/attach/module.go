@@ -28,12 +28,17 @@ func Setup(base *core.App, sec *security.Module) *Module {
 	}
 
 	go func() {
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
-		for range ticker.C {
+		runCleanup := func() {
+			attachmentService.CleanTempFiles()
 			if err := attachmentService.CleanTransientFiles(context.Background()); err != nil {
 				log.Errorf("回收游离附件失败: %v", err)
 			}
+		}
+		runCleanup()
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			runCleanup()
 		}
 	}()
 

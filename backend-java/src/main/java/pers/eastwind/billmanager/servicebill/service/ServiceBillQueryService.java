@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.common.exception.BizException;
+import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.security.model.AuthorityUser;
 import pers.eastwind.billmanager.security.util.AuthUtil;
 import pers.eastwind.billmanager.servicebill.model.*;
@@ -158,7 +159,14 @@ public class ServiceBillQueryService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         int pageIndex = param.getPageIndex() == null ? 0 : param.getPageIndex();
+        if (pageIndex < 0) {
+            throw new BizException("页码不能小于 0");
+        }
         int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
+        if (pageSize < 1) {
+            throw new BizException("分页大小必须大于 0");
+        }
+        pageSize = Math.min(pageSize, QueryParam.MAX_PAGE_SIZE);
         List<Sort.Order> orders =
                 param.getSorts() == null ? List.of(Sort.Order.desc("orderDate"))
                         : param.getSorts().stream().map(sortParam ->

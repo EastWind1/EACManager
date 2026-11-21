@@ -1,6 +1,7 @@
 package security
 
 import (
+	"backend-go/pkg/database"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"context"
@@ -129,6 +130,14 @@ func (s *AuthenticateService) CreateAccount(ctx context.Context, username, passw
 	if err := s.assertCanAssignRoles(ctx, roleCodes); err != nil {
 		return nil, err
 	}
+	// 并发窗口由唯一索引兜底。
+	existing, err := s.repo.FindByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return nil, errs.NewBizError("用户名已存在")
+	}
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, errs.Wrap(err)
@@ -137,6 +146,9 @@ func (s *AuthenticateService) CreateAccount(ctx context.Context, username, passw
 	var granted []RoleDTO
 	err = s.repo.Transaction(ctx, func(txCtx context.Context) error {
 		if err := s.repo.Create(txCtx, &account); err != nil {
+			if database.IsDuplicateKey(err) {
+				return errs.NewBizError("用户名已存在")
+			}
 			return err
 		}
 		granted, err = s.securitySvc.SetUserRoles(txCtx, account.ID, roleCodes)
@@ -194,10 +206,8 @@ func (s *AuthenticateService) UpdateAccount(ctx context.Context, id uint, roles 
 				return nil, errs.NewBizError("必须保留至少一个启用的管理员")
 			}
 		}
-		if granted, err = s.securitySvc.SetUserRoles(ctx, id, requestedRoles); err != nil {
-			return nil, err
-		}
 	}
+	var newPassword string
 	if password != nil && *password != "" {
 		if err := s.validPassword(password); err != nil {
 			return nil, err
@@ -206,10 +216,27 @@ func (s *AuthenticateService) UpdateAccount(ctx context.Context, id uint, roles 
 		if err != nil {
 			return nil, errs.Wrap(err)
 		}
-		account.Password = string(hashed)
-		if err = s.repo.UpdatePassword(ctx, account); err != nil {
-			return nil, err
+		newPassword = string(hashed)
+	}
+	// 角色与密码在同一事务内更新。
+	err = s.repo.Transaction(ctx, func(txCtx context.Context) error {
+		if isAdmin && roles != nil {
+			var txErr error
+			granted, txErr = s.securitySvc.SetUserRoles(txCtx, id, requestedRoles)
+			if txErr != nil {
+				return txErr
+			}
 		}
+		if newPassword != "" {
+			account.Password = newPassword
+			if txErr := s.repo.UpdatePassword(txCtx, account); txErr != nil {
+				return txErr
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	dto := account.ToDTO()
 	if granted != nil {
@@ -322,10 +349,15 @@ func (s *AuthenticateService) FindEnabledPage(ctx context.Context, param *result
 	if err != nil {
 		return nil, err
 	}
+	permissionsByUser, err := s.securitySvc.UserPermissionsByUserIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
 	dtos := make([]AuthorityUser, len(page.Items))
 	for i := range page.Items {
 		dtos[i] = *page.Items[i].ToDTO()
 		dtos[i].Roles = roleDTOs(rolesByUser[page.Items[i].ID])
+		dtos[i].Permissions = permissionsByUser[page.Items[i].ID]
 	}
 	return &result.PageResult[AuthorityUser]{
 		Items:      dtos,
@@ -447,20 +479,26 @@ func (s *AuthenticateService) validPassword(password *string) error {
 	if !accountPasswordPattern.MatchString(*password) {
 		return errs.NewBizError("密码只能包含大写、小写字母、数字以及 *-_^~")
 	}
-	lc, uc, nc, oc := 0, 0, 0, 0
+	var lower, upper, digit, other bool
 	for _, r := range *password {
 		switch {
 		case 'a' <= r && r <= 'z':
-			lc++
+			lower = true
 		case 'A' <= r && r <= 'Z':
-			uc++
+			upper = true
 		case '0' <= r && r <= '9':
-			nc++
+			digit = true
 		default:
-			oc++
+			other = true
 		}
 	}
-	if lc+uc+nc+oc < 2 {
+	classes := 0
+	for _, present := range []bool{lower, upper, digit, other} {
+		if present {
+			classes++
+		}
+	}
+	if classes < 2 {
 		return errs.NewBizError("密码必须包含大写、小写字母、数字以及 *-_^~ 这四种符号的至少两种")
 	}
 	return nil

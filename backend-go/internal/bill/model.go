@@ -7,10 +7,16 @@ import (
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"encoding/json"
+	"math"
 	"time"
 
 	"gorm.io/plugin/optimisticlock"
 )
+
+// roundMoney 金额统一保留两位小数。
+func roundMoney(value float64) float64 {
+	return math.Round(value*100) / 100
+}
 
 type State int
 
@@ -22,40 +28,43 @@ const (
 )
 
 func (s *State) String() string {
-	return []string{"CREATED", "PROCESSING", "PROCESSED", "FINISHED"}[*s]
+	if s == nil {
+		return ""
+	}
+	switch *s {
+	case Created:
+		return "CREATED"
+	case Processing:
+		return "PROCESSING"
+	case Processed:
+		return "PROCESSED"
+	case Finished:
+		return "FINISHED"
+	default:
+		return ""
+	}
 }
 
 func (s *State) MarshalJSON() ([]byte, error) {
-	str := ""
-	switch *s {
-	case Created:
-		str = "CREATED"
-	case Processing:
-		str = "PROCESSING"
-	case Processed:
-		str = "PROCESSED"
-	case Finished:
-		str = "FINISHED"
-
-	}
-	return json.Marshal(str)
+	return json.Marshal(s.String())
 }
 
 func (s *State) UnmarshalJSON(data []byte) error {
 	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
-		switch str {
-		case "CREATED":
-			*s = Created
-		case "PROCESSING":
-			*s = Processing
-		case "PROCESSED":
-			*s = Processed
-		case "FINISHED":
-			*s = Finished
-		default:
-			return errs.NewBizError("不支持的单据状态")
-		}
+	if err := json.Unmarshal(data, &str); err != nil {
+		return errs.NewBizError("不支持的单据状态")
+	}
+	switch str {
+	case "CREATED":
+		*s = Created
+	case "PROCESSING":
+		*s = Processing
+	case "PROCESSED":
+		*s = Processed
+	case "FINISHED":
+		*s = Finished
+	default:
+		return errs.NewBizError("不支持的单据状态")
 	}
 	return nil
 }
@@ -68,27 +77,31 @@ const (
 )
 
 func (s *Type) MarshalJSON() ([]byte, error) {
-	str := ""
+	if s == nil {
+		return json.Marshal("")
+	}
 	switch *s {
 	case Install:
-		str = "INSTALL"
+		return json.Marshal("INSTALL")
 	case Fix:
-		str = "FIX"
+		return json.Marshal("FIX")
+	default:
+		return json.Marshal("")
 	}
-	return json.Marshal(str)
 }
 
 func (s *Type) UnmarshalJSON(data []byte) error {
 	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
-		switch str {
-		case "INSTALL":
-			*s = Install
-		case "FIX":
-			*s = Fix
-		default:
-			return errs.NewBizError("不支持的单据状态")
-		}
+	if err := json.Unmarshal(data, &str); err != nil {
+		return errs.NewBizError("不支持的单据类型")
+	}
+	switch str {
+	case "INSTALL":
+		*s = Install
+	case "FIX":
+		*s = Fix
+	default:
+		return errs.NewBizError("不支持的单据类型")
 	}
 	return nil
 }
@@ -242,7 +255,7 @@ func (s *DTO) ToEntity() *ServiceBill {
 		OnSiteContact:       s.OnSiteContact,
 		OnSitePhone:         s.OnSitePhone,
 		ElevatorInfo:        s.ElevatorInfo,
-		TotalAmount:         s.TotalAmount,
+		TotalAmount:         roundMoney(s.TotalAmount),
 		OrderDate:           s.OrderDate,
 		ProcessedDate:       s.ProcessedDate,
 		FinishedDate:        s.FinishedDate,
@@ -279,8 +292,8 @@ func (s *DetailDTO) ToEntity() *Detail {
 		ID:        s.ID,
 		Device:    s.Device,
 		Quantity:  s.Quantity,
-		UnitPrice: s.UnitPrice,
-		Subtotal:  s.Subtotal,
+		UnitPrice: roundMoney(s.UnitPrice),
+		Subtotal:  roundMoney(s.Subtotal),
 		Remark:    s.Remark,
 	}
 }
@@ -292,7 +305,7 @@ type QueryParam struct {
 	AssigneeID         *uint   `json:"assigneeId"`
 	OrderStartDate     *string `json:"orderStartDate"`
 	OrderEndDate       *string `json:"orderEndDate"`
-	ProcessedStartDate *string `form:"processedStartDate"`
+	ProcessedStartDate *string `json:"processedStartDate"`
 	ProcessedEndDate   *string `json:"processedEndDate"`
 	result.QueryParam
 }

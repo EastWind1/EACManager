@@ -6,10 +6,16 @@ import (
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"encoding/json"
+	"math"
 	"time"
 
 	"gorm.io/plugin/optimisticlock"
 )
+
+// roundMoney 金额统一保留两位小数。
+func roundMoney(value float64) float64 {
+	return math.Round(value*100) / 100
+}
 
 type State int
 
@@ -20,36 +26,39 @@ const (
 )
 
 func (s *State) String() string {
-	return []string{"CREATED", "PROCESSING", "FINISHED"}[*s]
+	if s == nil {
+		return ""
+	}
+	switch *s {
+	case Created:
+		return "CREATED"
+	case Processing:
+		return "PROCESSING"
+	case Finished:
+		return "FINISHED"
+	default:
+		return ""
+	}
 }
 
 func (s *State) MarshalJSON() ([]byte, error) {
-	str := ""
-	switch *s {
-	case Created:
-		str = "CREATED"
-	case Processing:
-		str = "PROCESSING"
-	case Finished:
-		str = "FINISHED"
-
-	}
-	return json.Marshal(str)
+	return json.Marshal(s.String())
 }
 
 func (s *State) UnmarshalJSON(data []byte) error {
 	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
-		switch str {
-		case "CREATED":
-			*s = Created
-		case "PROCESSING":
-			*s = Processing
-		case "FINISHED":
-			*s = Finished
-		default:
-			return errs.NewBizError("不支持的单据状态")
-		}
+	if err := json.Unmarshal(data, &str); err != nil {
+		return errs.NewBizError("不支持的单据状态")
+	}
+	switch str {
+	case "CREATED":
+		*s = Created
+	case "PROCESSING":
+		*s = Processing
+	case "FINISHED":
+		*s = Finished
+	default:
+		return errs.NewBizError("不支持的单据状态")
 	}
 	return nil
 }
@@ -153,7 +162,7 @@ func (r *DTO) ToEntity() *Reimburse {
 		Number:        r.Number,
 		State:         r.State,
 		Summary:       r.Summary,
-		TotalAmount:   r.TotalAmount,
+		TotalAmount:   roundMoney(r.TotalAmount),
 		ReimburseDate: r.ReimburseDate,
 		Remark:        r.Remark,
 	}
@@ -162,7 +171,7 @@ func (r *DTO) ToEntity() *Reimburse {
 		details[i] = Detail{
 			ID:     d.ID,
 			Name:   d.Name,
-			Amount: d.Amount,
+			Amount: roundMoney(d.Amount),
 		}
 	}
 	entity.Details = details

@@ -14,6 +14,7 @@ import (
 type ReimburseServiceTest struct {
 	BaseSuite
 	srv      *reimburse.Service
+	query    *reimburse.QueryService
 	testReim *reimburse.DTO
 }
 
@@ -24,6 +25,7 @@ func TestReimburseService(t *testing.T) {
 func (s *ReimburseServiceTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 	s.srv = s.App.Reimburse.Service
+	s.query = s.App.Reimburse.Query
 }
 
 func (s *ReimburseServiceTest) SetupTest() {
@@ -61,7 +63,7 @@ func (s *ReimburseServiceTest) TestFindByID() {
 	created, err := s.srv.Create(s.Ctx, s.testReim)
 	s.NoError(err)
 
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 
 	s.NotNil(found)
@@ -91,7 +93,7 @@ func (s *ReimburseServiceTest) TestFindByParam() {
 		PageIndex: new(1),
 		PageSize:  new(10),
 	}
-	res, err := s.srv.FindByParam(s.Ctx, queryParam)
+	res, err := s.query.FindByParam(s.Ctx, queryParam)
 	s.NoError(err)
 
 	s.GreaterOrEqual(res.TotalCount, 3)
@@ -119,7 +121,7 @@ func (s *ReimburseServiceTest) TestDelete() {
 	s.Equal(1, deleteResult.SuccessCount)
 	s.Equal(0, deleteResult.FailCount)
 
-	_, err = s.srv.FindByID(s.Ctx, created.ID)
+	_, err = s.query.FindByID(s.Ctx, created.ID)
 	s.Error(err)
 }
 
@@ -132,7 +134,7 @@ func (s *ReimburseServiceTest) TestProcess() {
 	s.Equal(1, processResult.SuccessCount)
 	s.Equal(0, processResult.FailCount)
 
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(reimburse.Processing, found.State)
 }
@@ -151,7 +153,7 @@ func (s *ReimburseServiceTest) TestFinish() {
 	s.Equal(1, finishResult.SuccessCount)
 	s.Equal(0, finishResult.FailCount)
 
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(reimburse.Finished, found.State)
 }
@@ -167,7 +169,7 @@ func (s *ReimburseServiceTest) TestCancelProcess() {
 	s.Equal(1, processResult.SuccessCount)
 
 	// 验证状态为处理中
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(reimburse.Processing, found.State)
 
@@ -178,7 +180,7 @@ func (s *ReimburseServiceTest) TestCancelProcess() {
 	s.Equal(0, cancelProcessResult.FailCount)
 
 	// 验证状态回退到新建
-	found, err = s.srv.FindByID(s.Ctx, created.ID)
+	found, err = s.query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(reimburse.Created, found.State)
 }
@@ -210,7 +212,7 @@ func (s *ReimburseServiceTest) TestCancelProcessed() {
 	s.Equal(1, finishResult.SuccessCount)
 
 	// 验证状态为完成
-	found, err := s.srv.FindByID(s.Ctx, created.ID)
+	found, err := s.query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(reimburse.Finished, found.State)
 
@@ -221,7 +223,7 @@ func (s *ReimburseServiceTest) TestCancelProcessed() {
 	s.Equal(0, cancelFinishResult.FailCount)
 
 	// 验证状态回退到处理中
-	found, err = s.srv.FindByID(s.Ctx, created.ID)
+	found, err = s.query.FindByID(s.Ctx, created.ID)
 	s.NoError(err)
 	s.Equal(reimburse.Processing, found.State)
 }
@@ -257,7 +259,7 @@ func (s *ReimburseServiceTest) TestCancelEmptyIDs() {
 }
 
 func (s *ReimburseServiceTest) TestFindNonExistentRecord() {
-	_, err := s.srv.FindByID(s.Ctx, 999999) // 假设这个ID不存在
+	_, err := s.query.FindByID(s.Ctx, 999999)
 	s.Error(err)
 }
 
@@ -352,7 +354,7 @@ func (s *ReimburseServiceTest) TestExportNonExistentRecords() {
 }
 
 func (s *ReimburseServiceTest) TestFindByParamWithInvalidParam() {
-	_, err := s.srv.FindByParam(s.Ctx, nil)
+	_, err := s.query.FindByParam(s.Ctx, nil)
 	s.Error(err)
 }
 
@@ -370,6 +372,7 @@ func (s *ReimburseServiceTest) TestExport() {
 type ReimburseStatServiceTest struct {
 	BaseSuite
 	srv     *reimburse.Service
+	query   *reimburse.QueryService
 	statSrv *reimburse.StatisticService
 }
 
@@ -380,6 +383,7 @@ func TestReimburseStatService(t *testing.T) {
 func (s *ReimburseStatServiceTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 	s.srv = s.App.Reimburse.Service
+	s.query = s.App.Reimburse.Query
 	s.statSrv = s.App.Reimburse.Statistic
 }
 
@@ -442,6 +446,7 @@ type ReimburseAttachTest struct {
 	BaseSuite
 	attachSrv *attach.Service
 	srv       *reimburse.Service
+	query     *reimburse.QueryService
 }
 
 func TestReimburseAttach(t *testing.T) {
@@ -452,6 +457,7 @@ func (s *ReimburseAttachTest) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 	s.attachSrv = s.App.Attach.Service
 	s.srv = s.App.Reimburse.Service
+	s.query = s.App.Reimburse.Query
 }
 
 func (s *ReimburseAttachTest) upload(name string) attach.DTO {

@@ -4,6 +4,7 @@ import type { PageResult } from '@/common/model/PageResult'
 import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/user')
+const debouncedRequest = http.debounce(http.request)
 
 /**
  * 用户 API
@@ -16,16 +17,21 @@ const UserApi = {
    * @param password 密码
    */
   async login(username: string, password: string) {
-    return await http.post<User>(`/token`, {
-      username,
-      password,
+    return await http.request<User>({
+      method: 'POST',
+      url: `/token`,
+      data: { username, password },
     })
   },
   /**
    * 查询是否需要初始化管理员
    */
   async getInitializationStatus() {
-    return await http.get<{ required: boolean }>('/initialization', { useLoad: false })
+    return await http.request<{ required: boolean }>({
+      method: 'GET',
+      url: '/initialization',
+      useLoad: false,
+    })
   },
 
   /**
@@ -38,22 +44,31 @@ const UserApi = {
     phone?: string
     email?: string
   }) {
-    return await http.post<User>('/initialization', user, { useLoad: false })
+    return await http.request<User>({
+      method: 'POST',
+      url: '/initialization',
+      data: user,
+      useLoad: false,
+    })
   },
 
   /**
    * 登出
    */
   async logout() {
-    return await http.put(`/logout`, {})
+    return await http.request({ method: 'PUT', url: `/logout`, data: {} })
+  },
+  /**
+   * 当前登录用户。
+   */
+  async getCurrent() {
+    return await http.request<User>({ method: 'GET', url: '/me', useLoad: false })
   },
   /**
    * 获取所有用户
    */
   async getAll(param: QueryParam) {
-    return await http.get<PageResult<User>>('', {
-      params: param,
-    })
+    return await debouncedRequest<PageResult<User>>({ method: 'GET', url: '', params: param })
   },
 
   /**
@@ -61,7 +76,7 @@ const UserApi = {
    * @param user 用户数据
    */
   async create(user: User) {
-    return await http.post<User>('', user)
+    return await http.request<User>({ method: 'POST', url: '', data: user })
   },
 
   /**
@@ -69,7 +84,7 @@ const UserApi = {
    * @param user 用户数据
    */
   async update(user: User) {
-    return await http.put<User>('', user)
+    return await http.request<User>({ method: 'PUT', url: '', data: user })
   },
 
   /**
@@ -77,7 +92,7 @@ const UserApi = {
    * @param username 用户名
    */
   async disable(username: string) {
-    return await http.delete(`/${username}`)
+    return await http.request({ method: 'DELETE', url: `/${username}` })
   },
 }
 export default UserApi

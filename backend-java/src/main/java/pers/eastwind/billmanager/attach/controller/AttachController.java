@@ -1,11 +1,13 @@
 package pers.eastwind.billmanager.attach.controller;
 
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pers.eastwind.billmanager.attach.model.AttachDTO;
+import pers.eastwind.billmanager.attach.model.AttachFile;
 import pers.eastwind.billmanager.attach.service.AttachService;
 import pers.eastwind.billmanager.common.exception.BizException;
 
@@ -27,11 +29,11 @@ public class AttachController {
         if (attachment == null) {
             throw new BizException("不能为空");
         }
-        Resource resource = attachService.getResource(attachment);
+        AttachFile file = attachService.getPath(attachment.getId());
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentDisposition(ContentDisposition.attachment().name(attachment.getName()).build());
+        headers.setContentDisposition(ContentDisposition.attachment().name(file.attachment().getName()).build());
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        return new ResponseEntity<>(resource, headers, HttpStatus.OK);
+        return new ResponseEntity<>(new FileSystemResource(file.path()), headers, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.attach.permission.AttachPermission).UPLOAD.getCode())")

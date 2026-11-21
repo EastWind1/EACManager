@@ -23,6 +23,10 @@ export interface HttpConfig {
    * 是否显示加载条，默认为 true
    */
   useLoad?: boolean
+  /**
+   * 取消信号
+   */
+  signal?: AbortSignal
 }
 
 export interface JSONResponse<T> {
@@ -31,13 +35,38 @@ export interface JSONResponse<T> {
 }
 
 /**
+ * 发起一次请求的方法签名
+ */
+export type RequestMethod = <T>(cfg?: HttpConfig) => Promise<T>
+
+/**
+ * 防抖包装后的请求方法签名；被后续同 key 请求取代时返回 undefined
+ */
+export type DebouncedRequestMethod = <T>(cfg: HttpConfig) => Promise<T | undefined>
+
+/**
  * 全局 axios 实例，请求地址由 HttpClient 拼接为完整路径
  */
 const client = axios.create()
+
 /**
- * 全局 abort，用于取消重复请求
+ * 并发请求计数。
  */
-const abortMap = new Map<string, AbortController>()
+let loadingRequests = 0
+
+function beginLoading() {
+  loadingRequests++
+  if (loadingRequests === 1) {
+    useUIStore().showLoading()
+  }
+}
+
+function endLoading() {
+  loadingRequests = Math.max(0, loadingRequests - 1)
+  if (loadingRequests === 0) {
+    useUIStore().hideLoading()
+  }
+}
 
 /**
  * 从错误响应中提取服务端提示信息
@@ -61,26 +90,20 @@ async function extractMessage(data: unknown): Promise<string | undefined> {
  */
 export class HttpClient {
   private readonly baseURL: string
+  private readonly pending = new Map<string, AbortController>()
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
   }
 
-  async request<T>(cfg?: HttpConfig): Promise<T> {
+  request = async <T>(cfg?: HttpConfig): Promise<T> => {
     const uiState = useUIStore()
     // 加载条
     const useLoad = cfg?.useLoad ?? true
     if (useLoad) {
-      uiState.showLoading()
+      beginLoading()
     }
     const method = cfg?.method ?? 'GET'
-    // 防抖：取消同一非 POST 请求中尚未完成的请求
-    const abort = new AbortController()
-    const key = `${method}-${this.baseURL}${cfg?.url}-${JSON.stringify(cfg?.params)}`
-    if (method !== 'POST') {
-      abortMap.get(key)?.abort()
-      abortMap.set(key, abort)
-    }
 
     try {
       return await client
@@ -91,7 +114,7 @@ export class HttpClient {
           params: cfg?.params,
           data: cfg?.data,
           headers: cfg?.headers,
-          signal: abort.signal,
+          signal: cfg?.signal,
           responseType: cfg?.responseType ?? 'json',
           onDownloadProgress: cfg?.onDownloadProgress,
           onUploadProgress: cfg?.onUploadProgress,
@@ -148,42 +171,34 @@ export class HttpClient {
           throw err
         })
     } finally {
-      abortMap.delete(key)
       if (useLoad) {
-        uiState.hideLoading()
+        endLoading()
       }
     }
-  }
+  };
 
-  async get<T>(url: string, config?: HttpConfig): Promise<T> {
-    return await this.request({ ...config, method: 'GET', url })
-  }
+  /**
+   * 防抖包装：同 key 只保留最后一次请求，被取代时返回 undefined。
+   */
+  debounce(requestMethod: RequestMethod, key?: string): DebouncedRequestMethod {
+    return async <T>(cfg: HttpConfig): Promise<T | undefined> => {
+      const requestKey = key ?? `${cfg.method ?? 'GET'} ${this.baseURL}${cfg.url}`
 
-  async post<T>(url: string, data: unknown, config?: HttpConfig): Promise<T> {
-    if (!config) {
-      config = {}
+      this.pending.get(requestKey)?.abort()
+      const controller = new AbortController()
+      this.pending.set(requestKey, controller)
+      try {
+        return await requestMethod({...cfg, signal: controller.signal})
+      } catch (error) {
+        if (axios.isCancel(error)) {
+          return undefined
+        }
+        throw error
+      } finally {
+        if (this.pending.get(requestKey) === controller) {
+          this.pending.delete(requestKey)
+        }
+      }
     }
-    config.data = data
-    return await this.request({ ...config, method: 'POST', url })
-  }
-
-  async postForm<T>(url: string, data: FormData, config?: HttpConfig): Promise<T> {
-    if (!config) {
-      config = {}
-    }
-    config.data = data
-    return await this.request({ ...config, method: 'POST', url })
-  }
-
-  async put<T>(url: string, data: unknown, config?: HttpConfig): Promise<T> {
-    if (!config) {
-      config = {}
-    }
-    config.data = data
-    return await this.request({ ...config, method: 'PUT', url })
-  }
-
-  async delete<T>(url: string, config?: HttpConfig): Promise<T> {
-    return await this.request({ ...config, method: 'DELETE', url })
   }
 }

@@ -4,6 +4,7 @@ import type { PageResult } from '@/common/model/PageResult'
 import { HttpClient } from '@/common/api/HttpClient'
 
 const http = new HttpClient('/api/company')
+const debouncedRequest = http.debounce(http.request)
 
 /**
  * 公司 API
@@ -13,16 +14,14 @@ const CompanyApi = {
    * 获取所有公司
    */
   async getAll(param: QueryParam) {
-    return await http.get<PageResult<Company>>('', {
-      params: param,
-    })
+    return await debouncedRequest<PageResult<Company>>({ method: 'GET', url: '', params: param })
   },
   /**
    * 创建公司
    * @param company 公司数据
    */
   async create(company: Company) {
-    return await http.post<Company>('', company)
+    return await http.request<Company>({ method: 'POST', url: '', data: company })
   },
 
   /**
@@ -30,7 +29,7 @@ const CompanyApi = {
    * @param company 公司数据
    */
   async update(company: Company) {
-    return await http.put<Company>('', company)
+    return await http.request<Company>({ method: 'PUT', url: '', data: company })
   },
 
   /**
@@ -38,7 +37,7 @@ const CompanyApi = {
    * @param id 公司 ID
    */
   async disable(id: number) {
-    return http.delete(`/${id}`)
+    return await http.request({ method: 'DELETE', url: `/${id}` })
   },
 }
 export default CompanyApi

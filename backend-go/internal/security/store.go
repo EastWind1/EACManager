@@ -177,6 +177,36 @@ func (r *AuthRepository) FindPermissionsByUserID(ctx context.Context, userID uin
 	return res, nil
 }
 
+type userPermissionCode struct {
+	UserID    uint
+	Code      string
+	SortOrder int
+}
+
+// FindPermissionCodesByUserIDs 批量读取用户权限编码。
+func (r *AuthRepository) FindPermissionCodesByUserIDs(ctx context.Context, userIDs []uint) (map[uint][]string, error) {
+	res := make(map[uint][]string, len(userIDs))
+	if len(userIDs) == 0 {
+		return res, nil
+	}
+	var rows []userPermissionCode
+	err := r.Ctx(ctx).Raw(`
+		SELECT DISTINCT ur.user_id, p.code, p.sort_order
+		FROM sys_user_role ur
+		JOIN sys_role r ON r.id = ur.role_id AND r.disabled = false
+		JOIN sys_role_permission rp ON rp.role_id = r.id
+		JOIN sys_permission p ON p.id = rp.permission_id
+		WHERE ur.user_id IN ?
+		ORDER BY ur.user_id, p.sort_order, p.code`, userIDs).Scan(&rows).Error
+	if err != nil {
+		return nil, errs.Wrap(err)
+	}
+	for _, row := range rows {
+		res[row.UserID] = append(res[row.UserID], row.Code)
+	}
+	return res, nil
+}
+
 func (r *AuthRepository) FindRoleCodesByUserID(ctx context.Context, userID uint) ([]string, error) {
 	roles, err := gorm.G[Role](r.Ctx(ctx)).
 		Select("code").

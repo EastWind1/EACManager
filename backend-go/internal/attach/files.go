@@ -266,21 +266,13 @@ func Zip(src string, target string) (string, error) {
 		}
 		target = zipFile.Name()
 	} else {
-		if !Exists(target) {
-			err = CreateFile(target)
-			if err != nil {
-				return "", err
-			}
-		}
-		zipFile, e = os.Open(target)
+		zipFile, e = os.Create(target)
 		if e != nil {
-			return "", errs.NewFileOpError("", "", e)
+			return "", errs.NewFileOpError("", target, e)
 		}
-
 	}
 	defer zipFile.Close()
 	zipWriter := zip.NewWriter(zipFile)
-	defer zipWriter.Close()
 
 	e = filepath.Walk(src, func(filePath string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
@@ -291,8 +283,6 @@ func Zip(src string, target string) (string, error) {
 		zipInnerPath := strings.ReplaceAll(relPath, string(filepath.Separator), "/")
 		if fileInfo.IsDir() {
 			zipInnerPath += "/" // 目录结尾加/
-		}
-		if fileInfo.IsDir() {
 			_, err = zipWriter.Create(zipInnerPath)
 			return err
 		}
@@ -300,17 +290,25 @@ func Zip(src string, target string) (string, error) {
 		if err != nil {
 			return err
 		}
-		defer srcFile.Close()
 		zipFileWriter, err := zipWriter.Create(zipInnerPath)
 		if err != nil {
+			_ = srcFile.Close()
 			return err
 		}
-		_, err = io.Copy(zipFileWriter, srcFile)
-		return err
+		_, copyErr := io.Copy(zipFileWriter, srcFile)
+		closeErr := srcFile.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		return closeErr
 	})
 
 	if e != nil {
+		_ = zipWriter.Close()
 		return "", errs.NewFileOpError("", src, e)
+	}
+	if e = zipWriter.Close(); e != nil {
+		return "", errs.NewFileOpError("", target, e)
 	}
 	return target, nil
 }

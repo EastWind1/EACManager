@@ -6,9 +6,6 @@ import pers.eastwind.billmanager.common.BaseServiceTest;
 import pers.eastwind.billmanager.security.service.AuthorizeService;
 import pers.eastwind.billmanager.user.model.UserDTO;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.HexFormat;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,12 +32,10 @@ class UserInitializationTest extends BaseServiceTest {
     void shouldCreateFirstAdminAndAllowLogin() throws Exception {
         clearAdminRoles();
         assertTrue(userService.isInitializationRequired());
-        String hashedPassword = HexFormat.of().formatHex(
-                MessageDigest.getInstance("SHA-256")
-                        .digest("Admin12345:initAdmin".getBytes(StandardCharsets.UTF_8)));
+        String password = "Admin12345";
         var user1 = new UserDTO();
         user1.setUsername("initAdmin");
-        user1.setPassword(hashedPassword);
+        user1.setPassword(password);
         user1.setName("初始化管理员");
         UserDTO admin = userService.initialize(user1);
 
@@ -49,7 +44,7 @@ class UserInitializationTest extends BaseServiceTest {
         assertFalse(admin.getPermissions().isEmpty());
         assertFalse(userService.isInitializationRequired());
 
-        var login = userService.login("initAdmin", hashedPassword);
+        var login = userService.login("initAdmin", password);
         assertEquals("initAdmin", login.user().getUsername());
         var user2 = new UserDTO();
         user2.setUsername("secondAdmin");

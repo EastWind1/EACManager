@@ -29,7 +29,7 @@ Rust 后端是**学习用**的独立实现，定位见下节，不要求与 Java
 | 端口 | 8080 | 8080 | 8080 |
 | 部署 | `deploy/compose-java.yml` | `deploy/compose.yml` | `deploy/compose-rust.yml` |
 
-Java 与 Go 暴露同一套 `/api`，响应统一 `{code, message, data}`，模块划分一致：Java 是
+Java 与 Go 暴露同一套 `/api`，响应统一 `{message, data}`（成功与失败都带 `message`，没有 `code` 字段），模块划分一致：Java 是
 `controller → service → repository → model`（MapStruct 映射），Go 每个域一个包，内含
 `handler.go` / `service.go` / `store.go` / `model.go`。
 Rust 只参考同样的分域方式（每个域一个包，含 `handler.rs` / `service.rs` / `store.rs` / `model.rs`，
@@ -47,7 +47,10 @@ Rust 学习实现单独打包：`deploy/build-rust.sh`，
 - 授权是**动作级**：每个接口要求 `{module}:{action}` 权限码（如 `serviceBill:cancel-finish`）。
   Java 用 `@PreAuthorize` + `AuthenticateService.loadUserByUsername` 组装的 `authorities`（**故意不缓存**，
   改角色权限后下一次请求即生效）；Go 用 `security.Security.Middleware`。
-- 无 ADMIN 用户时前端跳 `/user/init`；未登录的 API 请求返回 428。初始化用行锁防并发双建。
+- 无 ADMIN 用户时前端跳 `/user/init`；未登录的 API 请求两端统一返回 **401**（前端登录页另外调用
+  `/api/user/initialization` 判断是否跳初始化页）。初始化用行锁防并发双建。
+- 密码由前端以明文提交（生产由静态服务器终结 TLS），长度/字符种类校验在后端；
+  `GET /api/user/me` 返回当前登录用户及最新角色权限，供前端启动时刷新本地权限缓存。
 - `ADMIN` 启动时自动补齐全部权限，且必须始终保留 `permission:query` / `permission:update`（保存时校验），否则权限页会自锁。
 
 ## 数据库
@@ -71,10 +74,9 @@ Rust 学习实现单独打包：`deploy/build-rust.sh`，
 
 权限目录在启动时由各模块声明的清单 upsert 进 `sys_permission`（只增改，不删库中额外项）。
 
-`deploy/database/`: `init_schema.sql` 建库；`migrate_attachment.sql`（拆分关联表 + `attachment.status`）、
-`migrations/migrate_security.sql`（角色/权限重构）、
-`migrations/migrate_service_bill_assignee.sql`（服务单负责人子表）与
-`migrations/migrate_user_profile.sql`（账户/用户资料拆表）为存量库的一次性迁移。
+`deploy/database/`: `init_schema.sql` 建库（含 `service_bill.number` / `reimbursement.number` 唯一索引）；
+`migrations/migrate_unique_number.sql` 为存量库补上这两个唯一约束（执行前需先清理重复单号）。
+历史上的拆表迁移已合并进 `init_schema.sql`，不再单独保留脚本。
 
 ### 附件模型
 
@@ -85,8 +87,16 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 上传即写文件并插入 `TRANSIENT` 行；单据保存时用一条
 `UPDATE ... WHERE status = TRANSIENT`（校验受影响行数）翻成 `PERSISTENT`，因此一个附件在结构上
 只能归属一张单据。未被绑定的 `TRANSIENT` 行由每日任务按 7 天回收，不靠进程内 map。
-`attach` 模块只提供 upload/persist/delete/download，只把 namespace 当不透明前缀，不碰任何关联表。
+`attach` 模块对外提供 upload/persist/delete/download，以及导出用的 `copyTo` / `CopyTo`
+与 `zipDirectory` / `ZipDirectory`；只把 namespace 当不透明前缀，不碰任何关联表。
+根目录与 `.tmp` 由附件模块统一解析（Java `AttachPaths`，Go `Service`），文件事务与软删除
+暂存收在模块内部（Java `FileTxService`），业务模块不接触源路径或临时目录。
 `relative_path` 是内部布局，**不得出现在 DTO / 响应里**。
+导出、预览等临时文件统一放在 `{attachment.path}/.tmp`（Java 与 Go 一致，不带随机后缀），
+由每日回收任务清理超过一天的文件与子目录；不使用 JVM `deleteOnExit`。
+读取附件的权限判断与路径解析内聚在同一个批量入口（Java `AttachService.getPaths`、Go
+`Service.GetPaths`，单个读取的 `getPath` / `GetPath` 只是便捷包装）：下载、OCR、内容/表格解析、
+导出都从这里取，返回 DTO + 本地路径，调用方不再重复校验或自己拼路径。
 
 ## 状态机与单号
 
@@ -104,7 +114,7 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 
 | 模块 | 接口 |
 |---|---|
-| `/api/user` | `POST /token`、`GET/POST /initialization`(public)、`PUT /logout`、`GET/POST/PUT /`、`DELETE /:username` |
+| `/api/user` | `POST /token`、`GET/POST /initialization`(public)、`PUT /logout`、`GET /me`、`GET/POST/PUT /`、`DELETE /:username` |
 | `/api/company` | `GET /`、`POST /`、`PUT /`、`DELETE /:id` |
 | `/api/security` | `GET /permissions`、`GET/POST/PUT/DELETE /roles`、`GET/PUT /role/:id/permissions` |
 | `/api/serviceBill` | `POST /query`、`GET /:id`、`POST /`、`PUT /`、`DELETE /`(批量)、`POST /import`、`PUT /process|processed|finish|cancel-process|cancel-processed|cancel-finish`、`PUT /assign`、`GET /assignees`、`POST /export`、`GET /countByState`、`GET /totalAmountGroupByMonth` |
@@ -167,7 +177,7 @@ cd backend-rust && cargo build && cargo clippy --all-targets && cargo fmt --chec
 - **关联表使用标量 ID 显式维护**：负责人、附件等关系表只存 id，通过批量查询关联行再补 DTO；不建立 ORM 关联来“自动带出”。删除、替换和唯一性约束由业务显式处理。
 - **鉴权统一收口 security**：账户、登录、token、禁用、角色权限属于安全模块；user 模块只维护用户资料。认证主体与账户信息尽量共用一个类型，响应 DTO 用继承或嵌入扩展，不复制字段。
 - **避免过度抽象和死代码**：只有一个调用的辅助方法优先内联；删除未使用的 DTO、参数类型、方法和旧实现。保持模块边界干净比保留过渡层更重要。
-- **公共契约保持稳定**：分页统一 PageResult + QueryParam，pageIndex 从 0 开始；批量写返回 ActionsResult；错误统一 BizException / errs.NewBizError；仓储只返回实体或投影 DTO，实体到接口 DTO 的转换放在 service/model。
+- **公共契约保持稳定**：分页统一 PageResult + QueryParam，pageIndex 从 0 开始，pageSize 单页上限 200（超出按上限裁剪）；批量写返回 ActionsResult；错误统一 BizException / errs.NewBizError；仓储只返回实体或投影 DTO，实体到接口 DTO 的转换放在 service/model。
 - **注释只写“为什么”和约束**：不复述标识符、不写框架 API 说明、不记录过程性步骤。
 
 ### 数据访问
@@ -196,6 +206,7 @@ backend-java/src/main/java/pers/eastwind/billmanager/
   security/  AuthorizeService（角色/权限）、AuthenticateService（登录/token/禁用/账户）、JWT 过滤器
   user/      只维护 user_profile 资料；company/ servicebill/ reimburse/ attach/ 各自模块
   servicebill/service: ServiceBillQueryService 负责查询/数据权限，ServiceBillActionService 只做写动作
+  reimburse/service: 同样拆为 ReimburseQueryService / ReimburseActionService
   {module}/permission/*PermissionProvider.java      模块声明的权限清单（启动时同步）
 
 backend-go/
@@ -205,6 +216,7 @@ backend-go/
       stats: stat_handler.go / stat_svc.go / stat_store.go
       security: Security 聚合（Authorize / Authenticate / PermissionSync / Auth 中间件）、sync.go（权限同步 + 初始化）
       bill/reimburse 额外: *_rule.go（OCR 文本/表格映射）、mapper.go、attach_relation.go
+      reimburse 查询/动作分离: query_service.go 负责查询，service.go 只做写动作
       attach/reimburse/bill 以 Module 聚合多个对外服务；bill 查询/动作分离: query_service.go 负责查询与数据权限，service.go 只做写动作
       attach 额外: files.go / ocr.go / office.go / file_tx.go / content.go
   pkg/core/  App（config / cache / db / server / router 聚合）
@@ -225,9 +237,10 @@ backend-rust/                        # 学习实现：结构可自由演进，�
   tests/integration.rs + tests/schema.sql  集成测试与建表脚本（由 init_schema.sql 去注释得到）
 
 frontend/src/
-  common/  api/HttpClient.ts（去重、loading、401 跳转、解包 data、blob、进度）、
-           directive/permission.ts（按动作码 display:none）、store、model、util/Crypto.ts
-  {user,company,service-bill,reimburse,attachment,statistic,permission}/  api · model · view · component
+  common/  api/HttpClient.ts（统一 request、loading、401 跳转、解包 data、blob、进度、debounce 包装）、
+           directive/permission.ts（按动作码 display:none）、store、model
+  {user,company,service-bill,reimburse,attachment,permission}/  api · model · view · component
+  statistic/  仅 view；统计数据接口归属各业务模块的 api
   permission/                                                                角色×动作权限配置页
 
 deploy/     compose*.yml、database/（init_schema、迁移）、frontend/（html、Caddyfile、cert）、build.sh

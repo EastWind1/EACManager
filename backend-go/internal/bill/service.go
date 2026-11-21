@@ -2,6 +2,7 @@ package bill
 
 import (
 	"backend-go/internal/attach"
+	"backend-go/internal/company"
 	"backend-go/internal/user"
 	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
@@ -20,13 +21,14 @@ import (
 )
 
 type Service struct {
-	cache     cache.Cache
-	billRepo  *Repository
-	attachSrv *attach.Service
-	relSrv    *RelService
-	mapper    *Mapper
-	querySrv  *QueryService
-	userSrv   *user.Service
+	cache      cache.Cache
+	billRepo   *Repository
+	attachSrv  *attach.Service
+	relSrv     *RelService
+	mapper     *Mapper
+	querySrv   *QueryService
+	userSrv    *user.Service
+	companySrv *company.Service
 }
 
 func newService(
@@ -37,16 +39,33 @@ func newService(
 	mapper *Mapper,
 	querySrv *QueryService,
 	userSrv *user.Service,
+	companySrv *company.Service,
 ) *Service {
 	return &Service{
-		cache:     cache,
-		billRepo:  billRepo,
-		attachSrv: attachSrv,
-		relSrv:    relSrv,
-		mapper:    mapper,
-		querySrv:  querySrv,
-		userSrv:   userSrv,
+		cache:      cache,
+		billRepo:   billRepo,
+		attachSrv:  attachSrv,
+		relSrv:     relSrv,
+		mapper:     mapper,
+		querySrv:   querySrv,
+		userSrv:    userSrv,
+		companySrv: companySrv,
 	}
+}
+
+// validateCompany 校验显式提交的产品公司；未提交（nil 或 id 为 0）表示不关联。
+func (s *Service) validateCompany(ctx context.Context, dto *DTO) error {
+	if dto.ProductCompany == nil || dto.ProductCompany.ID == 0 {
+		return nil
+	}
+	found, err := s.companySrv.FindByID(ctx, dto.ProductCompany.ID)
+	if err != nil {
+		return err
+	}
+	if found == nil {
+		return errs.NewBizError("公司不存在")
+	}
+	return nil
 }
 
 func (s *Service) resolveUserIDs(ctx context.Context, ids []uint) ([]uint, error) {
@@ -150,6 +169,9 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	}
 
 	entity := dto.ToEntity()
+	if err := s.validateCompany(ctx, dto); err != nil {
+		return nil, err
+	}
 	if err := s.ValidateAmount(entity); err != nil {
 		return nil, err
 	}
@@ -226,17 +248,19 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	}
 
 	entity := dto.ToEntity()
+	if err := s.validateCompany(ctx, dto); err != nil {
+		return nil, err
+	}
 	if err := s.ValidateAmount(entity); err != nil {
 		return nil, err
 	}
 	var attaches []attach.Attach
 	err := s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
-		// 只取状态：本次更新与状态流转互斥由数据库行锁 + 乐观锁版本号保证，
-		// 不需要把明细也读出来
 		bill, err := s.querySrv.RequireByID(txCtx, entity.ID)
 		if err != nil {
 			return err
 		}
+		entity.Version = bill.Version
 		if entity.Number != bill.Number {
 			if err := validNumber(entity.Number); err != nil {
 				return err
@@ -463,7 +487,7 @@ func (s *Service) GenerateByFile(ctx context.Context, file *multipart.FileHeader
 		return nil, err
 	}
 	attachment := attaches[0]
-	bill, err := s.mapper.Map(&attachment)
+	bill, err := s.mapper.Map(ctx, &attachment)
 	if err != nil {
 		return nil, err
 	}
@@ -493,7 +517,6 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		return "", err
 	}
 
-	ops := make([]attach.FileOp, 0, len(rels))
 	rows := make([][]string, 0, len(bills)+2)
 
 	rows = append(rows, []string{"单据编号", "状态", "项目名称", "项目地址", "总额", "安装完成日期", "备注"})
@@ -526,20 +549,12 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		if err != nil {
 			return "", errs.NewBizError("单号不合法")
 		}
+		ids := make([]uint, 0, len(rels[bill.ID]))
 		for _, attachment := range rels[bill.ID] {
-			originPath, err := s.attachSrv.GetAbsolutePathByRela(attachment.RelativePath)
-			if err != nil {
-				return "", err
-			}
-			target, err := uniqueTargetPath(curDir, attachment.Name)
-			if err != nil {
-				return "", errs.NewBizError("附件名不合法")
-			}
-			ops = append(ops, attach.FileOp{
-				Type:   attach.FileOpCopy,
-				Origin: originPath,
-				Target: target,
-			})
+			ids = append(ids, attachment.ID)
+		}
+		if err := s.attachSrv.CopyTo(ctx, ids, curDir); err != nil {
+			return "", err
 		}
 	}
 
@@ -553,10 +568,7 @@ func (s *Service) Export(ctx context.Context, ids []uint) (string, error) {
 		return "", errs.NewBizError("生成Excel失败: " + err.Error())
 	}
 
-	if err = attach.Exec(ops); err != nil {
-		return "", errs.NewBizError("文件操作失败: " + err.Error())
-	}
-	zipPath, err := attach.Zip(tempDir, "")
+	zipPath, err := s.attachSrv.ZipDirectory(tempDir)
 	if err != nil {
 		return "", err
 	}
@@ -574,21 +586,4 @@ func uniqueUint(values []uint) []uint {
 		res = append(res, value)
 	}
 	return res
-}
-
-// uniqueTargetPath 处理导出目录下的同名附件：name、1-name、2-name ……
-func uniqueTargetPath(dir, name string) (string, error) {
-	targetPath, err := attach.SafeJoin(dir, name)
-	if err != nil {
-		return "", err
-	}
-	repeatCount := 1
-	for attach.Exists(targetPath) {
-		targetPath, err = attach.SafeJoin(dir, fmt.Sprintf("%d-%s", repeatCount, name))
-		if err != nil {
-			return "", err
-		}
-		repeatCount++
-	}
-	return targetPath, nil
 }

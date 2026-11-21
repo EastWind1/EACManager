@@ -2,7 +2,6 @@ package security
 
 import (
 	"backend-go/pkg/errs"
-	"backend-go/pkg/result"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -33,14 +32,6 @@ func (m *Authenticate) Handler(c fiber.Ctx) error {
 		authStr = strings.TrimPrefix(authStr, "Bearer ")
 	}
 	if authStr == "" {
-		required, err := m.authenticateSrv.IsInitializationRequired(c)
-		if err != nil {
-			return err
-		}
-		if required {
-			return c.Status(fiber.StatusPreconditionRequired).JSON(
-				result.Error("系统尚未初始化管理员", map[string]bool{"initializationRequired": true}))
-		}
 		return errs.NewUnauthError("未登录")
 	}
 	username, err := m.jwtSrv.VerifyToken(authStr)
