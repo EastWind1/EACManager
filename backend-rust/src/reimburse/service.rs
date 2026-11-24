@@ -45,7 +45,7 @@ pub async fn update(app: &AppState, request: ReimburseRequest) -> AppResult<Reim
     if request.id == 0 {
         return Err(AppError::Biz("id不能为空".into()));
     }
-    let (entity, attachments) = request.into_parts();
+    let (mut entity, attachments) = request.into_parts();
 
     app.db
         .transaction(async |conn| {
@@ -53,6 +53,8 @@ pub async fn update(app: &AppState, request: ReimburseRequest) -> AppResult<Reim
             if entity.number != existing.number {
                 crate::util::valid_number(&entity.number)?;
             }
+            entity.state = existing.state;
+            entity.version = existing.version;
             store::update(conn, &entity).await?;
             relation::update_attachments(app, conn, entity.id, Some(&attachments)).await?;
             Ok(())
@@ -174,7 +176,6 @@ pub async fn generate_by_file(
 }
 
 pub async fn export(app: &AppState, ids: &[i32]) -> AppResult<std::path::PathBuf> {
-    use crate::attach::files;
     if ids.is_empty() {
         return Err(AppError::Biz("ID 不能为空".into()));
     }
@@ -202,17 +203,13 @@ pub async fn export(app: &AppState, ids: &[i32]) -> AppResult<std::path::PathBuf
 
         let dir = crate::util::safe_join(&temp_dir, &entity.number)
             .map_err(|_| AppError::Biz("单号不合法".into()))?;
-        std::fs::create_dir_all(&dir)?;
-        for row in attachments.remove(&entity.id).unwrap_or_default() {
-            let origin = crate::attach::service::absolute_path_by_relative(
-                app,
-                row.relative_path.as_deref().unwrap_or_default(),
-            )
-            .await?;
-            let target = files::unique_target_path(&dir, row.name.as_deref().unwrap_or_default())
-                .map_err(|_| AppError::Biz("附件名不合法".into()))?;
-            files::copy_file(&origin, &target)?;
-        }
+        let attachment_ids: Vec<i32> = attachments
+            .remove(&entity.id)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|row| row.id)
+            .collect();
+        crate::attach::service::copy_to(app, &attachment_ids, &dir).await?;
 
         rows.push(vec![
             entity.number,
@@ -235,7 +232,7 @@ pub async fn export(app: &AppState, ids: &[i32]) -> AppResult<std::path::PathBuf
         &format!("导出结果{}.xlsx", Utc::now().format("%Y%m%d%H%M%S")),
     )?;
     crate::attach::office::generate_excel(&rows, &excel_path)?;
-    let zip_path = files::zip_dir(&temp_dir, Some(&temp_dir.with_extension("zip")))?;
+    let zip_path = crate::attach::service::zip_directory(app, &temp_dir)?;
     let _ = std::fs::remove_dir_all(&temp_dir);
     Ok(zip_path)
 }

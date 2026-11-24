@@ -6,7 +6,9 @@ use crate::state::AppState;
 /// 附件内容读取：图片/PDF 取文本块，Excel 取表格。
 /// 仅负责把附件变成文本或表格，映射到具体实体由各业务模块完成。
 pub async fn texts(app: &AppState, attachment: &AttachDto) -> AppResult<Vec<String>> {
-    let path = crate::attach::service::absolute_path_by_id(app, attachment.id).await?;
+    let path = crate::attach::service::get_path(app, attachment.id)
+        .await?
+        .path;
     match attachment.attach_type {
         AttachType::Image => ocr::parse_image(&app.config.ocr.url, &path).await,
         AttachType::Pdf => {
@@ -35,6 +37,8 @@ pub async fn grid(app: &AppState, attachment: &AttachDto) -> AppResult<Vec<Vec<S
     if attachment.attach_type != AttachType::Excel {
         return Err(AppError::Biz("不支持解析为表格的附件类型".into()));
     }
-    let path = crate::attach::service::absolute_path_by_id(app, attachment.id).await?;
+    let path = crate::attach::service::get_path(app, attachment.id)
+        .await?
+        .path;
     office::parse_excel(&path)
 }

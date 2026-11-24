@@ -30,7 +30,9 @@ pub async fn get_all(db: &Db, current: i32, param: &QueryParam) -> AppResult<Pag
             return Ok(PageResult::empty(param));
         };
         let profile = store::find_profile(db, current).await?;
-        let dto = authenticate::base_dto(account, Vec::new(), Vec::new(), profile);
+        let authorities = authorize::user_authorities(db, current).await?;
+        let dto =
+            authenticate::base_dto(account, authorities.roles, authorities.permissions, profile);
         return Ok(PageResult::new(vec![dto], 1, param));
     }
 

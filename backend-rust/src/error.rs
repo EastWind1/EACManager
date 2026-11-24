@@ -22,9 +22,6 @@ pub enum AppError {
     /// 内部异常 → 500，细节只进日志
     #[error("{0}")]
     Internal(String),
-    /// 尚无管理员账户 → 428
-    #[error("系统尚未初始化管理员")]
-    InitializationRequired,
 }
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -59,11 +56,6 @@ impl IntoResponse for AppError {
             Self::Forbidden(message) => (StatusCode::FORBIDDEN, message, Value::Null),
             Self::Unauthorized(message) => (StatusCode::UNAUTHORIZED, message, Value::Null),
             Self::FileOp(message) => (StatusCode::INTERNAL_SERVER_ERROR, message, Value::Null),
-            Self::InitializationRequired => (
-                StatusCode::PRECONDITION_REQUIRED,
-                "系统尚未初始化管理员".to_string(),
-                json!({ "initializationRequired": true }),
-            ),
             Self::Internal(message) => {
                 tracing::error!("内部异常: {message}");
                 (
@@ -81,6 +73,9 @@ impl From<sqlx::Error> for AppError {
     fn from(error: sqlx::Error) -> Self {
         if crate::db::is_duplicate(&error) {
             return Self::Biz("数据已存在".into());
+        }
+        if crate::db::is_undefined_column(&error) {
+            return Self::Biz("排序字段不合法".into());
         }
         Self::Internal(format!("数据库异常: {error}"))
     }

@@ -227,6 +227,27 @@ pub async fn find_permission_codes_by_user_id(db: &Db, user_id: i32) -> AppResul
     .await?)
 }
 
+/// 批量读取用户的权限编码，供用户列表一次补齐权限。
+pub async fn find_permission_codes_by_user_ids(
+    db: &Db,
+    user_ids: &[i32],
+) -> AppResult<Vec<(i32, String)>> {
+    if user_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    Ok(sqlx::query_as::<_, (i32, String)>(
+        "SELECT DISTINCT ur.user_id, p.code FROM sys_permission p \
+         JOIN sys_role_permission rp ON rp.permission_id = p.id \
+         JOIN sys_user_role ur ON ur.role_id = rp.role_id \
+         JOIN sys_role r ON r.id = ur.role_id \
+         WHERE ur.user_id = ANY($1) AND r.disabled = false \
+         ORDER BY ur.user_id, p.code",
+    )
+    .bind(user_ids)
+    .fetch_all(db.pool())
+    .await?)
+}
+
 pub async fn find_role_codes_by_user_id(db: &Db, user_id: i32) -> AppResult<Vec<String>> {
     Ok(sqlx::query_scalar(
         "SELECT code FROM sys_role WHERE disabled = false \

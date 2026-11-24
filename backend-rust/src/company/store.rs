@@ -91,12 +91,13 @@ pub async fn update(
     contact_phone: &str,
     email: &str,
     address: &str,
-) -> AppResult<()> {
+) -> AppResult<CompanyRow> {
     let operator = current_operator_id();
-    let affected = sqlx::query(
+    sqlx::query_as::<_, CompanyRow>(safe_sql!(
         "UPDATE company SET name = $1, contact_name = $2, contact_phone = $3, email = $4, \
-         address = $5, last_modified_date = now(), last_modified_by_id = $6 WHERE id = $7",
-    )
+         address = $5, last_modified_date = now(), last_modified_by_id = $6 WHERE id = $7 \
+         RETURNING {COLUMNS}"
+    ))
     .bind(name)
     .bind(contact_name)
     .bind(contact_phone)
@@ -104,14 +105,19 @@ pub async fn update(
     .bind(address)
     .bind(operator)
     .bind(id)
-    .execute(db.pool())
+    .fetch_optional(db.pool())
     .await
     .map_err(|error| map_db_error(error, "公司名称已存在"))?
-    .rows_affected();
-    if affected == 0 {
-        return Err(AppError::Biz("数据已被更改，稍后重试".into()));
-    }
-    Ok(())
+    .ok_or_else(|| AppError::Biz("数据已被更改，稍后重试".into()))
+}
+
+pub async fn find_by_id(db: &Db, id: i32) -> AppResult<Option<CompanyRow>> {
+    Ok(
+        sqlx::query_as::<_, CompanyRow>(safe_sql!("SELECT {COLUMNS} FROM company WHERE id = $1"))
+            .bind(id)
+            .fetch_optional(db.pool())
+            .await?,
+    )
 }
 
 pub async fn set_disabled(db: &Db, id: i32) -> AppResult<()> {

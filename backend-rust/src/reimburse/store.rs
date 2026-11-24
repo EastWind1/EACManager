@@ -11,6 +11,7 @@ use crate::reimburse::model::{Reimburse, ReimburseDetail, ReimburseState};
 #[derive(Debug, Clone, FromRow)]
 pub struct ReimburseRow {
     pub id: i32,
+    pub version: Option<i32>,
     pub number: Option<String>,
     pub state: Option<i16>,
     pub summary: Option<String>,
@@ -29,12 +30,13 @@ pub struct DetailRow {
 
 // NUMERIC 不能被 sqlx 解成 f64，金额列统一在 SQL 里转成 float8
 const COLUMNS: &str = "id, number, state, summary, total_amount::float8 AS total_amount, \
-     reimburse_date, remark";
+     reimburse_date, remark, version";
 
 /// 行只用于构造一次实体，字段直接移动，不做无谓复制
 fn to_entity(row: ReimburseRow) -> Reimburse {
     Reimburse {
         id: row.id,
+        version: row.version.unwrap_or(0),
         number: row.number.unwrap_or_default(),
         state: ReimburseState::from_code(row.state.unwrap_or(0)),
         summary: row.summary.unwrap_or_default(),
@@ -142,8 +144,8 @@ pub async fn update(conn: &mut sqlx::PgConnection, entity: &Reimburse) -> AppRes
     let operator = current_operator_id();
     let affected = sqlx::query(
         "UPDATE reimbursement SET number = $1, state = $2, summary = $3, total_amount = $4, \
-         reimburse_date = $5, remark = $6, last_modified_date = now(), last_modified_by_id = $7 \
-         WHERE id = $8",
+         reimburse_date = $5, remark = $6, last_modified_date = now(), last_modified_by_id = $7, \
+         version = COALESCE(version, 0) + 1 WHERE id = $8 AND COALESCE(version, 0) = $9",
     )
     .bind(&entity.number)
     .bind(entity.state.code())
@@ -153,6 +155,7 @@ pub async fn update(conn: &mut sqlx::PgConnection, entity: &Reimburse) -> AppRes
     .bind(&entity.remark)
     .bind(operator)
     .bind(entity.id)
+    .bind(entity.version)
     .execute(&mut *conn)
     .await
     .map_err(|error| map_db_error(error, "单据编号已存在"))?
@@ -202,12 +205,13 @@ async fn sync_details(conn: &mut sqlx::PgConnection, entity: &Reimburse) -> AppR
 pub async fn update_state(conn: &mut sqlx::PgConnection, entity: &Reimburse) -> AppResult<()> {
     let operator = current_operator_id();
     let affected = sqlx::query(
-        "UPDATE reimbursement SET state = $1, last_modified_date = now(), last_modified_by_id = $2 \
-         WHERE id = $3",
+        "UPDATE reimbursement SET state = $1, last_modified_date = now(), last_modified_by_id = $2, \
+         version = COALESCE(version, 0) + 1 WHERE id = $3 AND COALESCE(version, 0) = $4",
     )
     .bind(entity.state.code())
     .bind(operator)
     .bind(entity.id)
+    .bind(entity.version)
     .execute(&mut *conn)
     .await?
     .rows_affected();

@@ -11,10 +11,7 @@
         <h2 class="ma-auto">服务单管理</h2>
       </template>
       <!-- 暗色模式切换 -->
-      <v-switch v-model="isDark" color="primary" hide-details @click="isDark = !isDark"
-                size="small"
-                :true-icon="mdiWeatherNight" :false-icon="mdiWeatherSunny">
-      </v-switch>
+      <v-btn @click="isDark = !isDark" :icon="isDark ? mdiWeatherSunny : mdiWeatherNight"></v-btn>
       <!-- 登录用户图标 -->
       <v-menu>
         <template #activator="{ props }">
@@ -85,9 +82,13 @@ const {removeUser} = useUserStore()
 const drawer = ref(true)
 
 const isDark = computed({
-  get: () => theme.global.name.value === 'dark',
+  get: () => theme.current.value.dark,
   set: (value) => {
-    theme.global.name.value = value ? 'dark' : 'light'
+    if (value) {
+      theme.change('dark')
+    } else {
+      theme.change('light')
+    }
   },
 })
 

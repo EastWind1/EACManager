@@ -76,6 +76,7 @@ impl BillType {
 #[derive(Debug, Clone)]
 pub struct Bill {
     pub id: i32,
+    pub version: i32,
     pub number: String,
     pub bill_type: BillType,
     pub state: BillState,
@@ -335,6 +336,7 @@ impl BillRequest {
         let id = self.id;
         let bill = Bill {
             id,
+            version: 0,
             number: trimmed(self.number),
             bill_type: self.bill_type,
             state: self.state.unwrap_or(BillState::Created),
@@ -350,7 +352,7 @@ impl BillRequest {
             on_site_contact: self.on_site_contact.unwrap_or_default(),
             on_site_phone: self.on_site_phone.unwrap_or_default(),
             elevator_info: self.elevator_info.unwrap_or_default(),
-            total_amount: self.total_amount,
+            total_amount: crate::util::round_money(self.total_amount),
             order_date: self.order_date,
             processed_date: self.processed_date,
             finished_date: self.finished_date,
@@ -364,8 +366,8 @@ impl BillRequest {
                     bill_id: id,
                     device: trimmed(detail.device),
                     quantity: detail.quantity,
-                    unit_price: detail.unit_price,
-                    subtotal: detail.subtotal,
+                    unit_price: crate::util::round_money(detail.unit_price),
+                    subtotal: crate::util::round_money(detail.subtotal),
                     remark: detail.remark.unwrap_or_default(),
                 })
                 .collect(),

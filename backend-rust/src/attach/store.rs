@@ -22,6 +22,7 @@ impl From<AttachRow> for AttachDto {
             id: row.id,
             name: row.name.unwrap_or_default(),
             attach_type: AttachType::from_code(row.attach_type.unwrap_or(4)),
+            status: AttachStatus::from_code(row.status),
         }
     }
 }

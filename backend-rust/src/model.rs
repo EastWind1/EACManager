@@ -77,6 +77,9 @@ pub struct QueryParam {
     pub sorts: Option<Vec<SortParam>>,
 }
 
+/// 单页条数上限，超出时按上限裁剪。
+pub const MAX_PAGE_SIZE: i64 = 200;
+
 impl QueryParam {
     pub fn validate(&self) -> Result<(), String> {
         match (self.page_size, self.page_index) {
@@ -112,7 +115,7 @@ impl QueryParam {
 
     pub fn offset(&self) -> i64 {
         match (self.page_index, self.page_size) {
-            (Some(index), Some(size)) => index * size,
+            (Some(index), Some(_)) => index * self.page_size(),
             _ => 0,
         }
     }
@@ -123,7 +126,9 @@ impl QueryParam {
 
     /// 未分页时返回 -1，调用方据此决定是否追加 LIMIT
     pub fn page_size(&self) -> i64 {
-        self.page_size.unwrap_or(-1)
+        self.page_size
+            .map(|size| size.min(MAX_PAGE_SIZE))
+            .unwrap_or(-1)
     }
 
     /// 生成 ORDER BY 子句。字段名按驼峰转下划线并做标识符白名单校验，避免拼接注入。

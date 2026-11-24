@@ -243,11 +243,13 @@ pub async fn find_enabled_page(db: &Db, param: &QueryParam) -> AppResult<PageRes
         store::find_enabled_accounts_page(db, &order, param.page_size(), param.offset()).await?;
     let ids: Vec<i32> = accounts.iter().map(|account| account.id).collect();
     let mut roles_by_user = group_roles(store::find_roles_by_user_ids(db, &ids).await?);
+    let mut permissions_by_user = authorize::permissions_by_user_ids(db, &ids).await?;
     let items = accounts
         .into_iter()
         .map(|account| {
             let roles = roles_by_user.remove(&account.id).unwrap_or_default();
-            base_dto(account, roles, Vec::new(), None)
+            let permissions = permissions_by_user.remove(&account.id).unwrap_or_default();
+            base_dto(account, roles, permissions, None)
         })
         .collect();
     Ok(PageResult::new(items, total, param))

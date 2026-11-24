@@ -44,7 +44,8 @@ impl AttachType {
 }
 
 /// 附件状态：TEMP 临时态、TRANSIENT 瞬时态、PERSISTENT 持久态
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum AttachStatus {
     Temp,
     Transient,
@@ -78,10 +79,23 @@ pub struct AttachDto {
     pub name: String,
     #[serde(rename = "type", default = "default_type")]
     pub attach_type: AttachType,
+    #[serde(default = "default_status")]
+    pub status: AttachStatus,
 }
 
 fn default_type() -> AttachType {
     AttachType::Other
+}
+
+fn default_status() -> AttachStatus {
+    AttachStatus::Temp
+}
+
+/// 已完成访问校验的附件 DTO 与磁盘路径。
+#[derive(Debug, Clone)]
+pub struct AttachFile {
+    pub attachment: AttachDto,
+    pub path: std::path::PathBuf,
 }
 
 /// 下载参数：GET /api/attachment/?id=&name=&type=（type 由前端传入，此处不解释）

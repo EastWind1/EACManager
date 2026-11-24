@@ -47,7 +47,7 @@ pub async fn update(db: &Db, request: &CompanyRequest) -> AppResult<CompanyDto> 
         return Err(AppError::Biz("公司 ID 不能为空".into()));
     }
     request.validate()?;
-    store::update(
+    let row = store::update(
         db,
         request.id,
         request.name.trim(),
@@ -57,15 +57,15 @@ pub async fn update(db: &Db, request: &CompanyRequest) -> AppResult<CompanyDto> 
         request.address(),
     )
     .await?;
-    Ok(CompanyDto {
-        id: request.id,
-        name: request.name.trim().to_string(),
-        contact_name: request.contact_name().to_string(),
-        contact_phone: request.contact_phone().to_string(),
-        email: request.email().to_string(),
-        address: request.address().to_string(),
-        disabled: None,
-    })
+    Ok(CompanyDto::from(row))
+}
+
+/// 返回任意状态的公司（含已停用），供单据关联校验。
+pub async fn find_by_id(db: &Db, id: i32) -> AppResult<Option<CompanyDto>> {
+    if id == 0 {
+        return Ok(None);
+    }
+    Ok(store::find_by_id(db, id).await?.map(CompanyDto::from))
 }
 
 pub async fn disable(db: &Db, id: i32) -> AppResult<()> {

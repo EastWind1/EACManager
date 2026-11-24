@@ -38,11 +38,6 @@ async fn resolve_user(
     }
 
     let Some(token) = token else {
-        if !crate::security::store::has_admin_user(&state.db, crate::security::ADMIN_ROLE_CODE)
-            .await?
-        {
-            return Err(AppError::InitializationRequired);
-        }
         return Err(AppError::Unauthorized("未登录".into()));
     };
     let username = auth::verify_token(&state.config.jwt.secret, &token)?;

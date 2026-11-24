@@ -297,10 +297,10 @@ fn bill_payload() -> Value {
 // ---------------------------------------------------------------- 认证与初始化
 
 async fn initialization_and_login_flow(app: &Router) {
-    // 空库：未登录访问受保护接口返回 428，且带 initializationRequired
+    // 空库：未认证访问受保护接口统一返回 401
     let (status, response) = get(app, "/api/serviceBill/query", "").await;
-    assert_eq!(status, StatusCode::PRECONDITION_REQUIRED);
-    assert_eq!(data(&response)["initializationRequired"], json!(true));
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    assert_eq!(response["message"], json!("未登录"));
 
     let token = admin_token(app).await;
     assert!(!token.is_empty());
@@ -359,6 +359,12 @@ async fn permission_required_per_action(app: &Router) {
     assert_eq!(status, StatusCode::OK, "创建用户失败: {response}");
 
     let plain = login(app, "plainUser", "PlainPass1234").await;
+
+    // 当前用户接口返回最新角色与权限，供前端刷新缓存
+    let (status, response) = get(app, "/api/user/me", &plain).await;
+    assert_eq!(status, StatusCode::OK, "读取当前用户失败: {response}");
+    assert_eq!(data(&response)["username"], json!("plainUser"));
+    assert!(data(&response)["permissions"].is_array());
 
     // 无 serviceBill:query → 403
     let (status, response) = post_json(
@@ -886,6 +892,7 @@ async fn attachment_upload_download_and_persist(app: &Router) {
     assert_eq!(status, StatusCode::OK, "上传失败: {response}");
     let attach_id = data(&response)[0]["id"].as_i64().expect("缺少附件 id");
     assert_eq!(data(&response)[0]["name"], json!("服务单附件.txt"));
+    assert_eq!(data(&response)[0]["status"], json!("TRANSIENT"));
     // relativePath 不得出现在响应里
     assert!(data(&response)[0].get("relativePath").is_none());
 

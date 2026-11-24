@@ -131,6 +131,11 @@ pub fn now() -> DateTime<Utc> {
     Utc::now()
 }
 
+/// 金额在进入实体前统一保留两位小数。
+pub fn round_money(value: f64) -> f64 {
+    (value * 100.0).round() / 100.0
+}
+
 /// 原始文件名校验：拒绝 <>:"/\|?*、单独的 .. 和空名
 pub fn valid_name(name: &str) -> AppResult<()> {
     if name.is_empty() {

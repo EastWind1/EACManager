@@ -28,6 +28,20 @@ pub fn validate_amount(bill: &Bill) -> AppResult<()> {
     Ok(())
 }
 
+/// 显式提交的产品公司必须存在；未提交表示不关联。
+async fn validate_company(app: &AppState, bill: &Bill) -> AppResult<()> {
+    let Some(company_id) = bill.product_company_id else {
+        return Ok(());
+    };
+    if crate::company::service::find_by_id(&app.db, company_id)
+        .await?
+        .is_none()
+    {
+        return Err(AppError::Biz("公司不存在".into()));
+    }
+    Ok(())
+}
+
 pub async fn create(app: &AppState, mut request: BillRequest) -> AppResult<BillDto> {
     request.validate()?;
     if request.id != 0 {
@@ -36,6 +50,7 @@ pub async fn create(app: &AppState, mut request: BillRequest) -> AppResult<BillD
     let requested_assignees = request.assignees.take().unwrap_or_default();
     let (mut bill, attachments) = request.into_parts();
     validate_amount(&bill)?;
+    validate_company(app, &bill).await?;
     let current_id = query::current_user_id()?;
 
     let mut assignee_ids: Vec<i32> = requested_assignees
@@ -83,6 +98,7 @@ pub async fn update(app: &AppState, mut request: BillRequest) -> AppResult<BillD
     let requested_assignees = request.assignees.take();
     let (mut bill, attachments) = request.into_parts();
     validate_amount(&bill)?;
+    validate_company(app, &bill).await?;
 
     app.db
         .transaction(async |conn| {
@@ -90,6 +106,7 @@ pub async fn update(app: &AppState, mut request: BillRequest) -> AppResult<BillD
             if bill.number != existing.number {
                 crate::util::valid_number(&bill.number)?;
             }
+            bill.version = existing.version;
             let mut replace_assignees: Option<Vec<i32>> = None;
             if let Some(assignees) = requested_assignees.as_deref() {
                 let requested: Vec<i32> = assignees
@@ -296,7 +313,6 @@ pub async fn generate_by_file(app: &AppState, name: String, data: Vec<u8>) -> Ap
 }
 
 pub async fn export(app: &AppState, ids: &[i32]) -> AppResult<std::path::PathBuf> {
-    use crate::attach::files;
     if ids.is_empty() {
         return Err(AppError::Biz("ID 不能为空".into()));
     }
@@ -339,17 +355,13 @@ pub async fn export(app: &AppState, ids: &[i32]) -> AppResult<std::path::PathBuf
 
         let dir = crate::util::safe_join(&temp_dir, &bill.number)
             .map_err(|_| AppError::Biz("单号不合法".into()))?;
-        std::fs::create_dir_all(&dir)?;
-        for row in attachments.remove(&bill.id).unwrap_or_default() {
-            let origin = crate::attach::service::absolute_path_by_relative(
-                app,
-                row.relative_path.as_deref().unwrap_or_default(),
-            )
-            .await?;
-            let target = files::unique_target_path(&dir, row.name.as_deref().unwrap_or_default())
-                .map_err(|_| AppError::Biz("附件名不合法".into()))?;
-            files::copy_file(&origin, &target)?;
-        }
+        let attachment_ids: Vec<i32> = attachments
+            .remove(&bill.id)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|row| row.id)
+            .collect();
+        crate::attach::service::copy_to(app, &attachment_ids, &dir).await?;
 
         rows.push(vec![
             bill.number,
@@ -374,7 +386,7 @@ pub async fn export(app: &AppState, ids: &[i32]) -> AppResult<std::path::PathBuf
         &format!("导出结果{}.xlsx", Utc::now().format("%Y%m%d%H%M%S")),
     )?;
     crate::attach::office::generate_excel(&rows, &excel_path)?;
-    let zip_path = files::zip_dir(&temp_dir, Some(&temp_dir.with_extension("zip")))?;
+    let zip_path = crate::attach::service::zip_directory(app, &temp_dir)?;
     let _ = std::fs::remove_dir_all(&temp_dir);
     Ok(zip_path)
 }

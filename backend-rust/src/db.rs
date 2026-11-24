@@ -55,6 +55,11 @@ pub fn is_duplicate(error: &sqlx::Error) -> bool {
     matches!(error, sqlx::Error::Database(db) if db.code().as_deref() == Some("23505"))
 }
 
+/// 列不存在（PostgreSQL 42703），排序字段错误时按业务错误返回。
+pub fn is_undefined_column(error: &sqlx::Error) -> bool {
+    matches!(error, sqlx::Error::Database(db) if db.code().as_deref() == Some("42703"))
+}
+
 /// 把唯一键冲突翻译成业务提示，其余错误交给 `From<sqlx::Error>`。
 pub fn map_db_error(error: sqlx::Error, duplicate_message: &str) -> AppError {
     if is_duplicate(&error) {

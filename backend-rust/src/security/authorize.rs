@@ -178,6 +178,28 @@ pub async fn user_authorities(db: &Db, user_id: i32) -> AppResult<AuthConfig> {
     })
 }
 
+/// 批量返回用户权限：目录只查一次，避免列表逐行查询。
+pub async fn permissions_by_user_ids(
+    db: &Db,
+    user_ids: &[i32],
+) -> AppResult<HashMap<i32, Vec<PermissionDto>>> {
+    let mut grouped: HashMap<i32, Vec<PermissionDto>> = HashMap::new();
+    if user_ids.is_empty() {
+        return Ok(grouped);
+    }
+    let catalog: HashMap<String, PermissionDto> = store::find_all_permissions_ordered(db)
+        .await?
+        .into_iter()
+        .map(|row| (row.code.clone(), PermissionDto::from(row)))
+        .collect();
+    for (user_id, code) in store::find_permission_codes_by_user_ids(db, user_ids).await? {
+        if let Some(permission) = catalog.get(&code) {
+            grouped.entry(user_id).or_default().push(permission.clone());
+        }
+    }
+    Ok(grouped)
+}
+
 /// 整体替换用户的角色，返回写入后的角色列表。
 pub async fn set_user_roles(db: &Db, user_id: i32, codes: &[String]) -> AppResult<Vec<RoleDto>> {
     let unique: Vec<&String> = {

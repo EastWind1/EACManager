@@ -43,6 +43,7 @@ impl ReimburseState {
 #[derive(Debug, Clone)]
 pub struct Reimburse {
     pub id: i32,
+    pub version: i32,
     pub number: String,
     pub state: ReimburseState,
     pub summary: String,
@@ -166,10 +167,11 @@ impl ReimburseRequest {
         let id = self.id;
         let entity = Reimburse {
             id,
+            version: 0,
             number: trimmed(self.number),
             state: self.state.unwrap_or(ReimburseState::Created),
             summary: trimmed(self.summary),
-            total_amount: self.total_amount,
+            total_amount: crate::util::round_money(self.total_amount),
             reimburse_date: self.reimburse_date,
             remark: self.remark.unwrap_or_default(),
             details: self
@@ -180,7 +182,7 @@ impl ReimburseRequest {
                     id: detail.id,
                     reimburse_id: id,
                     name: trimmed(detail.name),
-                    amount: detail.amount,
+                    amount: crate::util::round_money(detail.amount),
                 })
                 .collect(),
         };

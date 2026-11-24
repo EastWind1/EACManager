@@ -10,6 +10,7 @@ use crate::model::{CountByState, MonthSumAmount, PageResult, QueryParam};
 #[derive(Debug, Clone, FromRow)]
 pub struct BillRow {
     pub id: i32,
+    pub version: Option<i32>,
     pub number: Option<String>,
     pub bill_type: Option<i16>,
     pub state: Option<i16>,
@@ -48,12 +49,14 @@ pub struct AssigneeRow {
 // NUMERIC 不能被 sqlx 解成 f64，金额列统一在 SQL 里转成 float8
 const BILL_COLUMNS: &str = "id, number, type AS bill_type, state, product_company_id, project_name, \
      project_address, project_contact, project_contact_phone, on_site_contact, on_site_phone, \
-     elevator_info, total_amount::float8 AS total_amount, order_date, processed_date, finished_date, remark";
+     elevator_info, total_amount::float8 AS total_amount, order_date, processed_date, finished_date, \
+     remark, version";
 
 /// 行只用于构造一次实体，字段直接移动，不做无谓复制
 fn to_bill(row: BillRow) -> Bill {
     Bill {
         id: row.id,
+        version: row.version.unwrap_or(0),
         number: row.number.unwrap_or_default(),
         bill_type: BillType::from_code(row.bill_type.unwrap_or(0)),
         state: BillState::from_code(row.state.unwrap_or(0)),
@@ -204,7 +207,8 @@ pub async fn update(conn: &mut sqlx::PgConnection, bill: &Bill) -> AppResult<()>
          project_name = $5, project_address = $6, project_contact = $7, project_contact_phone = $8, \
          on_site_contact = $9, on_site_phone = $10, elevator_info = $11, order_date = $12, \
          processed_date = $13, finished_date = $14, remark = $15, product_company_id = $16, \
-         last_modified_date = now(), last_modified_by_id = $17 WHERE id = $18",
+         last_modified_date = now(), last_modified_by_id = $17, version = COALESCE(version, 0) + 1 \
+         WHERE id = $18 AND COALESCE(version, 0) = $19",
     )
     .bind(&bill.number)
     .bind(bill.bill_type.code())
@@ -224,6 +228,7 @@ pub async fn update(conn: &mut sqlx::PgConnection, bill: &Bill) -> AppResult<()>
     .bind(bill.product_company_id)
     .bind(operator)
     .bind(bill.id)
+    .bind(bill.version)
     .execute(&mut *conn)
     .await
     .map_err(|error| map_db_error(error, "单据编号已存在"))?
@@ -278,13 +283,15 @@ pub async fn update_state(conn: &mut sqlx::PgConnection, bill: &Bill) -> AppResu
     let operator = current_operator_id();
     let affected = sqlx::query(
         "UPDATE service_bill SET state = $1, processed_date = $2, finished_date = $3, \
-         last_modified_date = now(), last_modified_by_id = $4 WHERE id = $5",
+         last_modified_date = now(), last_modified_by_id = $4, version = COALESCE(version, 0) + 1 \
+         WHERE id = $5 AND COALESCE(version, 0) = $6",
     )
     .bind(bill.state.code())
     .bind(bill.processed_date)
     .bind(bill.finished_date)
     .bind(operator)
     .bind(bill.id)
+    .bind(bill.version)
     .execute(&mut *conn)
     .await?
     .rows_affected();

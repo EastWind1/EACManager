@@ -523,7 +523,7 @@ CREATE INDEX idx_reimburse_attach_relation_bill_id ON public.reimburse_attach_re
 
 
 
-CREATE INDEX idx_reimbursement_number ON public.reimbursement USING btree (number);
+CREATE UNIQUE INDEX idx_reimbursement_number ON public.reimbursement USING btree (number);
 
 
 
@@ -543,7 +543,7 @@ CREATE INDEX idx_service_bill_assignee_bill_id ON public.service_bill_assignee U
 CREATE INDEX idx_service_bill_assignee_user_id ON public.service_bill_assignee USING btree (user_id);
 
 
-CREATE INDEX idx_service_bill_number ON public.service_bill USING btree (number);
+CREATE UNIQUE INDEX idx_service_bill_number ON public.service_bill USING btree (number);
 
 
 
