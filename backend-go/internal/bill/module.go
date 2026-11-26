@@ -6,6 +6,7 @@ import (
 	"backend-go/internal/security"
 	"backend-go/internal/user"
 	"backend-go/pkg/core"
+	"time"
 )
 
 // Module 聚合服务单模块对外服务。
@@ -20,9 +21,11 @@ func Setup(base *core.App, companySrv *company.Service, attachMod *attach.Module
 	sec.PermissionSync.Register(billPermissions()...)
 	serviceBillRepo := newRepository(base.DB)
 	relSrv := newAttachRelService(base.DB, attachMod.Service)
-	querySrv := newQueryService(serviceBillRepo, relSrv, userSrv, sec.Authorize)
+	querySrv := newQueryService(serviceBillRepo, relSrv, userSrv, sec.Authorize,
+		base.Cache, time.Duration(base.Config.Cache.Expire)*time.Second)
 	srv := newService(base.Cache, serviceBillRepo, attachMod.Service, relSrv, newServiceBillMapper(attachMod.Content, companySrv), querySrv, userSrv, companySrv)
-	statisticSrv := newStatisticService(base.Cache, serviceBillRepo, querySrv)
+	statisticSrv := newStatisticService(base.Cache, serviceBillRepo, querySrv,
+		time.Duration(base.Config.Cache.Expire)*time.Second)
 	serviceBillController := newController(srv, querySrv)
 	statisticController := newStatisticController(statisticSrv)
 

@@ -123,8 +123,9 @@ func (s *Service) ensureEnabledUser(ctx context.Context, assigneeID uint) error 
 	return nil
 }
 
-func (s *Service) evictStatistic() {
-	s.cache.DeleteName("service-bill")
+// evictQuery 清理列表缓存；金额统计只靠 TTL 刷新，写入不主动失效。
+func (s *Service) evictQuery() {
+	s.cache.DeleteName(queryCacheName)
 }
 
 func (s *Service) ValidateAmount(bill *ServiceBill) error {
@@ -230,7 +231,7 @@ func (s *Service) Create(ctx context.Context, dto *DTO) (*DTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.evictStatistic()
+	s.evictQuery()
 	result := full.ToDTO(attaches)
 	result.Assignees, err = s.querySrv.FindAssignees(ctx, full.ID)
 	if err != nil {
@@ -313,7 +314,7 @@ func (s *Service) Update(ctx context.Context, dto *DTO) (*DTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.evictStatistic()
+	s.evictQuery()
 	result := full.ToDTO(attaches)
 	result.Assignees, err = s.querySrv.FindAssignees(ctx, full.ID)
 	if err != nil {
@@ -327,7 +328,7 @@ func (s *Service) Delete(ctx context.Context, ids []uint) (*result.ActionsResult
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
+	res := result.ExecuteActions(ids, func(id uint) (any, error) {
 		err := s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
 			bill, err := s.querySrv.RequireByID(txCtx, id)
 			if err != nil {
@@ -351,7 +352,9 @@ func (s *Service) Delete(ctx context.Context, ids []uint) (*result.ActionsResult
 			return nil
 		})
 		return nil, err
-	}), nil
+	})
+	s.evictQuery()
+	return res, nil
 }
 
 // transition 状态流转的公共骨架
@@ -367,7 +370,7 @@ func (s *Service) transition(
 	if len(ids) == 0 {
 		return nil, errs.NewBizError("ID 为空")
 	}
-	return result.ExecuteActions(ids, func(id uint) (any, error) {
+	res := result.ExecuteActions(ids, func(id uint) (any, error) {
 		err := s.billRepo.Transaction(ctx, func(txCtx context.Context) error {
 			bill, err := s.querySrv.RequireByID(txCtx, id)
 			if err != nil {
@@ -380,7 +383,9 @@ func (s *Service) transition(
 			return s.billRepo.UpdateState(txCtx, bill)
 		})
 		return nil, err
-	}), nil
+	})
+	s.evictQuery()
+	return res, nil
 }
 
 func (s *Service) Process(ctx context.Context, ids []uint) (*result.ActionsResult[uint, any], error) {
@@ -476,7 +481,7 @@ func (s *Service) Assign(ctx context.Context, ids []uint, assigneeIDs []uint) (*
 		})
 		return nil, err
 	})
-	s.evictStatistic()
+	s.evictQuery()
 	return res, nil
 }
 

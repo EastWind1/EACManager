@@ -7,15 +7,19 @@ import (
 	"time"
 )
 
+const amountCacheName = "reimburse-amount"
+
 type StatisticService struct {
 	cache         cache.Cache
 	reimburseRepo *Repository
+	ttl           time.Duration
 }
 
-func newStatisticService(cache cache.Cache, reimburseRepo *Repository) *StatisticService {
+func newStatisticService(cache cache.Cache, reimburseRepo *Repository, ttl time.Duration) *StatisticService {
 	return &StatisticService{
 		cache:         cache,
 		reimburseRepo: reimburseRepo,
+		ttl:           ttl,
 	}
 }
 
@@ -34,13 +38,15 @@ func (s *StatisticService) CountReimburseByState(ctx context.Context) (*result.C
 }
 
 func (s *StatisticService) SumAmountByMonth(ctx context.Context) ([]result.MonthSumAmount, error) {
-	if value, ok := s.cache.Get("reimburse", "SumAmountByMonth"); ok {
-		return value.([]result.MonthSumAmount), nil
+	var res []result.MonthSumAmount
+	if s.cache.GetJSON(amountCacheName, "SumAmountByMonth", &res) {
+		return res, nil
 	}
 	res, err := s.reimburseRepo.SumAmountByMonth(ctx)
 	if err != nil {
 		return nil, err
 	}
-	s.cache.PutWithExpire("reimburse", "SumAmountByMonth", res, time.Hour)
+	// 仪表盘金额允许短时间不一致：只靠 TTL 刷新，写操作不主动清空。
+	s.cache.SetJSON(amountCacheName, "SumAmountByMonth", res, s.ttl)
 	return res, nil
 }

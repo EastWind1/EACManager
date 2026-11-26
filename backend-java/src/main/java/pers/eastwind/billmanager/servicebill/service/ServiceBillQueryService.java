@@ -2,7 +2,6 @@ package pers.eastwind.billmanager.servicebill.service;
 
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Subquery;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -111,10 +110,6 @@ public class ServiceBillQueryService {
         return bill;
     }
 
-    @Cacheable(
-            value = "serviceBill_query",
-            key = "'findByParam_' + @serviceBillQueryService.getScopeUserId() + '_' + #param.hashCode()"
-    )
     @Transactional(readOnly = true)
     public Page<ServiceBillDTO> findByParam(ServiceBillQueryParam param) {
         if (param == null) {

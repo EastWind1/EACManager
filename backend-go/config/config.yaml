@@ -14,10 +14,19 @@ db:
   maxIdleConns: 20
   connMaxLifetime: 60
 cache:
-  expire: 86400
+  # 缓存有效期（秒），与 Java 的 spring.cache.redis.time-to-live 对齐
+  expire: 300
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  # 连接/读写超时，单位秒
+  timeout: 2
 jwt:
   # 部署时通过 JWT_SECRET 环境变量注入（至少 32 字节）
   secret: "this-is-a-test-jwt-secret-cannot-use-in-production"
+  # token 有效期，单位秒
   expire: 604800
 attachment:
   path: attachment

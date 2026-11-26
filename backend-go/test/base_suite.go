@@ -82,10 +82,15 @@ func (s *BaseSuite) ensureAdmin() {
 }
 
 func (s *BaseSuite) SetupTest() {
+	// 权限/查询缓存跨用例保留会掩盖事务回滚后的数据；每个用例开始前清空。
+	s.App.Cache.Clear()
 	s.Tx = s.App.DB.Begin()
 	s.Require().NoError(s.Tx.Error, "开启测试事务失败")
-	ctx := security.SetUserToCtx(s.T().Context(), &security.AuthorityUser{ID: s.UserID, Username: s.UserName})
-	s.Ctx = context.WithValue(ctx, database.TxKey{}, s.Tx)
+	ctx := context.WithValue(s.T().Context(), database.TxKey{}, s.Tx)
+	user, err := s.App.Security.Authenticate.LoadUserById(ctx, s.UserID)
+	s.Require().NoError(err, "加载测试管理员权限失败")
+	s.Require().NotNil(user)
+	s.Ctx = security.SetUserToCtx(ctx, user)
 }
 
 func (s *BaseSuite) TearDownTest() {

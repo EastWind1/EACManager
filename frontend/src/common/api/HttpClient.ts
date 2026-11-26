@@ -101,80 +101,82 @@ export class HttpClient {
     this.baseURL = baseURL
   }
 
+  private async send<T>(cfg: HttpConfig | undefined, method: string): Promise<T> {
+    const res = await client.request({
+      baseURL: this.baseURL,
+      url: cfg?.url,
+      method,
+      params: cfg?.params,
+      data: cfg?.data,
+      headers: cfg?.headers,
+      signal: cfg?.signal,
+      responseType: cfg?.responseType ?? 'json',
+      onDownloadProgress: cfg?.onDownloadProgress,
+      onUploadProgress: cfg?.onUploadProgress,
+    })
+    // 响应处理
+    const contentType = (res.headers['content-type'] as string | undefined) ?? ''
+    if (cfg?.responseType === 'blob') {
+      return res.data as T
+    }
+    if (contentType.includes('json') || (typeof res.data === 'object' && res.data !== null)) {
+      return (res.data as JSONResponse<T>).data
+    }
+    return res.data as T
+  }
+
   request = async <T>(cfg?: HttpConfig): Promise<T> => {
     const uiState = useUIStore()
     const router = useRouter()
     const useLoad = cfg?.useLoad ?? true
-    const handleError = cfg?.handleError?? true
+    const handleError = cfg?.handleError ?? true
     if (useLoad) {
       beginLoading()
     }
     const method = cfg?.method ?? 'GET'
 
     try {
-      return await client
-        .request({
-          baseURL: this.baseURL,
-          url: cfg?.url,
-          method,
-          params: cfg?.params,
-          data: cfg?.data,
-          headers: cfg?.headers,
-          signal: cfg?.signal,
-          responseType: cfg?.responseType ?? 'json',
-          onDownloadProgress: cfg?.onDownloadProgress,
-          onUploadProgress: cfg?.onUploadProgress,
-        })
-        .then((res) => {
-          // 响应处理
-          const contentType = (res.headers['content-type'] as string | undefined) ?? ''
-          if (cfg?.responseType === 'blob') {
-            return res.data as T
-          }
-          if (contentType.includes('json') || (typeof res.data === 'object' && res.data !== null)) {
-            return (res.data as JSONResponse<T>).data
-          }
-          return res.data as T
-        })
-        .catch(async (err) => {
-          // 不处理异常、网络异常、请求被取消等没有响应体，直接抛出
-          if (!handleError || !axios.isAxiosError(err) || !err.response) {
-            throw err
-          }
-          const res = err.response
-          // 异常处理
-          let msg = '请求异常'
-          switch (res.status) {
-            case 404:
-              msg = '请求地址不存在'
-              uiState.warning(msg)
-              break
-            case 401: {
-              msg = '未登录或登陆失效'
-              await router.push({
-                path: '/login',
-                query: {
-                  redirect: location.pathname + location.search,
-                },
-              })
-              uiState.warning(msg)
-              break
-            }
-            case 403:
-              msg = '权限不足'
-              uiState.warning(msg)
-              break
-            case 400:
-            case 500:
-              msg = (await extractMessage(res.data)) ?? msg
-              uiState.warning(msg)
-              break
-            default:
-              uiState.warning(msg)
-              break
-          }
+      try {
+        return await this.send<T>(cfg, method)
+      } catch (err) {
+        const response = axios.isAxiosError(err) ? err.response : undefined
+        // 不处理异常、网络异常、请求被取消等没有响应体，直接抛出
+        if (!handleError || !response) {
           throw err
-        })
+        }
+        // 异常处理
+        let msg = '请求异常'
+        switch (response.status) {
+          case 404:
+            msg = '请求地址不存在'
+            uiState.warning(msg)
+            break
+          case 401: {
+            msg = '未登录或登陆失效'
+            await router.push({
+              path: '/login',
+              query: {
+                redirect: location.pathname + location.search,
+              },
+            })
+            uiState.warning(msg)
+            break
+          }
+          case 403:
+            msg = '权限不足'
+            uiState.warning(msg)
+            break
+          case 400:
+          case 500:
+            msg = (await extractMessage(response.data)) ?? msg
+            uiState.warning(msg)
+            break
+          default:
+            uiState.warning(msg)
+            break
+        }
+        throw err
+      }
     } finally {
       if (useLoad) {
         endLoading()

@@ -1,7 +1,10 @@
 package pers.eastwind.billmanager.servicebill.service;
 
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import pers.eastwind.billmanager.common.cache.CacheConfig;
 import pers.eastwind.billmanager.common.model.MonthAmountRow;
 import pers.eastwind.billmanager.common.model.MonthSumAmount;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillState;
@@ -17,14 +20,16 @@ import java.util.*;
 public class ServiceBillStatisticService {
     private final ServiceBillStatisticRepository serviceBillStatisticRepository;
     private final ServiceBillQueryService queryService;
+    private final CacheManager cacheManager;
 
     public ServiceBillStatisticService(ServiceBillStatisticRepository serviceBillStatisticRepository,
-                                       ServiceBillQueryService queryService) {
+                                       ServiceBillQueryService queryService,
+                                       CacheManager cacheManager) {
         this.serviceBillStatisticRepository = serviceBillStatisticRepository;
         this.queryService = queryService;
+        this.cacheManager = cacheManager;
     }
 
-    @Cacheable(value = "serviceBill_statistic", key = "'countBillsByState_' + @serviceBillQueryService.getScopeUserId()")
     public Map<ServiceBillState, Long> countBillsByState() {
         Map<ServiceBillState, Long> stateCountMap = new HashMap<>();
         for (ServiceBillStateCount row : serviceBillStatisticRepository.countByState(queryService.getScopeUserId())) {
@@ -34,7 +39,7 @@ public class ServiceBillStatisticService {
     }
 
 
-    @Cacheable(value = "serviceBill_statistic", key = "'sumReceiveAmountByMonth_' + @serviceBillQueryService.getScopeUserId()")
+    @Cacheable(value = "serviceBill", key = "'sumReceiveAmountByMonth_' + @serviceBillQueryService.getScopeUserId()")
     public List<MonthSumAmount> sumReceiveAmountByMonth() {
 
         Instant preYear = Instant.now().minus(365, ChronoUnit.DAYS);

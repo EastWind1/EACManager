@@ -8,17 +8,21 @@ import (
 	"time"
 )
 
+const amountCacheName = "bill-amount"
+
 type StatisticService struct {
 	cache    cache.Cache
 	billRepo *Repository
 	querySrv *QueryService
+	ttl      time.Duration
 }
 
-func newStatisticService(cache cache.Cache, billRepo *Repository, querySrv *QueryService) *StatisticService {
+func newStatisticService(cache cache.Cache, billRepo *Repository, querySrv *QueryService, ttl time.Duration) *StatisticService {
 	return &StatisticService{
 		cache:    cache,
 		billRepo: billRepo,
 		querySrv: querySrv,
+		ttl:      ttl,
 	}
 }
 
@@ -49,13 +53,15 @@ func (s *StatisticService) SumAmountByMonth(ctx context.Context) ([]result.Month
 	if scope != nil {
 		key = fmt.Sprintf("SumAmountByMonth:user:%d", *scope)
 	}
-	if value, ok := s.cache.Get("service-bill", key); ok {
-		return value.([]result.MonthSumAmount), nil
+	var res []result.MonthSumAmount
+	if s.cache.GetJSON(amountCacheName, key, &res) {
+		return res, nil
 	}
-	res, err := s.billRepo.SumReceiveAmountByMonth(ctx, scope)
+	res, err = s.billRepo.SumReceiveAmountByMonth(ctx, scope)
 	if err != nil {
 		return nil, err
 	}
-	s.cache.PutWithExpire("service-bill", key, res, time.Hour)
+	// 仪表盘金额允许短时间不一致：只靠 TTL 刷新，写操作不主动清空。
+	s.cache.SetJSON(amountCacheName, key, res, s.ttl)
 	return res, nil
 }

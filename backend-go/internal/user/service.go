@@ -22,16 +22,27 @@ func (s *Service) IsInitializationRequired(ctx context.Context) (bool, error) {
 	return s.security.Authenticate.IsInitializationRequired(ctx)
 }
 
+func (s *Service) Logout(token string) {
+	s.security.Authenticate.Logout(token)
+}
+
 func (s *Service) Login(ctx context.Context, username, password string) (*LoginResult, error) {
 	res, err := s.security.Authenticate.Login(ctx, username, password)
 	if err != nil {
 		return nil, err
 	}
+	return s.toLoginResult(ctx, res)
+}
+
+func (s *Service) toLoginResult(ctx context.Context, res *security.LoginResult) (*LoginResult, error) {
 	profile, err := s.profileRepo.FindByUserID(ctx, res.Account.ID)
 	if err != nil {
 		return nil, err
 	}
-	return &LoginResult{Token: res.Token, User: *toDTO(&res.Account, profile)}, nil
+	return &LoginResult{
+		Token: res.Token,
+		User:  *toDTO(&res.Account, profile),
+	}, nil
 }
 
 func (s *Service) Initialize(ctx context.Context, dto *DTO) (*DTO, error) {

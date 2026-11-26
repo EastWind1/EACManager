@@ -19,9 +19,9 @@ public class AccountController {
         this.authenticateService = authenticateService;
     }
 
-    @DeleteMapping("/{username}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('user:disable')")
-    public void disable(@PathVariable String username) {
-        authenticateService.disable(username);
+    public void disable(@PathVariable Integer id) {
+        authenticateService.disable(id);
     }
 }

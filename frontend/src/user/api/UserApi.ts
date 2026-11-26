@@ -11,8 +11,7 @@ const debouncedRequest = http.debounce(http.request)
  */
 const UserApi = {
   /**
-   * 登录
-   * 返回 token
+   * 登录；token 由服务端写入 httpOnly cookie
    * @param username 用户名
    * @param password 密码
    */
@@ -84,10 +83,10 @@ const UserApi = {
 
   /**
    * 禁用用户（删除）
-   * @param username 用户名
+   * @param id 用户 ID
    */
-  async disable(username: string) {
-    return await http.request({ method: 'DELETE', url: `/${username}` })
+  async disable(id: number) {
+    return await http.request({ method: 'DELETE', url: `/${id}` })
   },
 }
 export default UserApi

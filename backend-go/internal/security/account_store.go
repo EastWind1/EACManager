@@ -95,9 +95,9 @@ func (r *AccountRepository) UpdatePassword(ctx context.Context, account *Account
 	return nil
 }
 
-func (r *AccountRepository) Disable(ctx context.Context, username string) (bool, error) {
+func (r *AccountRepository) Disable(ctx context.Context, id uint) (bool, error) {
 	affected, err := gorm.G[*Account](r.Ctx(ctx)).Select("disabled").
-		Where("username = ?", username).Updates(ctx, &Account{Disabled: true})
+		Where("id = ?", id).Updates(ctx, &Account{Disabled: true})
 	if err != nil {
 		return false, errs.Wrap(err)
 	}

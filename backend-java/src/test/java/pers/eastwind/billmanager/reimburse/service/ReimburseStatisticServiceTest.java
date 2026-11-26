@@ -38,15 +38,16 @@ class ReimburseStatisticServiceTest extends BaseServiceTest {
     @Autowired
     private CacheManager cacheManager;
 
-    private static final String STAT_CACHE = "reimburse_statistic";
+    private static final String AMOUNT_STAT_CACHE = "reimburse-sumAmount";
 
     /**
-     * 统计结果带 Spring Cache，测量前清空缓存保证读到最新数据
+     * 金额统计带缓存，测量前清空保证读到最新数据
      */
     private void evictStatCache() {
-        Cache cache = cacheManager.getCache(STAT_CACHE);
+        Cache cache = cacheManager.getCache(AMOUNT_STAT_CACHE);
         if (cache != null) {
-            cache.clear();
+            // RedisCache.clear() 可能异步执行，测试里用 invalidate() 保证立即失效
+            cache.invalidate();
         }
     }
 

@@ -2,6 +2,8 @@ package pers.eastwind.billmanager.security.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,12 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
-import pers.eastwind.billmanager.security.config.JWTProperties;
 import pers.eastwind.billmanager.security.model.*;
 import pers.eastwind.billmanager.security.repository.AccountRepository;
 import pers.eastwind.billmanager.security.repository.RoleRepository;
 import pers.eastwind.billmanager.security.util.AuthUtil;
-import pers.eastwind.billmanager.security.util.JWTUtil;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -32,18 +32,19 @@ import java.util.stream.Collectors;
 public class AuthenticateService implements UserDetailsService {
     private static final Pattern PASSWORD_PATTERN = Pattern.compile("[a-zA-Z0-9*\\-_^~]+");
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{3,31}$");
+    public static final String AUTH_USER_CACHE = "authUser";
 
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
     private final AuthorizeService authorizeService;
-    private final JWTProperties properties;
+    private final TokenService tokenService;
 
     public AuthenticateService(AccountRepository accountRepository, RoleRepository roleRepository,
-                          AuthorizeService authorizeService, JWTProperties properties) {
+                          AuthorizeService authorizeService, TokenService tokenService) {
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
         this.authorizeService = authorizeService;
-        this.properties = properties;
+        this.tokenService = tokenService;
     }
 
     public boolean isInitializationRequired() {
@@ -63,9 +64,13 @@ public class AuthenticateService implements UserDetailsService {
             log.warn("登录失败: {}", username);
             throw new BizException("用户名或密码错误");
         }
-        String token = JWTUtil.generateToken(properties.getSecret(), properties.getExpire(), username);
+        String token = tokenService.issue(account.getId());
         log.info("用户登录: {}", username);
         return new LoginResult(token, toDTO(account));
+    }
+
+    public void logout(String token) {
+        tokenService.expire(token);
     }
 
     @Transactional
@@ -163,15 +168,7 @@ public class AuthenticateService implements UserDetailsService {
     }
 
     @Transactional
-    public void disable(String username) {
-        Account account = accountRepository.findByUsernameAndDisabled(username, false);
-        if (account == null) {
-            throw new BizException("用户不存在");
-        }
-        disable(account.getId());
-    }
-
-    @Transactional
+    @CacheEvict(value = AUTH_USER_CACHE, key = "#id")
     public void disable(Integer id) {
         Account account = accountRepository.findById(id).orElse(null);
         if (account == null) {
@@ -192,13 +189,21 @@ public class AuthenticateService implements UserDetailsService {
         accountRepository.save(account);
     }
 
+    @Cacheable(value = AUTH_USER_CACHE, key = "#id")
+    public AuthorityUser loadUserById(Integer id) {
+        Account account = accountRepository.findByIdAndDisabledFalse(id)
+                .orElseThrow(() -> new UsernameNotFoundException("未找到 id 为 " + id + " 的启用用户"));
+        AuthConfig config = authorizeService.getUserAuthority(id);
+        return toDTO(account, config);
+    }
+
     @Override
     public @NonNull AuthorityUser loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
         Account account = accountRepository.findByUsernameAndDisabled(username, false);
         if (account == null) {
             throw new UsernameNotFoundException("未找到用户名为 " + username + " 的用户");
         }
-        AuthConfig config = authorizeService.getUserAuthorities(account.getId());
+        AuthConfig config = authorizeService.getUserAuthority(account.getId());
         return toDTO(account, config);
     }
 
@@ -229,7 +234,7 @@ public class AuthenticateService implements UserDetailsService {
 
     public PageResult<AuthorityUser> findEnabledPage(QueryParam queryParam) {
         Page<Account> page = accountRepository.findByDisabled(false, queryParam.getPageable());
-        Map<Integer, AuthConfig> authorities = authorizeService.getUserAuthorities(
+        Map<Integer, AuthConfig> authorities = authorizeService.getUsersAuthority(
                 page.getContent().stream().map(Account::getId).toList());
         return PageResult.fromPage(page, account ->
                 toDTO(account, authorities.getOrDefault(account.getId(), new AuthConfig(List.of(), List.of()))));
@@ -240,7 +245,7 @@ public class AuthenticateService implements UserDetailsService {
     }
 
     private AuthorityUser toDTO(Account account) {
-        return toDTO(account, authorizeService.getUserAuthorities(account.getId()));
+        return toDTO(account, authorizeService.getUserAuthority(account.getId()));
     }
 
     /**
@@ -297,7 +302,7 @@ public class AuthenticateService implements UserDetailsService {
         if (!PASSWORD_PATTERN.matcher(password).matches()) {
             throw new BizException("密码只能包含大写、小写字母、数字以及 *-_^~");
         }
-        int classes = 0;
+        int classes;
         boolean upper = false, lower = false, digit = false, other = false;
         for (char c : password.toCharArray()) {
             if ('a' <= c && c <= 'z') lower = true;

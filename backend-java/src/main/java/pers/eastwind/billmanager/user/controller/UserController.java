@@ -2,6 +2,7 @@ package pers.eastwind.billmanager.user.controller;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -9,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import pers.eastwind.billmanager.common.model.PageResult;
 import pers.eastwind.billmanager.common.model.QueryParam;
 import pers.eastwind.billmanager.security.config.JWTProperties;
-import pers.eastwind.billmanager.security.service.AuthenticateService;
 import pers.eastwind.billmanager.user.model.LoginResult;
 import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
@@ -19,14 +19,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
+    private static final String ACCESS_COOKIE = "X-Auth-Token";
+    private static final String ACCESS_PATH = "/api";
+
     private final JWTProperties config;
     private final UserService userService;
-    private final AuthenticateService authenticateService;
 
-    public UserController(JWTProperties config, UserService userService, AuthenticateService authenticateService) {
+    public UserController(JWTProperties config, UserService userService) {
         this.config = config;
         this.userService = userService;
-        this.authenticateService = authenticateService;
     }
 
     public record LoginParam(
@@ -36,15 +37,7 @@ public class UserController {
 
     @PostMapping("/token")
     public ResponseEntity<UserDTO> login(@Valid @RequestBody LoginParam param) {
-        LoginResult res = userService.login(param.username, param.password);
-        return ResponseEntity.ok().header("Set-Cookie",
-                        ResponseCookie.from("X-Auth-Token", res.token())
-                                .path("/api")
-                                .httpOnly(true)
-                                .secure(true)
-                                .maxAge(config.getExpire())
-                                .sameSite("Strict").build().toString())
-                .body(res.user());
+        return withToken(userService.login(param.username, param.password));
     }
 
     @GetMapping("/initialization")
@@ -57,18 +50,12 @@ public class UserController {
         return userService.initialize(param);
     }
 
-    /**
-     * TODO：此处登出仅销毁 cookie，还需要结合 token 作废实现
-     */
     @PutMapping("/logout")
-    public ResponseEntity<Object> logout() {
-        return ResponseEntity.ok().header("Set-Cookie",
-                ResponseCookie.from("X-Auth-Token", "")
-                        .path("/api")
-                        .httpOnly(true)
-                        .secure(true)
-                        .maxAge(-1)
-                        .sameSite("Strict").build().toString()).build();
+    public ResponseEntity<Object> logout(
+            @CookieValue(name = ACCESS_COOKIE, required = false) String accessToken) {
+        userService.logout(accessToken);
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,
+                expiredCookie(ACCESS_COOKIE, ACCESS_PATH).toString()).build();
     }
 
     @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).QUERY.getCode())")
@@ -89,9 +76,24 @@ public class UserController {
         return userService.update(user);
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority(T(pers.eastwind.billmanager.user.permission.UserPermission).DISABLE.getCode())")
-    public void disable(@PathVariable Integer id) {
-        authenticateService.disable(id);
+    private ResponseEntity<UserDTO> withToken(LoginResult res) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE,
+                        cookie(ACCESS_COOKIE, res.token(), ACCESS_PATH, config.getExpire()).toString())
+                .body(res.user());
+    }
+
+    private ResponseCookie cookie(String name, String value, String path, long maxAge) {
+        return ResponseCookie.from(name, value)
+                .path(path)
+                .httpOnly(true)
+                .secure(true)
+                .maxAge(maxAge)
+                .sameSite("Strict")
+                .build();
+    }
+
+    private ResponseCookie expiredCookie(String name, String path) {
+        return cookie(name, "", path, -1);
     }
 }

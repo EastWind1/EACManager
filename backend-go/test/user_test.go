@@ -48,13 +48,19 @@ func (s *UserServiceTest) adminContext(ctx context.Context) context.Context {
 			Name:          "测试管理员",
 		})
 		s.NoError(err)
-		return security.SetUserToCtx(ctx, &security.AuthorityUser{ID: admin.ID, Username: admin.Username})
+		full, err := s.App.Security.Authenticate.LoadUserById(ctx, admin.ID)
+		s.NoError(err)
+		s.NotNil(full)
+		return security.SetUserToCtx(ctx, full)
 	}
 
 	admin, err := s.srv.FindEnabledUsersByRole(ctx, security.AdminRoleCode)
 	s.NoError(err)
 	s.NotEmpty(admin)
-	return security.SetUserToCtx(ctx, &security.AuthorityUser{ID: admin[0].ID, Username: admin[0].Username})
+	full, err := s.App.Security.Authenticate.LoadUserById(ctx, admin[0].ID)
+	s.NoError(err)
+	s.NotNil(full)
+	return security.SetUserToCtx(ctx, full)
 }
 
 func (s *UserServiceTest) TestCreate() {
@@ -124,9 +130,9 @@ func (s *UserServiceTest) TestUpdate() {
 }
 
 func (s *UserServiceTest) TestDisable() {
-	_, err := s.srv.Create(s.Ctx, s.testUser)
+	created, err := s.srv.Create(s.Ctx, s.testUser)
 	s.NoError(err)
-	err = s.App.Security.Authenticate.Disable(s.Ctx, s.testUser.Username)
+	err = s.App.Security.Authenticate.Disable(s.Ctx, created.ID)
 	s.NoError(err)
 }
 
@@ -153,9 +159,9 @@ func (s *UserServiceTest) TestLoginWithWrongPassword() {
 }
 
 func (s *UserServiceTest) TestLoginDisabledUser() {
-	_, err := s.srv.Create(s.Ctx, s.testUser)
+	created, err := s.srv.Create(s.Ctx, s.testUser)
 	s.NoError(err)
-	err = s.App.Security.Authenticate.Disable(s.Ctx, s.testUser.Username)
+	err = s.App.Security.Authenticate.Disable(s.Ctx, created.ID)
 	s.NoError(err)
 
 	_, err = s.srv.Login(s.Ctx, "testUser", "password123")

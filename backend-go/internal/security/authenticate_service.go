@@ -1,13 +1,16 @@
 package security
 
 import (
+	"backend-go/pkg/cache"
 	"backend-go/pkg/database"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"context"
+	"fmt"
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3/log"
 	"golang.org/x/crypto/bcrypt"
@@ -20,16 +23,26 @@ var (
 
 type AuthenticateService struct {
 	repo        *AccountRepository
-	jwtSrv      *JWTService
+	tokenSvc    *TokenService
 	securitySvc *AuthorizeService
+	cache       cache.Cache
+	authUserTTL time.Duration
 }
 
-func newAuthenticateService(jwt *JWTService, repo *AccountRepository, securitySvc *AuthorizeService) *AuthenticateService {
+func newAuthenticateService(tokenSvc *TokenService, repo *AccountRepository, securitySvc *AuthorizeService,
+	cache cache.Cache, authUserTTL time.Duration) *AuthenticateService {
 	return &AuthenticateService{
 		repo:        repo,
-		jwtSrv:      jwt,
+		tokenSvc:    tokenSvc,
 		securitySvc: securitySvc,
+		cache:       cache,
+		authUserTTL: authUserTTL,
 	}
+}
+
+// Logout 把当前 token 加入黑名单，直到自然过期。
+func (s *AuthenticateService) Logout(token string) {
+	s.tokenSvc.Revoke(token)
 }
 
 func (s *AuthenticateService) IsInitializationRequired(ctx context.Context) (bool, error) {
@@ -55,7 +68,7 @@ func (s *AuthenticateService) Login(ctx context.Context, username, password stri
 		log.Warnf("登录失败: %v", username)
 		return nil, errs.NewBizError("用户名或密码错误")
 	}
-	token, err := s.jwtSrv.GenerateToken(username)
+	token, err := s.tokenSvc.Issue(account.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -254,8 +267,8 @@ func (s *AuthenticateService) UpdateAccount(ctx context.Context, id uint, roles 
 	return dto, nil
 }
 
-func (s *AuthenticateService) Disable(ctx context.Context, username string) error {
-	account, err := s.repo.FindByUsername(ctx, username)
+func (s *AuthenticateService) Disable(ctx context.Context, id uint) error {
+	account, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -282,18 +295,45 @@ func (s *AuthenticateService) Disable(ctx context.Context, username string) erro
 			return errs.NewBizError("必须保留至少一个启用的管理员")
 		}
 	}
-	disabled, err := s.repo.Disable(ctx, username)
+	disabled, err := s.repo.Disable(ctx, id)
 	if err != nil {
 		return err
 	}
 	if !disabled {
 		return errs.NewBizError("用户不存在")
 	}
+	s.securitySvc.InvalidateAuthUser(id)
 	return nil
 }
 
-func (s *AuthenticateService) FindEnabledByUsername(ctx context.Context, username string) (*Account, error) {
-	return s.repo.FindEnabledByUsername(ctx, username)
+// LoadUserById 读取完整 AuthorityUser；按 id 缓存账号、角色与权限，filter 直接使用。
+func (s *AuthenticateService) LoadUserById(ctx context.Context, id uint) (*AuthorityUser, error) {
+	key := fmt.Sprintf("%d", id)
+	var user AuthorityUser
+	if s.cache.GetJSON(authUserCacheName, key, &user) {
+		return &user, nil
+	}
+	account, err := s.repo.FindByID(ctx, id)
+	if err != nil || account == nil || account.Disabled {
+		return nil, err
+	}
+	dto, err := s.toDTO(ctx, account)
+	if err != nil {
+		return nil, err
+	}
+	// 与 Java 的 WRITE_ONLY 密码字段一致：缓存中不保存密码哈希。
+	cached := *dto
+	cached.Password = ""
+	s.cache.SetJSON(authUserCacheName, key, &cached, s.authUserTTL)
+	return dto, nil
+}
+
+func (s *AuthenticateService) FindEnabledByID(ctx context.Context, id uint) (*Account, error) {
+	account, err := s.repo.FindByID(ctx, id)
+	if err != nil || account == nil || account.Disabled {
+		return nil, err
+	}
+	return account, nil
 }
 
 func (s *AuthenticateService) FindByUsername(ctx context.Context, username string) (*AuthorityUser, error) {

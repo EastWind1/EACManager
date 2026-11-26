@@ -1,15 +1,19 @@
 package pers.eastwind.billmanager.security.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import pers.eastwind.billmanager.security.model.PermissionEntity;
 import pers.eastwind.billmanager.security.model.Role;
 import pers.eastwind.billmanager.security.model.RolePermission;
-import pers.eastwind.billmanager.security.permission.SecurityPermission;
 import pers.eastwind.billmanager.security.repository.PermissionRepository;
 import pers.eastwind.billmanager.security.repository.RolePermissionRepository;
 import pers.eastwind.billmanager.security.repository.RoleRepository;
@@ -27,18 +31,21 @@ public class SecurityInitializer implements ApplicationRunner {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final CacheManager cacheManager;
 
     public SecurityInitializer(RoleRepository roleRepository,
                                PermissionRepository permissionRepository,
-                               RolePermissionRepository rolePermissionRepository) {
+                               RolePermissionRepository rolePermissionRepository,
+                               CacheManager cacheManager) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.cacheManager = cacheManager;
     }
 
     @Override
     @Transactional
-    public void run(ApplicationArguments args) {
+    public void run(@NonNull ApplicationArguments args) {
         Role admin = ensureRole(AuthorizeService.ADMIN_ROLE_CODE, "管理员", 1);
         ensureRole("USER", "普通用户", 2);
         int added = 0;
@@ -54,6 +61,27 @@ public class SecurityInitializer implements ApplicationRunner {
         }
         if (added > 0) {
             log.info("管理员角色权限不完整，已补齐 {} 项权限", added);
+        }
+        clearAuthUserCacheAfterCommit();
+    }
+
+    private void clearAuthUserCacheAfterCommit() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    clearAuthUserCache();
+                }
+            });
+            return;
+        }
+        clearAuthUserCache();
+    }
+
+    private void clearAuthUserCache() {
+        Cache cache = cacheManager.getCache(AuthenticateService.AUTH_USER_CACHE);
+        if (cache != null) {
+            cache.clear();
         }
     }
 

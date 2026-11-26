@@ -1,6 +1,6 @@
 package pers.eastwind.billmanager.security.service;
 
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pers.eastwind.billmanager.common.exception.BizException;
@@ -15,10 +15,11 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static pers.eastwind.billmanager.security.service.AuthenticateService.AUTH_USER_CACHE;
+
 /**
  * 角色、权限与用户角色组装服务
  */
-@Slf4j
 @Service
 public class AuthorizeService {
     public static final String ADMIN_ROLE_CODE = "ADMIN";
@@ -80,6 +81,7 @@ public class AuthorizeService {
      * 修改角色；编码不可修改
      */
     @Transactional
+    @CacheEvict(value = AUTH_USER_CACHE, allEntries = true)
     public RoleDTO updateRole(RoleDTO dto) {
         if (dto.getId() == null) {
             throw new BizException("角色 id 不能为空");
@@ -101,6 +103,7 @@ public class AuthorizeService {
     /**
      * 删除角色；管理员角色不允许删除
      */
+    @CacheEvict(value = AUTH_USER_CACHE, allEntries = true)
     @Transactional
     public void deleteRole(Integer id) {
         Role role = roleRepository.findById(id).orElseThrow(() -> new BizException("角色不存在"));
@@ -148,10 +151,7 @@ public class AuthorizeService {
                 .anyMatch(role -> roleCode.equals(role.getCode()));
     }
 
-    /**
-     * 单个用户的角色与权限；列表场景请用批量版本，避免 N+1
-     */
-    public AuthConfig getUserAuthorities(Integer userId) {
+    public AuthConfig getUserAuthority(Integer userId) {
         if (userId == null) {
             return new AuthConfig(List.of(), List.of());
         }
@@ -175,13 +175,13 @@ public class AuthorizeService {
     /**
      * 批量组装用户权限
      *
-     * <p>用户列表页逐用户调用 {@link #getUserAuthorities(Integer)} 会退化成 N+1（每个用户两次查询）；
+     * <p>用户列表页逐用户调用 {@link #getUserAuthority(Integer)} 会退化成 N+1（每个用户两次查询）；
      * 这里固定 3 次查询：用户角色关联、启用角色、角色权限对，与用户数无关。</p>
      *
      * @param userIds 用户 ID
      * @return 用户 ID → 角色与权限
      */
-    public Map<Integer, AuthConfig> getUserAuthorities(Collection<Integer> userIds) {
+    public Map<Integer, AuthConfig> getUsersAuthority(Collection<Integer> userIds) {
         if (userIds == null || userIds.isEmpty()) {
             return Map.of();
         }
@@ -236,6 +236,7 @@ public class AuthorizeService {
     /**
      * 整体替换用户角色：先清空现有关系再写入，未知角色编码直接报错
      */
+    @CacheEvict(value = AUTH_USER_CACHE, key = "#userId")
     @Transactional
     public void setUserRoles(Integer userId, Set<String> roleCodes) {
         userRoleRepository.deleteByUserId(userId);
@@ -267,6 +268,7 @@ public class AuthorizeService {
     /**
      * 整体替换角色权限；ADMIN 必须保留 permission:query / permission:update，否则拒绝
      */
+    @CacheEvict(value = AUTH_USER_CACHE, allEntries = true)
     @Transactional
     public List<PermissionDTO> updateRolePermissions(Integer roleId, Set<Integer> permissionIds) {
         if (roleId == null) {

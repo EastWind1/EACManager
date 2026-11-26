@@ -43,9 +43,13 @@ func Run() {
 }
 
 func NewApp(cfg *config.Config) (*App, error) {
+	cacheStore, err := cache.NewCache(cfg)
+	if err != nil {
+		return nil, err
+	}
 	base := &core.App{
 		Config: cfg,
-		Cache:  cache.NewInMemoryCache(cfg.Cache),
+		Cache:  cacheStore,
 		DB:     database.NewDB(cfg.Db, cfg.Log),
 		Server: fiber.New(fiber.Config{
 			ErrorHandler: middleware.ErrorHandler(),
@@ -71,5 +75,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	if err := app.Security.PermissionSync.Sync(); err != nil {
 		return nil, err
 	}
+	// 启动时权限可能变化，清掉可能残留的旧权限缓存。
+	app.Security.Authorize.InvalidateAuthUserCache()
 	return app, nil
 }

@@ -9,12 +9,12 @@ import (
 
 // Authenticate 认证中间件，负责解析 TOKEN 并设置用户上下文
 type Authenticate struct {
-	jwtSrv          *JWTService
+	tokenSvc        *TokenService
 	authenticateSrv *AuthenticateService
 }
 
-func newAuthenticate(jwtSrv *JWTService, authenticateSrv *AuthenticateService) *Authenticate {
-	return &Authenticate{jwtSrv: jwtSrv, authenticateSrv: authenticateSrv}
+func newAuthenticate(tokenSvc *TokenService, authenticateSrv *AuthenticateService) *Authenticate {
+	return &Authenticate{tokenSvc: tokenSvc, authenticateSrv: authenticateSrv}
 }
 
 func (m *Authenticate) Handler(c fiber.Ctx) error {
@@ -34,15 +34,21 @@ func (m *Authenticate) Handler(c fiber.Ctx) error {
 	if authStr == "" {
 		return errs.NewUnauthError("未登录")
 	}
-	username, err := m.jwtSrv.VerifyToken(authStr)
+	userID, err := m.tokenSvc.Verify(authStr)
+	if err != nil || userID == 0 {
+		if err != nil {
+			return err
+		}
+		return errs.NewUnauthError("未登录")
+	}
+	user, err := m.authenticateSrv.LoadUserById(c, userID)
 	if err != nil {
 		return err
 	}
-	account, err := m.authenticateSrv.FindEnabledByUsername(c, username)
-	if err != nil {
-		return err
+	if user == nil {
+		return errs.NewUnauthError("未登录")
 	}
-	SetUserToFiberCtx(c, &AuthorityUser{ID: account.ID, Username: account.Username})
+	SetUserToFiberCtx(c, user)
 	return c.Next()
 }
 

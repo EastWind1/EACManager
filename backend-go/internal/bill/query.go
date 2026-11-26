@@ -3,10 +3,18 @@ package bill
 import (
 	"backend-go/internal/security"
 	"backend-go/internal/user"
+	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"time"
 )
+
+const queryCacheName = "bill-query"
 
 // QueryService 服务单查询服务。
 //
@@ -17,14 +25,19 @@ type QueryService struct {
 	relSrv      *RelService
 	userSrv     *user.Service
 	securitySrv *security.AuthorizeService
+	cache       cache.Cache
+	queryTTL    time.Duration
 }
 
-func newQueryService(billRepo *Repository, relSrv *RelService, userSrv *user.Service, securitySrv *security.AuthorizeService) *QueryService {
+func newQueryService(billRepo *Repository, relSrv *RelService, userSrv *user.Service,
+	securitySrv *security.AuthorizeService, cache cache.Cache, queryTTL time.Duration) *QueryService {
 	return &QueryService{
 		billRepo:    billRepo,
 		relSrv:      relSrv,
 		userSrv:     userSrv,
 		securitySrv: securitySrv,
+		cache:       cache,
+		queryTTL:    queryTTL,
 	}
 }
 
@@ -131,6 +144,11 @@ func (s *QueryService) FindByParam(ctx context.Context, param *QueryParam) (*res
 	if err != nil {
 		return nil, err
 	}
+	key := queryCacheKey(scope, param)
+	var cached result.PageResult[DTO]
+	if s.cache.GetJSON(queryCacheName, key, &cached) {
+		return &cached, nil
+	}
 	res, err := s.billRepo.FindByParam(ctx, param, scope)
 	if err != nil {
 		return nil, err
@@ -139,7 +157,19 @@ func (s *QueryService) FindByParam(ctx context.Context, param *QueryParam) (*res
 	if err = s.fillAssignees(ctx, page.Items); err != nil {
 		return nil, err
 	}
+	s.cache.SetJSON(queryCacheName, key, page, s.queryTTL)
 	return page, nil
+}
+
+// queryCacheKey 把数据权限和查询参数一起纳入缓存键，避免跨用户复用结果。
+func queryCacheKey(scope *uint, param *QueryParam) string {
+	raw, _ := json.Marshal(param)
+	sum := sha256.Sum256(raw)
+	scopeKey := "all"
+	if scope != nil {
+		scopeKey = fmt.Sprintf("user:%d", *scope)
+	}
+	return scopeKey + ":" + hex.EncodeToString(sum[:])
 }
 
 // FindAllForExport 导出读取；调用方拿到实体后即可直接生成文件，不再单独判断数据权限。

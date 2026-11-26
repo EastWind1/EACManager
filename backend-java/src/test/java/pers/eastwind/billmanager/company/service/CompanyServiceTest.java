@@ -58,10 +58,12 @@ class CompanyServiceTest extends BaseServiceTest {
         companyService.create(newCompany);
 
         var list = companyService.findEnabledByName("测试");
+        var cached = companyService.findEnabledByName("测试");
 
         assertNotNull(list);
         assertFalse(list.isEmpty());
         assertTrue(list.stream().anyMatch(c -> c.getName().equals(newCompany.getName())));
+        assertEquals(list.size(), cached.size());
     }
 
     @Test

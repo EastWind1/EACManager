@@ -2,165 +2,131 @@ package cache
 
 import (
 	"backend-go/config"
-	"sync"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"time"
+
+	"github.com/gofiber/fiber/v3/log"
+	"github.com/redis/go-redis/v9"
 )
 
+// Cache 是应用共享缓存的最小接口。
+//
+// 值统一按 JSON 存取；flag 用于登出黑名单这类只需要判断「是否存在」的场景。
 type Cache interface {
-	GetAll(name string) (*map[string]any, bool)
-	Get(name string, key string) (any, bool)
-	Put(name string, key string, value any)
-	PutWithExpire(name string, key string, value any, expire ...time.Duration)
+	GetJSON(name string, key string, dest any) bool
+	SetJSON(name string, key string, value any, expire time.Duration)
+	SetFlag(name string, key string, expire time.Duration)
+	HasFlag(name string, key string) bool
 	Delete(name string, key string)
 	DeleteName(name string)
 	Clear()
 }
 
-type InMemoryCache struct {
-	cacheMap sync.Map
-	expire   time.Duration
+const redisPrefix = "eac"
+
+type RedisCache struct {
+	client *redis.Client
 }
 
-type cacheValue struct {
-	value      any
-	expireTime *time.Time
-}
-
-func NewInMemoryCache(cfg *config.CacheConfig) Cache {
-	cache := &InMemoryCache{
-		cacheMap: sync.Map{},
-		expire:   time.Duration(cfg.Expire) * time.Second,
+func NewCache(cfg *config.Config) (Cache, error) {
+	timeout := time.Duration(cfg.Redis.Timeout) * time.Second
+	if timeout <= 0 {
+		timeout = 2 * time.Second
 	}
-
-	go func() {
-		ticker := time.NewTicker(time.Hour * 24)
-		defer ticker.Stop()
-		for range ticker.C {
-			cache.clearExpired()
-		}
-	}()
-
-	return cache
-}
-
-func (c *InMemoryCache) GetAll(name string) (*map[string]any, bool) {
-	innerMap, ok := c.cacheMap.Load(name)
-	if !ok {
-		return nil, false
-	}
-	inner, ok := innerMap.(*sync.Map)
-	if !ok {
-		return nil, false
-	}
-
-	res := make(map[string]any)
-	inner.Range(func(key, value any) bool {
-		cacheVal, ok := value.(*cacheValue)
-		if !ok {
-			return true
-		}
-		// 懒删除
-		if cacheVal.expireTime != nil && cacheVal.expireTime.Before(time.Now()) {
-			inner.Delete(key)
-		} else {
-			res[key.(string)] = cacheVal.value
-		}
-		return true
+	client := redis.NewClient(&redis.Options{
+		Addr:         cfg.Redis.Addr(),
+		Password:     cfg.Redis.Password,
+		DB:           cfg.Redis.DB,
+		DialTimeout:  timeout,
+		ReadTimeout:  timeout,
+		WriteTimeout: timeout,
 	})
-
-	return &res, true
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	if err := client.Ping(ctx).Err(); err != nil {
+		_ = client.Close()
+		return nil, fmt.Errorf("连接 Redis 缓存失败: %w", err)
+	}
+	log.Infof("Redis 缓存已连接: %s db=%d", cfg.Redis.Addr(), cfg.Redis.DB)
+	return &RedisCache{client: client}, nil
 }
 
-func (c *InMemoryCache) Get(name string, key string) (any, bool) {
-	innerMap, ok := c.cacheMap.Load(name)
-	if !ok {
-		return nil, false
+func (c *RedisCache) GetJSON(name string, key string, dest any) bool {
+	raw, err := c.client.Get(context.Background(), redisKey(name, key)).Bytes()
+	if err == nil {
+		return json.Unmarshal(raw, dest) == nil
 	}
-	inner, ok := innerMap.(*sync.Map)
-	if !ok {
-		return nil, false
+	if errors.Is(err, redis.Nil) {
+		return false
 	}
-
-	value, ok := inner.Load(key)
-	if !ok {
-		return nil, false
-	}
-	cacheVal, ok := value.(*cacheValue)
-	if !ok {
-		return nil, false
-	}
-
-	// 懒删除
-	if cacheVal.expireTime != nil && cacheVal.expireTime.Before(time.Now()) {
-		inner.Delete(key)
-		return nil, false
-	}
-
-	return cacheVal.value, true
+	log.Warnf("读取 Redis 缓存失败: %v", err)
+	return false
 }
 
-func (c *InMemoryCache) Put(name string, key string, value any) {
-	c.PutWithExpire(name, key, value)
-}
-
-func (c *InMemoryCache) PutWithExpire(name string, key string, value any, expire ...time.Duration) {
-	inner, _ := c.cacheMap.LoadOrStore(name, &sync.Map{})
-	innerMap, ok := inner.(*sync.Map)
-	if !ok {
+func (c *RedisCache) SetJSON(name string, key string, value any, expire time.Duration) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		log.Warnf("序列化 Redis 缓存值失败: %v", err)
 		return
 	}
-
-	var expireTime *time.Time
-	if len(expire) != 0 {
-		expireTime = new(time.Now().Add(expire[0]))
-	} else {
-		expireTime = new(time.Now().Add(c.expire))
+	if err := c.client.Set(context.Background(), redisKey(name, key), raw, expire).Err(); err != nil {
+		log.Warnf("写入 Redis 缓存失败: %v", err)
 	}
-	innerMap.Store(key, &cacheValue{
-		value:      value,
-		expireTime: expireTime,
-	})
 }
 
-func (c *InMemoryCache) Delete(name string, key string) {
-	inner, ok := c.cacheMap.Load(name)
-	if !ok {
-		return
+func (c *RedisCache) SetFlag(name string, key string, expire time.Duration) {
+	if err := c.client.Set(context.Background(), redisKey(name, key), "1", expire).Err(); err != nil {
+		log.Warnf("写入 Redis 缓存失败: %v", err)
 	}
-	innerMap, ok := inner.(*sync.Map)
-	if !ok {
-		return
+}
+
+func (c *RedisCache) HasFlag(name string, key string) bool {
+	n, err := c.client.Exists(context.Background(), redisKey(name, key)).Result()
+	if err != nil {
+		log.Warnf("读取 Redis 缓存失败: %v", err)
+		return false
 	}
-
-	innerMap.Delete(key)
+	return n > 0
 }
 
-func (c *InMemoryCache) DeleteName(name string) {
-	c.cacheMap.Delete(name)
+func (c *RedisCache) Delete(name string, key string) {
+	if err := c.client.Del(context.Background(), redisKey(name, key)).Err(); err != nil {
+		log.Warnf("删除 Redis 缓存失败: %v", err)
+	}
 }
 
-func (c *InMemoryCache) Clear() {
-	c.cacheMap.Clear()
+func (c *RedisCache) DeleteName(name string) {
+	c.deletePattern(fmt.Sprintf("%s:%s:*", redisPrefix, name))
 }
 
-func (c *InMemoryCache) clearExpired() {
-	c.cacheMap.Range(func(nsKey, nsValue any) bool {
-		innerMap, ok := nsValue.(*sync.Map)
-		if !ok {
-			return true
+func (c *RedisCache) Clear() {
+	c.deletePattern(fmt.Sprintf("%s:*", redisPrefix))
+}
+
+func (c *RedisCache) deletePattern(pattern string) {
+	var cursor uint64
+	for {
+		keys, next, err := c.client.Scan(context.Background(), cursor, pattern, 500).Result()
+		if err != nil {
+			log.Warnf("清理 Redis 缓存失败: %v", err)
+			return
 		}
-
-		innerMap.Range(func(key, value any) bool {
-			cacheVal, ok := value.(*cacheValue)
-			if !ok {
-				return true
+		if len(keys) > 0 {
+			if err := c.client.Del(context.Background(), keys...).Err(); err != nil {
+				log.Warnf("删除 Redis 缓存失败: %v", err)
+				return
 			}
+		}
+		cursor = next
+		if cursor == 0 {
+			return
+		}
+	}
+}
 
-			if cacheVal.expireTime != nil && cacheVal.expireTime.Before(time.Now()) {
-				innerMap.Delete(key)
-			}
-			return true
-		})
-		return true
-	})
+func redisKey(name string, key string) string {
+	return fmt.Sprintf("%s:%s:%s", redisPrefix, name, key)
 }

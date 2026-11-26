@@ -4,6 +4,7 @@ import (
 	"backend-go/internal/attach"
 	"backend-go/internal/security"
 	"backend-go/pkg/core"
+	"time"
 )
 
 // Module 聚合报销模块对外服务。
@@ -20,7 +21,8 @@ func Setup(base *core.App, attachMod *attach.Module, sec *security.Module) *Modu
 	relSrv := newAttachRelService(base.DB, attachMod.Service)
 	querySrv := newQueryService(reimburseRepo, relSrv)
 	reimburseService := newService(reimburseRepo, attachMod.Service, relSrv, reimburseMapper, querySrv)
-	statisticSrv := newStatisticService(base.Cache, reimburseRepo)
+	statisticSrv := newStatisticService(base.Cache, reimburseRepo,
+		time.Duration(base.Config.Cache.Expire)*time.Second)
 	reimburseController := newReimburseController(reimburseService, querySrv)
 	statisticController := newStatisticController(statisticSrv)
 	reimburseGroup := base.Router.Group("/reimburse")

@@ -4,6 +4,7 @@ import (
 	"backend-go/config"
 	"backend-go/pkg/result"
 	"backend-go/pkg/validation"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -56,34 +57,46 @@ func (c *Controller) Login(ctx fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	cookie := fiber.Cookie{
-		Name:     "X-Auth-Token",
-		Value:    res.Token,
-		Path:     "/api",
-		MaxAge:   c.cfg.Expire,
-		Secure:   true,
-		SameSite: "Strict",
-		HTTPOnly: true,
-	}
-	ctx.Cookie(&cookie)
+	c.setToken(ctx, res.Token)
 	result.SetResult(ctx, res.User)
 	return nil
 }
 
 func (c *Controller) Logout(ctx fiber.Ctx) error {
-	// 必须用与登录相同的 Path 覆盖，否则浏览器不会删除 /api 下的同名 Cookie
+	// 先作废 token，再销毁 cookie；这样即使浏览器保留副本也无法继续访问。
+	token := ctx.Cookies("X-Auth-Token", "")
+	if token == "" {
+		token = strings.TrimPrefix(ctx.Get("Authorization"), "Bearer ")
+	}
+	c.userService.Logout(token)
+	c.clearCookie(ctx, "X-Auth-Token", "/api")
+	result.SetResult(ctx, nil)
+	return nil
+}
+
+func (c *Controller) setToken(ctx fiber.Ctx, token string) {
 	ctx.Cookie(&fiber.Cookie{
 		Name:     "X-Auth-Token",
-		Value:    "",
+		Value:    token,
 		Path:     "/api",
+		MaxAge:   c.cfg.Expire,
+		Secure:   true,
+		SameSite: "Strict",
+		HTTPOnly: true,
+	})
+}
+
+func (c *Controller) clearCookie(ctx fiber.Ctx, name, path string) {
+	ctx.Cookie(&fiber.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     path,
 		Expires:  time.Now().Add(-time.Hour),
 		MaxAge:   -1,
 		Secure:   true,
 		SameSite: "Strict",
 		HTTPOnly: true,
 	})
-	result.SetResult(ctx, nil)
-	return nil
 }
 
 func (c *Controller) GetAll(ctx fiber.Ctx) error {

@@ -3,6 +3,8 @@ package pers.eastwind.billmanager.common;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
@@ -26,8 +28,20 @@ public class BaseServiceTest {
     @Autowired
     private AuthenticateService authenticateService;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     @BeforeEach
     protected void setUp() {
+        // 集成测试共享应用实例，权限/查询/统计缓存不能跨用例残留
+        for (String name : List.of("authUser", "company", "serviceBill_query",
+                "serviceBill", "reimburse-sumAmount")) {
+            Cache cache = cacheManager.getCache(name);
+            if (cache != null) {
+                // RedisCache.clear() 可能异步执行，测试里用 invalidate() 保证立即失效
+                cache.invalidate();
+            }
+        }
         setAdmin();
     }
 

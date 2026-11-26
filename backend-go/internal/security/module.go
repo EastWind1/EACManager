@@ -2,6 +2,7 @@ package security
 
 import (
 	"backend-go/pkg/core"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -30,12 +31,14 @@ func (s *Module) HasAnyAuthority(permissions ...string) fiber.Handler {
 // Setup 组装安全模块，并把 token 解析中间件注册在所有业务路由之前。
 func Setup(base *core.App) *Module {
 	authRepo := newAuthRepository(base.DB)
-	srv := newAuthorizeService(authRepo)
+	srv := newAuthorizeService(authRepo, base.Cache)
 	permissionSyncSrv := newPermissionSyncService(authRepo)
 	permissionSyncSrv.Register(ModulePermissions()...)
-	authenticateSrv := newAuthenticateService(newJWTService(base.Config.JWT), newAccountRepository(base.DB), srv)
+	jwtSrv := newJWTService(base.Config.JWT)
+	tokenSrv := newTokenService(base.Cache, jwtSrv)
+	authenticateSrv := newAuthenticateService(tokenSrv, newAccountRepository(base.DB), srv, base.Cache, time.Duration(base.Config.Cache.Expire)*time.Second)
 
-	base.Router.Use(newAuthenticate(authenticateSrv.jwtSrv, authenticateSrv).Handler)
+	base.Router.Use(newAuthenticate(tokenSrv, authenticateSrv).Handler)
 
 	controller := newController(srv)
 	authorize := newAuthorize(srv)
@@ -50,7 +53,7 @@ func Setup(base *core.App) *Module {
 		api.Get("/role/:id/permissions", authorize.HasAuthority(QueryAuthCode), controller.RolePermissions)
 		api.Put("/role/:id/permissions", authorize.HasAuthority(UpdateAuthCode), controller.UpdateRolePermissions)
 	}
-	base.Router.Delete("/user/:username", authorize.HasAuthority("user:disable"), accountController.Disable)
+	base.Router.Delete("/user/:id", authorize.HasAuthority("user:disable"), accountController.Disable)
 	return &Module{
 		PermissionSync: permissionSyncSrv,
 		AuthMid:        authorize,

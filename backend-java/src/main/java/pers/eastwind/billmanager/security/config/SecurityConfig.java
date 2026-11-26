@@ -35,8 +35,7 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/user/token").permitAll()
-                        .requestMatchers("/api/user/initialization").permitAll()
+                        .requestMatchers("/api/user/token", "/api/user/initialization").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )

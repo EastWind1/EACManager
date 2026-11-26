@@ -93,9 +93,13 @@ public class UserService {
     }
 
     public LoginResult login(String username, String password) {
-        pers.eastwind.billmanager.security.model.LoginResult result = authenticateService.login(username, password);
+        var result = authenticateService.login(username, password);
         UserProfile profile = profileRepository.findById(result.account().getId()).orElse(null);
         return new LoginResult(result.token(), toDTO(result.account(), profile));
+    }
+
+    public void logout(String token) {
+        authenticateService.logout(token);
     }
 
     public UserDTO initialize(UserDTO dto) {

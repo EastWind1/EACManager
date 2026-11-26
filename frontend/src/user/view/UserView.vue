@@ -261,7 +261,7 @@ async function saveUser() {
 async function disable(user: User) {
   const {confirm} = useUIStore()
   if (user.id && (await confirm('确认', '确定要禁用该用户吗？'))) {
-    await UserApi.disable(user.username)
+    await UserApi.disable(user.id)
     const index = data.value.items.findIndex((u) => u.id === user.id)
     data.value.items.splice(index, 1)
   }

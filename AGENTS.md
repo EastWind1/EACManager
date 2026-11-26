@@ -43,15 +43,29 @@ Rust 学习实现单独打包：`deploy/build-rust.sh`，
 ## 认证与授权
 
 - 公开接口只有 `POST /api/user/token` 与首管理员初始化（`GET/POST /api/user/initialization`）。
-- 登录写 `X-Auth-Token` httpOnly cookie（`path=/api`、`SameSite=Strict`、`Secure`）
+- **单 token**：登录签发一个 JWT，写入 `X-Auth-Token` httpOnly cookie（`path=/api`）；
+  token 的 subject 是**用户 id**，不携带角色或权限。登出把 jti 写入 Redis 短期黑名单，并清理 cookie。
 - 授权是**动作级**：每个接口要求 `{module}:{action}` 权限码（如 `serviceBill:cancel-finish`）。
-  Java 用 `@PreAuthorize` + `AuthenticateService.loadUserByUsername` 组装的 `authorities`（**故意不缓存**，
-  改角色权限后下一次请求即生效）；Go 用 `security.Security.Middleware`。
+  Java 用 `@PreAuthorize`，Go 用 `security.Security.Middleware`。filter 解析 token 得到用户 id 后，
+  读取**完整鉴权用户缓存**（`authUser:{id}`，含账号、角色与权限），并按 id 校验账户是否启用。
 - 无 ADMIN 用户时前端跳 `/user/init`；未登录的 API 请求两端统一返回 **401**（前端登录页另外调用
   `/api/user/initialization` 判断是否跳初始化页）。初始化用行锁防并发双建。
 - 密码由前端以明文提交（生产由静态服务器终结 TLS），长度/字符种类校验在后端；
   `GET /api/user/me` 返回当前登录用户及最新角色权限，供前端启动时刷新本地权限缓存。
 - `ADMIN` 启动时自动补齐全部权限，且必须始终保留 `permission:query` / `permission:update`（保存时校验），否则权限页会自锁。
+
+## 缓存
+
+- Redis 是**共享缓存**：Java 用 Spring Cache + `StringRedisTemplate`，Go 用 `pkg/cache`。
+  Java 与 Go 都直接依赖 Redis，不再提供进程内降级；Go 启动时连接失败会直接返回错误。
+- 缓存命名空间：完整鉴权用户（按 `userId` 缓存账号、角色与权限）、公司、服务单列表查询、
+  仪表盘金额统计、token 登出黑名单。用户角色/禁用操作清理该用户缓存；角色/角色权限 CRUD
+  清理全部鉴权用户缓存。
+- **金额统计允许放宽一致性**：`totalAmountGroupByMonth` 使用独立缓存，依赖 Redis 的
+  `spring.cache.redis.time-to-live`（Java）或 `cache.expire`（Go）刷新，写入不主动清理。
+- token 登出后把 jti 写入 `expire_token:{jti}` 短期黑名单。
+- 新增缓存必须同时考虑键里的数据权限（如用户 ID）和失效时机；列表缓存键包含查询参数哈希，
+  避免不同条件或不同用户复用结果。
 
 ## 数据库
 
@@ -114,7 +128,7 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 
 | 模块 | 接口 |
 |---|---|
-| `/api/user` | `POST /token`、`GET/POST /initialization`(public)、`PUT /logout`、`GET /me`、`GET/POST/PUT /`、`DELETE /:username` |
+| `/api/user` | `POST /token`、`GET/POST /initialization`(public)、`PUT /logout`、`GET /me`、`GET/POST/PUT /`、`DELETE /:id` |
 | `/api/company` | `GET /`、`POST /`、`PUT /`、`DELETE /:id` |
 | `/api/security` | `GET /permissions`、`GET/POST/PUT/DELETE /roles`、`GET/PUT /role/:id/permissions` |
 | `/api/serviceBill` | `POST /query`、`GET /:id`、`POST /`、`PUT /`、`DELETE /`(批量)、`POST /import`、`PUT /process|processed|finish|cancel-process|cancel-processed|cancel-finish`、`PUT /assign`、`GET /assignees`、`POST /export`、`GET /countByState`、`GET /totalAmountGroupByMonth` |
@@ -123,18 +137,21 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 
 上表是 **Java/Go 交付实现**的契约；Rust 学习实现目前大致沿用，但不承诺逐项一致。
 导出是 Excel 流；服务单导出把附件一起打成 zip。统计 `countByState` 按状态计数，
-`totalAmountGroupByMonth` 按单据日期聚合（Go 侧有缓存）。
+`totalAmountGroupByMonth` 按单据日期聚合（Java/Go 都带金额统计缓存，允许短时间不一致）。
 
 ## 配置
 
 **Java**（`application.yml`，需要 `DB_*` 与 `JWT_SECRET`≥32 字符）：虚拟线程、`open-in-view: false`、
 `hibernate.jdbc.batch_size: 30`、multipart 5MB、附件目录 `${user.dir}/attachment`。
-`JWT_SECRET` 没有默认值，缺失或过短时启动失败。
+`JWT_SECRET` 没有默认值，缺失或过短时启动失败。`config.jwt.expire` 是 token 有效期，
+可用 `JWT_EXPIRE` 覆盖。Redis 走 `spring.data.redis.*`，可用 `REDIS_HOST` / `REDIS_PORT` /
+`REDIS_PASSWORD` / `REDIS_DATABASE` 覆盖；缓存默认 TTL 由 `spring.cache.redis.time-to-live` 控制。
 
 **Go**（`config/config.yaml`，Viper 依次找 `./config`、`.`、`../config`、`..`、`../../config`）：
 `server.port`、`server.allowedOrigins`（空表示不启用 CORS）、`log.level`、`db.*`（含连接池上限）、
-`cache.expire`、`jwt.*`、`attachment.*`、`ocr.url`。`jwt.secret` 不写默认值，必须通过
-`JWT_SECRET` 环境变量注入，缺失或不足 32 字节时启动失败。
+`cache.expire`（缓存 TTL，默认 300 秒，与 Java 对齐）、`redis.*`（默认 `localhost:6379`，必须可用）、
+`jwt.expire`（token 有效期）、`attachment.*`、`ocr.url`。
+`jwt.secret` 不写默认值，必须通过 `JWT_SECRET` 环境变量注入，缺失或不足 32 字节时启动失败。
 
 **Rust**（`config/config.yaml`，编译期内嵌，可被工作目录下的同名文件覆盖）：键名**参考** Go
 （`server` / `log` / `db` / `cache` / `jwt` / `attachment` / `ocr`），环境变量也参考 Go 并支持 `SERVER_MODE`；

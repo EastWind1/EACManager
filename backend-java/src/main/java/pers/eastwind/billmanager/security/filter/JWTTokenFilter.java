@@ -9,14 +9,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import pers.eastwind.billmanager.common.exception.BizException;
-import pers.eastwind.billmanager.security.config.JWTProperties;
 import pers.eastwind.billmanager.security.model.AuthorityUser;
 import pers.eastwind.billmanager.security.service.AuthenticateService;
-import pers.eastwind.billmanager.security.util.JWTUtil;
+import pers.eastwind.billmanager.security.service.TokenService;
 
 import java.io.IOException;
 
@@ -27,11 +27,11 @@ import java.io.IOException;
 @Component
 public class JWTTokenFilter extends OncePerRequestFilter {
     private final AuthenticateService authenticateService;
-    private final JWTProperties properties;
+    private final TokenService tokenService;
 
-    public JWTTokenFilter(AuthenticateService authenticateService, JWTProperties properties) {
+    public JWTTokenFilter(AuthenticateService authenticateService, TokenService tokenService) {
         this.authenticateService = authenticateService;
-        this.properties = properties;
+        this.tokenService = tokenService;
     }
 
     @Override
@@ -46,15 +46,13 @@ public class JWTTokenFilter extends OncePerRequestFilter {
             }
         }
         if (token != null) {
-            String userName = null;
+            AuthorityUser user = null;
             try {
-                var jwt = JWTUtil.verifyToken(properties.getSecret(), token);
-                userName = jwt.getSubject();
-            } catch (BizException e) {
-                log.warn("JWT 解析失败: {}", e.getMessage());
+                user = authenticateService.loadUserById(Integer.valueOf(tokenService.verify(token).getSubject()));
+            } catch (BizException | UsernameNotFoundException | NumberFormatException e) {
+                log.warn("Token 校验失败: {}", e.getMessage());
             }
-            if (userName != null) {
-                AuthorityUser user = authenticateService.loadUserByUsername(userName);
+            if (user != null) {
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         user, user.getPassword(), user.getAuthorities()
                 );

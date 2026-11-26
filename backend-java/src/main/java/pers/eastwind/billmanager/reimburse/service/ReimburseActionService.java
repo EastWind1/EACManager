@@ -1,7 +1,6 @@
 package pers.eastwind.billmanager.reimburse.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -60,7 +59,6 @@ public class ReimburseActionService {
     }
 
     @Transactional
-    @CacheEvict(value = "reimburse_statistic", allEntries = true)
     public ReimburseDTO create(ReimburseDTO reimburseDTO) {
         if (reimburseDTO.getId() != null) {
             reimburseDTO.setId(null);
@@ -88,7 +86,6 @@ public class ReimburseActionService {
     }
 
     @Transactional
-    @CacheEvict(value = "reimburse_statistic", allEntries = true)
     public ReimburseDTO update(ReimburseDTO reimburseDTO) {
         if (reimburseDTO.getId() == null) {
             throw new BizException("id不能为空");
@@ -106,7 +103,6 @@ public class ReimburseActionService {
         return reimburseMapper.toDTO(bill, reimburseAttachService.findAttachments(bill.getId()));
     }
 
-    @CacheEvict(value = "reimburse_statistic", allEntries = true)
     public ActionsResult<Integer, Void> delete(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BizException("id不能为空");
@@ -127,7 +123,6 @@ public class ReimburseActionService {
     /**
      * 仅 CREATED 可提交，状态推进到 PROCESSING。
      */
-    @CacheEvict(value = "reimburse_statistic", allEntries = true)
     public ActionsResult<Integer, Void> process(List<Integer> ids) {
         return transit(ids, ReimburseState.CREATED, ReimburseState.PROCESSING,
                 "非创建状态不能提交");
@@ -136,7 +131,6 @@ public class ReimburseActionService {
     /**
      * 仅 PROCESSING 可完成，状态推进到 FINISHED。
      */
-    @CacheEvict(value = "reimburse_statistic", allEntries = true)
     public ActionsResult<Integer, Void> finish(List<Integer> ids) {
         return transit(ids, ReimburseState.PROCESSING, ReimburseState.FINISHED,
                 "非处理状态不能完成");
@@ -145,7 +139,6 @@ public class ReimburseActionService {
     /**
      * 仅 PROCESSING 可撤销，回退到 CREATED。
      */
-    @CacheEvict(value = "reimburse_statistic", allEntries = true)
     public ActionsResult<Integer, Void> cancelProcess(List<Integer> ids) {
         return transit(ids, ReimburseState.PROCESSING, ReimburseState.CREATED,
                 "非处理状态不能取消处理");
@@ -154,7 +147,6 @@ public class ReimburseActionService {
     /**
      * 仅 FINISHED 可撤销，回退到 PROCESSING。
      */
-    @CacheEvict(value = "reimburse_statistic", allEntries = true)
     public ActionsResult<Integer, Void> cancelFinish(List<Integer> ids) {
         return transit(ids, ReimburseState.FINISHED, ReimburseState.PROCESSING,
                 "非完成状态不能取消");

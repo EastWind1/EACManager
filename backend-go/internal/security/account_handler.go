@@ -3,6 +3,7 @@ package security
 import (
 	"backend-go/pkg/errs"
 	"backend-go/pkg/result"
+	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -16,11 +17,11 @@ func newAccountController(srv *AuthenticateService) *AccountController {
 }
 
 func (c *AccountController) Disable(ctx fiber.Ctx) error {
-	username := ctx.Params("username")
-	if username == "" {
-		return errs.NewBizError("用户名为空")
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+	if err != nil || id == 0 {
+		return errs.NewBizError("用户 id 不合法")
 	}
-	if err := c.srv.Disable(ctx, username); err != nil {
+	if err := c.srv.Disable(ctx, uint(id)); err != nil {
 		return err
 	}
 	result.SetResult(ctx, nil)

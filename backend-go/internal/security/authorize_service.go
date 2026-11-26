@@ -1,8 +1,10 @@
 package security
 
 import (
+	"backend-go/pkg/cache"
 	"backend-go/pkg/errs"
 	"context"
+	"fmt"
 	"regexp"
 	"slices"
 	"strings"
@@ -10,12 +12,30 @@ import (
 
 var roleCodePattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
 
+const authUserCacheName = "authUser"
+
 type AuthorizeService struct {
-	repo *AuthRepository
+	repo  *AuthRepository
+	cache cache.Cache
 }
 
-func newAuthorizeService(repo *AuthRepository) *AuthorizeService {
-	return &AuthorizeService{repo: repo}
+func newAuthorizeService(repo *AuthRepository, cache cache.Cache) *AuthorizeService {
+	return &AuthorizeService{repo: repo, cache: cache}
+}
+
+// InvalidateAuthUserCache 清理全部已登录用户对象缓存；角色、角色权限变更后调用。
+func (s *AuthorizeService) InvalidateAuthUserCache() {
+	s.cache.DeleteName(authUserCacheName)
+}
+
+// InvalidateAuthUser 清理指定用户对象缓存。
+func (s *AuthorizeService) InvalidateAuthUser(userID uint) {
+	s.cache.Delete(authUserCacheName, fmt.Sprintf("%d", userID))
+}
+
+// PermissionCodes 直接查询用户权限编码，供非 filter 场景组装 DTO 使用。
+func (s *AuthorizeService) PermissionCodes(ctx context.Context, userID uint) ([]string, error) {
+	return s.repo.FindPermissionsByUserID(ctx, userID)
 }
 
 // Permissions 按模块分组返回权限目录。
@@ -42,10 +62,6 @@ func (s *AuthorizeService) RoleByCodeForUpdate(ctx context.Context, code string)
 	return s.repo.FindRoleByCodeForUpdate(ctx, code)
 }
 
-func (s *AuthorizeService) PermissionCodes(ctx context.Context, userID uint) ([]string, error) {
-	return s.repo.FindPermissionsByUserID(ctx, userID)
-}
-
 // HasPermission 保留给没有 fiber.Ctx 的调用方；中间件与处理器应优先用 middleware.go 的请求级缓存版本。
 func (s *AuthorizeService) HasPermission(ctx context.Context, code string) (bool, error) {
 	codes, err := s.currentUserPermissionCodes(ctx)
@@ -60,7 +76,11 @@ func (s *AuthorizeService) currentUserPermissionCodes(ctx context.Context) ([]st
 	if err != nil {
 		return nil, err
 	}
-	return s.PermissionCodes(ctx, user.ID)
+	codes := make([]string, 0, len(user.Permissions))
+	for _, permission := range user.Permissions {
+		codes = append(codes, permission.Code)
+	}
+	return codes, nil
 }
 
 func (s *AuthorizeService) Roles(ctx context.Context) ([]RoleDTO, error) {
@@ -116,6 +136,7 @@ func (s *AuthorizeService) UpdateRole(ctx context.Context, dto *RoleDTO) (*RoleD
 	if err := s.repo.UpdateRole(ctx, role); err != nil {
 		return nil, err
 	}
+	s.InvalidateAuthUserCache()
 	return role.ToDTO(), nil
 }
 
@@ -130,7 +151,7 @@ func (s *AuthorizeService) DeleteRole(ctx context.Context, id uint) error {
 	if role.Code == AdminRoleCode {
 		return errs.NewBizError("管理员角色不能删除")
 	}
-	return s.repo.Transaction(ctx, func(txCtx context.Context) error {
+	err = s.repo.Transaction(ctx, func(txCtx context.Context) error {
 		// 两张关联表都是批量 DELETE，不会先逐条查出来
 		if err := s.repo.DeleteUserRolesByRoleID(txCtx, id); err != nil {
 			return err
@@ -140,6 +161,11 @@ func (s *AuthorizeService) DeleteRole(ctx context.Context, id uint) error {
 		}
 		return s.repo.DeleteRole(txCtx, id)
 	})
+	if err != nil {
+		return err
+	}
+	s.InvalidateAuthUserCache()
+	return nil
 }
 
 func (s *AuthorizeService) RoleCodes(ctx context.Context, userID uint) ([]string, error) {
@@ -223,6 +249,7 @@ func (s *AuthorizeService) SetUserRoles(ctx context.Context, userID uint, roleCo
 	if err != nil {
 		return nil, err
 	}
+	s.InvalidateAuthUser(userID)
 	return granted, nil
 }
 
@@ -300,6 +327,7 @@ func (s *AuthorizeService) UpdateRolePermissions(ctx context.Context, roleID uin
 	if err != nil {
 		return nil, err
 	}
+	s.InvalidateAuthUserCache()
 	if permissions == nil {
 		return []PermissionDTO{}, nil
 	}

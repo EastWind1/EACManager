@@ -14,15 +14,31 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
       start_period: 5s
+  redis:
+    image: redis:alpine
+    container_name: eac-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - redisdata:/data
   backend:
     image: eclipse-temurin:25-jre-alpine
     container_name: eac-backend-java
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     env_file:
       - .env
     volumes:
@@ -52,3 +68,4 @@ services:
       - ./frontend/html:/srv
 volumes:
   pgdata:
+  redisdata:

@@ -16,8 +16,9 @@ type Config struct {
 	Server *ServerConfig
 	Log    *LogConfig
 	Db     *DatabaseConfig
-	JWT    *JWTConfig `mapstructure:"jwt"`
-	Cache  *CacheConfig
+	JWT    *JWTConfig    `mapstructure:"jwt"`
+	Cache  *CacheConfig  `mapstructure:"cache"`
+	Redis  *RedisConfig  `mapstructure:"redis"`
 	OCR    *OCRConfig    `mapstructure:"ocr"`
 	Attach *AttachConfig `mapstructure:"attachment"`
 }
@@ -45,8 +46,22 @@ type DatabaseConfig struct {
 }
 
 type CacheConfig struct {
-	// 单位秒
-	Expire int
+	// 缓存有效期（秒），与 Java spring.cache.redis.time-to-live 对齐
+	Expire int `mapstructure:"expire"`
+}
+
+type RedisConfig struct {
+	Enabled  bool
+	Host     string
+	Port     int
+	Password string
+	DB       int `mapstructure:"db"`
+	// 连接/读写超时，单位秒
+	Timeout int
+}
+
+func (r RedisConfig) Addr() string {
+	return fmt.Sprintf("%s:%d", r.Host, r.Port)
 }
 
 type OCRConfig struct {
@@ -61,6 +76,7 @@ func (d DatabaseConfig) GetDBStr() string {
 
 type JWTConfig struct {
 	Secret string
+	// token 有效期，单位秒
 	Expire int
 }
 
@@ -90,11 +106,17 @@ func NewConfig() *Config {
 	if err := viper.Unmarshal(config); err != nil {
 		log.Fatalf("反序列化配置文件失败: %v", err)
 	}
-	if config.Server == nil || config.Log == nil || config.Db == nil || config.Attach == nil {
+	if config.Server == nil || config.Log == nil || config.Db == nil || config.Attach == nil || config.Cache == nil {
 		log.Fatalf("配置不完整")
 	}
 	if config.JWT == nil || len(config.JWT.Secret) < 32 {
 		log.Fatalf("jwt.secret 未配置或不足 32 字节：请通过 JWT_SECRET 环境变量注入")
+	}
+	if config.JWT.Expire <= 0 {
+		log.Fatalf("jwt.expire 必须大于 0")
+	}
+	if config.Cache.Expire <= 0 {
+		config.Cache.Expire = 300
 	}
 	log.Infof("配置: server.port=%d log.level=%s db.host=%s db.name=%s jwt.expire=%ds attachment.path=%s",
 		config.Server.Port, config.Log.Level,
