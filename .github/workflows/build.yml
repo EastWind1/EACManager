@@ -13,7 +13,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: admin
-          POSTGRES_DB: dump
+          POSTGRES_DB: test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -28,6 +28,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 6379:6379
 
     steps:
       - uses: actions/checkout@v4
@@ -35,9 +37,9 @@ jobs:
       - name: Init database schema
         env:
           PGHOST: localhost
+          PGDATABASE: test
           PGUSER: postgres
           PGPASSWORD: admin
-          PGDATABASE: dump
         run: |
           cd $GITHUB_WORKSPACE/deploy/database
           psql -f ./init_schema.sql
@@ -60,8 +62,12 @@ jobs:
         with:
           node-version: "24.21.0"
 
-      - name: Set up pnpm and dependence
-        run: cd $GITHUB_WORKSPACE/frontend && npm i -g pnpm && pnpm i
+      - name: Set up pnpm
+        run: npm i -g pnpm
 
       - name: Build with script
+        env: 
+          DB_NAME: test
+          DB_USERNAME: postgres
+          DB_PASSWORD: admin
         run: cd $GITHUB_WORKSPACE && bash ./deploy/build.sh

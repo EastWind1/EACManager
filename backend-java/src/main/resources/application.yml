@@ -5,9 +5,9 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:test}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:admin}
   jpa:
     open-in-view: false
     properties:
@@ -45,4 +45,4 @@ config:
     # token 有效期，单位秒
     expire: ${JWT_EXPIRE:604800}
     # 密钥必须由环境提供（至少 32 字节）
-    secret: ${JWT_SECRET:}
+    secret: ${JWT_SECRET:test-only-jwt-key-3f8a2c6e1b9d4f7a0c5e8b2d6f9a1c4e}

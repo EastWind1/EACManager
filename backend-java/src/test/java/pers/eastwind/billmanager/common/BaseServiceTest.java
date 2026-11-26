@@ -19,7 +19,6 @@ import pers.eastwind.billmanager.user.service.UserService;
 import java.util.List;
 
 @SpringBootTest
-@ActiveProfiles("dev")
 @Transactional
 public class BaseServiceTest {
     @Autowired
