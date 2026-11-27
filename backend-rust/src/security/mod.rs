@@ -6,6 +6,7 @@ pub mod model;
 pub mod permission;
 pub mod store;
 pub mod sync;
+pub mod token;
 
 pub use middleware::{has_permission, require_any_permission, require_permission};
 pub use model::{PermissionDto, RoleDto, UserDto};
@@ -18,6 +19,9 @@ use crate::state::AppState;
 pub const ADMIN_ROLE_CODE: &str = "ADMIN";
 pub const QUERY_AUTH_CODE: &str = "permission:query";
 pub const UPDATE_AUTH_CODE: &str = "permission:update";
+
+/// 完整鉴权用户缓存：账号、角色与权限按用户 id 整体缓存。
+pub const AUTH_USER_CACHE: &str = "authUser";
 
 /// 各模块声明的权限清单；由启动流程统一注册
 pub fn module_declarations() -> Vec<PermissionDto> {

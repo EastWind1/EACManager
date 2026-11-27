@@ -6,6 +6,7 @@ use chrono::{Duration as ChronoDuration, Utc};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::error::AppError;
 
@@ -17,13 +18,22 @@ tokio::task_local! {
     static CURRENT_USER: Option<AuthUser>;
 }
 
-/// 认证主体：只带账户 id。
+/// 认证主体：账户信息 + 角色权限码，整体缓存在 `authUser` 命名空间。
 ///
-/// 用户名在认证阶段已用于查账户，向下游没有消费方；角色权限按请求现查，
-/// 因此改角色权限后下一次请求立即生效。
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+/// 角色权限随主体一起缓存，权限判断不再逐次查库；用户、角色或角色权限变更时
+/// 由安全模块清理对应缓存，因此下一次请求就能看到最新权限。
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthUser {
     pub id: i32,
+    pub username: String,
+    pub roles: Vec<String>,
+    pub permissions: Vec<String>,
+}
+
+impl AuthUser {
+    pub fn has_permission(&self, code: &str) -> bool {
+        self.permissions.iter().any(|value| value == code)
+    }
 }
 
 /// axum 提取器：中间件已把主体绑定到请求 future，handler 直接声明 `user: AuthUser`
@@ -36,7 +46,7 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
 }
 
 pub fn current_user() -> Option<AuthUser> {
-    CURRENT_USER.try_with(|user| *user).ok().flatten()
+    CURRENT_USER.try_with(Clone::clone).ok().flatten()
 }
 
 pub fn current_user_id() -> Option<i32> {
@@ -115,6 +125,14 @@ struct Claims {
     sub: String,
     exp: i64,
     iat: i64,
+    jti: String,
+}
+
+/// 已校验通过的 token 内容；subject 是用户 id，jti 用于登出黑名单。
+pub struct TokenClaims {
+    pub subject: String,
+    pub jti: String,
+    pub exp: i64,
 }
 
 pub fn hash_password(password: &str) -> Result<String, AppError> {
@@ -136,6 +154,7 @@ pub fn generate_token(
         sub: subject.to_string(),
         iat: now.timestamp(),
         exp: (now + ChronoDuration::seconds(expire_seconds)).timestamp(),
+        jti: Uuid::new_v4().to_string(),
     };
     let encoding_key = EncodingKey::from_secret(secret.as_bytes())
         .map_err(|error| AppError::Internal(format!("生成 Token 失败: {error}")))?;
@@ -143,12 +162,16 @@ pub fn generate_token(
         .map_err(|error| AppError::Internal(format!("生成 Token 失败: {error}")))
 }
 
-pub fn verify_token(secret: &str, token: &str) -> Result<String, AppError> {
+pub fn decode_token(secret: &str, token: &str) -> Result<TokenClaims, AppError> {
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;
     let decoding_key = DecodingKey::from_secret(secret.as_bytes())
         .map_err(|_| AppError::Unauthorized("Token 无效".into()))?;
     let data = decode::<Claims>(token, &decoding_key, &validation)
         .map_err(|_| AppError::Unauthorized("Token 无效".into()))?;
-    Ok(data.claims.sub)
+    Ok(TokenClaims {
+        subject: data.claims.sub,
+        jti: data.claims.jti,
+        exp: data.claims.exp,
+    })
 }

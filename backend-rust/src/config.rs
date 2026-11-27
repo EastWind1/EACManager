@@ -12,6 +12,7 @@ pub struct Config {
     pub log: LogConfig,
     pub db: DatabaseConfig,
     pub cache: CacheConfig,
+    pub redis: RedisConfig,
     pub jwt: JwtConfig,
     pub attachment: AttachConfig,
     pub ocr: OcrConfig,
@@ -52,6 +53,17 @@ pub struct DatabaseConfig {
 pub struct CacheConfig {
     /// 单位秒
     pub expire: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
+#[serde(default)]
+pub struct RedisConfig {
+    pub host: String,
+    pub port: u16,
+    pub password: String,
+    pub db: i64,
+    /// 单位秒
+    pub timeout: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -112,7 +124,20 @@ impl Default for DatabaseConfig {
 
 impl Default for CacheConfig {
     fn default() -> Self {
-        Self { expire: 86_400 }
+        // 与 Go 保持一致：统计类缓存只靠默认 TTL 刷新，写入不主动失效。
+        Self { expire: 300 }
+    }
+}
+
+impl Default for RedisConfig {
+    fn default() -> Self {
+        Self {
+            host: "localhost".into(),
+            port: 6379,
+            password: String::new(),
+            db: 0,
+            timeout: 2,
+        }
     }
 }
 
@@ -249,6 +274,18 @@ fn apply_env(config: &mut Config) {
     }
     if let Some(v) = env("DB_SSLMODE") {
         config.db.sslmode = v;
+    }
+    if let Some(v) = env("REDIS_HOST") {
+        config.redis.host = v;
+    }
+    if let Some(v) = env("REDIS_PORT").and_then(|v| v.parse().ok()) {
+        config.redis.port = v;
+    }
+    if let Some(v) = env("REDIS_PASSWORD") {
+        config.redis.password = v;
+    }
+    if let Some(v) = env("REDIS_DB").and_then(|v| v.parse().ok()) {
+        config.redis.db = v;
     }
     if let Some(v) = env("JWT_SECRET") {
         config.jwt.secret = v;

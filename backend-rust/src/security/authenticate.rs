@@ -1,9 +1,11 @@
+use crate::auth::AuthUser;
 use crate::db::Db;
 use crate::error::{AppError, AppResult};
 use crate::model::{PageResult, QueryParam};
 use crate::security::model::{PermissionDto, RoleDto, UserDto};
 use crate::security::store::{self, AccountRow, ProfileRow};
-use crate::security::{ADMIN_ROLE_CODE, authorize};
+use crate::security::{ADMIN_ROLE_CODE, AUTH_USER_CACHE, authorize, token};
+use crate::state::AppState;
 
 /// 账户服务：登录、首管理员初始化、创建/更新/禁用账户。
 pub async fn is_initialization_required(db: &Db) -> AppResult<bool> {
@@ -27,10 +29,38 @@ pub async fn login(
         tracing::warn!("登录失败: {username}");
         return Err(AppError::Biz("用户名或密码错误".into()));
     }
-    let token = crate::auth::generate_token(secret, expire, username)?;
+    let token = token::issue(secret, expire, account.id)?;
     let dto = to_dto(db, account).await?;
     tracing::info!("用户登录: {username}");
     Ok((token, dto))
+}
+
+/// 读取完整鉴权用户：先查缓存，未命中再读账户、角色与权限并按 id 缓存。
+pub async fn load_user_by_id(app: &AppState, id: i32) -> AppResult<Option<AuthUser>> {
+    let key = id.to_string();
+    if let Some(user) = app.cache.get(AUTH_USER_CACHE, &key).await {
+        return Ok(Some(user));
+    }
+    let Some(account) = store::find_enabled_account_by_id(&app.db, id).await? else {
+        return Ok(None);
+    };
+    let authorities = authorize::user_authorities(&app.db, id).await?;
+    let user = AuthUser {
+        id: account.id,
+        username: account.username,
+        roles: authorities
+            .roles
+            .into_iter()
+            .map(|role| role.code)
+            .collect(),
+        permissions: authorities
+            .permissions
+            .into_iter()
+            .map(|permission| permission.code)
+            .collect(),
+    };
+    app.cache.put(AUTH_USER_CACHE, &key, &user).await;
+    Ok(Some(user))
 }
 
 /// 初始化首个管理员：角色行锁保证并发初始化串行执行。
@@ -105,11 +135,12 @@ pub async fn create_account_in(
 }
 
 pub async fn update_account(
-    db: &Db,
+    app: &AppState,
     id: i32,
     roles: Option<&[RoleDto]>,
     password: Option<&str>,
 ) -> AppResult<UserDto> {
+    let db = &app.db;
     if id == 0 {
         return Err(AppError::Biz("id 不能为空".into()));
     }
@@ -162,6 +193,8 @@ pub async fn update_account(
         None => authorize::user_roles(db, id).await?,
     };
     let permissions = authorize::user_authorities(db, id).await?.permissions;
+    // 角色或密码变更后丢弃该用户的鉴权缓存，下一次请求重新组装。
+    app.cache.delete(AUTH_USER_CACHE, &id.to_string()).await;
     Ok(base_dto(account, roles, permissions, None))
 }
 
@@ -205,7 +238,8 @@ async fn assign_roles(
     Ok(roles.into_iter().map(RoleDto::from).collect())
 }
 
-pub async fn disable(db: &Db, username: &str) -> AppResult<()> {
+pub async fn disable(app: &AppState, username: &str) -> AppResult<()> {
+    let db = &app.db;
     let Some(account) = store::find_account_by_username(db, username).await? else {
         return Err(AppError::Biz("用户不存在".into()));
     };
@@ -221,11 +255,10 @@ pub async fn disable(db: &Db, username: &str) -> AppResult<()> {
     if !store::disable_account(db, username).await? {
         return Err(AppError::Biz("用户不存在".into()));
     }
+    app.cache
+        .delete(AUTH_USER_CACHE, &account.id.to_string())
+        .await;
     Ok(())
-}
-
-pub async fn find_enabled_by_username(db: &Db, username: &str) -> AppResult<Option<AccountRow>> {
-    store::find_enabled_account_by_username(db, username).await
 }
 
 pub async fn find_enabled_page(db: &Db, param: &QueryParam) -> AppResult<PageResult<UserDto>> {

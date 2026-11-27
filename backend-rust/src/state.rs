@@ -21,7 +21,7 @@ pub struct Inner {
 impl AppState {
     pub async fn new(config: Config) -> Result<Self, String> {
         let db = Db::connect(&config.db).await?;
-        let cache = Cache::new(&config.cache);
+        let cache = Cache::connect(&config.cache, &config.redis).await?;
         Ok(Self {
             inner: Arc::new(Inner { config, db, cache }),
         })

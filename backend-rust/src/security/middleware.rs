@@ -1,10 +1,12 @@
 use axum::extract::Request;
+use axum::http::HeaderMap;
 use axum::http::header;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 
 use crate::auth::{self, AuthUser};
 use crate::error::{AppError, AppResult};
+use crate::security::{authenticate, token};
 use crate::state::AppState;
 
 /// 认证中间件：解析 X-Auth-Token cookie 或 Authorization，公开接口直接放行。
@@ -40,13 +42,11 @@ async fn resolve_user(
     let Some(token) = token else {
         return Err(AppError::Unauthorized("未登录".into()));
     };
-    let username = auth::verify_token(&state.config.jwt.secret, &token)?;
-    let Some(account) =
-        crate::security::store::find_enabled_account_by_username(&state.db, &username).await?
-    else {
+    let user_id = token::verify(state, &token).await?;
+    let Some(user) = authenticate::load_user_by_id(state, user_id).await? else {
         return Err(AppError::Unauthorized("未登录".into()));
     };
-    Ok(Some(AuthUser { id: account.id }))
+    Ok(Some(user))
 }
 
 fn is_public(path: &str, method: &str) -> bool {
@@ -59,8 +59,12 @@ fn is_public(path: &str, method: &str) -> bool {
 }
 
 fn extract_token(request: &Request) -> Option<String> {
-    if let Some(value) = request
-        .headers()
+    token_from_headers(request.headers())
+}
+
+/// 从 Authorization 或 X-Auth-Token cookie 读取 token；登出也要用同一套规则。
+pub fn token_from_headers(headers: &HeaderMap) -> Option<String> {
+    if let Some(value) = headers
         .get(header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
     {
@@ -69,7 +73,7 @@ fn extract_token(request: &Request) -> Option<String> {
             return Some(value.to_string());
         }
     }
-    let cookies = request.headers().get(header::COOKIE)?.to_str().ok()?;
+    let cookies = headers.get(header::COOKIE)?.to_str().ok()?;
     cookies
         .split(';')
         .filter_map(|part| part.trim().strip_prefix("X-Auth-Token="))
@@ -77,16 +81,9 @@ fn extract_token(request: &Request) -> Option<String> {
         .map(str::to_string)
 }
 
-/// 当前用户是否拥有某动作权限。
-///
-/// 与 Java 侧一致，**故意不缓存**：改角色权限后下一次请求立即生效。
-pub async fn has_permission(state: &AppState, user: &AuthUser, code: &str) -> AppResult<bool> {
-    Ok(
-        crate::security::store::find_permission_codes_by_user_id(&state.db, user.id)
-            .await?
-            .iter()
-            .any(|value| value == code),
-    )
+/// 当前用户是否拥有某动作权限；权限随鉴权用户缓存，变更时由安全模块清理。
+pub async fn has_permission(_state: &AppState, user: &AuthUser, code: &str) -> AppResult<bool> {
+    Ok(user.has_permission(code))
 }
 
 /// 动作级权限校验，等价于 Java 的 @PreAuthorize。
@@ -99,16 +96,11 @@ pub async fn require_permission(state: &AppState, user: &AuthUser, code: &str) -
 
 /// 任一权限满足即可
 pub async fn require_any_permission(
-    state: &AppState,
+    _state: &AppState,
     user: &AuthUser,
     codes: &[&str],
 ) -> AppResult<()> {
-    let granted =
-        crate::security::store::find_permission_codes_by_user_id(&state.db, user.id).await?;
-    if codes
-        .iter()
-        .any(|code| granted.iter().any(|value| value == code))
-    {
+    if codes.iter().any(|code| user.has_permission(code)) {
         return Ok(());
     }
     Err(AppError::Forbidden("没有权限".into()))

@@ -421,21 +421,18 @@ pub async fn find_account_by_username(db: &Db, username: &str) -> AppResult<Opti
     .await?)
 }
 
-pub async fn find_enabled_account_by_username(
-    db: &Db,
-    username: &str,
-) -> AppResult<Option<AccountRow>> {
+pub async fn find_account_by_id(db: &Db, id: i32) -> AppResult<Option<AccountRow>> {
     Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
-        "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE username = $1 AND disabled = false"
+        "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE id = $1"
     ))
-    .bind(username)
+    .bind(id)
     .fetch_optional(db.pool())
     .await?)
 }
 
-pub async fn find_account_by_id(db: &Db, id: i32) -> AppResult<Option<AccountRow>> {
+pub async fn find_enabled_account_by_id(db: &Db, id: i32) -> AppResult<Option<AccountRow>> {
     Ok(sqlx::query_as::<_, AccountRow>(safe_sql!(
-        "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE id = $1"
+        "SELECT {ACCOUNT_COLUMNS} FROM sys_user WHERE id = $1 AND disabled = false"
     ))
     .bind(id)
     .fetch_optional(db.pool())

@@ -86,7 +86,7 @@ pub async fn create(app: &AppState, mut request: BillRequest) -> AppResult<BillD
         })
         .await?;
 
-    evict_statistic(app);
+    evict_query(app).await;
     load_full(app, id).await
 }
 
@@ -136,7 +136,7 @@ pub async fn update(app: &AppState, mut request: BillRequest) -> AppResult<BillD
         })
         .await?;
 
-    evict_statistic(app);
+    evict_query(app).await;
     load_full(app, bill.id).await
 }
 
@@ -160,7 +160,7 @@ pub async fn delete(app: &AppState, ids: &[i32]) -> AppResult<ActionsResult<i32>
             .await
     })
     .await;
-    evict_statistic(app);
+    evict_query(app).await;
     Ok(rows)
 }
 
@@ -181,7 +181,7 @@ where
             .await
     })
     .await;
-    evict_statistic(app);
+    evict_query(app).await;
     Ok(rows)
 }
 
@@ -291,7 +291,7 @@ pub async fn assign(app: &AppState, param: &AssignParam) -> AppResult<ActionsRes
             .await;
         rows.push(action_row(id, result));
     }
-    evict_statistic(app);
+    evict_query(app).await;
     Ok(ActionsResult::new(rows))
 }
 
@@ -419,11 +419,10 @@ async fn resolve_user_ids(app: &AppState, ids: &[i32]) -> AppResult<Vec<i32>> {
     Ok(unique)
 }
 
-fn evict_statistic(app: &AppState) {
-    app.cache.invalidate(STAT_NAMESPACE);
+/// 写动作只清理列表缓存；金额统计按 TTL 刷新，允许短时间不一致。
+async fn evict_query(app: &AppState) {
+    app.cache.invalidate(query::QUERY_CACHE).await;
 }
-
-const STAT_NAMESPACE: &str = "service-bill";
 
 /// 批量写的公共骨架：逐项执行，单项失败不影响其他项
 async fn for_each_id<F, Fut>(ids: &[i32], action: F) -> ActionsResult<i32>

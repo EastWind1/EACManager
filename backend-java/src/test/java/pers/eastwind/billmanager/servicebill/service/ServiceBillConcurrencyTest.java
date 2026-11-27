@@ -385,7 +385,7 @@ class ServiceBillConcurrencyTest {
     }
 
     private void evictBillCaches() {
-        for (String name : List.of("serviceBill_query", "serviceBill")) {
+        for (String name : List.of(ServiceBillQueryService.QUERY_CACHE, ServiceBillStatisticService.AMOUNT_STAT_CACHE)) {
             Cache cache = cacheManager.getCache(name);
             if (cache != null) {
                 cache.invalidate();

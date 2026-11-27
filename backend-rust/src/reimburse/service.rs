@@ -36,7 +36,6 @@ pub async fn create(app: &AppState, request: ReimburseRequest) -> AppResult<Reim
         })
         .await?;
 
-    evict_statistic(app);
     load_full(app, id).await
 }
 
@@ -61,7 +60,6 @@ pub async fn update(app: &AppState, request: ReimburseRequest) -> AppResult<Reim
         })
         .await?;
 
-    evict_statistic(app);
     load_full(app, entity.id).await
 }
 
@@ -85,7 +83,6 @@ pub async fn delete(app: &AppState, ids: &[i32]) -> AppResult<ActionsResult<i32>
             .await
     })
     .await;
-    evict_statistic(app);
     Ok(rows)
 }
 
@@ -106,7 +103,6 @@ where
             .await
     })
     .await;
-    evict_statistic(app);
     Ok(rows)
 }
 
@@ -244,12 +240,6 @@ async fn load_full(app: &AppState, id: i32) -> AppResult<ReimburseDto> {
     let attachments = relation::find_attachment_dtos(app, id).await?;
     Ok(full_dto(full, attachments))
 }
-
-fn evict_statistic(app: &AppState) {
-    app.cache.invalidate(STAT_NAMESPACE);
-}
-
-const STAT_NAMESPACE: &str = "reimburse";
 
 /// 批量写的公共骨架：逐项执行，单项失败不影响其他项
 async fn for_each_id<F, Fut>(ids: &[i32], action: F) -> ActionsResult<i32>

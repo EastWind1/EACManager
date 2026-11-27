@@ -1,6 +1,6 @@
 use axum::Json;
 use axum::extract::{Query, State};
-use axum::http::header;
+use axum::http::{HeaderMap, header};
 use axum::response::{IntoResponse, Response};
 use serde_json::Value;
 
@@ -52,13 +52,23 @@ pub async fn initialize(
     Ok(ok(service::initialize(&state.db, &request).await?))
 }
 
-/// 只销毁 cookie：JWT 本身无状态，登出后旧 token 仍有效，与 Java/Go 一致。
-pub async fn logout() -> Response {
+/// 销毁 cookie，并把当前 token 的 jti 加入黑名单直到自然过期。
+pub async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Response {
+    if let Some(token) = crate::security::middleware::token_from_headers(&headers) {
+        crate::security::token::revoke(&state, &token).await;
+    }
     let cookie = format!(
         "{COOKIE_NAME}=; Path=/api; Max-Age=-1; Expires=Thu, 01 Jan 1970 00:00:00 GMT; \
          HttpOnly; Secure; SameSite=Strict"
     );
     ([(header::SET_COOKIE, cookie)], ok(Value::Null)).into_response()
+}
+
+pub async fn me(State(state): State<AppState>, user: AuthUser) -> AppResult<Json<ResultBody>> {
+    crate::security::authenticate::find_by_id(&state.db, user.id)
+        .await?
+        .map(ok)
+        .ok_or_else(|| AppError::Unauthorized("未登录".into()))
 }
 
 pub async fn get_all(
@@ -85,5 +95,5 @@ pub async fn update(
     Json(request): Json<UserRequest>,
 ) -> AppResult<Json<ResultBody>> {
     require_permission(&state, &user, "user:update").await?;
-    Ok(ok(service::update(&state.db, &request).await?))
+    Ok(ok(service::update(&state, &request).await?))
 }

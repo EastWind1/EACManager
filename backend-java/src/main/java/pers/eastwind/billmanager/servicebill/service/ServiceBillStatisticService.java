@@ -1,10 +1,7 @@
 package pers.eastwind.billmanager.servicebill.service;
 
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.common.cache.CacheConfig;
 import pers.eastwind.billmanager.common.model.MonthAmountRow;
 import pers.eastwind.billmanager.common.model.MonthSumAmount;
 import pers.eastwind.billmanager.servicebill.model.ServiceBillState;
@@ -18,16 +15,15 @@ import java.util.*;
 
 @Service
 public class ServiceBillStatisticService {
+    public static final String AMOUNT_STAT_CACHE = "serviceBill";
+
     private final ServiceBillStatisticRepository serviceBillStatisticRepository;
     private final ServiceBillQueryService queryService;
-    private final CacheManager cacheManager;
 
     public ServiceBillStatisticService(ServiceBillStatisticRepository serviceBillStatisticRepository,
-                                       ServiceBillQueryService queryService,
-                                       CacheManager cacheManager) {
+                                       ServiceBillQueryService queryService) {
         this.serviceBillStatisticRepository = serviceBillStatisticRepository;
         this.queryService = queryService;
-        this.cacheManager = cacheManager;
     }
 
     public Map<ServiceBillState, Long> countBillsByState() {
@@ -39,7 +35,7 @@ public class ServiceBillStatisticService {
     }
 
 
-    @Cacheable(value = "serviceBill", key = "'sumReceiveAmountByMonth_' + @serviceBillQueryService.getScopeUserId()")
+    @Cacheable(value = AMOUNT_STAT_CACHE, key = "'sumReceiveAmountByMonth_' + @serviceBillQueryService.getScopeUserId()")
     public List<MonthSumAmount> sumReceiveAmountByMonth() {
 
         Instant preYear = Instant.now().minus(365, ChronoUnit.DAYS);

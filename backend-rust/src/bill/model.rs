@@ -108,7 +108,7 @@ pub struct BillDetail {
     pub remark: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BillDto {
     pub id: i32,
@@ -135,7 +135,7 @@ pub struct BillDto {
     pub attachments: Vec<AttachDto>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssigneeDto {
     pub id: i32,
@@ -143,7 +143,7 @@ pub struct AssigneeDto {
     pub name: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BillDetailDto {
     pub id: i32,
@@ -232,7 +232,7 @@ fn default_type() -> BillType {
     BillType::Install
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct BillQueryParam {
     pub number: Option<String>,

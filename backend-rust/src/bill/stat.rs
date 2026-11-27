@@ -5,7 +5,8 @@ use crate::error::AppResult;
 use crate::model::{CountByState, MonthSumAmount};
 use crate::state::AppState;
 
-const STAT_NAMESPACE: &str = "service-bill";
+/// 金额统计缓存；写入不主动失效，按默认 TTL 刷新。
+pub const AMOUNT_CACHE: &str = "bill-amount";
 
 /// 统计口径与 Go 一致：新建/处理中/处理完成三个状态
 pub async fn count_by_state(app: &AppState) -> AppResult<CountByState> {
@@ -29,10 +30,10 @@ pub async fn total_amount_group_by_month(app: &AppState) -> AppResult<Vec<MonthS
         Some(user_id) => format!("totalAmountGroupByMonth:user:{user_id}"),
         None => "totalAmountGroupByMonth".to_string(),
     };
-    if let Some(cached) = app.cache.get(STAT_NAMESPACE, &key) {
+    if let Some(cached) = app.cache.get(AMOUNT_CACHE, &key).await {
         return Ok(cached);
     }
     let rows = store::total_amount_group_by_month(&app.db, scope).await?;
-    app.cache.put(STAT_NAMESPACE, &key, &rows);
+    app.cache.put(AMOUNT_CACHE, &key, &rows).await;
     Ok(rows)
 }

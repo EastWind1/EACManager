@@ -5,7 +5,7 @@ use crate::state::AppState;
 
 use super::model::PermissionDto;
 use super::store::{self, PermissionRow};
-use super::{ADMIN_ROLE_CODE, module_declarations};
+use super::{ADMIN_ROLE_CODE, AUTH_USER_CACHE, module_declarations};
 
 /// 把各模块声明的权限同步到 sys_permission（只增改，不删库中额外项）
 pub async fn sync_permissions(state: &AppState) -> AppResult<()> {
@@ -71,7 +71,10 @@ pub async fn init_admin(state: &AppState) -> AppResult<()> {
             }
             Ok(())
         })
-        .await
+        .await?;
+    // 权限目录或管理员权限有调整时，旧鉴权缓存可能已过期。
+    state.cache.invalidate(AUTH_USER_CACHE).await;
+    Ok(())
 }
 
 impl From<PermissionDto> for PermissionRow {

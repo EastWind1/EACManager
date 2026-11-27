@@ -5,8 +5,8 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import pers.eastwind.billmanager.common.cache.CacheService;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.security.config.JWTProperties;
 
@@ -18,18 +18,18 @@ import java.util.UUID;
 /**
  * 单 token：JWT 的 subject 是用户 id，权限由用户权限缓存组装。
  *
- * <p>登出只把 jti 写入 Redis 黑名单，直到 token 自然过期。</p>
+ * <p>登出只把 jti 写入缓存黑名单，直到 token 自然过期。</p>
  */
 @Service
 public class TokenService {
-    private static final String BLACKLIST_PREFIX = "expire_token::";
+    static final String BLACKLIST_CACHE = "expire_token";
 
     private final JWTProperties properties;
-    private final StringRedisTemplate redisTemplate;
+    private final CacheService cacheService;
 
-    public TokenService(JWTProperties properties, StringRedisTemplate redisTemplate) {
+    public TokenService(JWTProperties properties, CacheService cacheService) {
         this.properties = properties;
-        this.redisTemplate = redisTemplate;
+        this.cacheService = cacheService;
     }
 
     public String issue(Integer userId) {
@@ -61,7 +61,7 @@ public class TokenService {
         if (id == null || id.isBlank()) {
             throw new BizException("Token 无效");
         }
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + id))) {
+        if (cacheService.hasFlag(BLACKLIST_CACHE, id)) {
             throw new BizException("Token 已失效");
         }
         return jwt;
@@ -81,7 +81,7 @@ public class TokenService {
         if (ttl <= 0 || jwt.getId() == null || jwt.getId().isBlank()) {
             return;
         }
-        redisTemplate.opsForValue().set(BLACKLIST_PREFIX + jwt.getId(), "1", Duration.ofSeconds(ttl));
+        cacheService.setFlag(BLACKLIST_CACHE, jwt.getId(), Duration.ofSeconds(ttl));
     }
 
     private static long remainingSeconds(DecodedJWT jwt) {

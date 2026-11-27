@@ -39,7 +39,7 @@ class ServiceBillStatisticServiceTest extends BaseServiceTest {
     @Autowired
     private CacheManager cacheManager;
 
-    private static final String AMOUNT_STAT_CACHE = "serviceBill";
+    private static final String AMOUNT_STAT_CACHE = ServiceBillStatisticService.AMOUNT_STAT_CACHE;
 
     /**
      * 金额统计带缓存，测量前清空保证读到最新数据

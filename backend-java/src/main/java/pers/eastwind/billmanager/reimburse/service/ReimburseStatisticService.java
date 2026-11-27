@@ -1,10 +1,7 @@
 package pers.eastwind.billmanager.reimburse.service;
 
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import pers.eastwind.billmanager.common.cache.CacheConfig;
 import pers.eastwind.billmanager.common.model.MonthAmountRow;
 import pers.eastwind.billmanager.common.model.MonthSumAmount;
 import pers.eastwind.billmanager.reimburse.model.ReimburseState;
@@ -18,6 +15,8 @@ import java.util.*;
 
 @Service
 public class ReimburseStatisticService {
+    public static final String AMOUNT_STAT_CACHE = "reimburse-sumAmount";
+
     private final ReimburseStatisticRepository reimburseStatisticRepository;
 
     public ReimburseStatisticService(ReimburseStatisticRepository reimburseStatisticRepository) {
@@ -35,7 +34,7 @@ public class ReimburseStatisticService {
     /**
      * 仅统计近一年，按报销日期的月份聚合金额。
      */
-    @Cacheable(value="reimburse-sumAmount")
+    @Cacheable(value = AMOUNT_STAT_CACHE)
     public List<MonthSumAmount> sumAmountByMonth() {
         Instant preYear = Instant.now().minus(365, ChronoUnit.DAYS);
         List<MonthAmountRow> results = reimburseStatisticRepository.sumAmountGroupByMonth(preYear, Instant.now());

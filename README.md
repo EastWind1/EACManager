@@ -14,20 +14,21 @@
 
 ### 后端 Java
 
-- Spring Web MVC + Spring Security + Spring Data JPA + PostgreSQL
+- Spring Web MVC + Spring Security + Spring Data JPA + PostgreSQL + Redis
 - 默认打包将依赖分离，而非 fat-jar，便于上传
 - 使用 Java RapidOCR 实现 OCR
 
 ### 后端 GO
 
-- Fiber + Gorm + PostgreSQL
+- Fiber + Gorm + PostgreSQL + Redis
 - 由于 Go 没有原生中文 OCR 库，采用 RapidOCR API 镜像远程调用
 
 ### 后端 Rust（学习用）
 
-> 该实现**仅用于学习 Rust**，不要求与 Java/Go 功能同步或行为一致，也不建议作为生产交付物。
+> 由 AI Agent 生成
+> 该实现**仅用于学习 Rust**，不保证与 Java/Go 功能同步或行为一致，不建议作为生产交付物。
 
-- Axum + sqlx + PostgreSQL
+- Axum + sqlx + PostgreSQL + Redis
 - 参考 Java/Go 的分域方式与业务模型，但路由、DTO、错误信息、权限清单允许按 Rust 惯用法偏离
 - 同样通过 `ocr.url` 调用 RapidOCR 服务；PDF 优先取文本层，失败再降级 OCR
 
@@ -72,6 +73,9 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
     - eac-postgres
         - 使用 postgres 镜像
         - 使用 volume 挂载数据目录
+    - eac-redis
+        - 使用 redis 镜像
+        - token 黑名单与共享缓存
 
 ### Go 版后端
 
@@ -90,6 +94,9 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
     - ocr-server
         - 默认不启用
         - 基于 rapidocr 官方 Dockerfile
+    - eac-redis
+        - 使用 redis 镜像
+        - token 黑名单与共享缓存
 
 ### Rust 版后端
 
@@ -105,6 +112,9 @@ CA_EMAIL # 用于 caddy 生成 CA 证书的邮箱
     - eac-postgres
         - 使用 postgres 镜像
         - 使用 volume 挂载数据目录
+    - eac-redis
+        - 使用 redis 镜像
+        - token 黑名单与共享缓存
 
 ### 手动部署
 

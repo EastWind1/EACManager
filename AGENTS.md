@@ -56,8 +56,10 @@ Rust 学习实现单独打包：`deploy/build-rust.sh`，
 
 ## 缓存
 
-- Redis 是**共享缓存**：Java 用 Spring Cache + `StringRedisTemplate`，Go 用 `pkg/cache`。
-  Java 与 Go 都直接依赖 Redis，不再提供进程内降级；Go 启动时连接失败会直接返回错误。
+- Redis 是**共享缓存**：Java 用 Spring Cache，声明式缓存仍用 `@Cacheable` / `@CacheEvict`，
+  命令式操作统一经过 `common/cache` 的 `CacheService`，业务层不直接依赖 `StringRedisTemplate`；Go 用 `pkg/cache`，
+  Rust 用 `cache::Cache`。缓存命名空间常量由各业务类自行声明，公共模块不反向感知具体业务名。
+  三者都直接依赖 Redis，不再提供进程内降级；启动时连接失败会直接返回错误。
 - 缓存命名空间：完整鉴权用户（按 `userId` 缓存账号、角色与权限）、公司、服务单列表查询、
   仪表盘金额统计、token 登出黑名单。用户角色/禁用操作清理该用户缓存；角色/角色权限 CRUD
   清理全部鉴权用户缓存。
@@ -154,9 +156,10 @@ Go 侧还会对拼接结果做 `EnsureWithin` 目录包含校验。
 `jwt.secret` 不写默认值，必须通过 `JWT_SECRET` 环境变量注入，缺失或不足 32 字节时启动失败。
 
 **Rust**（`config/config.yaml`，编译期内嵌，可被工作目录下的同名文件覆盖）：键名**参考** Go
-（`server` / `log` / `db` / `cache` / `jwt` / `attachment` / `ocr`），环境变量也参考 Go 并支持 `SERVER_MODE`；
+（`server` / `log` / `db` / `cache` / `redis` / `jwt` / `attachment` / `ocr`），环境变量也参考 Go
+（含 `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB`）并支持 `SERVER_MODE`；
 因为 Rust 是学习实现，配置项不必与 Go 保持一一对应，可以随实现增减。
-`jwt.secret` 同样不写默认值，必须由 `JWT_SECRET` 注入且不短于 32 字节。
+`jwt.secret` 同样不写默认值，必须由 `JWT_SECRET` 注入且不短于 32 字节；Redis 连接失败时启动失败。
 
 **OCR**：Java 本地跑 RapidOCR；Go 与 Rust 无原生中文 OCR，调 `ocr.url`（完整端点，默认
 `http://localhost:9003/ocr`）的独立 FastAPI 服务 `ocr-server/`。Rust 解析 PDF 时先取文本层，
@@ -170,7 +173,7 @@ cd backend-go   && go build ./... && go test ./...
 cd frontend     && pnpm install && pnpm dev        # pnpm build / type-check / lint
 ```
 
-Java/Go/Rust 都是**集成测试，需要可达的 PostgreSQL**，没有 mock 数据库层。Java 用 `@SpringBootTest` +
+Java/Go/Rust 都是**集成测试，需要可达的 PostgreSQL**（Rust 还需要可达的 Redis），没有 mock 数据库层。Java 用 `@SpringBootTest` +
 `@Transactional` 回滚（`common/BaseServiceTest`）；Go 测试集中在 `backend-go/test`，
 `BaseSuite.SetupSuite` 懒初始化共享应用实例，走与 `server.Run` 相同的组装、权限同步和角色初始化路径，
 每个用例的 `SetupTest` 开启事务，用例结束自动回滚。
@@ -220,6 +223,7 @@ cd backend-rust && cargo build && cargo clippy --all-targets && cargo fmt --chec
 ```
 backend-java/src/main/java/pers/eastwind/billmanager/
   common/    Result / PageResult / QueryParam / ActionsResult / BizException / ControllerAdvice / Snowflake
+             cache/ CacheService（业务层唯一的缓存入口，缓存名由各业务模块声明）
   security/  AuthorizeService（角色/权限）、AuthenticateService（登录/token/禁用/账户）、JWT 过滤器
   user/      只维护 user_profile 资料；company/ servicebill/ reimburse/ attach/ 各自模块
   servicebill/service: ServiceBillQueryService 负责查询/数据权限，ServiceBillActionService 只做写动作
@@ -244,7 +248,9 @@ backend-go/
 backend-rust/                        # 学习实现：结构可自由演进，无需与 Java/Go 对齐
   src/main.rs, src/lib.rs, server.rs  入口与路由装配（`/api` 统一 nest，认证中间件在整体外层）
   src/{config,error,model,util,db,cache,auth,state}.rs  公共设施：配置、thiserror 错误映射、分页/批量结果、
-      `Db`（连接池 + 显式事务）、`auth`（JWT 校验 + 请求主体 task-local）、`AppState`（Clone，含 config/db/cache）
+      `Db`（连接池 + 显式事务）、`cache`（Redis）、`auth`（JWT 校验 + 请求主体 task-local）、
+      `AppState`（Clone，含 config/db/cache）
+  src/security/token.rs  签发/校验 token（subject 为用户 id、jti 黑名单）
   src/{user,company,attach,bill,reimburse}/  handler.rs service.rs store.rs model.rs
       bill 额外: query.rs（查询与数据权限）/ relation.rs / stat.rs / mapper.rs
       reimburse 额外: relation.rs / stat.rs / mapper.rs

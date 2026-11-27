@@ -85,7 +85,7 @@ fn empty_dto() -> BillDto {
 }
 
 async fn set_company(app: &AppState, dto: &mut BillDto, keyword: &str) -> AppResult<()> {
-    let companies = crate::company::service::find_by_name(&app.db, keyword).await?;
+    let companies = crate::company::service::find_by_name(app, keyword).await?;
     dto.product_company = companies.first().cloned();
     Ok(())
 }

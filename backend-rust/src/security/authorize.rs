@@ -6,7 +6,8 @@ use crate::db::Db;
 use crate::error::{AppError, AppResult};
 use crate::security::model::{PermissionDto, RoleDto};
 use crate::security::store::{self, PermissionRow, RoleRow};
-use crate::security::{ADMIN_ROLE_CODE, QUERY_AUTH_CODE, UPDATE_AUTH_CODE};
+use crate::security::{ADMIN_ROLE_CODE, AUTH_USER_CACHE, QUERY_AUTH_CODE, UPDATE_AUTH_CODE};
+use crate::state::AppState;
 
 /// 行数据只用于构造一次响应时移动字符串，避免再复制一次
 impl From<RoleRow> for RoleDto {
@@ -70,7 +71,8 @@ pub async fn create_role(db: &Db, dto: &RoleDto) -> AppResult<RoleDto> {
     .await
 }
 
-pub async fn update_role(db: &Db, dto: &RoleDto) -> AppResult<RoleDto> {
+pub async fn update_role(app: &AppState, dto: &RoleDto) -> AppResult<RoleDto> {
+    let db = &app.db;
     if dto.id == 0 {
         return Err(AppError::Biz("角色 id 不能为空".into()));
     }
@@ -82,6 +84,7 @@ pub async fn update_role(db: &Db, dto: &RoleDto) -> AppResult<RoleDto> {
     }
     validate_role_name(&dto.name)?;
     store::update_role(db, dto.id, dto.name.trim(), dto.sort_order, dto.disabled).await?;
+    app.cache.invalidate(AUTH_USER_CACHE).await;
     Ok(RoleDto {
         id: dto.id,
         code: role.code,
@@ -101,7 +104,8 @@ fn validate_role_name(name: &str) -> AppResult<()> {
     Ok(())
 }
 
-pub async fn delete_role(db: &Db, id: i32) -> AppResult<()> {
+pub async fn delete_role(app: &AppState, id: i32) -> AppResult<()> {
+    let db = &app.db;
     let role = store::find_role_by_id(db, id)
         .await?
         .ok_or_else(|| AppError::Biz("角色不存在".into()))?;
@@ -109,7 +113,9 @@ pub async fn delete_role(db: &Db, id: i32) -> AppResult<()> {
         return Err(AppError::Biz("管理员角色不能删除".into()));
     }
     db.transaction(async |conn| store::delete_role(conn, id).await)
-        .await
+        .await?;
+    app.cache.invalidate(AUTH_USER_CACHE).await;
+    Ok(())
 }
 
 pub async fn role_codes_of_user(db: &Db, user_id: i32) -> AppResult<Vec<String>> {
@@ -241,44 +247,49 @@ pub async fn role_permissions(db: &Db, role_id: i32) -> AppResult<Vec<Permission
 }
 
 pub async fn update_role_permissions(
-    db: &Db,
+    app: &AppState,
     role_id: i32,
     permission_ids: &[i32],
 ) -> AppResult<Vec<PermissionDto>> {
+    let db = &app.db;
     let role = store::find_role_by_id(db, role_id)
         .await?
         .ok_or_else(|| AppError::Biz("角色不存在".into()))?;
     let requested = unique_ids(permission_ids);
 
-    db.transaction(async |conn| {
-        let mut permissions = Vec::new();
-        if !requested.is_empty() {
-            let found = store::find_permissions_by_ids(db, &requested).await?;
-            if found.len() != requested.len() {
-                return Err(AppError::Biz("存在未知权限".into()));
+    let permissions = db
+        .transaction(async |conn| {
+            let mut permissions = Vec::new();
+            if !requested.is_empty() {
+                let found = store::find_permissions_by_ids(db, &requested).await?;
+                if found.len() != requested.len() {
+                    return Err(AppError::Biz("存在未知权限".into()));
+                }
+                permissions = found.into_iter().map(Into::into).collect();
             }
-            permissions = found.into_iter().map(Into::into).collect();
-        }
-        if role.code == ADMIN_ROLE_CODE {
-            // 管理员若丢掉权限配置页的查看/修改权限，权限页将自锁且无法恢复
-            let codes: HashSet<&str> = permissions
-                .iter()
-                .map(|permission: &PermissionDto| permission.code.as_str())
-                .collect();
-            if !codes.contains(QUERY_AUTH_CODE) || !codes.contains(UPDATE_AUTH_CODE) {
-                return Err(AppError::Biz(
-                    "管理员角色必须保留权限配置的查看和修改权限".into(),
-                ));
+            if role.code == ADMIN_ROLE_CODE {
+                // 管理员若丢掉权限配置页的查看/修改权限，权限页将自锁且无法恢复
+                let codes: HashSet<&str> = permissions
+                    .iter()
+                    .map(|permission: &PermissionDto| permission.code.as_str())
+                    .collect();
+                if !codes.contains(QUERY_AUTH_CODE) || !codes.contains(UPDATE_AUTH_CODE) {
+                    return Err(AppError::Biz(
+                        "管理员角色必须保留权限配置的查看和修改权限".into(),
+                    ));
+                }
             }
-        }
-        sqlx::query("DELETE FROM sys_role_permission WHERE role_id = $1")
-            .bind(role_id)
-            .execute(&mut *conn)
-            .await?;
-        store::create_role_permissions(conn, role_id, &requested).await?;
-        Ok(permissions)
-    })
-    .await
+            sqlx::query("DELETE FROM sys_role_permission WHERE role_id = $1")
+                .bind(role_id)
+                .execute(&mut *conn)
+                .await?;
+            store::create_role_permissions(conn, role_id, &requested).await?;
+            Ok(permissions)
+        })
+        .await?;
+    // 角色权限影响该角色下所有用户，整命名空间清理。
+    app.cache.invalidate(AUTH_USER_CACHE).await;
+    Ok(permissions)
 }
 
 pub fn unique_ids(values: &[i32]) -> Vec<i32> {

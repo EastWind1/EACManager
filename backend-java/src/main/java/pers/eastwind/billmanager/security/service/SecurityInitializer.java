@@ -4,19 +4,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import pers.eastwind.billmanager.common.cache.CacheService;
 import pers.eastwind.billmanager.security.model.PermissionEntity;
 import pers.eastwind.billmanager.security.model.Role;
 import pers.eastwind.billmanager.security.model.RolePermission;
 import pers.eastwind.billmanager.security.repository.PermissionRepository;
 import pers.eastwind.billmanager.security.repository.RolePermissionRepository;
 import pers.eastwind.billmanager.security.repository.RoleRepository;
+
+import static pers.eastwind.billmanager.security.service.AuthenticateService.AUTH_USER_CACHE;
 
 /**
  * 安全模块初始化。
@@ -31,16 +32,16 @@ public class SecurityInitializer implements ApplicationRunner {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
-    private final CacheManager cacheManager;
+    private final CacheService cacheService;
 
     public SecurityInitializer(RoleRepository roleRepository,
                                PermissionRepository permissionRepository,
                                RolePermissionRepository rolePermissionRepository,
-                               CacheManager cacheManager) {
+                               CacheService cacheService) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
-        this.cacheManager = cacheManager;
+        this.cacheService = cacheService;
     }
 
     @Override
@@ -79,10 +80,7 @@ public class SecurityInitializer implements ApplicationRunner {
     }
 
     private void clearAuthUserCache() {
-        Cache cache = cacheManager.getCache(AuthenticateService.AUTH_USER_CACHE);
-        if (cache != null) {
-            cache.clear();
-        }
+        cacheService.clear(AUTH_USER_CACHE);
     }
 
     private Role ensureRole(String code, String name, int sortOrder) {

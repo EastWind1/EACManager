@@ -160,7 +160,7 @@ public class ServiceBillActionService {
 
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     @Transactional
@@ -199,7 +199,7 @@ public class ServiceBillActionService {
 
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     @Transactional
@@ -256,7 +256,7 @@ public class ServiceBillActionService {
      */
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> assign(List<Integer> ids, List<Integer> assigneeIds) {
@@ -279,7 +279,7 @@ public class ServiceBillActionService {
 
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> delete(List<Integer> ids) {
@@ -305,7 +305,7 @@ public class ServiceBillActionService {
      */
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> process(List<Integer> ids) {
@@ -331,7 +331,7 @@ public class ServiceBillActionService {
      */
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> processed(
@@ -363,7 +363,7 @@ public class ServiceBillActionService {
      */
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> finish(
@@ -395,7 +395,7 @@ public class ServiceBillActionService {
      */
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> cancelProcess(List<Integer> ids) {
@@ -422,7 +422,7 @@ public class ServiceBillActionService {
      */
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> cancelProcessed(List<Integer> ids) {
@@ -449,7 +449,7 @@ public class ServiceBillActionService {
      */
     @Caching(
             evict = {
-                    @CacheEvict(value = "serviceBill_query", allEntries = true),
+                    @CacheEvict(value = ServiceBillQueryService.QUERY_CACHE, allEntries = true),
             }
     )
     public ActionsResult<Integer, Void> cancelFinish(List<Integer> ids) {

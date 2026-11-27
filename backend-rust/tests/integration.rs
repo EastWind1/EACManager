@@ -1,4 +1,4 @@
-//! 集成测试：需要可达的 PostgreSQL。
+//! 集成测试：需要可达的 PostgreSQL 与 Redis。
 //!
 //! 测试库 `billmanager_rust_test` 每次运行整体重建；用例串行执行，HTTP 层与业务层共用同一套
 //! 路由与中间件，验证与 Java/Go 一致的对外契约。
@@ -65,6 +65,8 @@ async fn setup(db_name: &str) -> Result<Router, String> {
     let state = AppState::new(config)
         .await
         .map_err(|error| error.to_string())?;
+    // 测试库重建后旧缓存可能带有相同 id 的过期数据
+    state.cache.clear().await;
     // 与 server::run 一致：先同步权限目录并建好 ADMIN/USER 角色
     billmanager::security::bootstrap(&state)
         .await
@@ -326,9 +328,12 @@ async fn initialization_and_login_flow(app: &Router) {
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
-    // 登出
+    // 登出：旧 token 进入黑名单，不能继续访问受保护接口
     let (status, _) = put_json(app, "/api/user/logout", &token, json!({})).await;
     assert_eq!(status, StatusCode::OK);
+    let (status, response) = get(app, "/api/security/permissions", &token).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    assert_eq!(response["message"], json!("Token 已失效"));
 }
 
 async fn permission_required_per_action(app: &Router) {

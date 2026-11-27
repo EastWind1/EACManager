@@ -8,6 +8,7 @@ use crate::security::model::{
 };
 use crate::security::store::{self, AccountRow, ProfileRow};
 use crate::security::{ADMIN_ROLE_CODE, authenticate, authorize};
+use crate::state::AppState;
 
 /// 用户资料服务：只维护姓名、手机、邮箱。账户、登录、禁用与角色属于安全模块。
 pub async fn login(
@@ -89,7 +90,8 @@ pub async fn create(db: &Db, request: &UserRequest) -> AppResult<UserDto> {
     Ok(with_request_profile(account, request))
 }
 
-pub async fn update(db: &Db, request: &UserRequest) -> AppResult<UserDto> {
+pub async fn update(app: &AppState, request: &UserRequest) -> AppResult<UserDto> {
+    let db = &app.db;
     if request.id == 0 {
         return Err(AppError::Biz("id 不能为空".into()));
     }
@@ -106,7 +108,7 @@ pub async fn update(db: &Db, request: &UserRequest) -> AppResult<UserDto> {
         .filter(|value| !value.is_empty());
     // 账户、角色与密码统一由安全模块校验并提交
     let account =
-        authenticate::update_account(db, request.id, request.roles.as_deref(), password).await?;
+        authenticate::update_account(app, request.id, request.roles.as_deref(), password).await?;
 
     // 资料行可能因历史数据缺失，缺失时补建
     db.transaction(async |conn| {

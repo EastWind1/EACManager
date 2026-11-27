@@ -39,7 +39,7 @@ pub async fn update_role(
     Json(dto): Json<RoleDto>,
 ) -> AppResult<Json<ResultBody>> {
     require_permission(&state, &user, UPDATE_AUTH_CODE).await?;
-    Ok(ok(authorize::update_role(&state.db, &dto).await?))
+    Ok(ok(authorize::update_role(&state, &dto).await?))
 }
 
 pub async fn delete_role(
@@ -48,7 +48,7 @@ pub async fn delete_role(
     Path(id): Path<i32>,
 ) -> AppResult<Json<ResultBody>> {
     require_permission(&state, &user, UPDATE_AUTH_CODE).await?;
-    authorize::delete_role(&state.db, id).await?;
+    authorize::delete_role(&state, id).await?;
     Ok(ok_empty())
 }
 
@@ -69,7 +69,7 @@ pub async fn update_role_permissions(
 ) -> AppResult<Json<ResultBody>> {
     require_permission(&state, &user, UPDATE_AUTH_CODE).await?;
     Ok(ok(authorize::update_role_permissions(
-        &state.db,
+        &state,
         id,
         &permission_ids,
     )
@@ -85,6 +85,6 @@ pub async fn disable_account(
     if username.trim().is_empty() {
         return Err(AppError::Biz("用户名为空".into()));
     }
-    authenticate::disable(&state.db, &username).await?;
+    authenticate::disable(&state, &username).await?;
     Ok(ok_empty())
 }

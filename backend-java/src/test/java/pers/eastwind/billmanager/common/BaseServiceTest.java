@@ -9,10 +9,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import pers.eastwind.billmanager.company.service.CompanyService;
+import pers.eastwind.billmanager.reimburse.service.ReimburseStatisticService;
 import pers.eastwind.billmanager.security.model.AuthorityUser;
 import pers.eastwind.billmanager.security.model.RoleDTO;
 import pers.eastwind.billmanager.security.service.AuthenticateService;
 import pers.eastwind.billmanager.security.service.AuthorizeService;
+import pers.eastwind.billmanager.servicebill.service.ServiceBillQueryService;
+import pers.eastwind.billmanager.servicebill.service.ServiceBillStatisticService;
 import pers.eastwind.billmanager.user.model.UserDTO;
 import pers.eastwind.billmanager.user.service.UserService;
 
@@ -33,8 +37,9 @@ public class BaseServiceTest {
     @BeforeEach
     protected void setUp() {
         // 集成测试共享应用实例，权限/查询/统计缓存不能跨用例残留
-        for (String name : List.of("authUser", "company", "serviceBill_query",
-                "serviceBill", "reimburse-sumAmount")) {
+        for (String name : List.of(AuthenticateService.AUTH_USER_CACHE, CompanyService.COMPANY_CACHE,
+                ServiceBillQueryService.QUERY_CACHE, ServiceBillStatisticService.AMOUNT_STAT_CACHE,
+                ReimburseStatisticService.AMOUNT_STAT_CACHE)) {
             Cache cache = cacheManager.getCache(name);
             if (cache != null) {
                 // RedisCache.clear() 可能异步执行，测试里用 invalidate() 保证立即失效

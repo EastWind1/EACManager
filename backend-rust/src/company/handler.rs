@@ -24,7 +24,7 @@ pub async fn create(
     Json(request): Json<CompanyRequest>,
 ) -> AppResult<Json<ResultBody>> {
     require_permission(&state, &user, "company:create").await?;
-    Ok(ok(service::create(&state.db, &request).await?))
+    Ok(ok(service::create(&state, &request).await?))
 }
 
 pub async fn update(
@@ -33,7 +33,7 @@ pub async fn update(
     Json(request): Json<CompanyRequest>,
 ) -> AppResult<Json<ResultBody>> {
     require_permission(&state, &user, "company:update").await?;
-    Ok(ok(service::update(&state.db, &request).await?))
+    Ok(ok(service::update(&state, &request).await?))
 }
 
 pub async fn disable(
@@ -42,6 +42,6 @@ pub async fn disable(
     Path(id): Path<i32>,
 ) -> AppResult<Json<ResultBody>> {
     require_permission(&state, &user, "company:disable").await?;
-    service::disable(&state.db, id).await?;
+    service::disable(&state, id).await?;
     Ok(ok_empty())
 }

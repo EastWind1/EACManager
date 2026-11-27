@@ -27,6 +27,7 @@ import java.util.*;
  */
 @Service
 public class ServiceBillQueryService {
+    public static final String QUERY_CACHE = "serviceBill_query";
 
     private final ServiceBillRepository serviceBillRepository;
     private final ServiceBillAssigneeRepository assigneeRepository;

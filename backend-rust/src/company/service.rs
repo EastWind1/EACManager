@@ -3,6 +3,10 @@ use crate::company::store::{self, CompanyRow};
 use crate::db::Db;
 use crate::error::{AppError, AppResult};
 use crate::model::{PageResult, QueryParam};
+use crate::state::AppState;
+
+/// 下拉候选缓存；公司写操作后整体清理。
+pub const COMPANY_CACHE: &str = "company";
 
 pub async fn find_enabled(db: &Db, param: &QueryParam) -> AppResult<PageResult<CompanyDto>> {
     param.validate().map_err(AppError::Biz)?;
@@ -20,18 +24,23 @@ pub async fn find_enabled(db: &Db, param: &QueryParam) -> AppResult<PageResult<C
     Ok(PageResult::new(items, total, param))
 }
 
-pub async fn find_by_name(db: &Db, name: &str) -> AppResult<Vec<CompanyDto>> {
-    Ok(store::find_enabled_by_name_contains(db, name)
+pub async fn find_by_name(app: &AppState, name: &str) -> AppResult<Vec<CompanyDto>> {
+    if let Some(cached) = app.cache.get(COMPANY_CACHE, name).await {
+        return Ok(cached);
+    }
+    let rows: Vec<CompanyDto> = store::find_enabled_by_name_contains(&app.db, name)
         .await?
         .into_iter()
         .map(CompanyDto::from)
-        .collect())
+        .collect();
+    app.cache.put(COMPANY_CACHE, name, &rows).await;
+    Ok(rows)
 }
 
-pub async fn create(db: &Db, request: &CompanyRequest) -> AppResult<CompanyDto> {
+pub async fn create(app: &AppState, request: &CompanyRequest) -> AppResult<CompanyDto> {
     request.validate()?;
     let row = store::create(
-        db,
+        &app.db,
         request.name.trim(),
         request.contact_name(),
         request.contact_phone(),
@@ -39,10 +48,12 @@ pub async fn create(db: &Db, request: &CompanyRequest) -> AppResult<CompanyDto> 
         request.address(),
     )
     .await?;
+    app.cache.invalidate(COMPANY_CACHE).await;
     Ok(CompanyDto::from(row))
 }
 
-pub async fn update(db: &Db, request: &CompanyRequest) -> AppResult<CompanyDto> {
+pub async fn update(app: &AppState, request: &CompanyRequest) -> AppResult<CompanyDto> {
+    let db = &app.db;
     if request.id == 0 {
         return Err(AppError::Biz("公司 ID 不能为空".into()));
     }
@@ -57,6 +68,7 @@ pub async fn update(db: &Db, request: &CompanyRequest) -> AppResult<CompanyDto> 
         request.address(),
     )
     .await?;
+    app.cache.invalidate(COMPANY_CACHE).await;
     Ok(CompanyDto::from(row))
 }
 
@@ -68,11 +80,13 @@ pub async fn find_by_id(db: &Db, id: i32) -> AppResult<Option<CompanyDto>> {
     Ok(store::find_by_id(db, id).await?.map(CompanyDto::from))
 }
 
-pub async fn disable(db: &Db, id: i32) -> AppResult<()> {
+pub async fn disable(app: &AppState, id: i32) -> AppResult<()> {
     if id == 0 {
         return Err(AppError::Biz("公司 ID 不能为空".into()));
     }
-    store::set_disabled(db, id).await
+    store::set_disabled(&app.db, id).await?;
+    app.cache.invalidate(COMPANY_CACHE).await;
+    Ok(())
 }
 
 /// 供服务单 DTO 补全产品公司

@@ -27,7 +27,7 @@ pub fn ok_empty() -> Json<ResultBody> {
 }
 
 /// 分页结果，pageIndex 从 0 开始
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageResult<T> {
     pub items: Vec<T>,

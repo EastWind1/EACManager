@@ -17,6 +17,7 @@ pub fn router() -> Router<AppState> {
         )
         .route("/api/user/initialization", post(handler::initialize))
         .route("/api/user/logout", put(handler::logout))
+        .route("/api/user/me", get(handler::me))
         .route("/api/user/", get(handler::get_all))
         .route("/api/user/", post(handler::create))
         .route("/api/user/", put(handler::update))

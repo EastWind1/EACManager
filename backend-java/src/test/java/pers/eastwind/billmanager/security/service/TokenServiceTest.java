@@ -3,8 +3,7 @@ package pers.eastwind.billmanager.security.service;
 import com.auth0.jwt.JWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import pers.eastwind.billmanager.common.cache.CacheService;
 import pers.eastwind.billmanager.common.exception.BizException;
 import pers.eastwind.billmanager.security.config.JWTProperties;
 
@@ -17,32 +16,30 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class TokenServiceTest {
-    private final Map<String, String> redisStore = new HashMap<>();
+    private final Map<String, String> flagStore = new HashMap<>();
     private TokenService service;
 
     @BeforeEach
     void setUp() {
-        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
-        @SuppressWarnings("unchecked")
-        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        CacheService cacheService = mock(CacheService.class);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(redisTemplate.hasKey(anyString()))
-                .thenAnswer(invocation -> redisStore.containsKey(invocation.getArgument(0)));
+        when(cacheService.hasFlag(eq(TokenService.BLACKLIST_CACHE), anyString()))
+                .thenAnswer(invocation -> flagStore.containsKey(invocation.getArgument(1)));
         doAnswer(invocation -> {
-            redisStore.put(invocation.getArgument(0), invocation.getArgument(1));
+            flagStore.put(invocation.getArgument(1), "1");
             return null;
-        }).when(valueOperations).set(anyString(), anyString(), any(Duration.class));
+        }).when(cacheService).setFlag(eq(TokenService.BLACKLIST_CACHE), anyString(), any(Duration.class));
 
         JWTProperties properties = new JWTProperties();
         properties.setSecret("test-only-jwt-key-4f6c1d2a9b8e7c3d5a1f0e9d8c7b6a5f");
         properties.setExpire(60);
-        service = new TokenService(properties, redisTemplate);
+        service = new TokenService(properties, cacheService);
     }
 
     @Test
@@ -62,7 +59,7 @@ class TokenServiceTest {
 
         service.expire(token);
 
-        assertTrue(redisStore.containsKey("expire_token::" + jti));
+        assertTrue(flagStore.containsKey(jti));
         assertThrows(BizException.class, () -> service.verify(token));
     }
 }

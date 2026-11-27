@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use sha2::{Digest, Sha256};
+
 use crate::bill::model::{AssigneeDto, Bill, BillDto, BillQueryParam, base_dto, full_dto};
 use crate::bill::relation;
 use crate::bill::store;
@@ -9,6 +11,7 @@ use crate::state::AppState;
 
 pub const DATA_ALL_AUTH_CODE: &str = "serviceBill:data-all";
 pub const ASSIGN_AUTH_CODE: &str = "serviceBill:assign";
+pub const QUERY_CACHE: &str = "bill-query";
 
 /// 数据权限范围：None 表示可查看全部，Some(id) 表示只能访问指派给该用户的单据
 pub async fn scope(app: &AppState) -> AppResult<Option<i32>> {
@@ -68,6 +71,14 @@ pub async fn find_by_param(
     app: &AppState,
     param: BillQueryParam,
 ) -> AppResult<PageResult<BillDto>> {
+    param.page.validate().map_err(AppError::Biz)?;
+    let order = param.page.order_by().map_err(AppError::Biz)?;
+    let scope = scope(app).await?;
+    // 数据权限与查询参数一起进缓存键，避免不同用户或不同条件复用结果。
+    let key = query_cache_key(scope, &param);
+    if let Some(cached) = app.cache.get(QUERY_CACHE, &key).await {
+        return Ok(cached);
+    }
     let BillQueryParam {
         number,
         states,
@@ -79,9 +90,6 @@ pub async fn find_by_param(
         processed_end_date,
         page,
     } = param;
-    page.validate().map_err(AppError::Biz)?;
-    let order = page.order_by().map_err(AppError::Biz)?;
-    let scope = scope(app).await?;
     let query = store::ListQuery {
         number: number.filter(|value| !value.trim().is_empty()),
         state_codes: states
@@ -118,13 +126,15 @@ pub async fn find_by_param(
             dto
         })
         .collect();
-    Ok(PageResult {
+    let result = PageResult {
         items,
         total_count: page.total_count,
         total_pages: page.total_pages,
         page_size: page.page_size,
         page_index: page.page_index,
-    })
+    };
+    app.cache.put(QUERY_CACHE, &key, &result).await;
+    Ok(result)
 }
 
 pub async fn find_all_for_export(app: &AppState, ids: &[i32]) -> AppResult<Vec<Bill>> {
@@ -180,6 +190,18 @@ async fn load_assignees(
         }
     }
     Ok(grouped)
+}
+
+/// 把数据权限和查询参数一起摘要成缓存键，避免跨用户或跨条件复用列表。
+fn query_cache_key(scope: Option<i32>, param: &BillQueryParam) -> String {
+    let scope_key = match scope {
+        Some(user_id) => format!("user:{user_id}"),
+        None => "all".to_string(),
+    };
+    let raw = serde_json::to_vec(param).unwrap_or_default();
+    let digest = Sha256::digest(&raw);
+    let hash: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+    format!("{scope_key}:{hash}")
 }
 
 /// 指派候选：全部启用用户，不要求用户管理权限
