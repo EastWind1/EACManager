@@ -7,7 +7,7 @@
         <!-- 左侧导航抽屉 -->
         <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
         <!-- 标题 -->
-        <img alt="" src="/favicon.ico" style="width: 50px; height: 25px"/>
+        <img alt="" src="/favicon.ico" style="width: 50px; height: 25px" />
         <h2 class="ma-auto">服务单管理</h2>
       </template>
       <!-- 暗色模式切换 -->
@@ -40,15 +40,15 @@
     </v-navigation-drawer>
     <v-main class="bg-surface-light">
       <div class="main">
-        <RouterView/>
+        <RouterView />
       </div>
     </v-main>
   </v-responsive>
 </template>
 
 <script lang="ts" setup>
-import {RouterView, useRouter} from 'vue-router'
-import {computed, ref} from 'vue'
+import { RouterView, useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
 import {
   mdiAccount,
   mdiCash,
@@ -58,16 +58,16 @@ import {
   mdiMonitorDashboard,
   mdiShieldAccount,
   mdiWeatherNight,
-  mdiWeatherSunny
+  mdiWeatherSunny,
 } from '@mdi/js'
-import {useUserStore} from '@/user/store/UserStore.ts'
-import {useTheme} from 'vuetify/framework'
+import { useUserStore } from '@/user/store/UserStore.ts'
+import { useTheme } from 'vuetify/framework'
 import UserApi from '@/user/api/UserApi.ts'
-import {Permission as UserPermission} from '@/user/model/Permission'
-import {Permission as CompanyPermission} from '@/company/model/Permission'
-import {Permission as ServiceBillPermission} from '@/service-bill/model/Permission'
-import {Permission as ReimbursePermission} from '@/reimburse/model/Permission'
-import {Permission as ConfigPermission} from '@/permission/model/PermissionCode'
+import { Permission as UserPermission } from '@/user/model/Permission'
+import { Permission as CompanyPermission } from '@/company/model/Permission'
+import { Permission as ServiceBillPermission } from '@/service-bill/model/Permission'
+import { Permission as ReimbursePermission } from '@/reimburse/model/Permission'
+import { Permission as ConfigPermission } from '@/permission/model/PermissionCode'
 
 // 当前路由
 const router = useRouter()
@@ -76,7 +76,7 @@ const theme = useTheme()
 // 当前用户
 const userStore = useUserStore()
 // 移除
-const {removeUser} = useUserStore()
+const { removeUser } = useUserStore()
 
 // 左侧抽屉是否显示
 const drawer = ref(true)
@@ -150,7 +150,7 @@ const allMenuItems: {
 const menuItems = computed(() =>
   allMenuItems
     .filter((item) => !item.permission || userStore.hasPermission(item.permission))
-    .map((item) => ({title: item.title, props: item.props})),
+    .map((item) => ({ title: item.title, props: item.props })),
 )
 
 // 退出登录

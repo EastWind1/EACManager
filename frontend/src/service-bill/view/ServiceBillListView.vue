@@ -10,7 +10,7 @@
           <v-container>
             <v-row>
               <v-col cols="12" md="4" sm="6" xl="3">
-                <v-text-field v-model="queryParam.number" clearable label="单号"/>
+                <v-text-field v-model="queryParam.number" clearable label="单号" />
               </v-col>
               <v-col cols="12" md="4" sm="6" xl="3">
                 <v-select
@@ -24,7 +24,7 @@
                 />
               </v-col>
               <v-col cols="12" md="4" sm="6" xl="3">
-                <v-text-field v-model="queryParam.projectName" clearable label="项目名称"/>
+                <v-text-field v-model="queryParam.projectName" clearable label="项目名称" />
               </v-col>
               <v-col v-if="canAssign" cols="12" md="4" sm="6" xl="3">
                 <v-select
@@ -86,8 +86,7 @@
                   <v-icon :icon="mdiPlus"></v-icon>
                 </template>
                 新增
-              </v-btn
-              >
+              </v-btn>
               <v-btn
                 v-permission="Permission.SERVICE_BILL_IMPORT"
                 :disabled="loading"
@@ -98,8 +97,7 @@
                   <v-icon :icon="mdiImport"></v-icon>
                 </template>
                 导入
-              </v-btn
-              >
+              </v-btn>
               <v-btn
                 v-permission="Permission.SERVICE_BILL_EXPORT"
                 :disabled="loading"
@@ -110,8 +108,7 @@
                   <v-icon :icon="mdiExport"></v-icon>
                 </template>
                 导出
-              </v-btn
-              >
+              </v-btn>
               <v-btn
                 v-permission="Permission.SERVICE_BILL_ASSIGN"
                 :disabled="loading"
@@ -158,10 +155,10 @@
               </v-btn>
               <div
                 v-permission="[
-                Permission.SERVICE_BILL_CANCEL_PROCESS,
-                Permission.SERVICE_BILL_CANCEL_PROCESSED,
-                Permission.SERVICE_BILL_CANCEL_FINISH,
-              ]"
+                  Permission.SERVICE_BILL_CANCEL_PROCESS,
+                  Permission.SERVICE_BILL_CANCEL_PROCESSED,
+                  Permission.SERVICE_BILL_CANCEL_FINISH,
+                ]"
               >
                 <v-menu location="bottom">
                   <template #activator="{ props }">
@@ -219,11 +216,11 @@
           :items-length="data.totalCount"
           :items-per-page="data.pageSize ? data.pageSize : 25"
           :items-per-page-options="[
-      { value: 10, title: '10' },
-      { value: 25, title: '25' },
-      { value: 50, title: '50' },
-      { value: 100, title: '100' },
-    ]"
+            { value: 10, title: '10' },
+            { value: 25, title: '25' },
+            { value: 50, title: '50' },
+            { value: 100, title: '100' },
+          ]"
           :search="search"
           :sort-by="queryParam.sorts"
           mobile-breakpoint="sm"
@@ -273,7 +270,7 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import { computed, ref } from 'vue'
 import {
   type ServiceBill,
   type ServiceBillQueryParam,
@@ -282,15 +279,15 @@ import {
   ServiceBillType,
 } from '../model/ServiceBill'
 import ServiceBillApi from '../api/ServiceBillApi'
-import type {PageResult} from '@/common/model/PageResult'
-import {useRoute, useRouter} from 'vue-router'
-import {useUIStore} from '@/common/store/UIStore'
-import {useFileSelector} from '@/attachment/composable/FileSelector'
-import {useServiceBillActions} from '../composable/ServiceBillActions'
-import {useServiceBillAssign} from '../composable/ServiceBillAssign'
+import type { PageResult } from '@/common/model/PageResult'
+import { useRoute, useRouter } from 'vue-router'
+import { useUIStore } from '@/common/store/UIStore'
+import { useFileSelector } from '@/attachment/composable/FileSelector'
+import { useServiceBillActions } from '../composable/ServiceBillActions'
+import { useServiceBillAssign } from '../composable/ServiceBillAssign'
 import ServiceBillAssignDialog from '../component/ServiceBillAssignDialog.vue'
-import {storeToRefs} from 'pinia'
-import {useRouterStore} from '@/common/store/RouterStore'
+import { storeToRefs } from 'pinia'
+import { useRouterStore } from '@/common/store/RouterStore'
 import {
   mdiAccountSwitch,
   mdiCancel,
@@ -302,19 +299,19 @@ import {
   mdiPlus,
   mdiTrashCan,
   mdiWrench,
-  mdiWrenchCheck
+  mdiWrenchCheck,
 } from '@mdi/js'
-import {useDate, useHotkey} from 'vuetify/framework'
-import {Permission} from '../model/Permission'
-import {useUserStore} from '@/user/store/UserStore'
+import { useDate, useHotkey } from 'vuetify/framework'
+import { Permission } from '../model/Permission'
+import { useUserStore } from '@/user/store/UserStore'
 
 const store = useUIStore()
 const userStore = useUserStore()
-const {info, warning, showLoading} = store
-const {loading} = storeToRefs(store)
+const { info, warning, showLoading } = store
+const { loading } = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
-const {setData} = useRouterStore()
+const { setData } = useRouterStore()
 const dateUtil = useDate()
 
 // 筛选条件区域
@@ -373,27 +370,27 @@ const queryParam = ref<QueryParam>({
 // 处理路由参数
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
-  queryParam.value = {...queryParam.value, ...data}
+  queryParam.value = { ...queryParam.value, ...data }
 } else {
   // 尝试从缓存恢复
   const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
   if (cache) {
     const data = JSON.parse(cache) as QueryParam
-    queryParam.value = {...queryParam.value, ...data}
+    queryParam.value = { ...queryParam.value, ...data }
   }
 }
 
 // 数据表格区域
 // 表头
 const headers = [
-  {title: '单号', key: 'number', sortable: false},
-  {title: '状态', key: 'state', sortable: false},
-  {title: '类型', key: 'type', sortable: false},
-  {title: '项目', key: 'projectName', sortable: false},
-  {title: '总金额', key: 'totalAmount', sortable: false},
-  {title: '负责人', key: 'assignees', sortable: false},
-  {title: '创建时间', key: 'orderDate', sortable: false},
-  {title: '完工时间', key: 'processedDate', sortable: false},
+  { title: '单号', key: 'number', sortable: false },
+  { title: '状态', key: 'state', sortable: false },
+  { title: '类型', key: 'type', sortable: false },
+  { title: '项目', key: 'projectName', sortable: false },
+  { title: '总金额', key: 'totalAmount', sortable: false },
+  { title: '负责人', key: 'assignees', sortable: false },
+  { title: '创建时间', key: 'orderDate', sortable: false },
+  { title: '完工时间', key: 'processedDate', sortable: false },
 ]
 
 // 列表数据
@@ -522,7 +519,7 @@ async function exportToZip() {
   }
 }
 
-const {assign, process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish} =
+const { assign, process, processed, finish, remove, cancelProcess, cancelProcessed, cancelFinish } =
   useServiceBillActions({
     getKeyFn: (id: number) => {
       const row = data.value.items.find((item) => item.id === id)

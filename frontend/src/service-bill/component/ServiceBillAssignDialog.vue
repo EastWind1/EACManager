@@ -30,8 +30,8 @@
 </template>
 
 <script lang="ts" setup>
-import {mdiAccountSwitch} from '@mdi/js'
-import type {Assignee} from '../model/ServiceBill'
+import { mdiAccountSwitch } from '@mdi/js'
+import type { Assignee } from '../model/ServiceBill'
 
 defineProps<{
   count: number
@@ -45,5 +45,4 @@ const targetIds = defineModel<number[]>('targetIds')
 const emit = defineEmits<{
   confirm: []
 }>()
-
 </script>

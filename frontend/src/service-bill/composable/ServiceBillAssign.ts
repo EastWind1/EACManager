@@ -1,17 +1,20 @@
-import {computed, ref} from 'vue'
-import {useUIStore} from '@/common/store/UIStore'
+import { computed, ref } from 'vue'
+import { useUIStore } from '@/common/store/UIStore'
 import ServiceBillApi from '../api/ServiceBillApi'
-import {type Assignee, type ServiceBill, isAssignableState} from '../model/ServiceBill'
-import type {ActionsResult} from '@/common/model/ActionsResult'
+import { type Assignee, type ServiceBill, isAssignableState } from '../model/ServiceBill'
+import type { ActionsResult } from '@/common/model/ActionsResult'
 
 /**
  * 指派弹窗与候选人加载的公共逻辑。
  * 列表和详情页共用同一套状态校验、候选人缓存和提交行为。
  */
-type AssignAction = (ids: number[], assigneeIds: number[]) => Promise<ActionsResult<number, void> | undefined>
+type AssignAction = (
+  ids: number[],
+  assigneeIds: number[],
+) => Promise<ActionsResult<number, void> | undefined>
 
 export function useServiceBillAssign(assign: AssignAction) {
-  const {warning} = useUIStore()
+  const { warning } = useUIStore()
 
   const assignDialog = ref(false)
   const assignTargetIds = ref<number[]>([])

@@ -39,10 +39,7 @@ const AttachApi = {
    * @param attach 文件
    * @param onProgress 下载进度回调
    */
-  async download(
-    attach: Attach,
-    onProgress?: (e: { loaded?: number; total?: number }) => void,
-  ) {
+  async download(attach: Attach, onProgress?: (e: { loaded?: number; total?: number }) => void) {
     return await http.request<Blob>({
       method: 'GET',
       url: '/',

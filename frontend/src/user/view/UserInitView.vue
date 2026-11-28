@@ -62,14 +62,7 @@
             variant="outlined"
           ></v-text-field>
 
-          <v-btn
-            block
-            color="primary"
-            :loading="saving"
-            size="large"
-            type="submit"
-            variant="flat"
-          >
+          <v-btn block color="primary" :loading="saving" size="large" type="submit" variant="flat">
             创建管理员
           </v-btn>
           <v-btn block class="mt-2" to="/login" variant="text">返回登录</v-btn>

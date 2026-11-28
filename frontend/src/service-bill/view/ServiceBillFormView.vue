@@ -142,8 +142,8 @@
                 <v-btn
                   v-if="isEditState"
                   v-permission="
-                  serviceBill.id ? Permission.SERVICE_BILL_UPDATE : Permission.SERVICE_BILL_CREATE
-                "
+                    serviceBill.id ? Permission.SERVICE_BILL_UPDATE : Permission.SERVICE_BILL_CREATE
+                  "
                   :disabled="loading"
                   color="primary"
                   type="submit"
@@ -243,8 +243,10 @@
               </v-col>
               <!-- 项目联系人 -->
               <v-col cols="12" md="4" sm="6" xl="3">
-                <v-text-field v-model="serviceBill.projectContact"
-                              label="项目联系人"></v-text-field>
+                <v-text-field
+                  v-model="serviceBill.projectContact"
+                  label="项目联系人"
+                ></v-text-field>
               </v-col>
               <!-- 项目联系人电话 -->
               <v-col cols="12" md="4" sm="6" xl="3">
@@ -310,8 +312,10 @@
           <v-tabs-window v-model="tab">
             <!-- 服务单明细 -->
             <v-tabs-window-item value="detail">
-              <ServiceBillFormDetail v-model="serviceBill"
-                                     :readonly="!isEditState"></ServiceBillFormDetail>
+              <ServiceBillFormDetail
+                v-model="serviceBill"
+                :readonly="!isEditState"
+              ></ServiceBillFormDetail>
             </v-tabs-window-item>
             <!-- 附件 -->
             <v-tabs-window-item value="attachment">
@@ -386,7 +390,7 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import { computed, ref } from 'vue'
 import {
   type ServiceBill,
   ServiceBillState,
@@ -396,13 +400,13 @@ import {
 import ServiceBillFormDetail from '../component/ServiceBillFormDetail.vue'
 import ServiceBillAssignDialog from '../component/ServiceBillAssignDialog.vue'
 import ServiceBillApi from '../api/ServiceBillApi'
-import {storeToRefs} from 'pinia'
+import { storeToRefs } from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
-import {useRoute, useRouter} from 'vue-router'
-import {useUIStore} from '@/common/store/UIStore'
-import {useRouterStore} from '@/common/store/RouterStore'
-import {useServiceBillActions} from '../composable/ServiceBillActions'
-import {useServiceBillAssign} from '../composable/ServiceBillAssign'
+import { useRoute, useRouter } from 'vue-router'
+import { useUIStore } from '@/common/store/UIStore'
+import { useRouterStore } from '@/common/store/RouterStore'
+import { useServiceBillActions } from '../composable/ServiceBillActions'
+import { useServiceBillAssign } from '../composable/ServiceBillAssign'
 import {
   mdiAccountSwitch,
   mdiCancel,
@@ -421,19 +425,19 @@ import {
   mdiWrench,
   mdiWrenchCheck,
 } from '@mdi/js'
-import {useDate, useDisplay, useHotkey} from 'vuetify/framework'
-import type {Company} from '@/company/model/Company'
+import { useDate, useDisplay, useHotkey } from 'vuetify/framework'
+import type { Company } from '@/company/model/Company'
 import CompanyApi from '@/company/api/CompanyApi'
-import {Permission} from '../model/Permission'
-import {useUserStore} from '@/user/store/UserStore'
+import { Permission } from '../model/Permission'
+import { useUserStore } from '@/user/store/UserStore'
 
 const store = useUIStore()
 const userStore = useUserStore()
-const {loading} = storeToRefs(store)
-const {warning, success} = store
+const { loading } = storeToRefs(store)
+const { warning, success } = store
 const route = useRoute()
 const router = useRouter()
-const {mobile} = useDisplay()
+const { mobile } = useDisplay()
 const dateUtil = useDate()
 
 // 单据类型选项
@@ -538,7 +542,7 @@ async function cancel() {
   }
 }
 
-const {assign, process, processed, finish, cancelProcess, cancelProcessed, cancelFinish, remove} =
+const { assign, process, processed, finish, cancelProcess, cancelProcessed, cancelFinish, remove } =
   useServiceBillActions({
     getKeyFn: () => serviceBill.value.number ?? String(serviceBill.value.id),
     callback: async (action) => {
@@ -591,7 +595,7 @@ function callPhone(phone?: string) {
   if (!phone) {
     return
   }
-  const {confirm} = useUIStore()
+  const { confirm } = useUIStore()
   confirm('拨打电话', `是否拨打电话 ${phone}`).then((res) => {
     if (!res) {
       return
@@ -621,7 +625,7 @@ async function init() {
         break
       // 导入
       case 'import':
-        const {getData} = useRouterStore()
+        const { getData } = useRouterStore()
         const data = getData() as ServiceBill
         if (!data) {
           warning('未获取到识别结果')

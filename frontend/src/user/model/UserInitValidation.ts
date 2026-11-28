@@ -39,8 +39,7 @@ export const passwordRule: ValidationRule = (value) =>
   '密码必须为 8-72 位，且同时包含字母和数字，不能包含空白字符'
 
 export const nameRule: ValidationRule = (value) =>
-  (value.trim().length > 0 && value.trim().length <= 64) ||
-  '姓名不能为空且不能超过 64 个字符'
+  (value.trim().length > 0 && value.trim().length <= 64) || '姓名不能为空且不能超过 64 个字符'
 
 export const phoneRule: ValidationRule = (value) =>
   value.trim() === '' || PHONE_PATTERN.test(value.trim()) || '手机号格式不正确'

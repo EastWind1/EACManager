@@ -57,13 +57,11 @@ jobs:
         with:
           go-version: "1.27"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6.2.0
+      - name: Set up vite+
+        uses: voidzero-dev/setup-vp@v1.22.0
         with:
-          node-version: "24.21.0"
-
-      - name: Set up pnpm
-        run: npm i -g pnpm
+          node-version: 'lts'
+          cache: true
 
       - name: Build with script
         env: 

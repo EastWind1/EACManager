@@ -26,7 +26,9 @@
                 <v-col>
                   <div class="text-caption text-grey-darken-1">总金额</div>
                   <div class="text-headline-small font-weight-bold text-primary">
-                    ￥{{ reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00' }}
+                    ￥{{
+                      reimbursement.totalAmount ? reimbursement.totalAmount.toFixed(2) : '0.00'
+                    }}
                   </div>
                 </v-col>
               </v-row>
@@ -107,8 +109,8 @@
                 <v-btn
                   v-if="isEditState"
                   v-permission="
-                  reimbursement.id ? Permission.REIMBURSE_UPDATE : Permission.REIMBURSE_CREATE
-                "
+                    reimbursement.id ? Permission.REIMBURSE_UPDATE : Permission.REIMBURSE_CREATE
+                  "
                   :disabled="loading"
                   color="primary"
                   type="submit"
@@ -223,18 +225,18 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
-import {type Reimburse, ReimburseState} from '../model/Reimburse'
+import { computed, ref } from 'vue'
+import { type Reimburse, ReimburseState } from '../model/Reimburse'
 import ReimburseDetail from '../component/ReimburseDetail.vue'
 import ReimburseApi from '../api/ReimburseApi'
-import {storeToRefs} from 'pinia'
+import { storeToRefs } from 'pinia'
 import FormAttachDetail from '@/attachment/component/FormAttachDetail.vue'
-import {useRoute, useRouter} from 'vue-router'
-import {useUIStore} from '@/common/store/UIStore'
-import {useReimburseActions} from '../composable/ReimburseActions'
-import {Permission} from '../model/Permission'
-import {useDate} from 'vuetify/framework'
-import {useRouterStore} from '@/common/store/RouterStore'
+import { useRoute, useRouter } from 'vue-router'
+import { useUIStore } from '@/common/store/UIStore'
+import { useReimburseActions } from '../composable/ReimburseActions'
+import { Permission } from '../model/Permission'
+import { useDate } from 'vuetify/framework'
+import { useRouterStore } from '@/common/store/RouterStore'
 import {
   mdiCancel,
   mdiCheckCircle,
@@ -249,8 +251,8 @@ import {
 } from '@mdi/js'
 
 const store = useUIStore()
-const {loading} = storeToRefs(store)
-const {warning, success} = store
+const { loading } = storeToRefs(store)
+const { warning, success } = store
 const route = useRoute()
 const router = useRouter()
 const dateUtil = useDate()
@@ -323,7 +325,7 @@ async function cancel() {
   }
 }
 
-const {process, finish, remove, cancelProcess, cancelFinish} = useReimburseActions({
+const { process, finish, remove, cancelProcess, cancelFinish } = useReimburseActions({
   getKeyFn: () => reimbursement.value.number ?? String(reimbursement.value.id),
   callback: async (action) => {
     if (action === 'remove') {
@@ -355,7 +357,7 @@ async function init() {
         break
       // 导入
       case 'import':
-        const {getData} = useRouterStore()
+        const { getData } = useRouterStore()
         const importData = getData() as Reimburse
         if (!importData) {
           warning('未获取到识别结果')

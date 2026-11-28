@@ -74,8 +74,13 @@
               配置权限
               <span class="text-medium-emphasis">/ {{ editingRole?.name }}</span>
             </v-toolbar-title>
-            <v-chip v-if="editingRole?.disabled" class="me-2" color="error" size="small"
-                    variant="tonal">
+            <v-chip
+              v-if="editingRole?.disabled"
+              class="me-2"
+              color="error"
+              size="small"
+              variant="tonal"
+            >
               已禁用
             </v-chip>
             <v-spacer></v-spacer>
@@ -83,7 +88,7 @@
           </v-toolbar>
         </template>
         <template #text>
-          <v-alert v-if="editingRole?.code===ADMIN_ROLE" type="info" class="mb-2">
+          <v-alert v-if="editingRole?.code === ADMIN_ROLE" type="info" class="mb-2">
             管理员必须保留权限查看与变更权限
           </v-alert>
           <v-row>
@@ -124,12 +129,7 @@
         <template #actions>
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="permissionDialog = false">取消</v-btn>
-          <v-btn
-            :disabled="loading"
-            color="primary"
-            variant="flat"
-            @click="savePermissions"
-          >
+          <v-btn :disabled="loading" color="primary" variant="flat" @click="savePermissions">
             保存
           </v-btn>
         </template>
@@ -142,9 +142,8 @@
         <template #subtitle>
           <v-toolbar color="surface" density="comfortable">
             <v-icon :icon="mdiAccountCogOutline" color="primary" class="ms-4 me-2"></v-icon>
-            <v-toolbar-title class="text-h6">{{
-                roleForm.id ? '编辑角色' : '新增角色'
-              }}
+            <v-toolbar-title class="text-h6"
+              >{{ roleForm.id ? '编辑角色' : '新增角色' }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
             <v-btn :icon="mdiClose" variant="text" @click="roleDialog = false"></v-btn>
@@ -193,7 +192,7 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   mdiAccountCogOutline,
   mdiClose,
@@ -201,27 +200,27 @@ import {
   mdiFolderAccountOutline,
   mdiKeyOutline,
   mdiPencil,
-  mdiPlus
+  mdiPlus,
 } from '@mdi/js'
 import SecurityApi from '../api/SecurityApi'
-import type {Permission as PermissionDTO, Role} from '../model/Permission'
-import {Permission} from '../model/PermissionCode'
-import {useUserStore} from '@/user/store/UserStore'
-import {useUIStore} from '@/common/store/UIStore'
-import {storeToRefs} from "pinia";
+import type { Permission as PermissionDTO, Role } from '../model/Permission'
+import { Permission } from '../model/PermissionCode'
+import { useUserStore } from '@/user/store/UserStore'
+import { useUIStore } from '@/common/store/UIStore'
+import { storeToRefs } from 'pinia'
 
 const userStore = useUserStore()
 const uiStore = useUIStore()
-const {success, confirm} = uiStore
-const {loading} = storeToRefs(uiStore)
+const { success, confirm } = uiStore
+const { loading } = storeToRefs(uiStore)
 const ADMIN_ROLE = 'ADMIN'
 
 const roleHeaders = [
-  {title: '角色编码', key: 'code', sortable: true},
-  {title: '角色名称', key: 'name', sortable: false},
-  {title: '排序', key: 'sortOrder', sortable: true, align: 'end' as const},
-  {title: '状态', key: 'status', sortable: false},
-  {title: '操作', key: 'actions', sortable: false, align: 'end' as const},
+  { title: '角色编码', key: 'code', sortable: true },
+  { title: '角色名称', key: 'name', sortable: false },
+  { title: '排序', key: 'sortOrder', sortable: true, align: 'end' as const },
+  { title: '状态', key: 'status', sortable: false },
+  { title: '操作', key: 'actions', sortable: false, align: 'end' as const },
 ]
 
 const roles = ref<Role[]>([])
@@ -266,7 +265,6 @@ function isAdminGuard(code: string) {
   )
 }
 
-
 async function loadData() {
   const [roleList, permissionList] = await Promise.all([
     SecurityApi.getRoles(),
@@ -286,7 +284,6 @@ async function openPermissionDialog(role: Role) {
   selectedPermissionIds.value = (await SecurityApi.getRolePermissions(role.id)).map(
     (permission) => permission.id,
   )
-
 }
 
 function hasSelectable(module: { permissions: PermissionDTO[] }) {
@@ -298,7 +295,9 @@ function getModuleSelectState(module: { permissions: PermissionDTO[] }): number 
   if (selectable.length === 0) {
     return 2
   }
-  const selectedCount = selectable.filter((item) => selectedPermissionIds.value.includes(item.id)).length
+  const selectedCount = selectable.filter((item) =>
+    selectedPermissionIds.value.includes(item.id),
+  ).length
   if (selectedCount == 0) {
     return 0
   }
@@ -335,7 +334,6 @@ async function savePermissions() {
   await SecurityApi.updateRolePermissions(editingRole.value.id, selectedPermissionIds.value)
   permissionDialog.value = false
   success('权限保存成功')
-
 }
 
 function addRole() {
@@ -350,7 +348,7 @@ function addRole() {
 }
 
 function editRole(role: Role) {
-  roleForm.value = {...role}
+  roleForm.value = { ...role }
   roleValid.value = true
   roleDialog.value = true
 }

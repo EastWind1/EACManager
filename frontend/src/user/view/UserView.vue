@@ -20,11 +20,11 @@
           :items-length="data.totalCount"
           :items-per-page="data.pageSize ? data.pageSize : 25"
           :items-per-page-options="[
-      { value: 10, title: '10' },
-      { value: 25, title: '25' },
-      { value: 50, title: '50' },
-      { value: 100, title: '100' },
-    ]"
+            { value: 10, title: '10' },
+            { value: 25, title: '25' },
+            { value: 50, title: '50' },
+            { value: 100, title: '100' },
+          ]"
           show-select
           @update:options="loadItems"
         >
@@ -109,29 +109,29 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
-import {type User} from '../model/User'
-import {Permission} from '../model/Permission'
-import {mdiClose, mdiPencil, mdiPlus} from '@mdi/js'
+import { ref } from 'vue'
+import { type User } from '../model/User'
+import { Permission } from '../model/Permission'
+import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
 import UserApi from '../api/UserApi'
 import SecurityApi from '@/permission/api/SecurityApi'
-import type {Role} from '@/permission/model/Permission'
-import {useUIStore} from '@/common/store/UIStore'
-import type {PageResult} from '@/common/model/PageResult'
-import {useUserStore} from "@/user/store/UserStore.ts";
+import type { Role } from '@/permission/model/Permission'
+import { useUIStore } from '@/common/store/UIStore'
+import type { PageResult } from '@/common/model/PageResult'
+import { useUserStore } from '@/user/store/UserStore.ts'
 
 // 表头
 const headers = [
-  {title: '用户名', key: 'username', sortable: false},
-  {title: '名称', key: 'name', sortable: false},
-  {title: '电话', key: 'phone', sortable: false},
-  {title: '邮箱', key: 'email', sortable: false},
-  {title: '角色', key: 'roles', sortable: false},
+  { title: '用户名', key: 'username', sortable: false },
+  { title: '名称', key: 'name', sortable: false },
+  { title: '电话', key: 'phone', sortable: false },
+  { title: '邮箱', key: 'email', sortable: false },
+  { title: '角色', key: 'roles', sortable: false },
 ]
 
 const userStore = useUserStore()
 if (userStore.hasAnyPermission([Permission.USER_UPDATE, Permission.USER_DISABLE])) {
-  headers.push({title: '操作', key: 'actions', sortable: false})
+  headers.push({ title: '操作', key: 'actions', sortable: false })
 }
 
 // 角色列表
@@ -143,7 +143,7 @@ async function loadRoles() {
   roleOptions.value = roles.value.map((role) => ({
     title: role.name,
     value: role.code,
-    props: {disabled: role.disabled},
+    props: { disabled: role.disabled },
   }))
 }
 
@@ -183,7 +183,7 @@ const dialogData = ref<{
   show: false,
   title: '新增',
   valid: true,
-  user: {...USER_DEFAULT},
+  user: { ...USER_DEFAULT },
 })
 
 // 必填
@@ -216,7 +216,7 @@ async function loadItems(options: {
 
 // 添加
 function add() {
-  dialogData.value.user = {...USER_DEFAULT}
+  dialogData.value.user = { ...USER_DEFAULT }
   dialogRoles.value = ['USER']
   dialogData.value.title = '新增'
   dialogData.value.show = true
@@ -224,7 +224,7 @@ function add() {
 
 // 编辑
 function edit(user: User) {
-  dialogData.value.user = {...user, roles: user.roles ? [...user.roles] : []}
+  dialogData.value.user = { ...user, roles: user.roles ? [...user.roles] : [] }
   dialogRoles.value = user.roles?.map((role) => role.code) ?? []
   dialogData.value.user.password = undefined
   dialogData.value.user.passwordAgain = undefined
@@ -238,7 +238,7 @@ async function saveUser() {
     return
   }
 
-  const postUser = {...dialogData.value.user}
+  const postUser = { ...dialogData.value.user }
   postUser.roles = dialogRoles.value
     .map((code) => roles.value.find((role) => role.code === code))
     .filter((role): role is Role => !!role)
@@ -259,7 +259,7 @@ async function saveUser() {
 
 // 禁用
 async function disable(user: User) {
-  const {confirm} = useUIStore()
+  const { confirm } = useUIStore()
   if (user.id && (await confirm('确认', '确定要禁用该用户吗？'))) {
     await UserApi.disable(user.id)
     const index = data.value.items.findIndex((u) => u.id === user.id)

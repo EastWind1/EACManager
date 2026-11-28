@@ -10,7 +10,7 @@
           <v-container>
             <v-row>
               <v-col cols="12" md="4" sm="6" xl="3">
-                <v-text-field v-model="queryParam.number" clearable label="单号"/>
+                <v-text-field v-model="queryParam.number" clearable label="单号" />
               </v-col>
               <v-col cols="12" md="4" sm="6" xl="3">
                 <v-select
@@ -34,7 +34,7 @@
                 ></v-date-input>
               </v-col>
               <v-col cols="12" md="4" sm="6" xl="3">
-                <v-text-field v-model="queryParam.summary" clearable label="摘要"/>
+                <v-text-field v-model="queryParam.summary" clearable label="摘要" />
               </v-col>
               <v-col class="d-flex justify-end align-center">
                 <v-btn variant="tonal" @click="search = new Date().toString()">
@@ -102,9 +102,9 @@
               </v-btn>
               <div
                 v-permission="[
-                Permission.REIMBURSE_CANCEL_PROCESS,
-                Permission.REIMBURSE_CANCEL_FINISH,
-              ]"
+                  Permission.REIMBURSE_CANCEL_PROCESS,
+                  Permission.REIMBURSE_CANCEL_FINISH,
+                ]"
               >
                 <v-menu location="bottom">
                   <template #activator="{ props }">
@@ -152,8 +152,7 @@
                   <v-icon :icon="mdiExport"></v-icon>
                 </template>
                 导出
-              </v-btn
-              >
+              </v-btn>
             </v-row>
           </v-col>
         </v-row>
@@ -166,11 +165,11 @@
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 25"
       :items-per-page-options="[
-      { value: 10, title: '10' },
-      { value: 25, title: '25' },
-      { value: 50, title: '50' },
-      { value: 100, title: '100' },
-    ]"
+        { value: 10, title: '10' },
+        { value: 25, title: '25' },
+        { value: 50, title: '50' },
+        { value: 100, title: '100' },
+      ]"
       :search="search"
       :sort-by="queryParam.sorts"
       class="flex-grow-1"
@@ -197,7 +196,7 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
+import { ref } from 'vue'
 import {
   type Reimburse,
   type ReimburseQueryParam,
@@ -205,12 +204,12 @@ import {
   type ReimburseStateValue,
 } from '../model/Reimburse'
 import ReimburseApi from '../api/ReimburseApi'
-import type {PageResult} from '@/common/model/PageResult'
-import {useRoute, useRouter} from 'vue-router'
-import {useUIStore} from '@/common/store/UIStore'
-import {useReimburseActions} from '../composable/ReimburseActions'
-import {storeToRefs} from 'pinia'
-import {Permission} from '../model/Permission'
+import type { PageResult } from '@/common/model/PageResult'
+import { useRoute, useRouter } from 'vue-router'
+import { useUIStore } from '@/common/store/UIStore'
+import { useReimburseActions } from '../composable/ReimburseActions'
+import { storeToRefs } from 'pinia'
+import { Permission } from '../model/Permission'
 import {
   mdiCancel,
   mdiCheckCircle,
@@ -222,16 +221,16 @@ import {
   mdiSend,
   mdiTrashCan,
 } from '@mdi/js'
-import {useDate, useHotkey} from 'vuetify/framework'
-import {useRouterStore} from '@/common/store/RouterStore'
-import {useFileSelector} from '@/attachment/composable/FileSelector'
+import { useDate, useHotkey } from 'vuetify/framework'
+import { useRouterStore } from '@/common/store/RouterStore'
+import { useFileSelector } from '@/attachment/composable/FileSelector'
 
 const store = useUIStore()
-const {info, warning, showLoading} = store
-const {loading} = storeToRefs(store)
+const { info, warning, showLoading } = store
+const { loading } = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
-const {setData} = useRouterStore()
+const { setData } = useRouterStore()
 const dateUtil = useDate()
 
 // 筛选条件区域
@@ -280,24 +279,24 @@ const queryParam = ref<QueryParam>({
 // 处理路由参数
 if (route.query.hasOwnProperty('query')) {
   const data = JSON.parse(route.query['query'] as string) as QueryParam
-  queryParam.value = {...queryParam.value, ...data}
+  queryParam.value = { ...queryParam.value, ...data }
 } else {
   // 尝试从缓存恢复查询条件
   const cache = sessionStorage.getItem(QUERY_PARAM_CACHE_KEY)
   if (cache) {
     const data = JSON.parse(cache) as QueryParam
-    queryParam.value = {...queryParam.value, ...data}
+    queryParam.value = { ...queryParam.value, ...data }
   }
 }
 
 // 数据表格区域
 // 表头
 const headers = [
-  {title: '单号', key: 'number', sortable: false},
-  {title: '状态', key: 'state', sortable: false},
-  {title: '摘要', key: 'summary', sortable: false},
-  {title: '总金额', key: 'totalAmount', sortable: false},
-  {title: '报销日期', key: 'reimburseDate', sortable: false},
+  { title: '单号', key: 'number', sortable: false },
+  { title: '状态', key: 'state', sortable: false },
+  { title: '摘要', key: 'summary', sortable: false },
+  { title: '总金额', key: 'totalAmount', sortable: false },
+  { title: '报销日期', key: 'reimburseDate', sortable: false },
 ]
 
 // 列表数据
@@ -359,7 +358,7 @@ async function loadItems(options: {
 }
 
 // 动作结果
-const {process, finish, remove, cancelProcess, cancelFinish} = useReimburseActions({
+const { process, finish, remove, cancelProcess, cancelFinish } = useReimburseActions({
   getKeyFn: (id: number) => {
     const row = data.value.items.find((item) => item.id === id)
     return row?.number ?? String(id)
@@ -396,7 +395,7 @@ async function importFile() {
   setData(data)
   await router.push({
     path: '/reimburse',
-    query: {action: 'import'},
+    query: { action: 'import' },
   })
 }
 

@@ -25,15 +25,13 @@
                 </v-progress-circular>
               </div>
               <div v-else-if="isHovering" class="d-flex justify-center ga-2">
-                <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="preview(attach)"
-                  >
+                <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="preview(attach)">
                   <template #prepend>
                     <v-icon :icon="mdiMagnify"></v-icon>
                   </template>
                   预览</v-btn
                 >
-                <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="download(attach)"
-                  >
+                <v-btn v-permission="Permission.ATTACH_DOWNLOAD" @click="download(attach)">
                   <template #prepend>
                     <v-icon :icon="mdiDownload"></v-icon>
                   </template>
@@ -109,7 +107,7 @@
 
 <script lang="ts" setup>
 import { type Attach, AttachType } from '../model/Attach'
-import {mdiDownload, mdiMagnify, mdiPlus, mdiTrashCan} from '@mdi/js'
+import { mdiDownload, mdiMagnify, mdiPlus, mdiTrashCan } from '@mdi/js'
 import { defineAsyncComponent, onUnmounted, ref } from 'vue'
 import AttachApi from '../api/AttachApi'
 import { useUIStore } from '@/common/store/UIStore'

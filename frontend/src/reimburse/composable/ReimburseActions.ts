@@ -22,10 +22,7 @@ export function useReimburseActions(options: Options = {}) {
   const { getKeyFn, callback } = options
   const { warning, confirm, showBatchResult } = useUIStore()
 
-  async function invokeCallback(
-    action: ReimburseAction,
-    result: ActionsResult<number, void>,
-  ) {
+  async function invokeCallback(action: ReimburseAction, result: ActionsResult<number, void>) {
     await showBatchResult(result, getKeyFn)
     if (result.successCount > 0) {
       await callback?.(action)

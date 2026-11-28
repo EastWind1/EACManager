@@ -20,11 +20,11 @@
       :items-length="data.totalCount"
       :items-per-page="data.pageSize ? data.pageSize : 25"
       :items-per-page-options="[
-      { value: 10, title: '10' },
-      { value: 25, title: '25' },
-      { value: 50, title: '50' },
-      { value: 100, title: '100' },
-    ]"
+        { value: 10, title: '10' },
+        { value: 25, title: '25' },
+        { value: 50, title: '50' },
+        { value: 100, title: '100' },
+      ]"
       show-select
       @update:options="loadItems"
     >
@@ -80,21 +80,21 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
-import {Permission} from '../model/Permission'
-import {mdiClose, mdiPencil, mdiPlus} from '@mdi/js'
-import {useUIStore} from '@/common/store/UIStore'
-import type {Company} from '../model/Company'
+import { ref } from 'vue'
+import { Permission } from '../model/Permission'
+import { mdiClose, mdiPencil, mdiPlus } from '@mdi/js'
+import { useUIStore } from '@/common/store/UIStore'
+import type { Company } from '../model/Company'
 import CompanyApi from '../api/CompanyApi'
-import type {PageResult} from '@/common/model/PageResult'
+import type { PageResult } from '@/common/model/PageResult'
 
 // 表头
 const headers = [
-  {title: '名称', key: 'name', sortable: false},
-  {title: '联系人', key: 'contactName', sortable: false},
-  {title: '电话', key: 'contactPhone', sortable: false},
-  {title: '地址', key: 'address', sortable: false},
-  {title: '操作', key: 'actions', sortable: false},
+  { title: '名称', key: 'name', sortable: false },
+  { title: '联系人', key: 'contactName', sortable: false },
+  { title: '电话', key: 'contactPhone', sortable: false },
+  { title: '地址', key: 'address', sortable: false },
+  { title: '操作', key: 'actions', sortable: false },
 ]
 // 新增默认值
 const COMPANY_DEFAULT = {
@@ -127,7 +127,7 @@ const dialogData = ref<{
   // 表单是否合法
   valid: true,
   // 表单当前公司
-  company: {...COMPANY_DEFAULT},
+  company: { ...COMPANY_DEFAULT },
 })
 
 // 必填
@@ -153,14 +153,14 @@ async function loadItems(options: {
 
 // 添加
 function add() {
-  dialogData.value.company = {...COMPANY_DEFAULT}
+  dialogData.value.company = { ...COMPANY_DEFAULT }
   dialogData.value.title = '新增'
   dialogData.value.show = true
 }
 
 // 编辑
 function edit(company: Company) {
-  dialogData.value.company = {...company}
+  dialogData.value.company = { ...company }
   dialogData.value.title = '编辑'
   dialogData.value.show = true
 }
@@ -171,7 +171,7 @@ async function save() {
     return
   }
   // 上传公司信息，复制一份避免修改影响界面
-  const postCompany = {...dialogData.value.company}
+  const postCompany = { ...dialogData.value.company }
   // 修改
   if (postCompany.id) {
     const index = data.value.items.findIndex((u) => u.id === postCompany.id)
@@ -186,7 +186,7 @@ async function save() {
 
 // 禁用
 async function disable(company: Company) {
-  const {confirm} = useUIStore()
+  const { confirm } = useUIStore()
   if (company.id && (await confirm('确认', '确定要禁用该公司吗？'))) {
     await CompanyApi.disable(company.id)
     const index = data.value.items.findIndex((u) => u.id === company.id)

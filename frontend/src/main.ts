@@ -42,8 +42,8 @@ const vuetify = createVuetify({
     },
     VCheckbox: {
       variant: 'outlined',
-      density: "compact",
-      color: "primary",
+      density: 'compact',
+      color: 'primary',
     },
     VSelect: {
       variant: 'outlined',

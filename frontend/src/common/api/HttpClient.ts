@@ -27,7 +27,7 @@ export interface HttpConfig {
   /**
    * 取消信号
    */
-  signal?: AbortSignal,
+  signal?: AbortSignal
   /**
    * 是否内部处理异常
    */
@@ -182,7 +182,7 @@ export class HttpClient {
         endLoading()
       }
     }
-  };
+  }
 
   /**
    * 防抖包装：同 key 只保留最后一次请求，被取代时返回 undefined。
@@ -195,7 +195,7 @@ export class HttpClient {
       const controller = new AbortController()
       this.pending.set(requestKey, controller)
       try {
-        return await requestMethod({...cfg, signal: controller.signal})
+        return await requestMethod({ ...cfg, signal: controller.signal })
       } catch (error) {
         if (axios.isCancel(error)) {
           return undefined

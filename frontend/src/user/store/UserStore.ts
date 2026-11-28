@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { User } from '../model/User'
-import UserApi from '../api/UserApi'
 
 /**
  * 用户存储
@@ -28,18 +27,12 @@ export const useUserStore = defineStore('userStore', () => {
     }
   }
 
-  // 当前登录会话是否已刷新权限。
-  let permissionsRefreshed = false
-  // 进行中的刷新请求。
-  let refreshing: Promise<boolean> | undefined
-
   /**
    * 设置当前用户
    */
   function setUser(value: User) {
     localStorage.setItem(USER_KEY, JSON.stringify(value))
     user.value = value
-    permissionsRefreshed = true
   }
 
   /**
@@ -55,8 +48,6 @@ export const useUserStore = defineStore('userStore', () => {
   function removeUser() {
     user.value = undefined
     localStorage.removeItem(USER_KEY)
-    permissionsRefreshed = false
-    refreshing = undefined
   }
 
   /**
